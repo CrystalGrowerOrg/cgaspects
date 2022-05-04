@@ -1,4 +1,5 @@
-import .find_data
-import .calc_data
+from calc_data import Calculate
+from find_data import Run
 
-__all__ = ['', '']
+__all__ = ['Calculate',
+            'Run']
