@@ -60,17 +60,9 @@ class CrystalShape:
 
         return self.distance
 
-    def get_PCA(self, folderpath, n=3, max_iter=2):
+    def get_PCA(self, file, n=3):
 
-        for file in Path(folderpath).iterdir():
-
-            if not file.suffix == '.XYZ':
-                continue
-            if max_iter <= 0:
-                break
-            max_iter -= 1
-
-            xyz = self.read_XYZ(file)
+        xyz = self.read_XYZ(filepath=file)
 
         pca = PCA(n_components=n)
         pca.fit(self.normalise_verts(xyz))
@@ -78,15 +70,9 @@ class CrystalShape:
         pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
 
-        print(pca_vectors)
-        print(pca_values)
-        print(pca_svalues)
+        # print(pca_vectors)
+        # print(pca_values)
+        # print(pca_svalues)
 
         return pca_svalues
 
-    def get_aspectratio_PCA(self, pca_vals):
-        self.long, self.medium, self.small = (sorted(pca_vals))
-        
-        print(self.long, self.medium, self.small)
-
-        return (self.small/self.medium, self.medium/self.long)
