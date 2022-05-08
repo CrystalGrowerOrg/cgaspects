@@ -78,8 +78,35 @@ class Run:
         if self.method == 'Crystallographic':
             return self.build_AR_Crystallographic(folder)
 
-    def build_SPH_distance(self, subfolder):
+    def build_SPH_distance(self, subfolder, ref_shape):
         aspects_folder = self.create_aspects_folder(subfolder)
+        distance_array = np.empty((0, 2), np.float64)
+
+        shape = cs(10)
+        ref_coeffs = shape.reference_shape(ref_shape)
+
+        for file in Path(subfolder).iterdir():
+            # print(file)
+            if not file.suffix == '.XYZ':
+                continue
+
+            sim_num = re.findall(r'\d+', Path(file).name)[-1]
+            try:
+                coeffs = shape.get_coeffs(filepath=file)
+                distance = shape.compare_shape(ref_coeffs=ref_coeffs,
+                                               shape_coeffs=coeffs)
+                arr_data = np.array([[sim_num, distance]])
+
+                distance_array = np.append(distance_array, arr_data, axis=0)
+                print(distance_array.shape)
+            except StopIteration:
+                continue
+
+        df = pd.DataFrame(distance_array, columns=['Simulation Number',
+                                                   'Distance'])
+        aspects_folder = self.create_aspects_folder(subfolder)
+        sph_csv = f'{aspects_folder}/SpH_compare.csv'
+        df.to_csv(sph_csv)
 
     def build_SAVAR(self):
         pass

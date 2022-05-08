@@ -27,25 +27,14 @@ class CrystalShape:
         self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
         return self.xyz
 
-    def get_coeffs(self, folderpath, max_iter=2):
+    def get_coeffs(self, filepath):
 
-        t1 = time.time()
-        for file in Path(self, folderpath).iterdir():
+        xyz = self.read_XYZ(filepath)
+        self.hull = ConvexHull(self.normalise_verts(xyz))
+        self.coeffs = transform_hull(self.sht, self.hull)
 
-            if not file.suffix == '.XYZ':
-                continue
-            if max_iter <= 0:
-                break
-            max_iter -= 1
-
-            xyz = self.read_XYZ(file)
-            self.hull = ConvexHull(self.normalise_verts(xyz))
-            self.coeffs = transform_hull(self.sht, self.hull)
-
-            print(self.hull)
-            print(f'Time taken: {time.time() - t1}\n')
-
-            return self.coeffs
+        print(self.hull)
+        return self.coeffs
 
     def reference_shape(self, stlpath):
 
