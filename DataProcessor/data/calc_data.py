@@ -12,9 +12,15 @@ class Calculate:
         pass
 
     def aspectratio_pca(self, pca_vals):
-        self.long, self.medium, self.small = (sorted(pca_vals))
+        self.small, self.medium, self.long = (sorted(pca_vals))
         
         self.aspect1 = self.small / self.medium
         self.aspect2 = self.medium / self.long
 
-        return [self.long, self.medium, self.small, self.aspect1, self.aspect2]
+        aspect_array = np.array([[self.small,
+                                self.medium,
+                                self.long,
+                                self.aspect1,
+                                self.aspect2]])
+        
+        return aspect_array

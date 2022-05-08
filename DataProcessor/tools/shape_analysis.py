@@ -66,8 +66,8 @@ class CrystalShape:
 
         pca = PCA(n_components=n)
         pca.fit(self.normalise_verts(xyz))
-        pca_vectors = pca.components_
-        pca_values = pca.explained_variance_ratio_
+        # pca_vectors = pca.components_
+        # pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
 
         # print(pca_vectors)
