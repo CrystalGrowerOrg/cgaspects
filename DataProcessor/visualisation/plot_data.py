@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import os
+import plotly.express as px
 
 
 class Plotting:
@@ -13,7 +14,7 @@ class Plotting:
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def build_PCAZinng(self, csv='', df='', folderpath='.'):
+    def build_PCAZinng(self, csv='', df='', folderpath='.', i_plot=False):
         if df == '':
             df = pd.read_csv(csv)
 
@@ -22,7 +23,8 @@ class Plotting:
 
         savefolder = self.create_plots_folder(folderpath)
 
-        interactions = [col for col in df.columns if col.startswith('interaction')]
+        interactions = [col for col in df.columns
+                        if col.startswith('interaction')]
 
         x_data = df['S:M']
         y_data = df['M:L']
@@ -47,3 +49,9 @@ class Plotting:
             cbar.set_label(r'$\Delta G_{Crystallisation}$ (kcal/mol)')
             savepath = f'{savefolder}/PCAZingg_{interaction}'
             plt.savefig(savepath)
+
+            if i_plot:
+                fig = px.scatter(df, x="S:M", y="M:L", color=interaction,
+                                 hover_data=['Simulation Number'])
+                fig.write_html(f'{savefolder}/PCAZingg_{interaction}.html')
+                fig.show()

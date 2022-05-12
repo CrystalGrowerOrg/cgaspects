@@ -11,7 +11,7 @@ from chmpy.shape.sht import SHT
 
 
 class CrystalShape:
-    
+
     def __init__(self, l_max=10):
         self.sht = SHT(l_max)
 
@@ -50,8 +50,11 @@ class CrystalShape:
         return self.distance
 
     def get_PCA(self, file, n=3):
-
+        from time import time
+        # t0 = time()
         xyz = self.read_XYZ(filepath=file)
+        t1 = time()
+        # print("read", t1 - t0)
 
         pca = PCA(n_components=n)
         pca.fit(self.normalise_verts(xyz))

@@ -20,7 +20,7 @@ class Run:
         return aspects_folder
 
     def build_AR_PCA(self, subfolder):
-
+        # from time import time
         # print(subfolder)
         aspects_folder = self.create_aspects_folder(subfolder)
 
@@ -29,6 +29,7 @@ class Run:
 
         for file in Path(subfolder).iterdir():
             # print(file)
+            # t0 = time()
             if not file.suffix == '.XYZ':
                 continue
 
@@ -47,6 +48,8 @@ class Run:
 
             except StopIteration:
                 continue
+            # t1 = time()
+            # print("tot", t1 - t0)
 
         print(final_array.shape)
 
@@ -111,41 +114,59 @@ class Run:
     def build_SAVAR(self):
         pass
 
-    def summary_compare(self, summary_csv, aspect_csv='', aspect_df=''):
+    def summary_compare(self, summary_csv, aspect_csv='',
+                        aspect_df='', cg_version='new'):
 
         summary_df = pd.read_csv(summary_csv)
-        
+
         if aspect_df == '':
             aspect_df = pd.read_csv(aspect_csv)
 
         summary_cols = summary_df.columns
         aspect_cols = aspect_df.columns[1:]
 
-        search = summary_df.iloc[0, 0]
-        search = search.split('_')
-        search_string = '_'.join(search[:-1])
+        if cg_version == 'new':
 
-        int_cols = summary_cols[1:]
-        summary_df = summary_df.set_index(summary_cols[0])
-        compare_array = np.empty((0, 7 + len(int_cols)))
+            search = summary_df.iloc[0, 0]
+            search = search.split('_')
+            search_string = '_'.join(search[:-1])
 
-        for index, row in aspect_df.iterrows():
-            sim_num = int(row['Simulation Number'] - 1)
-            num_string = f'{search_string}_{sim_num}'
-            print(num_string)
-            aspect_row = row.values
-            aspect_row = np.array([aspect_row])
-            collect_row = summary_df.filter(items=[num_string], axis=0).values
-            print(collect_row)
-            collect_row = np.concatenate([aspect_row, collect_row], axis=1)
-            compare_array = np.append(compare_array, collect_row, axis=0)
-            print(compare_array.shape)
-            # summary_df = summary_df.drop(index=[sim_num])
+            int_cols = summary_cols[1:]
+            summary_df = summary_df.set_index(summary_cols[0])
+            compare_array = np.empty((0, 7 + len(int_cols)))
+
+            for index, row in aspect_df.iterrows():
+                sim_num = int(row['Simulation Number'] - 1)
+                num_string = f'{search_string}_{sim_num}'
+                print(num_string)
+                aspect_row = row.values
+                aspect_row = np.array([aspect_row])
+                collect_row = summary_df.filter(items=[num_string],
+                                                axis=0).values
+                print(collect_row)
+                collect_row = np.concatenate([aspect_row, collect_row], axis=1)
+                compare_array = np.append(compare_array, collect_row, axis=0)
+                print(compare_array.shape)
+
+        if cg_version == 'old':
+            int_cols = summary_cols[1:]
+            compare_array = np.empty((0, 6 + len(int_cols)))
+
+            for index, row in aspect_df.iterrows():
+                sim_num = int(row['Simulation Number'] - 1)
+                aspect_row = row.values[1:]
+                aspect_row = np.array([aspect_row])
+                print(aspect_row)
+                collect_row = [summary_df.iloc[sim_num].values[1:]]
+                print(collect_row)
+                collect_row = np.concatenate([aspect_row, collect_row], axis=1)
+                compare_array = np.append(compare_array, collect_row, axis=0)
+                print(compare_array.shape)
 
         print(aspect_cols, int_cols)
         cols = aspect_cols.append(int_cols)
         print(f'COLS:::: {cols}')
-        compare_df = pd.DataFrame(compare_array[:, 1:], columns=cols)
+        compare_df = pd.DataFrame(compare_array[:, :], columns=cols)
         print(compare_df)
         full_df = compare_df.sort_values(by=['Simulation Number'],
                                          ignore_index=True)
