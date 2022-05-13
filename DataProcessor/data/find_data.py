@@ -126,6 +126,8 @@ class Run:
         aspect_cols = aspect_df.columns[1:]
 
         if cg_version == 'new':
+            '''This allows the user to pick the two different 
+            summary file verions from CrystalGrower'''
 
             search = summary_df.iloc[0, 0]
             search = search.split('_')
