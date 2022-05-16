@@ -55,3 +55,34 @@ class Plotting:
                                  hover_data=['Simulation Number'])
                 fig.write_html(f'{savefolder}/PCAZingg_{interaction}.html')
                 fig.show()
+
+    def sph_plot(self, csv, mode=1):
+        savefolder = self.create_plots_folder(Path(csv).parents[0])
+
+        df = pd.read_csv(csv)
+        interactions = [col for col in df.columns
+                        if col.startswith('interaction')]
+        if mode == 1:
+
+            for i in interactions:
+                fig = px.scatter_3d(df, x='S:M',
+                                    y='M:L',
+                                    z='Distance',
+                                    color=i,
+                                    hover_data=['Simulation Number'])
+                fig.write_html(f'{savefolder}/SPH_D_Zingg_{i}.html')
+                fig.show()
+
+        if mode == 2:
+            window_size = 2
+
+            for i in range(len(interactions) - window_size + 1):
+                int_window = interactions[i: i + window_size]
+                fig = px.scatter_3d(df, x=int_window[0],
+                                    y=int_window[1],
+                                    z='Distance',
+                                    hover_data=['Simulation Number'])
+                fig.write_html(f'{savefolder}/SPH_ints_{i}.html')
+                fig.show()
+
+            

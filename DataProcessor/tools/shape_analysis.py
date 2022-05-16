@@ -1,9 +1,6 @@
-import os
 import numpy as np
 from pathlib import Path
-import time
 import trimesh
-import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from chmpy.shape.convex_hull import transform_hull
@@ -36,13 +33,17 @@ class CrystalShape:
         print(self.hull)
         return self.coeffs
 
-    def reference_shape(self, stlpath):
+    def reference_shape(self, shapepath):
+        if Path(shapepath).suffix == '.XYZ':
+            self.coeffs = self.get_coeffs(shapepath)
 
-        mesh = trimesh.load(stlpath)
-        norm_verts = self.normalise_verts(mesh.vertices)
-        self.stl_hull = ConvexHull(norm_verts)
+        else:
+            mesh = trimesh.load(shapepath)
+            norm_verts = self.normalise_verts(mesh.vertices)
+            self.stl_hull = ConvexHull(norm_verts)
+            self.coeffs = transform_hull(self.sht, self.stl_hull)
 
-        return transform_hull(self.sht, self.stl_hull)
+        return self.coeffs
 
     def compare_shape(self, ref_coeffs, shape_coeffs):
         self.distance = np.linalg.norm(ref_coeffs - shape_coeffs)
@@ -50,11 +51,7 @@ class CrystalShape:
         return self.distance
 
     def get_PCA(self, file, n=3):
-        from time import time
-        # t0 = time()
         xyz = self.read_XYZ(filepath=file)
-        t1 = time()
-        # print("read", t1 - t0)
 
         pca = PCA(n_components=n)
         pca.fit(self.normalise_verts(xyz))
@@ -67,4 +64,3 @@ class CrystalShape:
         # print(pca_svalues)
 
         return pca_svalues
-
