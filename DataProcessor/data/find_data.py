@@ -107,6 +107,8 @@ class Run:
 
         df = pd.DataFrame(distance_array, columns=['Simulation Number',
                                                    'Distance'])
+        df = df.sort_values(by=['Simulation Number'],
+                            ignore_index=True)
         aspects_folder = self.create_aspects_folder(subfolder)
         sph_csv = f'{aspects_folder}/SpH_compare.csv'
         df.to_csv(sph_csv)
