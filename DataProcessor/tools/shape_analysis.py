@@ -4,6 +4,7 @@ import trimesh
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from chmpy.shape.convex_hull import transform_hull
+from chmpy.shape.reconstruct import reconstruct
 from chmpy.shape.sht import SHT
 
 
@@ -30,7 +31,6 @@ class CrystalShape:
         self.hull = ConvexHull(self.normalise_verts(xyz))
         self.coeffs = transform_hull(self.sht, self.hull)
 
-        print(self.hull)
         return self.coeffs
 
     def reference_shape(self, shapepath):
@@ -64,3 +64,29 @@ class CrystalShape:
         # print(pca_svalues)
 
         return pca_svalues
+
+    def get_PCA_all(self, file, n=3):
+        points = self.read_XYZ(filepath=file)
+
+        pca = PCA(n_components=n)
+        pca.fit(self.normalise_verts(points))
+        pca_vectors = pca.components_
+        pca_values = pca.explained_variance_ratio_
+        pca_svalues = pca.singular_values_
+
+        # print(pca_vectors)
+        # print(pca_values)
+        # print(pca_svalues)
+
+        return (pca_svalues, pca_values, pca_vectors, points)
+
+    def coeff_to_xyz(self, coeffs, path,
+                    index=0,
+                    name=''):
+        points = list(reconstruct(coefficients=coeffs))
+        n_points = len(points)
+        filepath = Path(path) / f'reconstructed_{index}.txt'
+        with open(filepath, 'w') as xyz_file:
+            xyz_file.write(f'{n_points}\n{filepath}\n')
+            for line in points:
+                xyz_file.write(f'{line[0]}  {line[1]}  {line[2]}\n')
