@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import re
 from pathlib import Path
-from natsort import natsorted
 from DataProcessor.tools.shape_analysis import CrystalShape as cs
 from DataProcessor.data.calc_data import Calculate as calc
 
@@ -20,36 +19,31 @@ class Run:
         return aspects_folder
 
     def build_AR_PCA(self, subfolder):
-        # from time import time
-        # print(subfolder)
         aspects_folder = self.create_aspects_folder(subfolder)
 
         final_array = np.empty((0, 6), np.float64)
         print(final_array.shape)
 
         for file in Path(subfolder).iterdir():
-            # print(file)
-            # t0 = time()
-            if not file.suffix == '.XYZ':
-                continue
+            if file.suffix == '.XYZ':
 
-            sim_num = re.findall(r'\d+', Path(file).name)[-1]
-            shape = cs(10)
-            try:
-                vals = shape.get_PCA(file=file)
-                # print(vals)
+                sim_num = re.findall(r'\d+', Path(file).name)[-1]
+                shape = cs(10)
+                try:
+                    vals = shape.get_PCA(file=file)
+                    # print(vals)
 
-                calculator = calc()
-                ar_data = calculator.aspectratio_pca(pca_vals=vals)
-                ar_data = np.insert(ar_data, 0, sim_num, axis=1)
+                    calculator = calc()
+                    ar_data = calculator.aspectratio_pca(pca_vals=vals)
+                    ar_data = np.insert(ar_data, 0, sim_num, axis=1)
 
-                final_array = np.append(final_array, ar_data, axis=0)
-                print(final_array.shape)
+                    final_array = np.append(final_array, ar_data, axis=0)
+                    print(final_array.shape)
 
-            except StopIteration:
-                continue
-            # t1 = time()
-            # print("tot", t1 - t0)
+                except StopIteration:
+                    continue
+                except UnicodeDecodeError:
+                    continue
 
         print(final_array.shape)
 
@@ -81,36 +75,51 @@ class Run:
         if self.method == 'Crystallographic':
             return self.build_AR_Crystallographic(folder)
 
-    def build_SPH_distance(self, subfolder, ref_shape):
+    def build_SPH_distance(self, subfolder,
+                           ref_shape_list,
+                           id_list=['Distance']):
+
         aspects_folder = self.create_aspects_folder(subfolder)
-        distance_array = np.empty((0, 2), np.float64)
+
+        n_refs = len(ref_shape_list)
+        distance_array = np.empty((0, 1 + n_refs), np.float64)
 
         shape = cs(10)
-        ref_coeffs = shape.reference_shape(ref_shape)
+        ref_coeffs_list = []
+
+        for ref_shape in ref_shape_list:
+            ref_coeffs = shape.reference_shape(ref_shape)
+            ref_coeffs_list.append(ref_coeffs)
 
         for file in Path(subfolder).iterdir():
-            # print(file)
             if not file.suffix == '.XYZ':
                 continue
+            distance_list = []
 
             sim_num = re.findall(r'\d+', Path(file).name)[-1]
             try:
                 coeffs = shape.get_coeffs(filepath=file)
-                distance = shape.compare_shape(ref_coeffs=ref_coeffs,
-                                               shape_coeffs=coeffs)
-                arr_data = np.array([[sim_num, distance]])
+                for ref_coeffs in ref_coeffs_list:
+                    distance = shape.compare_shape(ref_coeffs=ref_coeffs,
+                                                   shape_coeffs=coeffs)
+                    distance_list.append(distance)
+                arr_data = np.array([[sim_num, *distance_list]])
 
                 distance_array = np.append(distance_array, arr_data, axis=0)
                 print(distance_array.shape)
+
             except StopIteration:
+                continue
+            except UnicodeDecodeError:
                 continue
 
         df = pd.DataFrame(distance_array, columns=['Simulation Number',
-                                                   'Distance'])
+                                                   *id_list])
         df = df.sort_values(by=['Simulation Number'],
                             ignore_index=True)
         aspects_folder = self.create_aspects_folder(subfolder)
         sph_csv = f'{aspects_folder}/SpH_compare.csv'
+        print(df)
         df.to_csv(sph_csv)
 
     def build_SAVAR(self):
@@ -128,7 +137,7 @@ class Run:
         aspect_cols = aspect_df.columns[1:]
 
         if cg_version == 'new':
-            '''This allows the user to pick the two different 
+            '''This allows the user to pick the two different
             summary file verions from CrystalGrower'''
 
             search = summary_df.iloc[0, 0]
