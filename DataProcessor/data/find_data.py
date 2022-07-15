@@ -60,8 +60,47 @@ class Run:
 
         return df
 
-    def build_AR_Crystallographic(self):
-        pass
+    def build_AR_Crystallographic(self, file):
+        filepath = Path(file)
+        df = pd.read_csv(filepath)
+        
+        final_array = np.empty((0, 6), np.float64)
+        print(final_array.shape)
+
+        for index, row in df.iterrows():
+            index =+ 1
+            try:
+                vals = row[1:4].values
+                # print(vals)
+
+                calculator = calc()
+                ar_data = calculator.aspectratio_pca(pca_vals=vals)
+                ar_data = np.insert(ar_data, 0, index, axis=1)
+
+                final_array = np.append(final_array, ar_data, axis=0)
+                print(final_array.shape)
+
+            except StopIteration:
+                continue
+            except UnicodeDecodeError:
+                continue
+
+        print(final_array.shape)
+
+        # Converting np array to pandas df
+        df = pd.DataFrame(final_array, columns=['Simulation Number',
+                                                'Small',
+                                                'Medium',
+                                                'Long',
+                                                'S:M',
+                                                'M:L'])
+        aspects_folder = filepath.parents[0] / 'CrystalAspects'
+        aspects_folder.mkdir(parents=True, exist_ok=True)
+        aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
+        df.to_csv(aspect_csv)
+
+        return df
+
 
     def aspect_ratio_csv(self, folder, method=0):
         if method == 0:
@@ -76,7 +115,7 @@ class Run:
             return self.build_AR_Crystallographic(folder)
 
     def build_SPH_distance(self, subfolder,
-                           ref_shape_list,
+                           ref_shape_list, l_max=20,
                            id_list=['Distance']):
 
         aspects_folder = self.create_aspects_folder(subfolder)
@@ -84,7 +123,7 @@ class Run:
         n_refs = len(ref_shape_list)
         distance_array = np.empty((0, 1 + n_refs), np.float64)
 
-        shape = cs(10)
+        shape = cs(l_max)
         ref_coeffs_list = []
 
         for ref_shape in ref_shape_list:

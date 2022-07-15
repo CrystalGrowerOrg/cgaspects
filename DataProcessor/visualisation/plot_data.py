@@ -15,19 +15,6 @@ from mpl_toolkits.mplot3d import proj3d
 # Current Project imports
 # from DataProcessor.tools.shape_analysis import CrystalShape
 
-class Arrow3D(FancyArrowPatch):
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
-        self._verts3d = xs, ys, zs
-        print('INITIALISED')
-
-
-    def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-        FancyArrowPatch.draw(self, renderer)
-
 class Plotting:
 
     def create_plots_folder(self, path):
@@ -39,13 +26,15 @@ class Plotting:
         if df == '':
             df = pd.read_csv(csv)
 
+
         if csv != '':
             folderpath = Path(csv).parents[0]
 
         savefolder = self.create_plots_folder(folderpath)
 
         interactions = [col for col in df.columns
-                        if col.startswith('interaction')]
+                        if col.startswith('interaction') or col.startswith('tile')]
+        
 
         x_data = df['S:M']
         y_data = df['M:L']
@@ -57,7 +46,7 @@ class Plotting:
             props = dict(boxstyle='square', facecolor='white')
 
             plt.figure()
-
+            print('FIG')
             plt.scatter(x_data, y_data, c=c_df, cmap='plasma', s=1.2)
             plt.axhline(y=0.66, color='black', linestyle='--')
             plt.axvline(x=0.66, color='black', linestyle='--')
@@ -69,7 +58,7 @@ class Plotting:
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r'$\Delta G_{Crystallisation}$ (kcal/mol)')
             savepath = f'{savefolder}/PCAZingg_{interaction}'
-            plt.savefig(savepath)
+            plt.savefig(savepath, dpi=300)
 
             if i_plot:
                 fig = px.scatter(df, x="S:M", y="M:L", color=interaction,
@@ -107,6 +96,36 @@ class Plotting:
                                     hover_data=['Simulation Number'])
                 fig.write_html(f'{savefolder}/SPH_ints_{i}.html')
                 fig.show()
+    def sph_plot_SvL(self, csv, mode=1):
+        savefolder = self.create_plots_folder(Path(csv).parents[0])
+
+        df = pd.read_csv(csv)
+        interactions = [col for col in df.columns
+                        if col.startswith('interaction')]
+        solvents = [col for col in df.columns
+                    if col.startswith('distance')]
+        if mode == 1:
+            for sol in solvents:
+                for i in interactions:
+                    fig = px.scatter_3d(df, x='Small',
+                                        y='Long',
+                                        z=sol,
+                                        color=i,
+                                        hover_data=['Simulation Number'])
+                    fig.write_html(f'{savefolder}/SPH_SvL_D_Zingg_{sol}_{i}.html')
+                    # fig.show()
+
+        if mode == 2:
+            window_size = 2
+
+            for i in range(len(interactions) - window_size + 1):
+                int_window = interactions[i: i + window_size]
+                fig = px.scatter_3d(df, x=int_window[0],
+                                    y=int_window[1],
+                                    z='Distance',
+                                    hover_data=['Simulation Number'])
+                fig.write_html(f'{savefolder}/SPH_ints_{i}.html')
+                # fig.show()
 
     def read_XYZ(self, filepath):
         self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
