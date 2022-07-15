@@ -22,7 +22,13 @@ class CrystalShape:
         return self.centered
 
     def read_XYZ(self, filepath):
-        self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
+        filepath = Path(filepath)
+
+        if filepath.suffix == '.XYZ':
+            self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
+        if filepath.suffix == '.xyz':
+            self.xyz = np.loadtxt(filepath, skiprows=2)
+        
         return self.xyz
 
     def get_coeffs(self, filepath):
@@ -51,17 +57,30 @@ class CrystalShape:
         return self.distance
 
     def get_PCA(self, file, n=3):
-        xyz = self.read_XYZ(filepath=file)
 
+        file = Path(file)
+        filetype = file.suffix
         pca = PCA(n_components=n)
-        pca.fit(self.normalise_verts(xyz))
+
+        if filetype is '.XYZ' or '.xyz':
+            self.xyz = self.read_XYZ(filepath=file)
+            pca.fit(self.normalise_verts(self.xyz))
+        
+        if filetype == '.stl':
+            mesh = trimesh.load(file)
+            norm_verts = self.normalise_verts(mesh.vertices)
+            self.stl_hull = ConvexHull(norm_verts)
+            self.coeffs = transform_hull(self.sht, self.stl_hull)
+            self.points = list(reconstruct(coefficients=self.coeffs))
+            pca.fit(self.points)
+
         # pca_vectors = pca.components_
         # pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
 
         # print(pca_vectors)
         # print(pca_values)
-        # print(pca_svalues)
+        # print(pca_svalues)s
 
         return pca_svalues
 
@@ -80,13 +99,20 @@ class CrystalShape:
 
         return (pca_svalues, pca_values, pca_vectors, points)
 
-    def coeff_to_xyz(self, coeffs, path,
+    def coeff_to_xyz(self, coeffs, 
+                    path='.',
                     index=0,
-                    name=''):
-        points = list(reconstruct(coefficients=coeffs))
-        n_points = len(points)
-        filepath = Path(path) / f'reconstructed_{index}.txt'
-        with open(filepath, 'w') as xyz_file:
-            xyz_file.write(f'{n_points}\n{filepath}\n')
-            for line in points:
-                xyz_file.write(f'{line[0]}  {line[1]}  {line[2]}\n')
+                    name='',
+                    write_txt=False):
+        
+        self.points = list(reconstruct(coefficients=coeffs))
+
+        if write_txt:
+            n_points = len(self.points)
+            filepath = Path(path) / f'xyz_{name}_{index}.txt'
+            with open(filepath, 'w') as xyz_file:
+                xyz_file.write(f'{n_points}\n{filepath}\n')
+                for line in self.points:
+                    xyz_file.write(f'{line[0]}  {line[1]}  {line[2]}\n')
+
+        return self.points
