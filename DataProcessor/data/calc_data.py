@@ -8,11 +8,11 @@ class Calculate:
     def __init__(self):
         pass
 
-    def aspectratio_crystallographic(self):
+    def aspectratio_cda_eq(self):
         pass
 
-    def aspectratio_pca(self, pca_vals):
-        self.small, self.medium, self.long = (sorted(pca_vals))
+    def aspectratio(self, vals):
+        self.small, self.medium, self.long = (sorted(vals))
         
         self.aspect1 = self.small / self.medium
         self.aspect2 = self.medium / self.long
