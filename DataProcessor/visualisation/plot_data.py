@@ -22,7 +22,7 @@ class Plotting:
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def build_PCAZinng(self, csv='', df='', folderpath='.', i_plot=False):
+    def build_PCAZinng(self, csv='', df='', folderpath='./outputs', i_plot=False):
         if df == '':
             df = pd.read_csv(csv)
 
@@ -96,6 +96,7 @@ class Plotting:
                                     hover_data=['Simulation Number'])
                 fig.write_html(f'{savefolder}/SPH_ints_{i}.html')
                 fig.show()
+
     def sph_plot_SvL(self, csv, mode=1):
         savefolder = self.create_plots_folder(Path(csv).parents[0])
 
@@ -127,34 +128,6 @@ class Plotting:
                 fig.write_html(f'{savefolder}/SPH_ints_{i}.html')
                 # fig.show()
 
-    def read_XYZ(self, filepath):
-        self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
-        return self.xyz
-    
-    def normalise_verts(self, verts):
-
-        self.centered = verts - np.mean(verts, axis=0)
-        norm = np.linalg.norm(self.centered, axis=1).max()
-        self.centered /= norm
-
-        return self.centered
-    
-    def get_PCA_all(self, file, n=3):
-        points = self.read_XYZ(filepath=file)
-        points_norm = self.normalise_verts(points)
-        pca = PCA(n_components=n)
-        pca.fit(points_norm)
-        pca_vectors = pca.components_
-        pca_values = pca.explained_variance_ratio_
-        pca_svalues = pca.singular_values_
-
-        # print(pca_vectors)
-        # print(pca_values)
-        # print(pca_svalues)
-
-        return (pca_svalues, pca_values, pca_vectors, points_norm)
-
-    
     def visualise_pca(self, xyz):
         savefolder = self.create_plots_folder(Path(xyz).parents[0])
 

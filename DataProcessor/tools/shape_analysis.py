@@ -28,18 +28,22 @@ class CrystalShape:
             self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
         if filepath.suffix == '.xyz':
             self.xyz = np.loadtxt(filepath, skiprows=2)
+        if filepath == '.stl':
+            self.xyz = trimesh.load(filepath)
+        
         
         return self.xyz
 
-    def get_coeffs(self, filepath):
+    def get_coeffs(self, xyz_vals):
 
-        xyz = self.read_XYZ(filepath)
-        self.hull = ConvexHull(self.normalise_verts(xyz))
+        self.xyz = xyz_vals
+        self.hull = ConvexHull(self.normalise_verts(self.xyz))
         self.coeffs = transform_hull(self.sht, self.hull)
 
         return self.coeffs
 
     def reference_shape(self, shapepath):
+        self.xyz = self.read_XYZ(shapepath)
         if Path(shapepath).suffix == '.XYZ':
             self.coeffs = self.get_coeffs(shapepath)
 
@@ -56,19 +60,17 @@ class CrystalShape:
 
         return self.distance
 
-    def get_PCA(self, file, n=3):
+    def get_PCA(self, xyz_vals, n=3):
 
         file = Path(file)
         filetype = file.suffix
         pca = PCA(n_components=n)
 
-        if filetype is '.XYZ' or '.xyz':
-            self.xyz = self.read_XYZ(filepath=file)
-            pca.fit(self.normalise_verts(self.xyz))
-        
+        if filetype == '.XYZ' or '.xyz':
+            pca.fit(self.normalise_verts(xyz_vals))
+
         if filetype == '.stl':
-            mesh = trimesh.load(file)
-            norm_verts = self.normalise_verts(mesh.vertices)
+            norm_verts = self.normalise_verts(xyz_vals.vertices)
             self.stl_hull = ConvexHull(norm_verts)
             self.coeffs = transform_hull(self.sht, self.stl_hull)
             self.points = list(reconstruct(coefficients=self.coeffs))
@@ -84,11 +86,10 @@ class CrystalShape:
 
         return pca_svalues
 
-    def get_PCA_all(self, file, n=3):
-        points = self.read_XYZ(filepath=file)
-
+    def get_PCA_all(self, xyz_vals, n=3):
+       
         pca = PCA(n_components=n)
-        pca.fit(self.normalise_verts(points))
+        pca.fit(self.normalise_verts(xyz_vals))
         pca_vectors = pca.components_
         pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
@@ -97,7 +98,7 @@ class CrystalShape:
         # print(pca_values)
         # print(pca_svalues)
 
-        return (pca_svalues, pca_values, pca_vectors, points)
+        return (pca_svalues, pca_values, pca_vectors)
 
     def coeff_to_xyz(self, coeffs, 
                     path='.',
