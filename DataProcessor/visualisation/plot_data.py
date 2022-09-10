@@ -13,7 +13,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 # Current Project imports
-# from DataProcessor.tools.shape_analysis import CrystalShape
+from DataProcessor.tools.shape_analysis import CrystalShape
 
 class Plotting:
 
@@ -129,48 +129,63 @@ class Plotting:
                 # fig.show()
 
     def visualise_pca(self, xyz):
-        savefolder = self.create_plots_folder(Path(xyz).parents[0])
 
-        eig_sval, eig_val, eig_vec, points = self.get_PCA_all(xyz)
+        shape = CrystalShape()
+        savefolder = self.create_plots_folder(Path(xyz).parents[0])
+        
+        points = shape.read_XYZ(xyz)
+
+        eig_sval, eig_val, eig_vec = shape.get_PCA_nn(points)
 
         # Center = origin
         mean_x = 0
         mean_y = 0
         mean_z = 0
 
+        list_styles = ['Solarize_Light2', '_classic_test_patch', 'bmh', 'classic', 'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 'seaborn', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark', 'seaborn-dark-palette', 'seaborn-darkgrid', 'seaborn-deep', 'seaborn-muted', 'seaborn-notebook', 'seaborn-paper', 'seaborn-pastel', 'seaborn-poster', 'seaborn-talk', 'seaborn-ticks', 'seaborn-white', 'seaborn-whitegrid', 'tableau-colorblind10']
+        
+        plt.style.use('seaborn-dark')
 
         ################################
         # Plotting eigenvectors
         ################################
 
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
 
-        ax.plot(points[:,0], points[:,1], points[:,2], 'o', markersize=0.05, color='black', alpha=0.8)
-        ax.plot([mean_x], [mean_y], [mean_z], 'o', markersize=10, color='red', alpha=0.5)
+        ax.plot(points[:, 0], points[:, 1], points[:, 2], 'o',
+                markersize=0.4,
+                color='blue', alpha=1)
+        ax.plot([mean_x], [mean_y], [mean_z], 'o',
+                markersize=10, color='red', alpha=0.5)
         colours = ['red', 'green', 'blue']
         i = 0
+        scale_factor = [(eig_sval[0]/eig_sval[2]), (eig_sval[1]/eig_sval[2]), (eig_sval[1]/eig_sval[2])]
         for v in eig_vec:
+            v = v * scale_factor[i] * 50
+            print(v)
             print(v[0], v[1], v[2])
-            scale_factor = eig_sval[i]
             print(eig_sval)
-            ax.plot([mean_x,v[0]],
-                    [mean_y,v[1]],
-                    [mean_z,v[2]],
+            ax.plot([-v[0], v[0]],
+                    [-v[1], v[1]],
+                    [-v[2], v[2]],
                     color=colours[i], alpha=0.8, lw=2)
 
             ax.xaxis.set_tick_params(labelsize=5)
             ax.yaxis.set_tick_params(labelsize=5)
             ax.zaxis.set_tick_params(labelsize=5)
             # ax.set(facecolor='pink')
-            ax.set_xticks([-1, -0.5, 0, 0.5, 1])
-            ax.set_xlim([-1, 1])
-            ax.set_yticks([-1, -0.5, 0, 0.5, 1])
-            ax.set_ylim([-1, 1]) 
-            ax.set_zticks([-1, -0.5, 0, 0.5, 1])
-            ax.set_zlim([-1, 1])
+            # ax.set_xticks([-1, -0.5, 0, 0.5, 1])
+            ax.set_xlim([-75, 75])
+            # ax.set_yticks([-1, -0.5, 0, 0.5, 1])
+            ax.set_ylim([-75, 75]) 
+            # ax.set_zticks([-1, -0.5, 0, 0.5, 1])
+            ax.set_zlim([-75, 75])
+
             i += 1
-    
+        plt.axis('off')
+        plt.grid(b=None)
+
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
