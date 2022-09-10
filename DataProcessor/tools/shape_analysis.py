@@ -23,12 +23,16 @@ class CrystalShape:
 
     def read_XYZ(self, filepath):
         filepath = Path(filepath)
+        print(filepath)
 
         if filepath.suffix == '.XYZ':
+            print('XYZ File read!')
             self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
-        if filepath.suffix == '.xyz':
+        if filepath.suffix == '.txt':
+            print('xyz File read!')
             self.xyz = np.loadtxt(filepath, skiprows=2)
-        if filepath == '.stl':
+        if filepath.suffix == '.stl':
+            print('stl File read!')
             self.xyz = trimesh.load(filepath)
         
         
@@ -61,9 +65,7 @@ class CrystalShape:
         return self.distance
 
     def get_PCA(self, xyz_vals, n=3):
-
-        file = Path(file)
-        filetype = file.suffix
+        filetype = '.XYZ'
         pca = PCA(n_components=n)
 
         if filetype == '.XYZ' or '.xyz':
@@ -86,10 +88,10 @@ class CrystalShape:
 
         return pca_svalues
 
-    def get_PCA_all(self, xyz_vals, n=3):
+    def get_PCA_nn(self, xyz_vals, n=3):
        
         pca = PCA(n_components=n)
-        pca.fit(self.normalise_verts(xyz_vals))
+        pca.fit(xyz_vals)
         pca_vectors = pca.components_
         pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
