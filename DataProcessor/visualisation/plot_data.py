@@ -192,3 +192,72 @@ class Plotting:
 
         plt.show()
 
+    def plot_growth_rates(self, gr_df):
+        x_data = gr_df['Supersaturation']
+        lengths = [' 0  0  1', ' 0  1  1', ' 1  1  0', ' 2  0 -1'] # Selected directionsß
+        for i in lengths:
+            plt.scatter(x_data, gr_df[i], s=1.2)
+            plt.plot(x_data, gr_df[i], label=i)
+            plt.legend()
+            plt.xlabel('Supersaturation (kcal/mol)')
+            plt.ylabel('Growth Rate')
+            plt.tight_layout()
+        # plt.show()
+        plt.savefig(savepathway + 'Growth_rates+Dissolution_rates2', dpi=300)
+
+        growth_data = gr_df[gr_df['Supersaturation'] >= 0]
+        print(growth_data)
+        plt.clf()
+        plt.figure(figsize=(5, 5))
+
+        for i in lengths:
+            plt.scatter(growth_data['Supersaturation'], growth_data[i], label=i, s=1.2)
+            plt.legend()
+            plt.xlabel('Supersaturation (kcal/mol)')
+            plt.ylabel('Growth Rate')
+            plt.tight_layout()
+        # plt.show()
+        plt.savefig(savepathway + 'Growth_rates2', dpi=300)
+
+        plt.clf()
+        plt.figure(figsize=(5, 5))
+        for i in lengths:
+            plt.scatter(growth_data['Supersaturation'], growth_data[i], s=1.2)
+            plt.plot(growth_data['Supersaturation'], growth_data[i], label=i)
+            plt.legend()
+            plt.xlabel('Supersaturation (kcal/mol)')
+            plt.ylabel('Growth Rate')
+            plt.xlim(0.0, 2.5)
+            plt.ylim(0.0, 0.4)
+            plt.tight_layout()
+        # plt.show()
+        plt.savefig(savepathway + 'Growth_rates2_zoomed', dpi=300)
+
+        dissolution_data = gr_df[gr_df['Supersaturation'] <= 0]
+        print(dissolution_data)
+        plt.clf()
+        plt.figure(figsize=(7, 5))
+        for i in lengths:
+            plt.scatter(dissolution_data['Supersaturation'], dissolution_data[i], label=i, s=1.2)
+            plt.legend()
+            plt.xlabel('Supersaturation (kcal/mol)')
+            plt.ylabel('Dissolution Rate')
+            plt.tight_layout()
+        # plt.show()
+        plt.savefig(savepathway + 'Dissolution_rates2', dpi=300)
+
+        plt.clf()
+        plt.figure(figsize=(5, 5))
+        for i in lengths:
+            plt.scatter(dissolution_data['Supersaturation'], dissolution_data[i], s=1.2)
+            plt.plot(dissolution_data['Supersaturation'], dissolution_data[i], label=i)
+            plt.legend()
+            plt.xlabel('Supersaturation (kcal/mol)')
+            plt.ylabel('Growth Rate')
+            plt.xlim(-2.5, 0.0)
+            plt.ylim(-2.5, 0.0)
+            plt.tight_layout()
+        # plt.show()
+        plt.savefig(savepathway + 'Dissolution2_zoomed', dpi=300)
+        return
+
