@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+from natsort import natsorted
 import re
 from pathlib import Path
 from DataProcessor.tools.shape_analysis import CrystalShape as cs
@@ -102,6 +103,11 @@ class Run:
 
         return df
 
+    def growth_rates(self, file):
+        # call the growth_rates.py
+        # input the folderpath
+
+        return
 
     def aspect_ratio_csv(self, folder, method=0):
         if method == 0:
@@ -255,8 +261,6 @@ class Run:
                     solvents_matched.append(sol_found)
         
         print(solvents_matched)
-
-
 
         for sol in solvents_matched:
             print(sol)
