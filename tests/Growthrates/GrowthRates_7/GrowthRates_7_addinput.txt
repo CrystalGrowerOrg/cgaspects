@@ -1,0 +1,7 @@
+yes
+no
+colour
+yes
+601
+601
+601
