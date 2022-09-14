@@ -47,9 +47,10 @@ class CrystalShape:
         return self.coeffs
 
     def reference_shape(self, shapepath):
-        self.xyz = self.read_XYZ(shapepath)
+
         if Path(shapepath).suffix == '.XYZ':
-            self.coeffs = self.get_coeffs(shapepath)
+            self.xyz = self.read_XYZ(shapepath)
+            self.coeffs = self.get_coeffs(self.xyz)
 
         else:
             mesh = trimesh.load(shapepath)
@@ -88,7 +89,7 @@ class CrystalShape:
 
         return pca_svalues
 
-    def get_PCA_nn(self, xyz_vals, n=3):
+    def get_all(self, xyz_vals, n=3):
        
         pca = PCA(n_components=n)
         pca.fit(xyz_vals)
@@ -96,11 +97,27 @@ class CrystalShape:
         pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
 
-        # print(pca_vectors)
-        # print(pca_values)
-        # print(pca_svalues)
+        hull = ConvexHull(xyz_vals)
+        vol_hull = hull.volume
+        SA_hull = hull.area
+        sa_vol = SA_hull / vol_hull
 
-        return (pca_svalues, pca_values, pca_vectors)
+        small, medium, long = (sorted(pca_svalues))
+        
+        aspect1 = small / medium
+        aspect2 = medium / long
+
+        shape_info = {
+                "PCA-svalues": pca_svalues,
+                "PCA-values": pca_values,
+                "Aspect Ratio S:M": aspect1,
+                "Aspect Ratio M:L": aspect2,
+                "Surface Area (SA)": SA_hull,
+                "Volume (Vol)": vol_hull,
+                "SA : Vol": sa_vol
+                }
+
+        return shape_info
 
     def coeff_to_xyz(self, coeffs, 
                     path='.',
