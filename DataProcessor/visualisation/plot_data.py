@@ -192,7 +192,7 @@ class Plotting:
 
         plt.show()
 
-    def plot_growth_rates(self, gr_df):
+    def plot_growth_rates(self, gr_df, savepath):
         x_data = gr_df['Supersaturation']
         lengths = [' 0  0  1', ' 0  1  1', ' 1  1  0', ' 2  0 -1'] # Selected directionsß
         for i in lengths:
@@ -203,7 +203,7 @@ class Plotting:
             plt.ylabel('Growth Rate')
             plt.tight_layout()
         # plt.show()
-        plt.savefig(savepathway + 'Growth_rates+Dissolution_rates2', dpi=300)
+        plt.savefig(savepath / 'Growth_rates+Dissolution_rates2', dpi=300)
 
         growth_data = gr_df[gr_df['Supersaturation'] >= 0]
         print(growth_data)
@@ -217,7 +217,7 @@ class Plotting:
             plt.ylabel('Growth Rate')
             plt.tight_layout()
         # plt.show()
-        plt.savefig(savepathway + 'Growth_rates2', dpi=300)
+        plt.savefig(savepath / 'Growth_rates2', dpi=300)
 
         plt.clf()
         plt.figure(figsize=(5, 5))
@@ -231,7 +231,7 @@ class Plotting:
             plt.ylim(0.0, 0.4)
             plt.tight_layout()
         # plt.show()
-        plt.savefig(savepathway + 'Growth_rates2_zoomed', dpi=300)
+        plt.savefig(savepath / 'Growth_rates2_zoomed', dpi=300)
 
         dissolution_data = gr_df[gr_df['Supersaturation'] <= 0]
         print(dissolution_data)
@@ -244,7 +244,7 @@ class Plotting:
             plt.ylabel('Dissolution Rate')
             plt.tight_layout()
         # plt.show()
-        plt.savefig(savepathway + 'Dissolution_rates2', dpi=300)
+        plt.savefig(savepath / 'Dissolution_rates2', dpi=300)
 
         plt.clf()
         plt.figure(figsize=(5, 5))
@@ -258,6 +258,6 @@ class Plotting:
             plt.ylim(-2.5, 0.0)
             plt.tight_layout()
         # plt.show()
-        plt.savefig(savepathway + 'Dissolution2_zoomed', dpi=300)
+        plt.savefig(savepath / 'Dissolution2_zoomed', dpi=300)
         return
 
