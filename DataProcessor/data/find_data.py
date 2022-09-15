@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from DataProcessor.tools.shape_analysis import CrystalShape as cs
 from DataProcessor.data.calc_data import Calculate as calc
+from DataProcessor.data.aspect_ratios import AspectRatio
 
 from PyQt5 import QtWidgets, QtGui, QtCore, QtOpenGL 
 from PyQt5.QtWidgets import QApplication, QComboBox, QMainWindow, QMessageBox, QShortcut, QFileDialog
@@ -47,48 +48,53 @@ class Find:
         supersats = []
         directions = []
 
+        i = 0
         for folder in folders:
             files = os.listdir(folder)
             for f in files:
                 f_path = path / folder / f
                 f_name = f
+
                 if f_name.startswith("._"):
                     continue
                 if f_name.endswith('size.csv'):
-                    size_files.append(f_path)
-                    directions = self.find_growth_directions(f_path)
+                    if os.stat(f_path).st_size == 0:
+                        growth_rates = False
+                    else:
+                        size_files.append(f_path)
+                        growth_rates = True
+
+                    # directions = self.find_growth_directions(f_path)
             
                 if f_name.endswith('simulation_parameters.txt'):
                     with open(f_path, 'r', encoding='utf-8') as sim_file:
                         lines = sim_file.readlines()
 
                     for line in lines:
-                        if line.startswith('Starting delta mu value (kcal/mol):'):
+                        if line.startswith('Starting delta mu value (kcal/mol):') and growth_rates:
                             supersat = float(line.split()[-1])
                             supersats.append(supersat)
                         if line.startswith('normal, ordered or growth modifier'):
                             selected_mode = line.split('               ')[-1]
                             if selected_mode == 'growth_modifier\n':
                                 growth_mod = True
+                            else:
+                                growth_mod = False
                         
-                        if line.startswith('Size of crystal at frame output'):
+
+                        
+                        if line.startswith('Size of crystal at frame output') and i==0:
                             frame = lines.index(line) + 1
-
-
-                    # From starting point - read facet information
-                    for n in range(frame, len(lines)):
-                        line = lines[n]
-                        if line == ' \n':
-                            break
-                        else:
-                            facet = line.split('      ')[0]
-                            print(facet)
-                            if len(facet) <= 8:
-                                directions.append(facet)
-
-                    
-
-        print(size_files)
+                            # From starting point - read facet information
+                            for n in range(frame, len(lines)):
+                                line = lines[n]
+                                if line == ' \n':
+                                    break
+                                else:
+                                    facet = line.split('      ')[0]
+                                    if len(facet) <= 8:
+                                        directions.append(facet)
+            i += 1
 
         
         return (supersats, size_files, directions, growth_mod)
@@ -106,9 +112,10 @@ class Find:
         return directions
 
     def find_cda_directions(self, file):
-        pass
+        pass    
 
     def aspect_ratio_csv(self, folder, method=0):
+        aspects = AspectRatio()
         if method == 0:
             self.method = "PCA"
             print(self.method)
@@ -116,9 +123,9 @@ class Find:
             self.method = "Crystallographic"
         
         if self.method == 'PCA':
-            return self.build_AR_PCA(folder)
+            return aspects.build_AR_PCA(folder)
         if self.method == 'Crystallographic':
-            return self.build_AR_Crystallographic(folder)
+            return aspects.build_AR_Crystallographic(folder)
 
     def build_SPH_distance(self, subfolder,
                            ref_shape_list, l_max=20,
