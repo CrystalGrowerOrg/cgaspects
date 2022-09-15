@@ -1,5 +1,3 @@
-# Project Modules 
-
 # Project module imports
 from load_GUI import Ui_MainWindow
 
@@ -18,7 +16,11 @@ from pandas import DataFrame
 from collections import defaultdict
 import webbrowser
 from natsort import natsorted
+from pathlib import Path
 
+from DataProcessor.GUI.gui_commands import GUICommands
+from DataProcessor.data.find_data import Find
+from DataProcessor.data.growth_rates import GrowthRate
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -30,6 +32,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.statusBar().showMessage('CrystalGrower Data Processor v1.0')
 
+        self.commands = GUICommands()
+        self.find = Find()
+        self.growth = GrowthRate()
+        
+        self.checked_directions = []
+        self.checkboxnames = []
+        self.checkboxes = []
+        self.growthrates = False
+        self.growthmod = False
+        self.screwdislocations = []
+        self.folder_path = ''
+
+        self.plot = True
+
+        self.progressBar.setValue(0)
         # Welcome msg
         print('############################################')
         print('####        CrystalAspects v1.00        ####')
@@ -40,15 +57,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ######################################################
 
         self.openKS = QShortcut(QKeySequence('Ctrl+O'), self)
-        self.openKS.activated.connect(self.readFolder)
+        self.openKS.activated.connect(self.read_folder)
         self.open_outKS = QShortcut(QKeySequence('Ctrl+Shift+O'), self)
-        self.open_outKS.activated.connect(self.output_folder_button)
+        # self.open_outKS.activated.connect(self.output_folder_button)
         self.closeKS = QShortcut(QKeySequence('Ctrl+Q'), self)
         self.closeKS.activated.connect(QApplication.instance().quit)
         self.resetKS = QShortcut(QKeySequence('Ctrl+R'), self)
         self.resetKS.activated.connect(self.reset_button_function)
         self.applyKS = QShortcut(QKeySequence('Ctrl+A'), self)
-        self.applyKS.activated.connect(self.apply_clicked)
+        # self.applyKS.activated.connect(self.apply_clicked)
+
+
+        self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
+        self.reset_button.clicked.connect(self.reset_button_function)
+        self.plot_checkBox.setEnabled(True)
+
 
         self.setWindowIcon(QtGui.QIcon('icon.png'))
 
@@ -56,67 +79,246 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Open Folder
         try:
-            self.simFolder_Button.clicked.connect(self.read_folder)
+            self.simFolder_Button.clicked.connect(lambda: self.read_folder(1))
         except IndexError:
             pass
 
-        # Create a list to store directions being selected
-        checked_facets = []
-
-        # Unlock options
-        self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
-        self.aspectRatio_checkBox_2.stateChanged.connect(self.aspect_ratio_checked)
-
-        # Collect Variable values
         self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
-        self.growthRate_checkBox_2.stateChanged.connect(self.growth_rate_check)
         self.plot_checkBox.stateChanged.connect(self.plot_check)
-        self.plot_checkBox_2.stateChanged.connect(self.plot_check)
-        self.count_checkBox.stateChanged.connect(self.count_check)
-        self.aspect_range_checkBox.stateChanged.connect(self.range_check)
-        self.tabWidget.currentChanged.connect(self.tabChanged)
 
-
-        
-
-
-        # Find current tab and sets search_mode
-        
-        #self.tabWidget.setCurrentIndex(0)
-        search_mode = self.tabWidget.currentIndex() + 1
-        
-
-        # Setting post-selection buttons
-        self.apply_button.clicked.connect(self.apply_clicked)
-        self.apply_button_2.clicked.connect(self.apply_clicked)
+        self.run_calc_button.clicked.connect(self.run_calc)
         self.outFolder_Button.clicked.connect(self.output_folder_button)
-        self.reset_button.clicked.connect(self.reset_button_function)
-        self.reset_button_2.clicked.connect(self.reset_button_function)
+        # self.count_checkBox.stateChanged.connect(self.count_check)
+        # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
+        # self.tabWidget.currentChanged.connect(self.tabChanged)
 
-        #Initialize progressBar
+
+    def read_folder(self, mode):
+
+        self.mode = mode
+
+        self.folder_path = Path(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select CrystalGrower Output Folder'))
+        checkboxes = []
+        check_box_names = []
+
+        supersat, size_files, directions, growth_mod = self.find.find_info(self.folder_path)
+        
+        if size_files:
+            print(bool(size_files))
+            self.growthrates = True
+            self.growthRate_checkBox.setChecked(True)
+
+        num_directions = len(directions)
+        print(directions)
+
+        # Setting contents if its in normal mode (no screw dislocation)
+        if self.mode == 1:
+            # Deletes current directions
+            for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
+                chk_box.deleteLater()
+
+            for i in range(num_directions):
+                chk_box_name = directions[i]
+                self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
+                check_box_names.append(chk_box_name)
+                checkboxes.append(self.chk_box_direction)
+                
+                self.chk_box_direction.setEnabled(True)
+                self.chk_box_direction.stateChanged.connect(self.check_facet)
+                sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+                sizePolicy.setHorizontalStretch(0)
+                sizePolicy.setVerticalStretch(1)
+                sizePolicy.setHeightForWidth(self.chk_box_direction.sizePolicy().hasHeightForWidth())
+                self.chk_box_direction.setSizePolicy(sizePolicy)
+                font = QtGui.QFont()
+                font.setFamily("Arial")
+                font.setPointSize(10)
+                self.chk_box_direction.setFont(font)
+                self.chk_box_direction.setText(chk_box_name)
+
+                self.verticalLayout_2.addWidget(self.chk_box_direction)
+
+            self.checkboxnames = check_box_names
+            self.checkboxes = checkboxes
+            print(self.checkboxnames)
+
+
+    def check_facet(self, state):
+        if state == Qt.Checked:
+            chk_box = self.sender()
+            print(chk_box)
+            for box in self.checkboxes:
+                if chk_box == box:
+                    print('here')
+                    # print(box)
+                    checked_facet = self.checkboxnames[self.checkboxes.index(box)]
+                    if checked_facet not in self.checked_directions:
+                        self.checked_directions.append(checked_facet)
+
+
+                    # Turns on and off the second aspect ratio fields
+                    if len(self.checked_directions) >= 3 and self.aspectRatio_checkBox.isChecked():
+                        if self.mode == 1:
+                            self.short_facet.setEnabled(True)
+                            if self.aspect_range_checkBox.isChecked():
+                                self.ms_range_input.setEnabled(True)
+                                self.ms_plusminus_label.setEnabled(True)
+                                self.ms_spinBox.setEnabled(True)
+                                self.ms_percent_label.setEnabled(True)
+                    
+                    print(self.checked_directions)
+
+        else:
+            chk_box = self.sender()
+            for box in self.checkboxes:
+                if chk_box == box:
+                    checked_facet = self.checkboxnames[self.checkboxes.index(box)]
+
+                    try:
+                        self.checked_directions.remove(checked_facet)
+                        print(self.checked_directions)
+
+                    except NameError:
+                        print(self.checked_directions)
+
+                    # Turns on and off the second aspect ratio fields
+                    if len(self.checked_directions) < 3:
+                        if self.mode == 1:
+                            self.short_facet.setEnabled(False)
+                            # self.short_facet_label.setEnabled(False)
+                            self.ms_range_input.clear()
+                            self.ms_spinBox.setValue(0)
+                            self.ms_range_input.setEnabled(False)
+                            self.ms_plusminus_label.setEnabled(False)
+                            self.ms_spinBox.setEnabled(False)
+                            self.ms_percent_label.setEnabled(False)
+
+        # Adds directions (updates) to the drop down lists
+        if self.mode == 1:
+            self.long_facet.clear()
+            self.medium_facet.clear()
+            self.short_facet.clear()
+            for item in self.checked_directions:
+                self.long_facet.addItem(item)
+                self.medium_facet.addItem(item)
+                self.short_facet.addItem(item)
+
+
+    def aspect_ratio_checked(self, state):
+
+        if self.mode == 1:
+            print('Clicked', state)
+            if state == Qt.Checked:
+                
+                self.long_facet.setEnabled(True)
+                self.medium_facet.setEnabled(True)
+                self.aspect_range_checkBox.setEnabled(True)
+                self.count_checkBox.setEnabled(True)
+                self.ratio_label1.setEnabled(True)
+
+                if len(self.checked_directions) >= 3:
+                    self.short_facet.setEnabled(True)
+                    self.ratio_label2.setEnabled(True)
+
+            else:                
+                # Clear
+                self.long_facet.setEnabled(False)
+                self.medium_facet.setEnabled(False)
+                self.short_facet.setEnabled(False)
+                self.lm_range_input.clear()
+                self.ms_range_input.clear()
+                self.lm_spinBox.setValue(0)
+                self.ms_spinBox.setValue(0)
+                self.aspect_range_checkBox.setChecked(False)
+                self.aspect_range_checkBox.setEnabled(False)
+                self.ratio_label1.setEnabled(False)
+                self.ratio_label2.setEnabled(False)
+                self.count_checkBox.setChecked(False)
+                self.count_checkBox.setEnabled(False)
+
+    def reset_button_function(self):
+
+        self.checked_directions = []
+        self.checkboxnames = []
+        self.checkboxes = []
+
+        # Initialise Progressbar
         self.progressBar.setValue(0)
 
-        ######################################################
-        ############       Map/Slider Mode        ############
-        ######################################################
-        
-        self.select_summary_map_button.clicked.connect(self.maps_read_summary)
-        self.select_summary_slider_button.clicked.connect(self.slider_summary)
-        self.generate_map_button.clicked.connect(self.maps_map_function)
+        if self.mode == 1:
+            # Unchecks selected facets
+            for chkBox in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
+                chkBox.setChecked(False)
+                chkBox.deleteLater()
+            # Unchecks Checkboxes and clears the fields
+            self.growthRate_checkBox.setChecked(False)
+            self.aspectRatio_checkBox.setChecked(False)
+            self.plot_checkBox.setChecked(False)
+            self.long_facet.setEnabled(False)
+            self.medium_facet.setEnabled(False)
+            self.short_facet.setEnabled(False)
+            self.lm_range_input.clear()
+            self.ms_range_input.clear()
+            self.lm_spinBox.setValue(0)
+            self.ms_spinBox.setValue(0)
+            self.lm_range_input.setEnabled(False)
+            self.lm_plusminus_label.setEnabled(False)
+            self.lm_spinBox.setEnabled(False)
+            self.lm_percent_label.setEnabled(False)
+            self.ms_range_input.setEnabled(False)
+            self.ms_plusminus_label.setEnabled(False)
+            self.ms_spinBox.setEnabled(False)
+            self.ms_percent_label.setEnabled(False)
+            self.aspect_range_checkBox.setChecked(False)
+            self.output_textBox.clear()
 
-        ######################################################
-        ############        3D Data Mode          ############
-        ######################################################
+    def growth_rate_check(self, state):
+        if state == Qt.Checked:
+            self.growthrates = True
+            print('calc_growth [yes(1) or no(0)]= ', self.growthrates)
+        else:
+            self.growthrates = False
+            print('calc_growth [yes(1) or no(0)]= ', self.growthrates)
 
-        #self.select_XYZ_3d_button.clicked.connect(self.read_XYZ1)
-        #self.select_sim_3d_button.clicked.connect(self.read_XYZ2)
-        self.start_3dcalc_button.clicked.connect(lambda: self.SAVAR_calc('start'))
-        self.stop_3dcalc_button.clicked.connect(lambda: self.SAVAR_calc('stop'))
+    def plot_check(self, state):
+        if state == Qt.Checked:
+            self.plot = True
+            print(f'Plot: {self.plot}')
+        else:
+            self.plot = False
+            print(f'Plot: {self.plot}')
 
+    def run_calc(self):
+        if self.growthrates:
+            self.growth.run_calc_growth(self.folder_path, 
+                                        directions=self.checked_directions, 
+                                        plotting=self.plot)
 
-        
-
-
+    def output_folder_button(self):
+        try:
+            dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
+            if sys.platform == "win32":
+                os.startfile(dir_path)
+            else:
+                opener = "open" if sys.platform == "darwin" else "xdg-open"
+                subprocess.call([opener, dir_path])
+            self.statusBar().showMessage('Taking you to the CrystalAspects folder.')
+        except NameError:
+            try:
+                dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
+                if sys.platform == "win32":
+                    os.startfile(dir_path)
+                else:
+                    opener = "open" if sys.platform == "darwin" else "xdg-open"
+                    subprocess.call([opener, dir_path])
+                self.statusBar().showMessage('Taking you to the CrystalAspects folder.')
+            except NameError:        
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Warning)
+                msg.setText("Please select CrystalGrower output folder first!")
+                msg.setInformativeText('An output folder is created only once you have selected a CrystalGrower output folder.')
+                msg.setWindowTitle("Error: Folder not found!")
+                msg.exec_()
 
 
 # Override sys excepthook to prevent app abortion upon any error
