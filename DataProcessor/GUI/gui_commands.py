@@ -14,48 +14,20 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence
 
 
-class GUICommands:
+# Project module imports
+from load_GUI import Ui_MainWindow
+from DataProcessor.data.find_data import Find
 
-    def __init__(self):
-        self.method = 0
 
-    def read_folder(self, mode):
+class GUICommands(QMainWindow, Ui_MainWindow):
+
+    def __init__(self, *args, **kwargs):
+        super(GUICommands, self).__init__(*args, **kwargs)
+        self.setupUi(self)
         
-        folder_path = Path(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select CrystalGrower Output Folder'))
-        checkboxes = []
-        checkBoxNames = []
 
-        # Setting contents if its in normal mode (no screw dislocation)
-        if mode == 1:
-            # Deletes current facets
-            for chkBox in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
-                chkBox.deleteLater()
 
-            
-
-            
-
-            for i in range(numFacets):
-                chkBoxName = facets[i]
-                checkBoxNames.append(chkBoxName)
-
-                self.chkBoxName = QtWidgets.QCheckBox(self.facet_gBox)
-                checkboxes.append(self.chkBoxName)
-                # print(checkboxes)
-
-                self.chkBoxName.setEnabled(True)
-                self.chkBoxName.stateChanged.connect(self.checkFacet)
-                sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-                sizePolicy.setHorizontalStretch(0)
-                sizePolicy.setVerticalStretch(1)
-                sizePolicy.setHeightForWidth(self.chkBoxName.sizePolicy().hasHeightForWidth())
-                self.chkBoxName.setSizePolicy(sizePolicy)
-                font = QtGui.QFont()
-                font.setFamily("Arial")
-                font.setPointSize(10)
-                self.chkBoxName.setFont(font)
-                self.chkBoxName.setText(chkBoxName)
-                self.verticalLayout_2.addWidget(self.chkBoxName)
-
-        return folder_path
+        self.find = Find()
+       
+        self.mode = 1
 
