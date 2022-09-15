@@ -7,6 +7,11 @@ from pathlib import Path
 from DataProcessor.tools.shape_analysis import CrystalShape as cs
 from DataProcessor.data.calc_data import Calculate as calc
 
+from PyQt5 import QtWidgets, QtGui, QtCore, QtOpenGL 
+from PyQt5.QtWidgets import QApplication, QComboBox, QMainWindow, QMessageBox, QShortcut, QFileDialog
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QKeySequence
+
 
 class Find:
 
@@ -40,6 +45,7 @@ class Find:
         print(folders)
         size_files = []
         supersats = []
+        directions = []
 
         for folder in folders:
             files = os.listdir(folder)
@@ -50,6 +56,7 @@ class Find:
                     continue
                 if f_name.endswith('size.csv'):
                     size_files.append(f_path)
+                    directions = self.find_growth_directions(f_path)
             
                 if f_name.endswith('simulation_parameters.txt'):
                     with open(f_path, 'r', encoding='utf-8') as sim_file:
@@ -59,30 +66,47 @@ class Find:
                         if line.startswith('Starting delta mu value (kcal/mol):'):
                             supersat = float(line.split()[-1])
                             supersats.append(supersat)
+                        if line.startswith('normal, ordered or growth modifier'):
+                            selected_mode = line.split('               ')[-1]
+                            if selected_mode == 'growth_modifier\n':
+                                growth_mod = True
+                        
+                        if line.startswith('Size of crystal at frame output'):
+                            frame = lines.index(line) + 1
+
+
+                    # From starting point - read facet information
+                    for n in range(frame, len(lines)):
+                        line = lines[n]
+                        if line == ' \n':
+                            break
+                        else:
+                            facet = line.split('      ')[0]
+                            print(facet)
+                            if len(facet) <= 8:
+                                directions.append(facet)
+
+                    
+
         print(size_files)
 
         
-        return (supersats, size_files)
+        return (supersats, size_files, directions, growth_mod)
 
 
-    def find_lengths(self, csv):
+    def find_growth_directions(self, csv):
         '''Returns the lenghts from a size_file'''
         lt_df = pd.read_csv(csv)
         columns = lt_df.columns
-        lengths = []
+        directions = []
         for col in columns:
             if col.startswith(' '):
-                lengths.append(col)
+                directions.append(col)
 
-        return lengths
+        return directions
 
-    
-
-    def growth_rates(self, file):
-        # call the growth_rates.py
-        # input the folderpath
-
-        return
+    def find_cda_directions(self, file):
+        pass
 
     def aspect_ratio_csv(self, folder, method=0):
         if method == 0:

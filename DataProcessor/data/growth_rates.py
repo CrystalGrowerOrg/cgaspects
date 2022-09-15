@@ -24,7 +24,6 @@ class GrowthRate:
 
         return rates_folder
 
-    
 
     def run_calc_growth(self, path, plotting=True):
         '''Returns the final df/csv of the 
