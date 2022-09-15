@@ -114,7 +114,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.stop_3dcalc_button.clicked.connect(lambda: self.SAVAR_calc('stop'))
 
 
-    def read_folder(self):
         
 
 
