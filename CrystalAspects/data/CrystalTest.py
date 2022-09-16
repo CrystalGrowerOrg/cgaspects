@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
-from Dataprocessor.data.find_data import Run
-from Dataprocessor.visualisation.plot_data import Plotting
+from CrystalAspects.data.find_data import Run
+from CrystalAspects.visualisation.plot_data import Plotting
 
 r = Run()
 #R.aspect_ratio_csv("G:/Nathan/Paracetamol/SeriesLarge/20220310_145918_XYZ_files")
