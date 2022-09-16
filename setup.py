@@ -1,12 +1,12 @@
 from setuptools import setup
 
 setup(
-    name='CG-DataProcessing',
+    name='CrystalAspects',
     version='1.01',
-    packages=['Dataprocessor.data',
-              'DataProcessor.GUI',
-              'DataProcessor.tools',
-              'DataProcessor.visualisation'],
+    packages=['CrystalAspects.data',
+              'CrystalAspects.GUI',
+              'CrystalAspects.tools',
+              'CrystalAspects.visualisation'],
     url='',
     license='',
     author='Alvin Jenner Walisinghe & Nathan de Bruyn',

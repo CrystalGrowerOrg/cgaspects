@@ -16,7 +16,7 @@ from PyQt5.QtGui import QKeySequence
 
 # Project module imports
 from load_GUI import Ui_MainWindow
-from DataProcessor.data.find_data import Find
+from CrystalAspects.data.find_data import Find
 
 
 class GUICommands(QMainWindow, Ui_MainWindow):

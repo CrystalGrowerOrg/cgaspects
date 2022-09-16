@@ -4,9 +4,9 @@ import os
 from natsort import natsorted
 import re
 from pathlib import Path
-from DataProcessor.tools.shape_analysis import CrystalShape as cs
-from DataProcessor.data.calc_data import Calculate as calc
-from DataProcessor.data.aspect_ratios import AspectRatio
+from CrystalAspects.tools.shape_analysis import CrystalShape as cs
+from CrystalAspects.data.calc_data import Calculate as calc
+from CrystalAspects.data.aspect_ratios import AspectRatio
 
 from PyQt5 import QtWidgets, QtGui, QtCore, QtOpenGL 
 from PyQt5.QtWidgets import QApplication, QComboBox, QMainWindow, QMessageBox, QShortcut, QFileDialog
