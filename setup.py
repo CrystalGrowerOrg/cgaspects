@@ -6,7 +6,7 @@ setup(
     packages=['CrystalAspects.data',
               'CrystalAspects.GUI',
               'CrystalAspects.tools',
-              'CrsytalAspects.visualisation'],
+              'CrystalAspects.visualisation'],
     url='',
     license='',
     author='Alvin Jenner Walisinghe & Nathan de Bruyn',
