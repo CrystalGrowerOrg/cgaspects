@@ -18,9 +18,9 @@ import webbrowser
 from natsort import natsorted
 from pathlib import Path
 
-from DataProcessor.GUI.gui_commands import GUICommands
-from DataProcessor.data.find_data import Find
-from DataProcessor.data.growth_rates import GrowthRate
+from CrystalAspects.GUI.gui_commands import GUICommands
+from CrystalAspects.data.find_data import Find
+from CrystalAspects.data.growth_rates import GrowthRate
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 

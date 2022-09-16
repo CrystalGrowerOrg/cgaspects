@@ -13,7 +13,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 # Current Project imports
-from DataProcessor.tools.shape_analysis import CrystalShape
+from CrystalAspects.tools.shape_analysis import CrystalShape
 
 class Plotting:
 
