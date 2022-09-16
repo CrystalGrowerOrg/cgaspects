@@ -5,9 +5,9 @@ from natsort import natsorted
 import pandas as pd
 from pathlib import Path
 
-from DataProcessor.data.find_data import Find
-from DataProcessor.data.calc_data import Calculate
-from DataProcessor.visualisation.plot_data import Plotting
+from CrystalAspects.data.find_data import Find
+from CrystalAspects.data.calc_data import Calculate
+from CrystalAspects.visualisation.plot_data import Plotting
 
 class GrowthRate:
 

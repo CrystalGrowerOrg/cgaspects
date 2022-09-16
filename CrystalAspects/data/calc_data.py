@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from DataProcessor.tools.shape_analysis import CrystalShape as cs
+from CrystalAspects.tools.shape_analysis import CrystalShape as cs
 
 
 class Calculate:
