@@ -104,7 +104,7 @@ class AspectRatio:
         return df
 
     def defining_equation(self, df=''):
-        '''Defining CDA aspect ratoi equations depending on the selected directions from the gui.
+        '''Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function'''
         a = ar_df[' 1  1  0']  # This is the first selected direction
         b = ar_df[' 1  0  0']  # This is the second selected direction
@@ -150,7 +150,8 @@ class AspectRatio:
         return ar_df
 
     def Zingg_CDA_shape_percentage(self, pca_df='', cda_df='', folderpath=''):
-        '''This is analysing the pca and cda data creating a dataframe of crystal shapes and cda aspect ratio'''
+        '''This is analysing the pca and cda data creating a dataframe of crystal shapes and cda aspect ratio.
+        The issue with this one is that it requires both the PCA and the CDA .csv's so I had to transpose them.'''
         pca_df = pd.read_csv(pca_df)
         cda_df = pd.read_csv(cda_df)
         pca_cda = [pca_df['S:M'], pca_df['M:L'], cda_df['S/M'], cda_df['M/L'], cda_df['CDA Aspect Ratio Equation']]
@@ -199,6 +200,8 @@ class AspectRatio:
         return total_df, percentage_df
 
     def Zingg_No_Crystals(df, folderpath):
+        '''analysis of the CDA data to output total and percentage of crystals
+        This requires CDA .csv'''
         zn_df = pd.read_csv(df)
         eq1 = len(zn_df[zn_df['CDA Aspect Ratio Equation'] == 1])
         eq2 = len(zn_df[zn_df['CDA Aspect Ratio Equation'] == 2])
@@ -228,3 +231,32 @@ class AspectRatio:
         percentage_CDA_df.to_csv(folderpath + 'Percentage Crystals CDA.csv')
 
         return percentage_CDA_df
+
+    def PCA_shape_percentage(self, df='', folderpath=''):
+        '''Analysing the PCA data to output total and percentages of crystals
+        This requires PCA .csv'''
+        pca_df = pd.read_csv(df)
+        colours = [1, 2, 3, 4, 5, 6]
+        total = len(pca_df)
+        lath = pca_df[(pca_df['S:M'] <= 0.66) & (pca_df['M:L'] <= 0.66)]
+        plate = pca_df[(pca_df['S:M'] <= 0.66) & (pca_df['M:L'] >= 0.66)]
+        block = pca_df[(pca_df['S:M'] >= 0.66) & (pca_df['M:L'] >= 0.66)]
+        needle = pca_df[(pca_df['S:M'] >= 0.66) & (pca_df['M:L'] <= 0.66)]
+        total_lath = len(lath)
+        total_plate = len(plate)
+        total_block = len(block)
+        total_needle = len(needle)
+        total_list = [total, total_lath, total_plate, total_block, total_needle]
+        total_df = pd.DataFrame(total_list).transpose()
+        total_df.columns = ['Number of Crystals', 'Laths', 'Plates', 'Blocks', 'Needles']
+        total_df.to_csv(folderpath + 'Total_Shapes_PCA.csv')
+        lath_percentage = total_lath / total * 100
+        plate_percentage = total_plate / total * 100
+        block_percentage = total_block / total * 100
+        needle_percentage = total_needle / total * 100
+        percentage_list = [lath_percentage, plate_percentage, block_percentage, needle_percentage]
+        percentage_df = pd.DataFrame(percentage_list).transpose()
+        percentage_df.columns = ['Laths', 'Plates', 'Blocks', 'Needles']
+        percentage_df.to_csv(folderpath + 'Percentage_Shapes_PCA.csv')
+
+        return percentage_df, total_df

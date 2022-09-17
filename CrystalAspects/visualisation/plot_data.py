@@ -66,6 +66,152 @@ class Plotting:
                 fig.write_html(f'{savefolder}/PCAZingg_{interaction}.html')
                 fig.show()
 
+    def build_zingg_seperated_i(self, df=''):
+        eq1 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 1]
+        eq2 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 2]
+        eq3 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 3]
+        eq4 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 4]
+        eq5 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 5]
+        eq6 = zn_df[zn_df['CDA Aspect Ratio Equation'] == 6]
+
+        x_data = eq1['S/M']
+        y_data = eq1['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c=eq1['CDA Aspect Ratio Equation'], cmap='plasma', s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('110:100')
+        plt.ylabel('100:001')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        # cbar = plt.colorbar(ticks=colour)
+        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
+        savepath = newfolderpath + 'Zingg Diagrameq1'
+        plt.savefig(savepath, transparent=True, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq1-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+        x_data = eq2['S/M']
+        y_data = eq2['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c="Purple", s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('001:100')
+        plt.ylabel('100:110')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        savepath = newfolderpath + 'Zingg Diagrameq2'
+        plt.savefig(savepath, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq2-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+        x_data = eq3['S/M']
+        y_data = eq3['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c="Red", s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('100:001')
+        plt.ylabel('001:110')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        # cbar = plt.colorbar(ticks=colour)
+        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
+        savepath = newfolderpath + 'Zingg Diagrameq3'
+        plt.savefig(savepath, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq3-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+        x_data = eq4['S/M']
+        y_data = eq4['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c="salmon", s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('110:001')
+        plt.ylabel('001:100')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        # cbar = plt.colorbar(ticks=colour)
+        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
+        savepath = newfolderpath + 'Zingg Diagrameq4'
+        plt.savefig(savepath, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq4-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+        x_data = eq5['S/M']
+        y_data = eq5['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c="Orange", s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('100:110')
+        plt.ylabel('110:001')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        # cbar = plt.colorbar(ticks=colour)
+        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
+        savepath = newfolderpath + 'Zingg Diagrameq5'
+        plt.savefig(savepath, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq5-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+        x_data = eq6['S/M']
+        y_data = eq6['M/L']
+        # colour = eq1['CDA Aspect Ratio Equation']
+        props = dict(boxstyle='square', facecolor='white')
+        plt.figure()
+        plt.scatter(x_data, y_data, c='Yellow', s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        # plt.title(textstr)
+        plt.xlabel('001:110')
+        plt.ylabel('110:100')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        savepath = newfolderpath + 'Zingg Diagrameq6'
+        plt.savefig(savepath, dpi=300)
+        plt.xlim(0.1, 1.0)
+        plt.ylim(0.6, 1.0)
+        # plt.show()
+        SAVEPATH2 = newfolderpath + 'Zingg Diagrameq6-2'
+        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+
+    def PCA_CDA_plot(self, csv, df='', folderpath='./outputs', i_plot=False):
+
+        return
+
     def sph_plot(self, csv, mode=1):
         savefolder = self.create_plots_folder(Path(csv).parents[0])
 
