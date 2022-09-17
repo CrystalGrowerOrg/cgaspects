@@ -103,8 +103,9 @@ class AspectRatio:
 
         return df
 
-    def defining_equation(df):
-        '''Defining CDA aspect ratoi equations depending on the selected directions'''
+    def defining_equation(self, df=''):
+        '''Defining CDA aspect ratoi equations depending on the selected directions from the gui.
+        This means we will also need to input the selected directions into the function'''
         a = ar_df[' 1  1  0']  # This is the first selected direction
         b = ar_df[' 1  0  0']  # This is the second selected direction
         c = ar_df[' 0  0  1']  # This is the third selected direction
@@ -116,6 +117,7 @@ class AspectRatio:
         # CDA_aspect_ratio = [a:b:c, c:b:a, b:c:a, a:c:b, b:a:c, c:a:b]
         cda_equation = [list_eq, CDA_aspect_ratio]
         cda_equation_df = pd.DataFrame(cda_equation).transpose()
+        cda_equation_df.columns = ['CDA Aspect Ratio Equation', 'CDA Aspect Ratio']
         cda_equation_df.to_csv(folderpath + 'CDA equations')
 
         pd.set_option('display.max_rows', None)
@@ -147,7 +149,7 @@ class AspectRatio:
 
         return ar_df
 
-    def Zingg_CDA_shape_percentage(pca_df='', cda_df='', folderpath=''):
+    def Zingg_CDA_shape_percentage(self, pca_df='', cda_df='', folderpath=''):
         '''This is analysing the pca and cda data creating a dataframe of crystal shapes and cda aspect ratio'''
         pca_df = pd.read_csv(pca_df)
         cda_df = pd.read_csv(cda_df)
