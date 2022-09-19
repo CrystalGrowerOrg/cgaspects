@@ -18,9 +18,10 @@ import webbrowser
 from natsort import natsorted
 from pathlib import Path
 
-from CrystalAspects.GUI.gui_commands import GUICommands
-from CrystalAspects.data.find_data import Find
+from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.growth_rates import GrowthRate
+from CrystalAspects.data.find_data import Find
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -33,7 +34,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage('CrystalGrower Data Processor v1.0')
 
         self.commands = GUICommands()
-        self.find = Find()
         self.growth = GrowthRate()
         
         self.checked_directions = []
@@ -52,9 +52,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('####        CrystalAspects v1.00        ####')
         print('############################################')
 
-        ######################################################
+        '''###################################################
         ############      Keyboard Shortcuts      ############
-        ######################################################
+        ###################################################'''
 
         self.openKS = QShortcut(QKeySequence('Ctrl+O'), self)
         self.openKS.activated.connect(self.read_folder)
@@ -96,12 +96,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def read_folder(self, mode):
 
         self.mode = mode
+        find = Find()
+
 
         self.folder_path = Path(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select CrystalGrower Output Folder'))
         checkboxes = []
         check_box_names = []
 
-        supersat, size_files, directions, growth_mod = self.find.find_info(self.folder_path)
+        su_sat, size_files, directions, g_mods = find.find_info(self.folder_path)
         
         if size_files:
             print(bool(size_files))
@@ -290,9 +292,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def run_calc(self):
         if self.growthrates:
-            self.growth.run_calc_growth(self.folder_path, 
-                                        directions=self.checked_directions, 
-                                        plotting=self.plot)
+            growth = GrowthRate()
+            growth.run_calc_growth(self.folder_path,
+                                   directions=self.checked_directions,
+                                   plotting=self.plot)
+        if self.aspectratio:
+            
+            long = self.long_facet.currentText()
+            medium = self.medium_facet.currentText()
+            short = self.short_facet.currentText()
+
+            selected_directions = [short, medium, long]
+
+            aspect_ratio = AspectRatio()
+            find = Find()
+            ar_df = find.build_AR_CDA(folderpath=self.folder_path,
+                                      directions=self.checked_directions,
+                                      selected=selected_directions)
+
+            aspect_ratio.defining_equation(directions=self.checked_directions,
+                                           ar_df=ar_df)
+
 
     def output_folder_button(self):
         try:
@@ -333,7 +353,6 @@ def except_hook(cls, exception, traceback):
     
 
 if __name__ == "__main__":
-    import sys
 
     # Override sys excepthook to prevent app abortion upon any error
     sys.excepthook = except_hook
