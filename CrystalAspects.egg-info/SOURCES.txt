@@ -3,7 +3,7 @@ CrystalAspects.egg-info/PKG-INFO
 CrystalAspects.egg-info/SOURCES.txt
 CrystalAspects.egg-info/dependency_links.txt
 CrystalAspects.egg-info/top_level.txt
-CrystalAspects/GUI/CrystalAspects.py
+CrystalAspects/GUI/CrystalAspects_GUI.py
 CrystalAspects/GUI/__init__.py
 CrystalAspects/GUI/gui_commands.py
 CrystalAspects/GUI/load_GUI.py
