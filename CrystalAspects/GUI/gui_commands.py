@@ -19,15 +19,9 @@ from load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 
 
-class GUICommands(QMainWindow, Ui_MainWindow):
+class GUICommands():
 
     def __init__(self, *args, **kwargs):
         super(GUICommands, self).__init__(*args, **kwargs)
-        self.setupUi(self)
-        
-
-
-        self.find = Find()
-       
-        self.mode = 1
+        pass
 

@@ -1,7 +1,11 @@
+import imp
+from turtle import window_height
 import numpy as np
 import pandas as pd
 import os
 from natsort import natsorted
+from itertools import permutations
+from statistics import median
 import re
 from pathlib import Path
 from CrystalAspects.tools.shape_analysis import CrystalShape as cs
@@ -62,7 +66,7 @@ class AspectRatio:
 
         return df
 
-    def build_AR_Crystallographic(self, file):
+    def build_AR_CDA(self, file):
         filepath = Path(file)
         df = pd.read_csv(filepath)
         
@@ -103,66 +107,127 @@ class AspectRatio:
 
         return df
 
-    def defining_equation(self, df=''):
+    def defining_equation(self, directions, ar_df='', csv='', filepath='.'):
         '''Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function'''
-        a = ar_df[' 1  1  0']  # This is the first selected direction
-        b = ar_df[' 1  0  0']  # This is the second selected direction
-        c = ar_df[' 0  0  1']  # This is the third selected direction
 
-        '''cda_aspect_ratio needs the insert of the directions that have been selected, creating a table for what number means what cda aspect ratio'''
-        list_eq = [1, 2, 3, 4, 5, 6]
-        CDA_aspect_ratio = ['[110]: [100]: [001]', '[001]: [100]: [110]', '[100]: [001]: [110] ', '[110]: [001]: [100]',
-                            '[100]: [110]: [001]', '[001]: [110]: [100]']
-        # CDA_aspect_ratio = [a:b:c, c:b:a, b:c:a, a:c:b, b:a:c, c:a:b]
-        cda_equation = [list_eq, CDA_aspect_ratio]
-        cda_equation_df = pd.DataFrame(cda_equation).transpose()
-        cda_equation_df.columns = ['CDA Aspect Ratio Equation', 'CDA Aspect Ratio']
-        cda_equation_df.to_csv(folderpath + 'CDA equations')
+        equations = [combo for combo in permutations(directions)]
+        print(equations)
+
+        if csv != '':
+            csv = Path(csv)
+            df = pd.read_csv(csv)
+
+        a = directions[0]
+        b = directions[1]
+        c = directions[2]
+
+        with open(Path(filepath) / "CDA_equations.txt", 'w') as outfile:
+            for i, line in enumerate(equations):
+                outfile.writelines(f'Equation Number{i}: {line}')
+
+        ''' EQ: a b c
+                a c b
+                b a c
+                b c a
+                c a b
+                c b a '''
+
 
         pd.set_option('display.max_rows', None)
         ar_df.loc[(a <= b) & (b <= c), 'S/M'] = a / b
-        ar_df.loc[(c <= b) & (b <= a), 'S/M'] = c / b
-        ar_df.loc[(b <= c) & (c <= a), 'S/M'] = b / c
         ar_df.loc[(a <= c) & (c <= b), 'S/M'] = a / c
         ar_df.loc[(b <= a) & (a <= c), 'S/M'] = b / a
+        ar_df.loc[(b <= c) & (c <= a), 'S/M'] = b / c
         ar_df.loc[(c <= a) & (a <= b), 'S/M'] = c / a
+        ar_df.loc[(c <= b) & (b <= a), 'S/M'] = c / b
         print(ar_df['S/M'])
 
         ar_df.loc[(a <= b) & (b <= c), 'M/L'] = b / c
-        ar_df.loc[(c <= b) & (b <= a), 'M/L'] = b / a
-        ar_df.loc[(b <= c) & (c <= a), 'M/L'] = c / a
         ar_df.loc[(a <= c) & (c <= b), 'M/L'] = c / b
         ar_df.loc[(b <= a) & (a <= c), 'M/L'] = a / c
+        ar_df.loc[(b <= c) & (c <= a), 'M/L'] = c / a
         ar_df.loc[(c <= a) & (a <= b), 'M/L'] = a / b
+        ar_df.loc[(c <= b) & (b <= a), 'M/L'] = b / a
         print(ar_df['M/L'])
 
-        ar_df.loc[(a <= b) & (b <= c), 'CDA Aspect Ratio Equation'] = '1'
-        ar_df.loc[(c <= b) & (b <= a), 'CDA Aspect Ratio Equation'] = '2'
-        ar_df.loc[(b <= c) & (c <= a), 'CDA Aspect Ratio Equation'] = '3'
-        ar_df.loc[(a <= c) & (c <= b), 'CDA Aspect Ratio Equation'] = '4'
-        ar_df.loc[(b <= a) & (a <= c), 'CDA Aspect Ratio Equation'] = '5'
-        ar_df.loc[(c <= a) & (a <= b), 'CDA Aspect Ratio Equation'] = '6'
+        ar_df.loc[(a <= b) & (b <= c), 'CDA_Equation'] = '1'
+        ar_df.loc[(a <= c) & (c <= b), 'CDA_Equation'] = '2'
+        ar_df.loc[(b <= a) & (a <= c), 'CDA_Equation'] = '3'
+        ar_df.loc[(b <= c) & (c <= a), 'CDA_Equation'] = '4'
+        ar_df.loc[(c <= a) & (a <= b), 'CDA_Equation'] = '5'
+        ar_df.loc[(c <= b) & (b <= a), 'CDA_Equation'] = '6'
         print(ar_df['CDA Aspect Ratio Equation'])
 
-        ar_df.to_csv(folderpath + 'CDA_DataFrame.csv')
+        ar_df.to_csv(Path(filepath)[0] + 'CDA_DataFrame.csv')
 
         return ar_df
+
+    def define_equations(self, directions, csv='', df=''):
+
+        equations = [combo for combo in permutations(directions)]
+        print(equations)
+
+        if csv != '':
+            csv = Path(csv)
+            df = pd.read_csv(csv)
+        
+        window_size = len(directions)
+
+        ddf = df.iloc[:, 1:]
+
+        for idx, row in ddf.iterrows():
+            row = row.sort_values()
+            sorted_row = row.keys()
+            n = len(sorted_row)
+
+            # find index of direction closest
+            # to the median (in an ordered list)
+            med = median(row)
+            print(med)
+            array = np.asarray(row)
+            med_idx = (np.abs(array - med)).argmin()
+            print(med_idx)
+
+            for eq_num, eq in enumerate(equations):  # Gets equation order
+                for i in range(n - window_size + 1):
+                    window = list(sorted_row[i:i+window_size])
+                    if list(eq) == window:
+                        print('match')
+
+                        #df.loc[idx, f'S/M {eq[0]}/{eq[med_idx]}'] = \
+                        #    row[i]/row[med_idx]
+                        #df.loc[idx, f'S/M {eq[med_idx]}/{eq[-1]}'] = \
+                        #    row[med_idx]/row[-1]
+                        df.loc[idx, 'Equation'] = eq_num
+                    else:
+                        #continue to next window
+                        continue
+
+        if csv != '':
+            df.to_csv(csv.parents[0] / 'CDA_Dataframe.csv')
+
+        return df
+
+
+
 
     def Zingg_CDA_shape_percentage(self, pca_df='', cda_df='', folderpath=''):
         '''This is analysing the pca and cda data creating a dataframe of crystal shapes and cda aspect ratio.
         The issue with this one is that it requires both the PCA and the CDA .csv's so I had to transpose them.'''
         pca_df = pd.read_csv(pca_df)
         cda_df = pd.read_csv(cda_df)
-        pca_cda = [pca_df['S:M'], pca_df['M:L'], cda_df['S/M'], cda_df['M/L'], cda_df['CDA Aspect Ratio Equation']]
+        pca_cda = [pca_df['S:M'], pca_df['M:L'], cda_df['S/M'], cda_df['M/L'], cda_df['Equation']]
         pca_cda_df = pd.DataFrame(pca_cda).transpose()
         pca_cda_df.to_csv(folderpath + 'PCA_CDA.csv')
-        cda = [1, 2, 3, 4, 5, 6]
+
+        cda = set(cda_df['Equation'])
+
         total = len(pca_cda_df)
-        lath = pca_cda_df[(pca_cda_df['S:M'] <= 0.66) & (pca_cda_df['M:L'] <= 0.66)]
-        plate = pca_cda_df[(pca_cda_df['S:M'] <= 0.66) & (pca_cda_df['M:L'] >= 0.66)]
-        block = pca_cda_df[(pca_cda_df['S:M'] >= 0.66) & (pca_cda_df['M:L'] >= 0.66)]
-        needle = pca_cda_df[(pca_cda_df['S:M'] >= 0.66) & (pca_cda_df['M:L'] <= 0.66)]
+        lath = pca_cda_df[(pca_cda_df['S:M'] <= 0.667) & (pca_cda_df['M:L'] <= 0.667)]
+        plate = pca_cda_df[(pca_cda_df['S:M'] <= 0.667) & (pca_cda_df['M:L'] >= 0.667)]
+        block = pca_cda_df[(pca_cda_df['S:M'] >= 0.667) & (pca_cda_df['M:L'] >= 0.667)]
+        needle = pca_cda_df[(pca_cda_df['S:M'] >= 0.667) & (pca_cda_df['M:L'] <= 0.667)]
         total_lath = len(lath)
         total_plate = len(plate)
         total_block = len(block)
@@ -228,7 +293,7 @@ class AspectRatio:
                           eq6_percentage]
         percentage_CDA_df = pd.DataFrame(percentage_CDA).transpose()
         percentage_CDA_df.columns = ['eq1', 'eq2', 'eq3', 'eq4', 'eq5', 'eq6']
-        percentage_CDA_df.to_csv(folderpath + 'Percentage Crystals CDA.csv')
+        # percentage_CDA_df.to_csv(folderpath + 'Percentage Crystals CDA.csv')
 
         return percentage_CDA_df
 
@@ -236,7 +301,7 @@ class AspectRatio:
         '''Analysing the PCA data to output total and percentages of crystals
         This requires PCA .csv'''
         pca_df = pd.read_csv(df)
-        colours = [1, 2, 3, 4, 5, 6]
+        # colours = [1, 2, 3, 4, 5, 6]
         total = len(pca_df)
         lath = pca_df[(pca_df['S:M'] <= 0.66) & (pca_df['M:L'] <= 0.66)]
         plate = pca_df[(pca_df['S:M'] <= 0.66) & (pca_df['M:L'] >= 0.66)]
@@ -249,7 +314,7 @@ class AspectRatio:
         total_list = [total, total_lath, total_plate, total_block, total_needle]
         total_df = pd.DataFrame(total_list).transpose()
         total_df.columns = ['Number of Crystals', 'Laths', 'Plates', 'Blocks', 'Needles']
-        total_df.to_csv(folderpath + 'Total_Shapes_PCA.csv')
+        # total_df.to_csv(folderpath + 'Total_Shapes_PCA.csv')
         lath_percentage = total_lath / total * 100
         plate_percentage = total_plate / total * 100
         block_percentage = total_block / total * 100
@@ -257,6 +322,6 @@ class AspectRatio:
         percentage_list = [lath_percentage, plate_percentage, block_percentage, needle_percentage]
         percentage_df = pd.DataFrame(percentage_list).transpose()
         percentage_df.columns = ['Laths', 'Plates', 'Blocks', 'Needles']
-        percentage_df.to_csv(folderpath + 'Percentage_Shapes_PCA.csv')
+        # percentage_df.to_csv(folderpath + 'Percentage_Shapes_PCA.csv')
 
         return percentage_df, total_df
