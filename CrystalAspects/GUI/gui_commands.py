@@ -4,8 +4,8 @@ import os
 from natsort import natsorted
 import re
 from pathlib import Path
-from DataProcessor.tools.shape_analysis import CrystalShape as cs
-from DataProcessor.data.calc_data import Calculate as calc
+from CrystalAspects.tools.shape_analysis import CrystalShape as cs
+from CrystalAspects.data.calc_data import Calculate as calc
 
 from PyQt5 import QtWidgets, QtGui, QtCore, QtOpenGL 
 

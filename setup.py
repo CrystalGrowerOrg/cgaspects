@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='CrystalAspects',
-    version='1.01',
+    version='1.1',
     packages=['CrystalAspects.data',
               'CrystalAspects.GUI',
               'CrystalAspects.tools',
@@ -10,6 +10,6 @@ setup(
     url='',
     license='',
     author='Alvin Jenner Walisinghe & Nathan de Bruyn',
-    author_email='jennerwalisinghe@gmail.com, nathan.debruyn@manchester.ac.uk',
+    author_email='jennerwalisinghe@gmail.com, nathandebruyn@icloud.com',
     description='Data Processing tool for CrystalGrower software'
 )

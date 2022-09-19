@@ -18,9 +18,10 @@ import webbrowser
 from natsort import natsorted
 from pathlib import Path
 
-from CrystalAspects.data.aspect_ratios import AspectRatio
-from CrystalAspects.data.growth_rates import GrowthRate
+from CrystalAspects.GUI.gui_commands import GUICommands
 from CrystalAspects.data.find_data import Find
+from CrystalAspects.data.growth_rates import GrowthRate
+from CrystalAspects.data.aspect_ratios import AspectRatio
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
