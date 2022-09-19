@@ -1,3 +1,4 @@
+from pickletools import float8
 import numpy as np
 import pandas as pd
 import os
@@ -125,7 +126,55 @@ class Find:
         if self.method == 'PCA':
             return aspects.build_AR_PCA(folder)
         if self.method == 'Crystallographic':
-            return aspects.build_AR_Crystallographic(folder)
+            return aspects.build_AR_CDA(folder)
+
+    def build_AR_CDA(self, folderpath, directions, selected):
+        
+        path = Path(folderpath)
+        aspects_folder = self.create_aspects_folder(folderpath)
+
+        ar_array = np.empty((0, len(directions) + 1))
+        for folder in path:
+            files = os.listdir(folder)
+            sim_num = 1
+            for f in files:
+                f_path = path / folder / f
+                f_name = f
+
+                if f_name.startswith("._"):
+                    continue
+                if f_name.endswith('simulation_parameters.txt'):
+                    with open(f_path, 'r', encoding='utf-8') as sim_file:
+                        lines = sim_file.readlines()
+
+                    for line in lines:
+                        if line.startswith('Size of crystal at frame output'):
+                            frame = lines.index(line) + 1
+
+                    lengths = [sim_num]
+
+                    len_info_lines = lines[frame:]
+                    for len_line in len_info_lines:
+                        n = 0
+                        while n <= len(directions):
+                            for direction in directions:
+                                if len_line.startswith(direction):
+                                    lengths.append(line.split[-1])
+                                    n += 1
+            ar_array = np.vstack(ar_array, np.array(lengths))
+
+            sim_num += 1
+        
+        df = pd.DataFrame(ar_array, columns=['Simulation Number',
+                                                *directions])
+
+        # aspect ratio calculation
+        for i in range(len(selected) - 1):
+            df[f'AspectRatio_{selected[i]}/{selected[i+1]}'] = df[selected[i]] / df[selected[i+1]]
+
+        df.to_csv(aspects_folder / 'CDA_AspectRatio.csv', index=False)
+
+        return df
 
     def build_SPH_distance(self, subfolder,
                            ref_shape_list, l_max=20,
