@@ -2,6 +2,7 @@ from pickletools import float8
 import numpy as np
 import pandas as pd
 import os
+import sys, time
 from natsort import natsorted
 import re
 from pathlib import Path
@@ -21,15 +22,22 @@ class Find:
         self.method = 0
 
     def create_aspects_folder(self, path):
+        '''Creates CrystalAspects folder'''
         aspects_folder = Path(path) / 'CrystalAspects'
         aspects_folder.mkdir(parents=True, exist_ok=True)
 
         return aspects_folder
 
+    def craete_time_stamp(self, path):
+        '''Creates timestamp folder inside the CrystalAspects folder'''
+
+
+        return
+
     def find_info(self, path):
         '''The method returns the crystallographic directions,
         supersations, and the size_file paths from a CG simulation folder'''
-
+        print(path)
         path = Path(path)
         files = os.listdir(path)
         contents = natsorted(files)
@@ -72,7 +80,7 @@ class Find:
                         lines = sim_file.readlines()
 
                     for line in lines:
-                        if line.startswith('Starting delta mu value (kcal/mol):') and growth_rates:
+                        if line.startswith('Starting delta mu value (kcal/mol):'):
                             supersat = float(line.split()[-1])
                             supersats.append(supersat)
                         if line.startswith('normal, ordered or growth modifier'):
@@ -81,7 +89,6 @@ class Find:
                                 growth_mod = True
                             else:
                                 growth_mod = False
-                        
 
                         
                         if line.startswith('Size of crystal at frame output') and i==0:
@@ -98,7 +105,7 @@ class Find:
             i += 1
 
         
-        return (supersats, size_files, directions, growth_mod)
+        return (supersats, size_files, directions, growth_mod, folders)
 
 
     def find_growth_directions(self, csv):
@@ -128,13 +135,19 @@ class Find:
         if self.method == 'Crystallographic':
             return aspects.build_AR_CDA(folder)
 
-    def build_AR_CDA(self, folderpath, directions, selected):
+    def build_AR_CDA(self, folders, folderpath, directions, selected):
         
         path = Path(folderpath)
+        print(path)
+        print('next')
+        print(folders)
         aspects_folder = self.create_aspects_folder(folderpath)
+        time_string = time.strftime('%Y%m%d-%H%M%S')
+        savefolder = aspects_folder / time_string
+        savefolder.mkdir(parents=True, exist_ok=True)
 
         ar_array = np.empty((0, len(directions) + 1))
-        for folder in path:
+        for folder in folders:
             files = os.listdir(folder)
             sim_num = 1
             for f in files:

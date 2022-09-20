@@ -3,8 +3,8 @@ import os
 import numpy as np
 from natsort import natsorted
 import pandas as pd
+import time, sys
 from pathlib import Path
-
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.calc_data import Calculate
 from CrystalAspects.visualisation.plot_data import Plotting
@@ -29,10 +29,12 @@ class GrowthRate:
         '''Returns the final df/csv of the
         growth rates vs supersaturation'''
 
-        savefolder = self.creates_rates_folder(path)
-
+        savefolder1 = self.creates_rates_folder(path)
+        time_string = time.strftime('%Y%m%d-%H%M%S')
+        savefolder = savefolder1 / time_string
+        savefolder.mkdir(parents=True, exist_ok=True)
         find = Find()
-        supersats, size_files, directions, _ = find.find_info(path)
+        supersats, size_files, directions, _, _ = find.find_info(path)
 
         calc = Calculate()
 

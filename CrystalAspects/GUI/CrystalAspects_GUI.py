@@ -41,6 +41,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.checkboxnames = []
         self.checkboxes = []
         self.growthrates = False
+        self.aspectratio = False
         self.growthmod = False
         self.screwdislocations = []
         self.folder_path = ''
@@ -99,12 +100,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.mode = mode
         find = Find()
 
-
         self.folder_path = Path(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select CrystalGrower Output Folder'))
         checkboxes = []
         check_box_names = []
 
-        su_sat, size_files, directions, g_mods = find.find_info(self.folder_path)
+        su_sat, size_files, directions, g_mods, folders = find.find_info(self.folder_path)
         
         if size_files:
             print(bool(size_files))
@@ -116,6 +116,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Setting contents if its in normal mode (no screw dislocation)
         if self.mode == 1:
+
             # Deletes current directions
             for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
                 chk_box.deleteLater()
@@ -145,6 +146,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.checkboxes = checkboxes
             print(self.checkboxnames)
 
+        '''Creating CrystalAspects folder'''
+        find.create_aspects_folder(self.folder_path)
 
     def check_facet(self, state):
         if state == Qt.Checked:
@@ -212,7 +215,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.mode == 1:
             print('Clicked', state)
             if state == Qt.Checked:
-                
+                self.aspectratio = True
                 self.long_facet.setEnabled(True)
                 self.medium_facet.setEnabled(True)
                 self.aspect_range_checkBox.setEnabled(True)
@@ -298,16 +301,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                    directions=self.checked_directions,
                                    plotting=self.plot)
         if self.aspectratio:
-            
+            aspect_ratio = AspectRatio()
+            print('Aspect Ratio Selected')
+
             long = self.long_facet.currentText()
             medium = self.medium_facet.currentText()
             short = self.short_facet.currentText()
+            print(short)
 
             selected_directions = [short, medium, long]
+            print(selected_directions)
 
-            aspect_ratio = AspectRatio()
             find = Find()
+            _, _, _, folders, _ = find.find_info(self.folder_path)
+            print(folders)
             ar_df = find.build_AR_CDA(folderpath=self.folder_path,
+                                      folders=folders,
                                       directions=self.checked_directions,
                                       selected=selected_directions)
 

@@ -338,6 +338,10 @@ class Plotting:
 
         plt.show()
 
+    ################################
+    # Plotting Growth Rates
+    ################################
+
     def plot_growth_rates(self, gr_df, lengths, savepath):
         x_data = gr_df['Supersaturation']
         print(lengths)
