@@ -313,7 +313,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(selected_directions)
 
             find = Find()
-            _, _, _, folders, _ = find.find_info(self.folder_path)
+            _, _, selected_directions, _, folders = find.find_info(self.folder_path)
             print(folders)
             ar_df = find.build_AR_CDA(folderpath=self.folder_path,
                                       folders=folders,
