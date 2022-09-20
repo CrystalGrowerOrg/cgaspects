@@ -162,13 +162,16 @@ class Find:
                     lengths = [sim_num]
 
                     len_info_lines = lines[frame:]
+                    #len_info_lines.pop(-1)  ## supposed to delete the 'Time' in list problem
+                    print(len_info_lines)
                     for len_line in len_info_lines:
                         n = 0
                         while n <= len(directions):
                             for direction in directions:
                                 if len_line.startswith(direction):
                                     print(direction)
-                                    lengths.append(line.split[-1])
+                                    print(len_line)
+                                    lengths.append(float(line.split(" ")[-2]))
                                     print(lengths)
                                 n += 1
             ar_array = np.vstack(ar_array, np.array(lengths))
