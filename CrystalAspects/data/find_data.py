@@ -170,14 +170,13 @@ class Find:
                             for direction in directions:
                                 if len_line.startswith(direction):
                                     print(direction)
-                                    print(len_line)
-                                    lengths.append(float(line.split(" ")[-2]))
+                                    lengths.append(float(len_line.split(" ")[-2]))
                                     print(lengths)
                                 n += 1
-            ar_array = np.vstack(ar_array, np.array(lengths))
+            ar_array = np.vstack(ar_array, lengths)
 
             sim_num += 1
-        
+        print(ar_array)
         df = pd.DataFrame(ar_array, columns=['Simulation Number',
                                                 *directions])
 
