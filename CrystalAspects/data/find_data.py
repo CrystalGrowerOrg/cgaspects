@@ -52,7 +52,6 @@ class Find:
                     continue
                 else:
                     folders.append(item_path)
-        print(folders)
         size_files = []
         supersats = []
         directions = []
@@ -103,7 +102,6 @@ class Find:
                                     if len(facet) <= 8:
                                         directions.append(facet)
             i += 1
-
         
         return (supersats, size_files, directions, growth_mod, folders)
 
@@ -138,9 +136,6 @@ class Find:
     def build_AR_CDA(self, folders, folderpath, directions, selected):
         
         path = Path(folderpath)
-        print(path)
-        print('next')
-        print(folders)
         aspects_folder = self.create_aspects_folder(folderpath)
         time_string = time.strftime('%Y%m%d-%H%M%S')
         savefolder = aspects_folder / time_string
@@ -172,8 +167,10 @@ class Find:
                         while n <= len(directions):
                             for direction in directions:
                                 if len_line.startswith(direction):
+                                    print(direction)
                                     lengths.append(line.split[-1])
-                                    n += 1
+                                    print(lengths)
+                                n += 1
             ar_array = np.vstack(ar_array, np.array(lengths))
 
             sim_num += 1
