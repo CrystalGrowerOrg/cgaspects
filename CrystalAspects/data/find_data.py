@@ -1,4 +1,5 @@
 from pickletools import float8
+import select
 import numpy as np
 import pandas as pd
 import os
@@ -142,9 +143,9 @@ class Find:
         savefolder.mkdir(parents=True, exist_ok=True)
 
         ar_array = np.empty((0, len(directions) + 1))
+        sim_num = 1
         for folder in folders:
             files = os.listdir(folder)
-            sim_num = 1
             for f in files:
                 f_path = path / folder / f
                 f_name = f
@@ -162,31 +163,28 @@ class Find:
                     lengths = [sim_num]
 
                     len_info_lines = lines[frame:]
-                    #len_info_lines.pop(-1)  ## supposed to delete the 'Time' in list problem
-                    print(len_info_lines)
                     for len_line in len_info_lines:
-                        n = 0
-                        while n <= len(directions):
-                            for direction in directions:
-                                if len_line.startswith(direction):
-                                    print(direction)
-                                    lengths.append(float(len_line.split(" ")[-2]))
-                                    print(lengths)
-                                n += 1
-            ar_array = np.vstack(ar_array, lengths)
+                        for direction in directions:
+                            if len_line.startswith(direction):
+                                lengths.append(float(len_line.split(" ")[-2]))
+            ar_array = np.vstack((ar_array, lengths))
 
             sim_num += 1
+
         print(ar_array)
+        print('Order of Directions in Columns =', *directions)
+
         df = pd.DataFrame(ar_array, columns=['Simulation Number',
                                                 *directions])
 
         # aspect ratio calculation
         for i in range(len(selected) - 1):
+            print(selected[i], selected[i+1])
             df[f'AspectRatio_{selected[i]}/{selected[i+1]}'] = df[selected[i]] / df[selected[i+1]]
 
-        df.to_csv(aspects_folder / 'CDA_AspectRatio.csv', index=False)
+        df.to_csv(savefolder / 'CDA_AspectRatio.csv', index=False)
 
-        return df
+        return (df, savefolder)
 
     def build_SPH_distance(self, subfolder,
                            ref_shape_list, l_max=20,
