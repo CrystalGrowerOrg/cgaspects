@@ -116,15 +116,19 @@ class AspectRatio:
 
         if csv != '':
             csv = Path(csv)
-            df = pd.read_csv(csv)
+            ar_df = pd.read_csv(csv)
 
-        a = directions[0]
-        b = directions[1]
-        c = directions[2]
+        a_name = directions[0]
+        b_name = directions[1]
+        c_name = directions[2]
+
+        a = ar_df[a_name]
+        b = ar_df[b_name]
+        c = ar_df[c_name]
 
         with open(Path(filepath) / "CDA_equations.txt", 'w') as outfile:
             for i, line in enumerate(equations):
-                outfile.writelines(f'Equation Number{i}: {line}')
+                outfile.writelines(f'Equation Number{i+1}: {line}\n')
 
         ''' EQ: a b c
                 a c b
@@ -157,9 +161,9 @@ class AspectRatio:
         ar_df.loc[(b <= c) & (c <= a), 'CDA_Equation'] = '4'
         ar_df.loc[(c <= a) & (a <= b), 'CDA_Equation'] = '5'
         ar_df.loc[(c <= b) & (b <= a), 'CDA_Equation'] = '6'
-        print(ar_df['CDA Aspect Ratio Equation'])
+        print(ar_df['CDA_Equation'])
 
-        ar_df.to_csv(Path(filepath)[0] + 'CDA_DataFrame.csv')
+        ar_df.to_csv(Path(filepath) / 'CDA_DataFrame.csv')
 
         return ar_df
 

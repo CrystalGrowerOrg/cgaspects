@@ -45,6 +45,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthmod = False
         self.screwdislocations = []
         self.folder_path = ''
+        self.folders = []
 
         self.plot = True
 
@@ -73,7 +74,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
-
 
         self.setWindowIcon(QtGui.QIcon('icon.png'))
 
@@ -105,6 +105,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         check_box_names = []
 
         su_sat, size_files, directions, g_mods, folders = find.find_info(self.folder_path)
+        self.folders = folders
         
         if size_files:
             print(bool(size_files))
@@ -155,7 +156,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(chk_box)
             for box in self.checkboxes:
                 if chk_box == box:
-                    print('here')
                     # print(box)
                     checked_facet = self.checkboxnames[self.checkboxes.index(box)]
                     if checked_facet not in self.checked_directions:
@@ -172,8 +172,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                 self.ms_spinBox.setEnabled(True)
                                 self.ms_percent_label.setEnabled(True)
                     
-                    print(self.checked_directions)
-
         else:
             chk_box = self.sender()
             for box in self.checkboxes:
@@ -307,21 +305,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             long = self.long_facet.currentText()
             medium = self.medium_facet.currentText()
             short = self.short_facet.currentText()
-            print(short)
 
             selected_directions = [short, medium, long]
-            print(selected_directions)
+            
+            print('All Directions -->', self.checked_directions)
+            print('Short:Medium:Long -->', selected_directions)
 
             find = Find()
-            _, _, selected_directions, _, folders = find.find_info(self.folder_path)
-            print(folders)
-            ar_df = find.build_AR_CDA(folderpath=self.folder_path,
-                                      folders=folders,
-                                      directions=self.checked_directions,
-                                      selected=selected_directions)
+            
+            ar_df, savefolder = find.build_AR_CDA(folderpath=self.folder_path,
+                                                  folders=self.folders,
+                                                  directions=self.checked_directions,
+                                                  selected=selected_directions)
 
-            aspect_ratio.defining_equation(directions=self.checked_directions,
-                                           ar_df=ar_df)
+            aspect_ratio.defining_equation(directions=selected_directions,
+                                           ar_df=ar_df,
+                                           filepath=savefolder)
 
 
     def output_folder_button(self):
