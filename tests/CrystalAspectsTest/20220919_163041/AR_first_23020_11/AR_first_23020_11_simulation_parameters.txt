@@ -1,0 +1,172 @@
+CrystalGrower code version:                       CrystalGrower_X_1_6_1.f90
+Directory for file storage:                       /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/
+Filename root:                                    AR_first_23020_11
+Checkpoint load enabled:                          no
+Checkpoint load file path:                        N/A
+Checkpoint save enabled:                          no
+File containing TOPOS input?:                     /Users/Nathan/Documents/University/CrystalGrower/Aspect_Mean/PCA+Eq/20220620_125303/Paracetamol_12.txt
+File name for output visualisation data?:         /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_visualiser.vis
+Filetype, old, new, new_mol:                      new_mol
+normal, ordered or growth modifier:               normal
+Do you want to add screw dislocations?:           no
+Checking sweeps, 1 normal, 2 clear defects:       1
+Method for determining combinations:              2
+Is this a tile or net crystal?:                   net
+Do you want molecules grouped?:                   yes
+Different weighting for multiple bonds?:          no
+
+    net.txt (1)
+    1
+    2
+    3
+    3
+    4
+    4
+    5
+    5
+    6
+    6
+    7
+    7
+      2.500
+      2.500
+      2.250
+      1.500
+      2.080
+      2.080
+      2.170
+    end net.txt (1)
+
+
+    net.txt (2)
+    1
+    2
+    3
+    3
+    4
+    4
+    5
+    5
+    6
+    6
+    7
+    7
+      2.500
+      2.500
+      2.250
+      1.500
+      2.080
+      2.080
+      2.170
+    end net.txt (2)
+
+
+    net.txt (3)
+    1
+    2
+    3
+    3
+    4
+    4
+    5
+    5
+    6
+    6
+    7
+    7
+      2.500
+      2.500
+      2.250
+      1.500
+      2.080
+      2.080
+      2.170
+    end net.txt (3)
+
+
+    net.txt (4)
+    1
+    2
+    3
+    3
+    4
+    4
+    5
+    5
+    6
+    6
+    7
+    7
+      2.500
+      2.500
+      2.250
+      1.500
+      2.080
+      2.080
+      2.170
+    end net.txt (4)
+
+File name for output data:                        /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_ovito_CGvisualiser.XYZ                                                          
+File name growth events vs time:                  /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_growth.txt                                                                      
+File name delta mu [kcal/mol] vs time:            /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_delmu.txt                                                                       
+ File name for output of crystal size:            /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_size.csv                                                                        
+File name for count of each site type:            /Users/Nathan/Documents/University/CrystalGrower/CrystalAspectsTest/20220919_163041/AR_first_23020_11/AR_first_23020_11_count.txt                                                                       
+Automatic memory calculation?:                    yes
+Maximum memory in MBytes:                         10000
+Temperature in Celsius:                           25.00
+Iterations:                                       2000000
+Input mode for delta mu:                          3
+ 
+      Iterations for supersaturation to equilibrate:        100000
+      Iterations at starting supersaturation:               1500000
+ 
+Do you want an excess supersaturation?:           no
+ 
+        The excess supersaturation for all species is 0.0
+ 
+Starting delta mu value (kcal/mol):               100.000
+ 
+MOVIE: number of frames:                          1
+MOVIE: Iteration at movie capture start:          1
+MOVIE: Iteration at movie capture end:            2000000
+Delta mu DATA: The number of outputs:             1000
+Delta mu DATA: Iteration at initial output:       1
+Delta mu DATA: iteration at final output:         2000000
+ 
+Do you want to visualise crystal terraces?:       yes
+File read containing visualisation surfaces:      /Users/Nathan/Downloads/Paracetamol_Colour(MAY)_Edited.txt
+FIND surfaces or COLOUR surfaces?:                colour
+ Do you want to output crystal size?:             no
+ 
+Size of memory allocation in a-direction:         181
+Size of memory allocation in b-direction:         177
+Size of memory allocation in c-direction:         185
+Total size of GRID in MBytes:                     240
+ 
+Size of crystal at frame output
+-1 -1 -1       83.1 nm
+-1  1 -1       81.8 nm
+ 1 -1  1       81.8 nm
+ 1  1  1       83.1 nm
+ 0 -1 -1       71.3 nm
+ 0 -1  1       71.0 nm
+ 0  1 -1       71.0 nm
+ 0  1  1       71.3 nm
+-1 -1  1       92.2 nm
+-1  1  1       92.7 nm
+ 1 -1 -1       92.7 nm
+ 1  1 -1       92.2 nm
+-2  0  1      121.9 nm
+ 2  0 -1      121.9 nm
+ 0  0 -1       63.5 nm
+ 0  0  1       63.5 nm
+-1 -1  0       74.6 nm
+-1  1  0       74.1 nm
+ 1 -1  0       74.1 nm
+ 1  1  0       74.6 nm
+ 0 -1  0       88.2 nm
+ 0  1  0       88.2 nm
+-1  0  0      114.6 nm
+ 1  0  0      114.6 nm
+ 
+Date 19/09/2022, Time 16:43:23
