@@ -3,7 +3,14 @@ from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QComboBox, QMainWindow, QMessageBox, QShortcut, QFileDialog
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QMainWindow,
+    QMessageBox,
+    QShortcut,
+    QFileDialog,
+)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
@@ -17,26 +24,31 @@ from collections import defaultdict
 import webbrowser
 from natsort import natsorted
 from pathlib import Path
+import logging
 
 from CrystalAspects.GUI.gui_commands import GUICommands
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
 
+logging.basicConfig(level=logging.DEBUG, filename='CrystalAspects.log', filemode='w',
+                    format='%(asctime)s-%(levelname)s: %(message)s')
+
+logger = logging.getLogger('CrystalAspects_Logger')
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.setWindowIcon(QtGui.QIcon('icon.png'))
-        apply_stylesheet(app, theme='dark_cyan.xml')
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
+        apply_stylesheet(app, theme="dark_cyan.xml")
         self.setupUi(self)
-        self.statusBar().showMessage('CrystalGrower Data Processor v1.0')
+        self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
         self.commands = GUICommands()
         self.growth = GrowthRate()
-        
+
         self.checked_directions = []
         self.checkboxnames = []
         self.checkboxes = []
@@ -47,32 +59,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pca = False
         self.savar = False
         self.screwdislocations = []
-        self.folder_path = ''
+        self.folder_path = ""
         self.folders = []
 
-        self.plot = True
+        self.plot = False
 
         self.progressBar.setValue(0)
         # Welcome msg
-        print('############################################')
-        print('####        CrystalAspects v1.00        ####')
-        print('############################################')
+        print("############################################")
+        print("####        CrystalAspects v1.00        ####")
+        print("############################################")
 
-        '''###################################################
+        """###################################################
         ############      Keyboard Shortcuts      ############
-        ###################################################'''
+        ###################################################"""
 
-        self.openKS = QShortcut(QKeySequence('Ctrl+O'), self)
+        self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
         self.openKS.activated.connect(self.read_folder)
-        self.open_outKS = QShortcut(QKeySequence('Ctrl+Shift+O'), self)
+        self.open_outKS = QShortcut(QKeySequence("Ctrl+Shift+O"), self)
         # self.open_outKS.activated.connect(self.output_folder_button)
-        self.closeKS = QShortcut(QKeySequence('Ctrl+Q'), self)
+        self.closeKS = QShortcut(QKeySequence("Ctrl+Q"), self)
         self.closeKS.activated.connect(QApplication.instance().quit)
-        self.resetKS = QShortcut(QKeySequence('Ctrl+R'), self)
+        self.resetKS = QShortcut(QKeySequence("Ctrl+R"), self)
         self.resetKS.activated.connect(self.reset_button_function)
-        self.applyKS = QShortcut(QKeySequence('Ctrl+A'), self)
+        self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
         # self.applyKS.activated.connect(self.apply_clicked)
-
 
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
         self.pca_checkBox.stateChanged.connect(self.pca_checked)
@@ -80,9 +91,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
-        self.setWindowIcon(QtGui.QIcon('icon.png'))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        apply_stylesheet(app, theme='dark_cyan.xml')
+        apply_stylesheet(app, theme="dark_cyan.xml")
 
         # Open Folder
         try:
@@ -99,21 +110,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
         # self.tabWidget.currentChanged.connect(self.tabChanged)
 
-
     def read_folder(self, mode):
 
         self.mode = mode
         find = Find()
 
-        self.folder_path = Path(QtWidgets.QFileDialog.getExistingDirectory(None, 'Select CrystalGrower Output Folder'))
+        self.folder_path = Path(
+            QtWidgets.QFileDialog.getExistingDirectory(
+                None, "Select CrystalGrower Output Folder"
+            )
+        )
         checkboxes = []
         check_box_names = []
 
-        su_sat, size_files, directions, g_mods, folders = find.find_info(self.folder_path)
+        su_sat, size_files, directions, g_mods, folders = find.find_info(
+            self.folder_path
+        )
         self.folders = folders
-        
+
         if size_files:
-            print(bool(size_files))
             self.growthrates = True
             self.growthRate_checkBox.setChecked(True)
 
@@ -132,13 +147,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
                 check_box_names.append(chk_box_name)
                 checkboxes.append(self.chk_box_direction)
-                
+
                 self.chk_box_direction.setEnabled(True)
                 self.chk_box_direction.stateChanged.connect(self.check_facet)
-                sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+                sizePolicy = QtWidgets.QSizePolicy(
+                    QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+                )
                 sizePolicy.setHorizontalStretch(0)
                 sizePolicy.setVerticalStretch(1)
-                sizePolicy.setHeightForWidth(self.chk_box_direction.sizePolicy().hasHeightForWidth())
+                sizePolicy.setHeightForWidth(
+                    self.chk_box_direction.sizePolicy().hasHeightForWidth()
+                )
                 self.chk_box_direction.setSizePolicy(sizePolicy)
                 font = QtGui.QFont()
                 font.setFamily("Arial")
@@ -152,8 +171,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.checkboxes = checkboxes
             print(self.checkboxnames)
 
-        '''Creating CrystalAspects folder'''
+        """Creating CrystalAspects folder"""
         find.create_aspects_folder(self.folder_path)
+        logger.debug('Filepath [%s] read and CrystalAspects folder created at: %s', self.folder_path, )
 
     def check_facet(self, state):
         if state == Qt.Checked:
@@ -166,9 +186,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     if checked_facet not in self.checked_directions:
                         self.checked_directions.append(checked_facet)
 
-
                     # Turns on and off the second aspect ratio fields
-                    if len(self.checked_directions) >= 3 and self.aspectRatio_checkBox.isChecked():
+                    if (
+                        len(self.checked_directions) >= 3
+                        and self.aspectRatio_checkBox.isChecked()
+                    ):
                         if self.mode == 1:
                             self.short_facet.setEnabled(True)
                             if self.aspect_range_checkBox.isChecked():
@@ -176,7 +198,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                 self.ms_plusminus_label.setEnabled(True)
                                 self.ms_spinBox.setEnabled(True)
                                 self.ms_percent_label.setEnabled(True)
-                    
+
         else:
             chk_box = self.sender()
             for box in self.checkboxes:
@@ -212,11 +234,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.medium_facet.addItem(item)
                 self.short_facet.addItem(item)
 
-
     def aspect_ratio_checked(self, state):
 
         if self.mode == 1:
-            print('Clicked', state)
+            print("Clicked", state)
             if state == Qt.Checked:
                 self.aspectratio = True
                 self.long_facet.setEnabled(True)
@@ -231,7 +252,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.short_facet.setEnabled(True)
                     self.ratio_label2.setEnabled(True)
 
-            else:                
+            else:
                 # Clear
                 self.long_facet.setEnabled(False)
                 self.medium_facet.setEnabled(False)
@@ -288,44 +309,54 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def growth_rate_check(self, state):
         if state == Qt.Checked:
             self.growthrates = True
-            print('calc_growth [yes(1) or no(0)]= ', self.growthrates)
+            print(f"Growth Rates: {self.growthrates}")
         else:
             self.growthrates = False
-            print('calc_growth [yes(1) or no(0)]= ', self.growthrates)
+            print(f"Growth Rates: {self.growthrates}")
 
     def pca_checked(self, state):
         if state == Qt.Checked:
             self.pca = True
-            print('PCA Checked')
+            print(f"PCA: {self.pca}")
         else:
             self.pca = False
-            print('PCA is not checked')
+            print(f"PCA: {self.pca}")
 
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
-            print('CDA Checked')
+            print(f"PCA: {self.cda}")
         else:
             self.cda = False
-            print('CDA is not checked')
+            print(f"PCA: {self.cda}")
 
     def plot_check(self, state):
         if state == Qt.Checked:
             self.plot = True
-            print(f'Plot: {self.plot}')
+            print(f"Plot: {self.plot}")
         else:
             self.plot = False
-            print(f'Plot: {self.plot}')
+            print(f"Plot: {self.plot}")
 
     def run_calc(self):
+        logger.info(
+            'Calculation started with:\
+            PCA: %s\
+            CDA: %s\
+            Growth Rates: %s\
+            Plotting: %s', self.pca, self.cda, self.growthrates, self.plot)
+
         if self.growthrates:
             growth = GrowthRate()
-            growth.run_calc_growth(self.folder_path,
-                                   directions=self.checked_directions,
-                                   plotting=self.plot)
+            growth.run_calc_growth(
+                self.folder_path,
+                directions=self.checked_directions,
+                plotting=self.plot
+            )
         if self.aspectratio:
             aspect_ratio = AspectRatio()
-            print('Aspect Ratio Selected')
+            print("Aspect Ratio Selected")
+
             if self.cda:
 
                 long = self.long_facet.currentText()
@@ -334,35 +365,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 selected_directions = [short, medium, long]
 
-                print('All Directions -->', self.checked_directions)
-                print('Short:Medium:Long -->', selected_directions)
+                print("All Directions -->", self.checked_directions)
+                print("Short:Medium:Long -->", selected_directions)
 
                 find = Find()
 
-                ar_df, savefolder = find.build_AR_CDA(folderpath=self.folder_path,
-                                                      folders=self.folders,
-                                                      directions=self.checked_directions,
-                                                      selected=selected_directions)
+                ar_df, savefolder = find.build_AR_CDA(
+                    folderpath=self.folder_path,
+                    folders=self.folders,
+                    directions=self.checked_directions,
+                    selected=selected_directions,
+                )
 
-                zn_df = aspect_ratio.defining_equation(directions=selected_directions,
-                                               ar_df=ar_df,
-                                               filepath=savefolder)
+                zn_df = aspect_ratio.defining_equation(
+                    directions=selected_directions,
+                    ar_df=ar_df,
+                    filepath=savefolder
+                )
 
-                '''aspect_ratio.Zingg_No_Crystals(zn_df=zn_df,
-                                               folderpath=savefolder)'''
+                """aspect_ratio.Zingg_No_Crystals(zn_df=zn_df,
+                                               folderpath=savefolder)"""
 
             if self.pca:
-                pca_df, savefolder = aspect_ratio.build_AR_PCA(subfolder=self.folder_path)
+                pca_df, savefolder = aspect_ratio.build_AR_PCA(
+                    subfolder=self.folder_path
+                )
 
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df,
-                                                  folderpath=savefolder)
+                aspect_ratio.PCA_shape_percentage(
+                    pca_df=pca_df,
+                    folderpath=savefolder
+                )
                 if self.pca and self.cda:
-                    aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
-                                                            cda_df=zn_df,
-                                                            folderpath=savefolder)
-
-
-
+                    aspect_ratio.Zingg_CDA_shape_percentage(
+                        pca_df=pca_df, cda_df=zn_df, folderpath=savefolder
+                    )
 
     def output_folder_button(self):
         try:
@@ -372,7 +408,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 opener = "open" if sys.platform == "darwin" else "xdg-open"
                 subprocess.call([opener, dir_path])
-            self.statusBar().showMessage('Taking you to the CrystalAspects folder.')
+            self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
         except NameError:
             try:
                 dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
@@ -381,38 +417,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 else:
                     opener = "open" if sys.platform == "darwin" else "xdg-open"
                     subprocess.call([opener, dir_path])
-                self.statusBar().showMessage('Taking you to the CrystalAspects folder.')
-            except NameError:        
+                self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
+            except NameError:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Warning)
                 msg.setText("Please select CrystalGrower output folder first!")
-                msg.setInformativeText('An output folder is created only once you have selected a CrystalGrower output folder.')
+                msg.setInformativeText(
+                    "An output folder is created only once you have selected a CrystalGrower output folder."
+                )
                 msg.setWindowTitle("Error: Folder not found!")
                 msg.exec_()
 
 
 # Override sys excepthook to prevent app abortion upon any error
-# (Reverts to old PyQt4 behaviour of 
+# (Reverts to old PyQt4 behaviour of
 # simply printing the traceback to stdout/stderr)
-
 
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
-    
 
 if __name__ == "__main__":
 
     # Override sys excepthook to prevent app abortion upon any error
     sys.excepthook = except_hook
 
-
     # Setting taskbar icon permissions - windows
     try:
         import ctypes
 
-        appid = u'CNM.CrystalGrower.DataProcessor.v1.0'  # arbitrary string
+        appid = "CNM.CrystalGrower.DataProcessor.v1.0"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appid)
     except:
         pass
@@ -423,5 +458,3 @@ if __name__ == "__main__":
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
-    
-
