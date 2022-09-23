@@ -31,14 +31,10 @@ from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename="CrystalAspects.log",
-    filemode="w",
-    format="%(asctime)s-%(levelname)s: %(message)s",
-)
+logging.basicConfig(level=logging.DEBUG, filename='CrystalAspects.log', filemode='w',
+                    format='%(asctime)s-%(levelname)s: %(message)s')
 
-logger = logging.getLogger("CrystalAspects_Logger")
+logger = logging.getLogger('CrystalAspects_Logger')
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -177,10 +173,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         """Creating CrystalAspects folder"""
         find.create_aspects_folder(self.folder_path)
-        logger.debug(
-            "Filepath [%s] read and CrystalAspects folder created at: %s",
-            self.folder_path,
-        )
+        logger.debug('Filepath [%s] read and CrystalAspects folder created at: %s', self.folder_path, )
 
     def check_facet(self, state):
         if state == Qt.Checked:
@@ -316,26 +309,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def growth_rate_check(self, state):
         if state == Qt.Checked:
             self.growthrates = True
-            print("calc_growth [yes(1) or no(0)]= ", self.growthrates)
+            print(f"Growth Rates: {self.growthrates}")
         else:
             self.growthrates = False
-            print("calc_growth [yes(1) or no(0)]= ", self.growthrates)
+            print(f"Growth Rates: {self.growthrates}")
 
     def pca_checked(self, state):
         if state == Qt.Checked:
             self.pca = True
-            print("PCA Checked")
+            print(f"PCA: {self.pca}")
         else:
             self.pca = False
-            print("PCA is not checked")
+            print(f"PCA: {self.pca}")
 
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
-            print("CDA Checked")
+            print(f"PCA: {self.cda}")
         else:
             self.cda = False
-            print("CDA is not checked")
+            print(f"PCA: {self.cda}")
 
     def plot_check(self, state):
         if state == Qt.Checked:
@@ -346,10 +339,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"Plot: {self.plot}")
 
     def run_calc(self):
+        logger.info(
+            'Calculation started with:\
+            PCA: %s\
+            CDA: %s\
+            Growth Rates: %s\
+            Plotting: %s', self.pca, self.cda, self.growthrates, self.plot)
+
         if self.growthrates:
             growth = GrowthRate()
             growth.run_calc_growth(
-                self.folder_path, directions=self.checked_directions, plotting=self.plot
+                self.folder_path,
+                directions=self.checked_directions,
+                plotting=self.plot
             )
         if self.aspectratio:
             aspect_ratio = AspectRatio()
@@ -376,7 +378,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=selected_directions, ar_df=ar_df, filepath=savefolder
+                    directions=selected_directions,
+                    ar_df=ar_df,
+                    filepath=savefolder
                 )
 
                 """aspect_ratio.Zingg_No_Crystals(zn_df=zn_df,
@@ -387,7 +391,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     subfolder=self.folder_path
                 )
 
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=savefolder)
+                aspect_ratio.PCA_shape_percentage(
+                    pca_df=pca_df,
+                    folderpath=savefolder
+                )
                 if self.pca and self.cda:
                     aspect_ratio.Zingg_CDA_shape_percentage(
                         pca_df=pca_df, cda_df=zn_df, folderpath=savefolder
