@@ -8,10 +8,12 @@ import sys, time
 from itertools import permutations
 from statistics import median
 import re
+import logging
 from pathlib import Path
 from CrystalAspects.tools.shape_analysis import CrystalShape as cs
 from CrystalAspects.data.calc_data import Calculate as calc
 
+logger = logging.getLogger('CrystalAspects_Logger')
 
 class AspectRatio:
     def __init__(self):

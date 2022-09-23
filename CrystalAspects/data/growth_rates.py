@@ -9,28 +9,26 @@ from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.calc_data import Calculate
 from CrystalAspects.visualisation.plot_data import Plotting
 
-class GrowthRate:
 
+class GrowthRate:
     def __init__(self):
         self.method = 0
-        
 
     def creates_rates_folder(self, path):
-        '''This method returns a new folder to save data,
-        with a selected CG simulation / Crystal Aspects folder'''
+        """This method returns a new folder to save data,
+        with a selected CG simulation / Crystal Aspects folder"""
 
-        rates_folder = Path(path) / 'CrystalAspects' / 'GrowthRates'
+        rates_folder = Path(path) / "CrystalAspects" / "GrowthRates"
         rates_folder.mkdir(parents=True, exist_ok=True)
 
         return rates_folder
 
-
     def run_calc_growth(self, path, directions, plotting=True):
-        '''Returns the final df/csv of the
-        growth rates vs supersaturation'''
+        """Returns the final df/csv of the
+        growth rates vs supersaturation"""
 
         savefolder1 = self.creates_rates_folder(path)
-        time_string = time.strftime('%Y%m%d-%H%M%S')
+        time_string = time.strftime("%Y%m%d-%H%M%S")
         savefolder = savefolder1 / time_string
         savefolder.mkdir(parents=True, exist_ok=True)
         find = Find()
@@ -39,7 +37,7 @@ class GrowthRate:
         calc = Calculate()
 
         growth_rate_df = calc.calc_growth_rate(size_files, supersats, directions)
-        growth_rate_df.to_csv(savefolder / 'growthrates.csv')
+        growth_rate_df.to_csv(savefolder / "growthrates.csv")
 
         if plotting:
             plot = Plotting()
