@@ -43,6 +43,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthrates = False
         self.aspectratio = False
         self.growthmod = False
+        self.cda = False
+        self.pca = False
+        self.savar = False
         self.screwdislocations = []
         self.folder_path = ''
         self.folders = []
@@ -72,6 +75,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
+        self.pca_checkBox.stateChanged.connect(self.pca_checked)
+        self.cda_checkBox.stateChanged.connect(self.cda_checked)
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
@@ -219,6 +224,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.aspect_range_checkBox.setEnabled(True)
                 self.count_checkBox.setEnabled(True)
                 self.ratio_label1.setEnabled(True)
+                self.pca_checkBox.setEnabled(True)
+                self.cda_checkBox.setEnabled(True)
 
                 if len(self.checked_directions) >= 3:
                     self.short_facet.setEnabled(True)
@@ -257,6 +264,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Unchecks Checkboxes and clears the fields
             self.growthRate_checkBox.setChecked(False)
             self.aspectRatio_checkBox.setChecked(False)
+            self.cda_checkBox.setChecked(False)
+            self.pca_checkBox.setChecked(False)
             self.plot_checkBox.setChecked(False)
             self.long_facet.setEnabled(False)
             self.medium_facet.setEnabled(False)
@@ -284,6 +293,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.growthrates = False
             print('calc_growth [yes(1) or no(0)]= ', self.growthrates)
 
+    def pca_checked(self, state):
+        if state == Qt.Checked:
+            self.pca = True
+            print('PCA Checked')
+        else:
+            self.pca = False
+            print('PCA is not checked')
+
+    def cda_checked(self, state):
+        if state == Qt.Checked:
+            self.cda = True
+            print('CDA Checked')
+        else:
+            self.cda = False
+            print('CDA is not checked')
+
     def plot_check(self, state):
         if state == Qt.Checked:
             self.plot = True
@@ -301,26 +326,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.aspectratio:
             aspect_ratio = AspectRatio()
             print('Aspect Ratio Selected')
+            if self.cda:
 
-            long = self.long_facet.currentText()
-            medium = self.medium_facet.currentText()
-            short = self.short_facet.currentText()
+                long = self.long_facet.currentText()
+                medium = self.medium_facet.currentText()
+                short = self.short_facet.currentText()
 
-            selected_directions = [short, medium, long]
-            
-            print('All Directions -->', self.checked_directions)
-            print('Short:Medium:Long -->', selected_directions)
+                selected_directions = [short, medium, long]
 
-            find = Find()
-            
-            ar_df, savefolder = find.build_AR_CDA(folderpath=self.folder_path,
-                                                  folders=self.folders,
-                                                  directions=self.checked_directions,
-                                                  selected=selected_directions)
+                print('All Directions -->', self.checked_directions)
+                print('Short:Medium:Long -->', selected_directions)
 
-            aspect_ratio.defining_equation(directions=selected_directions,
-                                           ar_df=ar_df,
-                                           filepath=savefolder)
+                find = Find()
+
+                ar_df, savefolder = find.build_AR_CDA(folderpath=self.folder_path,
+                                                      folders=self.folders,
+                                                      directions=self.checked_directions,
+                                                      selected=selected_directions)
+
+                zn_df = aspect_ratio.defining_equation(directions=selected_directions,
+                                               ar_df=ar_df,
+                                               filepath=savefolder)
+
+                '''aspect_ratio.Zingg_No_Crystals(zn_df=zn_df,
+                                               folderpath=savefolder)'''
+
+            if self.pca:
+                pca_df, savefolder = aspect_ratio.build_AR_PCA(subfolder=self.folder_path)
+
+                aspect_ratio.PCA_shape_percentage(pca_df=pca_df,
+                                                  folderpath=savefolder)
+                if self.pca and self.cda:
+                    aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
+                                                            cda_df=zn_df,
+                                                            folderpath=savefolder)
+
+
 
 
     def output_folder_button(self):
