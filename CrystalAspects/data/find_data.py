@@ -249,7 +249,7 @@ class Find:
     def summary_compare(
         self, summary_csv, aspect_csv="", aspect_df="", cg_version="new"
     ):
-
+    
         summary_df = pd.read_csv(summary_csv)
 
         if aspect_df == "":
