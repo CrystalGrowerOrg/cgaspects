@@ -9,7 +9,6 @@ from chmpy.shape.sht import SHT
 
 
 class CrystalShape:
-
     def __init__(self, l_max=10):
         self.sht = SHT(l_max)
 
@@ -25,14 +24,14 @@ class CrystalShape:
         filepath = Path(filepath)
         print(filepath)
 
-        if filepath.suffix == '.XYZ':
-            print('XYZ File read!')
+        if filepath.suffix == ".XYZ":
+            print("XYZ File read!")
             self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
-        if filepath.suffix == '.txt':
-            print('xyz File read!')
+        if filepath.suffix == ".txt":
+            print("xyz File read!")
             self.xyz = np.loadtxt(filepath, skiprows=2)
-        if filepath.suffix == '.stl':
-            print('stl File read!')
+        if filepath.suffix == ".stl":
+            print("stl File read!")
             self.xyz = trimesh.load(filepath)
 
         return self.xyz
@@ -47,7 +46,7 @@ class CrystalShape:
 
     def reference_shape(self, shapepath):
 
-        if Path(shapepath).suffix == '.XYZ':
+        if Path(shapepath).suffix == ".XYZ":
             self.xyz = self.read_XYZ(shapepath)
             self.coeffs = self.get_coeffs(self.xyz)
 
@@ -65,13 +64,13 @@ class CrystalShape:
         return self.distance
 
     def get_PCA(self, xyz_vals, n=3):
-        filetype = '.XYZ'
+        filetype = ".XYZ"
         pca = PCA(n_components=n)
 
-        if filetype == '.XYZ' or '.xyz':
+        if filetype == ".XYZ" or ".xyz":
             pca.fit(self.normalise_verts(xyz_vals))
 
-        if filetype == '.stl':
+        if filetype == ".stl":
             norm_verts = self.normalise_verts(xyz_vals.vertices)
             self.stl_hull = ConvexHull(norm_verts)
             self.coeffs = transform_hull(self.sht, self.stl_hull)
@@ -89,7 +88,7 @@ class CrystalShape:
         return pca_svalues
 
     def get_all(self, xyz_vals, n=3):
-       
+
         pca = PCA(n_components=n)
         pca.fit(xyz_vals)
         pca_vectors = pca.components_
@@ -101,37 +100,33 @@ class CrystalShape:
         SA_hull = hull.area
         sa_vol = SA_hull / vol_hull
 
-        small, medium, long = (sorted(pca_svalues))
-        
+        small, medium, long = sorted(pca_svalues)
+
         aspect1 = small / medium
         aspect2 = medium / long
 
         shape_info = {
-                "PCA-svalues": pca_svalues,
-                "PCA-values": pca_values,
-                "Aspect Ratio S:M": aspect1,
-                "Aspect Ratio M:L": aspect2,
-                "Surface Area (SA)": SA_hull,
-                "Volume (Vol)": vol_hull,
-                "SA : Vol": sa_vol
-                }
+            "PCA-svalues": pca_svalues,
+            "PCA-values": pca_values,
+            "Aspect Ratio S:M": aspect1,
+            "Aspect Ratio M:L": aspect2,
+            "Surface Area (SA)": SA_hull,
+            "Volume (Vol)": vol_hull,
+            "SA : Vol": sa_vol,
+        }
 
         return shape_info
 
-    def coeff_to_xyz(self, coeffs, 
-                    path='.',
-                    index=0,
-                    name='',
-                    write_txt=False):
-        
+    def coeff_to_xyz(self, coeffs, path=".", index=0, name="", write_txt=False):
+
         self.points = list(reconstruct(coefficients=coeffs))
 
         if write_txt:
             n_points = len(self.points)
-            filepath = Path(path) / f'xyz_{name}_{index}.txt'
-            with open(filepath, 'w') as xyz_file:
-                xyz_file.write(f'{n_points}\n{filepath}\n')
+            filepath = Path(path) / f"xyz_{name}_{index}.txt"
+            with open(filepath, "w") as xyz_file:
+                xyz_file.write(f"{n_points}\n{filepath}\n")
                 for line in self.points:
-                    xyz_file.write(f'{line[0]}  {line[1]}  {line[2]}\n')
+                    xyz_file.write(f"{line[0]}  {line[1]}  {line[2]}\n")
 
         return self.points
