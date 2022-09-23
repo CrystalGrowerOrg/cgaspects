@@ -399,6 +399,7 @@ class AspectRatio:
             lath_percentage = total_lath / total * 100
         except ZeroDivisionError:
             lath_percentage = 0
+
         try:
             plate_percentage = total_plate / total * 100
         except ZeroDivisionError:
@@ -408,6 +409,7 @@ class AspectRatio:
             block_percentage = total_block / total * 100
         except ZeroDivisionError:
             block_percentage = 0
+            
         try:
             needle_percentage = total_needle / total * 100
         except ZeroDivisionError:
