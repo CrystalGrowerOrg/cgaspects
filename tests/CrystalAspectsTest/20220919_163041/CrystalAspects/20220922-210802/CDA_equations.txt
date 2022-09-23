@@ -1,0 +1,6 @@
+Equation Number1: (' 1 -1  0', ' 2  0 -1', ' 0  1 -1')
+Equation Number2: (' 1 -1  0', ' 0  1 -1', ' 2  0 -1')
+Equation Number3: (' 2  0 -1', ' 1 -1  0', ' 0  1 -1')
+Equation Number4: (' 2  0 -1', ' 0  1 -1', ' 1 -1  0')
+Equation Number5: (' 0  1 -1', ' 1 -1  0', ' 2  0 -1')
+Equation Number6: (' 0  1 -1', ' 2  0 -1', ' 1 -1  0')

@@ -34,8 +34,7 @@ class CrystalShape:
         if filepath.suffix == '.stl':
             print('stl File read!')
             self.xyz = trimesh.load(filepath)
-        
-        
+
         return self.xyz
 
     def get_coeffs(self, xyz_vals):

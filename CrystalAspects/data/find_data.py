@@ -45,7 +45,6 @@ class Find:
         folders = []
         for item in contents:
             item_name = item
-            print(item_name)
             item_path = path / item
             if os.path.isdir(item_path):
                 if item_name.endswith('XYZ_files') or item_name.endswith('CrystalAspects') \
