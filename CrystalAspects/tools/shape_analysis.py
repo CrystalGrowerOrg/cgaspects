@@ -88,6 +88,14 @@ class CrystalShape:
 
         return pca_svalues
 
+    def get_savar(self, xyz_files):
+        hull = ConvexHull(xyz_files)
+        vol_hull = hull.volume
+        SA_hull = hull.area
+        sa_vol = SA_hull / vol_hull
+
+        return(vol_hull, SA_hull, sa_vol)
+
     def get_all(self, xyz_vals, n=3):
        
         pca = PCA(n_components=n)

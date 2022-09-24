@@ -77,6 +77,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
         self.pca_checkBox.stateChanged.connect(self.pca_checked)
         self.cda_checkBox.stateChanged.connect(self.cda_checked)
+        self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
@@ -266,6 +267,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aspectRatio_checkBox.setChecked(False)
             self.cda_checkBox.setChecked(False)
             self.pca_checkBox.setChecked(False)
+            self.sa_vol_checkBox.setChecked(False)
             self.plot_checkBox.setChecked(False)
             self.long_facet.setEnabled(False)
             self.medium_facet.setEnabled(False)
@@ -301,13 +303,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pca = False
             print('PCA is not checked')
 
+    def sa_vol_checked(self, state):
+        if state == Qt.Checked:
+            self.sa_vol = True
+            print(f"SA:V {self.sa_vol}")
+        else:
+            self.sa_vol = False
+            print(f"SA:V {self.sa_vol}")
+
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
+<<<<<<< Updated upstream
             print('CDA Checked')
         else:
             self.cda = False
             print('CDA is not checked')
+=======
+            print(f"CDA: {self.cda}")
+        else:
+            self.cda = False
+            print(f"CDA: {self.cda}")
+>>>>>>> Stashed changes
 
     def plot_check(self, state):
         if state == Qt.Checked:
@@ -357,11 +374,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 aspect_ratio.PCA_shape_percentage(pca_df=pca_df,
                                                   folderpath=savefolder)
                 if self.pca and self.cda:
+<<<<<<< Updated upstream
                     aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
                                                             cda_df=zn_df,
                                                             folderpath=savefolder)
 
 
+=======
+                    aspect_ratio.Zingg_CDA_shape_percentage(
+                        pca_df=pca_df, cda_df=zn_df, folderpath=savefolder
+                    )
+        if self.sa_vol:
+            aspect_ratio = AspectRatio()
+            aspect_ratio.savar_calc(subfolder=self.folder_path)
+>>>>>>> Stashed changes
 
 
     def output_folder_button(self):
