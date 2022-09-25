@@ -32,8 +32,6 @@ class AspectRatio:
         savefolder.mkdir(parents=True, exist_ok=True)
 
         final_array = np.empty((0, 6), np.float64)
-        #print(final_array.shape)
-        XYZ_folder = subfolder / 'XYZ_files'
 
         for files in Path(subfolder).iterdir():
             if files.is_dir():
@@ -117,11 +115,6 @@ class AspectRatio:
 
         return df
 
-<<<<<<< Updated upstream
-    def defining_equation(self, directions, ar_df='', csv='', filepath='.'):
-        '''Defining CDA aspect ratio equations depending on the selected directions from the gui.
-        This means we will also need to input the selected directions into the function'''
-=======
     def savar_calc(self, subfolder):
         path = Path(subfolder)
         aspects_folder = self.create_aspects_folder(subfolder)
@@ -129,26 +122,19 @@ class AspectRatio:
         savefolder = aspects_folder / time_string
         savefolder.mkdir(parents=True, exist_ok=True)
 
-        final_array = np.empty((0, 6), np.float64)
-        # print(final_array.shape)
-        XYZ_folder = subfolder / "XYZ_files"
+        sav_final_df = np.empty((0, 4), np.float64)
 
         for files in Path(subfolder).iterdir():
             if files.is_dir():
                 for file in files.iterdir():
-                    print(files)
                     if file.suffix == ".XYZ":
-                        print(file)
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
                             xyz = shape.read_XYZ(file)
-                            sav_df = shape.get_savar(xyz)
-                            print(sav_df)
-                            sav_df = np.insert(sav_df, 0, sim_num, axis=1)
-                            sav_final_df = np.append(sav_final_df,
-                                                     sav_df, axis=0)
-                            print(sav_final_df.shape)
+                            sav_data = shape.get_savar(xyz)
+                            sav_data = np.insert(sav_data, 0, sim_num, axis=1)
+                            sav_final_df = np.append(sav_final_df, sav_data, axis=0)
                         except StopIteration:
                             continue
                         except UnicodeDecodeError:
@@ -167,10 +153,54 @@ class AspectRatio:
 
         return df
 
+    def shape_all(self, subfolder='.'):
+        path = Path(subfolder)
+        aspects_folder = self.create_aspects_folder(subfolder)
+        time_string = time.strftime("%Y%m%d-%H%M%S")
+        savefolder = aspects_folder / time_string
+        savefolder.mkdir(parents=True, exist_ok=True)
+
+        shape_final_df = np.empty((0, 6), np.float64)
+
+        for files in Path(subfolder).iterdir():
+            if files.is_dir():
+                for file in files.iterdir():
+                    if file.suffix == ".XYZ":
+                        sim_num = re.findall(r"\d+", Path(file).name)[-1]
+                        shape = cs()
+                        try:
+                            xyz = shape.read_XYZ(file)
+                            shape_data = shape.get_all(xyz)
+                            print(shape_data)
+                            shape_data = np.insert(shape_data, 0, sim_num, axis=1)
+                            print(shape_data)
+                            shape_final_df = np.append(shape_final_df, shape_data, axis=0)
+                            print(shape_final_df.shape)
+                        except StopIteration:
+                            continue
+                        except UnicodeDecodeError:
+                            continue
+        print(shape_final_df.shape)
+        # Converting np array to pandas df
+        df = pd.DataFrame(
+            shape_final_df,
+            columns=["Simulation Number",
+                     "Aspect Ratio S:M",
+                     "Aspect Ratio M:L",
+                     "Surface_Area (SA)",
+                     "Volume (Vol)",
+                     "SA:Vol"],
+        )
+        df.to_csv(savefolder / "Shape Properties.csv", index=False)
+        """aspects_folder = Path(subfolder) / 'CrystalAspects'
+        aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
+        df.to_csv(aspect_csv)"""
+
+        return df
+
     def defining_equation(self, directions, ar_df="", csv="", filepath="."):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function"""
->>>>>>> Stashed changes
 
         equations = [combo for combo in permutations(directions)]
         print(equations)
@@ -335,13 +365,7 @@ class AspectRatio:
             except ZeroDivisionError:
                 block_percentage.append(0)
         for i in needle_list:
-<<<<<<< Updated upstream
-            needle_percentage.append(i / total_needle * 100)
-        percentage_list = [lath_percentage, plate_percentage, block_percentage, needle_percentage]
-        percentage_df = pd.DataFrame(percentage_list).transpose()
-        percentage_df.columns = ['Laths', 'Plates', 'Blocks', 'Needles']
-        percentage_df.to_csv(Path(folderpath) / 'Percentage_Shapes_CDA.csv')
-=======
+
             try:
                 needle_percentage.append(i / total_needle * 100)
             except ZeroDivisionError:
@@ -356,7 +380,6 @@ class AspectRatio:
         print(percentage_df)
         percentage_df.columns = ["Laths", "Plates", "Blocks", "Needles"]
         percentage_df.to_csv(Path(folderpath) / "Percentage_Shapes_CDA.csv")
->>>>>>> Stashed changes
 
         return total_df, percentage_df
 
