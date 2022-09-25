@@ -87,6 +87,18 @@ class CrystalShape:
 
         return pca_svalues
 
+    def get_savar(self, xyz_files):
+        hull = ConvexHull(xyz_files)
+        vol_hull = hull.volume
+        SA_hull = hull.area
+        sa_vol = SA_hull / vol_hull
+
+        savar_array = np.array([[vol_hull,
+                                 SA_hull,
+                                 sa_vol]])
+
+        return(savar_array)
+
     def get_all(self, xyz_vals, n=3):
 
         pca = PCA(n_components=n)
@@ -105,15 +117,20 @@ class CrystalShape:
         aspect1 = small / medium
         aspect2 = medium / long
 
-        shape_info = {
-            "PCA-svalues": pca_svalues,
-            "PCA-values": pca_values,
-            "Aspect Ratio S:M": aspect1,
-            "Aspect Ratio M:L": aspect2,
-            "Surface Area (SA)": SA_hull,
-            "Volume (Vol)": vol_hull,
-            "SA : Vol": sa_vol,
-        }
+        shape_info = np.array([[aspect1,
+                                aspect2,
+                                SA_hull,
+                                vol_hull,
+                                sa_vol]])
+
+        '''shape_info = {
+                "Aspect Ratio S:M": aspect1,
+                "Aspect Ratio M:L": aspect2,
+                "Surface Area (SA)": SA_hull,
+                "Volume (Vol)": vol_hull,
+                "SA : Vol": sa_vol
+                }'''
+
 
         return shape_info
 
