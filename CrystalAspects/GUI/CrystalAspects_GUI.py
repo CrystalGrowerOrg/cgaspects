@@ -314,17 +314,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
-<<<<<<< Updated upstream
             print('CDA Checked')
         else:
             self.cda = False
             print('CDA is not checked')
-=======
             print(f"CDA: {self.cda}")
-        else:
-            self.cda = False
-            print(f"CDA: {self.cda}")
->>>>>>> Stashed changes
 
     def plot_check(self, state):
         if state == Qt.Checked:
@@ -374,21 +368,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 aspect_ratio.PCA_shape_percentage(pca_df=pca_df,
                                                   folderpath=savefolder)
                 if self.pca and self.cda:
-<<<<<<< Updated upstream
+
                     aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
                                                             cda_df=zn_df,
                                                             folderpath=savefolder)
 
 
-=======
                     aspect_ratio.Zingg_CDA_shape_percentage(
                         pca_df=pca_df, cda_df=zn_df, folderpath=savefolder
                     )
         if self.sa_vol:
             aspect_ratio = AspectRatio()
             aspect_ratio.savar_calc(subfolder=self.folder_path)
->>>>>>> Stashed changes
-
+        if self.pca and self.sa_vol:
+            aspect_ratio = AspectRatio()
+            aspect_ratio.shape_all(subfolder=self.folder_path)
 
     def output_folder_button(self):
         try:
