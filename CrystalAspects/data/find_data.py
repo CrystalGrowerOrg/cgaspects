@@ -7,6 +7,7 @@ import sys, time
 from natsort import natsorted
 import re
 from pathlib import Path
+from collections import namedtuple
 import logging
 from CrystalAspects.tools.shape_analysis import CrystalShape as cs
 from CrystalAspects.data.calc_data import Calculate as calc
@@ -32,15 +33,11 @@ class Find:
 
     def create_aspects_folder(self, path):
         """Creates CrystalAspects folder"""
-        aspects_folder = Path(path) / "CrystalAspects"
-        aspects_folder.mkdir(parents=True, exist_ok=True)
+        time_string = time.strftime("%Y%m%d-%H%M%S")
+        savefolder = Path(path) / "CrystalAspects" / time_string
+        savefolder.mkdir(parents=True, exist_ok=True)
 
-        return aspects_folder
-
-    def craete_time_stamp(self, path):
-        """Creates timestamp folder inside the CrystalAspects folder"""
-
-        return
+        return savefolder
 
     def find_info(self, path):
         """The method returns the crystallographic directions,
@@ -53,6 +50,8 @@ class Find:
         for item in contents:
             item_name = item
             item_path = path / item
+            if item.endswith("summary.csv"):
+                summary_file = item_path
             if os.path.isdir(item_path):
                 if (
                     item_name.endswith("XYZ_files")
@@ -65,7 +64,8 @@ class Find:
         size_files = []
         supersats = []
         directions = []
-
+        file_info = namedtuple('file_info', 'supersats, size_files, directions, growth_mod, folders, summary_file')
+        
         i = 0
         for folder in folders:
             files = os.listdir(folder)
@@ -115,7 +115,9 @@ class Find:
                                         directions.append(facet)
             i += 1
 
-        return (supersats, size_files, directions, growth_mod, folders)
+        infomation = file_info(supersats, size_files, directions, growth_mod, folders, summary_file)
+
+        return infomation
 
     def find_growth_directions(self, csv):
         """Returns the lenghts from a size_file"""
@@ -130,72 +132,6 @@ class Find:
 
     def find_cda_directions(self, file):
         pass
-
-    def aspect_ratio_csv(self, folder, method=0):
-        aspects = AspectRatio()
-        if method == 0:
-            self.method = "PCA"
-            print(self.method)
-        if method == 1:
-            self.method = "Crystallographic"
-
-        if self.method == "PCA":
-            return aspects.build_AR_PCA(folder)
-        if self.method == "Crystallographic":
-            return aspects.build_AR_CDA(folder)
-
-    def build_AR_CDA(self, folders, folderpath, directions, selected):
-
-        path = Path(folderpath)
-        aspects_folder = self.create_aspects_folder(folderpath)
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        savefolder = aspects_folder / time_string
-        savefolder.mkdir(parents=True, exist_ok=True)
-
-        ar_array = np.empty((0, len(directions) + 1))
-        sim_num = 1
-        for folder in folders:
-            files = os.listdir(folder)
-            for f in files:
-                f_path = path / folder / f
-                f_name = f
-
-                if f_name.startswith("._"):
-                    continue
-                if f_name.endswith("simulation_parameters.txt"):
-                    with open(f_path, "r", encoding="utf-8") as sim_file:
-                        lines = sim_file.readlines()
-
-                    for line in lines:
-                        if line.startswith("Size of crystal at frame output"):
-                            frame = lines.index(line) + 1
-
-                    lengths = [sim_num]
-
-                    len_info_lines = lines[frame:]
-                    for len_line in len_info_lines:
-                        for direction in directions:
-                            if len_line.startswith(direction):
-                                lengths.append(float(len_line.split(" ")[-2]))
-            ar_array = np.vstack((ar_array, lengths))
-
-            sim_num += 1
-
-        print(ar_array)
-        print("Order of Directions in Columns =", *directions)
-
-        df = pd.DataFrame(ar_array, columns=["Simulation Number", *directions])
-
-        # aspect ratio calculation
-        for i in range(len(selected) - 1):
-            print(selected[i], selected[i + 1])
-            df[f"AspectRatio_{selected[i]}/{selected[i+1]}"] = (
-                df[selected[i]] / df[selected[i + 1]]
-            )
-
-        df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
-
-        return (df, savefolder)
 
     def build_SPH_distance(
         self, subfolder, ref_shape_list, l_max=20, id_list=["Distance"]
@@ -247,16 +183,16 @@ class Find:
         pass
 
     def summary_compare(
-        self, summary_csv, aspect_csv="", aspect_df="", cg_version="new"
+        self, summary_csv, savefolder, aspect_csv=False, aspect_df="", cg_version="new"
     ):
     
         summary_df = pd.read_csv(summary_csv)
 
-        if aspect_df == "":
+        if aspect_csv:
             aspect_df = pd.read_csv(aspect_csv)
 
         summary_cols = summary_df.columns
-        aspect_cols = aspect_df.columns[1:]
+        aspect_cols = aspect_df.columns
 
         if cg_version == "new":
             """This allows the user to pick the two different
@@ -267,13 +203,15 @@ class Find:
             search_string = "_".join(search[:-1])
 
             int_cols = summary_cols[1:]
+            print('Int cols', int_cols)
             summary_df = summary_df.set_index(summary_cols[0])
-            compare_array = np.empty((0, 7 + len(int_cols)))
+            compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
+            print('Compare array shape', compare_array.shape)
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
                 num_string = f"{search_string}_{sim_num}"
-                print(num_string)
+                print('num string', num_string)
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 collect_row = summary_df.filter(items=[num_string], axis=0).values
@@ -284,7 +222,7 @@ class Find:
 
         if cg_version == "old":
             int_cols = summary_cols[1:]
-            compare_array = np.empty((0, 6 + len(int_cols)))
+            compare_array = np.empty((0, len(aspect_cols) - 1 + len(int_cols)))
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
@@ -300,23 +238,16 @@ class Find:
         print(aspect_cols, int_cols)
         cols = aspect_cols.append(int_cols)
         print(f"COLS:::: {cols}")
-        compare_df = pd.DataFrame(compare_array[:, :], columns=cols)
-        print(compare_df)
+        compare_df = pd.DataFrame(compare_array, columns=cols)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
 
-        filepath = Path(summary_csv)
-        aspects_folder = Path(filepath.parents[0]) / "CrystalAspects"
-        if not os.path.exists(aspects_folder):
-            os.makedirs(aspects_folder)
-
-        aspect_energy_csv = f"{aspects_folder}/aspectratio_energy.csv"
-        failed_sims_csv = f"{aspects_folder}/failed_sims.csv"
+        aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
+        failed_sims_csv = f"{savefolder}/failed_sims.csv"
 
         full_df.to_csv(aspect_energy_csv)
         summary_df.to_csv(failed_sims_csv)
 
         print(full_df)
-        print(summary_df)
 
     def energy_from_sph(self, csv_path, solvents=["water"]):
 

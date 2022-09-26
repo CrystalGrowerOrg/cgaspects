@@ -26,12 +26,8 @@ class AspectRatio:
 
         return aspects_folder
 
-    def build_AR_PCA(self, subfolder):
+    def build_AR_PCA(self, subfolder, savefolder):
         path = Path(subfolder)
-        aspects_folder = self.create_aspects_folder(subfolder)
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        savefolder = aspects_folder / time_string
-        savefolder.mkdir(parents=True, exist_ok=True)
 
         final_array = np.empty((0, 6), np.float64)
         # print(final_array.shape)
@@ -75,57 +71,63 @@ class AspectRatio:
         aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
         df.to_csv(aspect_csv)"""
 
-        return (df, savefolder)
+        return df
 
-    def build_AR_CDA(self, file):
-        filepath = Path(file)
-        df = pd.read_csv(filepath)
+    def build_AR_CDA(self, folders, folderpath, savefolder, directions, selected):
 
-        final_array = np.empty((0, 6), np.float64)
-        print(final_array.shape)
+        path = Path(folderpath)
+        
+        ar_array = np.empty((0, len(directions) + 1))
+        sim_num = 1
+        for folder in folders:
+            files = os.listdir(folder)
+            for f in files:
+                f_path = path / folder / f
+                f_name = f
 
-        for index, row in df.iterrows():
-            index = +1
-            try:
-                vals = row[1:4].values
-                # print(vals)
+                if f_name.startswith("._"):
+                    continue
+                if f_name.endswith("simulation_parameters.txt"):
+                    with open(f_path, "r", encoding="utf-8") as sim_file:
+                        lines = sim_file.readlines()
 
-                calculator = calc()
-                ar_data = calculator.aspectratio(vals=vals)
-                ar_data = np.insert(ar_data, 0, index, axis=1)
+                    for line in lines:
+                        if line.startswith("Size of crystal at frame output"):
+                            frame = lines.index(line) + 1
 
-                final_array = np.append(final_array, ar_data, axis=0)
-                print(final_array.shape)
+                    lengths = [sim_num]
 
-            except StopIteration:
-                continue
-            except UnicodeDecodeError:
-                continue
+                    len_info_lines = lines[frame:]
+                    for len_line in len_info_lines:
+                        for direction in directions:
+                            if len_line.startswith(direction):
+                                lengths.append(float(len_line.split(" ")[-2]))
+            ar_array = np.vstack((ar_array, lengths))
 
-        print(final_array.shape)
+            sim_num += 1
 
-        # Converting np array to pandas df
-        df = pd.DataFrame(
-            final_array,
-            columns=["Simulation Number", "Small", "Medium", "Long", "S:M", "M:L"],
-        )
-        aspects_folder = filepath.parents[0] / "CrystalAspects"
-        aspects_folder.mkdir(parents=True, exist_ok=True)
-        aspect_csv = f"{aspects_folder}/PCA_aspectratio.csv"
-        df.to_csv(aspect_csv)
+        print(ar_array)
+        print("Order of Directions in Columns =", *directions)
+
+        df = pd.DataFrame(ar_array, columns=["Simulation Number", *directions])
+
+        # aspect ratio calculation
+        for i in range(len(selected) - 1):
+            print(selected[i], selected[i + 1])
+            df[f"AspectRatio_{selected[i]}/{selected[i+1]}"] = (
+                df[selected[i]] / df[selected[i + 1]]
+            )
+
+        df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
 
         return df
 
-    def savar_calc(self, subfolder):
+    def savar_calc(self, subfolder, savefolder):
         path = Path(subfolder)
-        aspects_folder = self.create_aspects_folder(subfolder)
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        savefolder = aspects_folder / time_string
-        savefolder.mkdir(parents=True, exist_ok=True)
 
         sav_final_df = np.empty((0, 4), np.float64)
 
-        for files in Path(subfolder).iterdir():
+        for files in path.iterdir():
             if files.is_dir():
                 for file in files.iterdir():
                     if file.suffix == ".XYZ":
@@ -136,10 +138,9 @@ class AspectRatio:
                             sav_data = shape.get_savar(xyz)
                             sav_data = np.insert(sav_data, 0, sim_num, axis=1)
                             sav_final_df = np.append(sav_final_df, sav_data, axis=0)
-                        except StopIteration:
+                        except (StopIteration, UnicodeDecodeError):
                             continue
-                        except UnicodeDecodeError:
-                            continue
+
         print(sav_final_df.shape)
 
         # Converting np array to pandas df
@@ -148,19 +149,11 @@ class AspectRatio:
             columns=["Simulation Number", "Volume", "Surface_Area", "SA:Vol"],
         )
         df.to_csv(savefolder / "SA_Vol_ratio.csv", index=False)
-        """aspects_folder = Path(subfolder) / 'CrystalAspects'
-        aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
-        df.to_csv(aspect_csv)"""
-
+       
         return df
 
-    def shape_all(self, subfolder='.'):
-        path = Path(subfolder)
-        aspects_folder = self.create_aspects_folder(subfolder)
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        savefolder = aspects_folder / time_string
-        savefolder.mkdir(parents=True, exist_ok=True)
-
+    def shape_all(self, subfolder, savefolder):
+        
         shape_final_df = np.empty((0, 6), np.float64)
 
         for files in Path(subfolder).iterdir():
@@ -177,25 +170,22 @@ class AspectRatio:
                             print(shape_data)
                             shape_final_df = np.append(shape_final_df, shape_data, axis=0)
                             print(shape_final_df.shape)
-                        except StopIteration:
+                        except (StopIteration, UnicodeDecodeError):
                             continue
-                        except UnicodeDecodeError:
-                            continue
-        print(shape_final_df.shape)
+        
         # Converting np array to pandas df
         df = pd.DataFrame(
             shape_final_df,
             columns=["Simulation Number",
-                     "Aspect Ratio S:M",
-                     "Aspect Ratio M:L",
+                     "S:M",
+                     "M:L",
                      "Surface_Area (SA)",
                      "Volume (Vol)",
                      "SA:Vol"],
         )
+        print(df)
         df.to_csv(savefolder / "Shape Properties.csv", index=False)
-        """aspects_folder = Path(subfolder) / 'CrystalAspects'
-        aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
-        df.to_csv(aspect_csv)"""
+        
 
         return df
 
@@ -372,7 +362,6 @@ class AspectRatio:
             except ZeroDivisionError:
                 block_percentage.append(0)
         for i in needle_list:
-            needle_percentage.append(i / total_needle * 100)
             try:
                 needle_percentage.append(i / total_needle * 100)
             except ZeroDivisionError:
@@ -476,6 +465,7 @@ class AspectRatio:
         if csv != "":
             csv = Path(csv)
             pca_df = pd.read_csv(csv)
+        
         total = len(pca_df)
         lath = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] <= 0.667)]
         plate = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] >= 0.667)]

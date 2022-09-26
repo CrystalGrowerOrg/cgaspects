@@ -1,4 +1,6 @@
 # Project module imports
+from asyncio import FastChildWatcher
+from traceback import format_exception_only
 from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
@@ -124,17 +126,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         checkboxes = []
         check_box_names = []
 
-        su_sat, size_files, directions, g_mods, folders = find.find_info(
-            self.folder_path
-        )
-        self.folders = folders
+        file_info = find.find_info(self.folder_path)
 
-        if size_files:
+        self.summary_file = file_info.summary_file
+
+        self.folders = file_info.folders
+
+
+        if file_info.size_files:
             self.growthrates = True
             self.growthRate_checkBox.setChecked(True)
 
-        num_directions = len(directions)
-        print(directions)
+        if self.growthrates is False:
+            self.growthRate_checkBox.setEnabled(False)
+        
+
+        num_directions = len(file_info.directions)
+        print('Number of Directions:', num_directions)
 
         # Setting contents if its in normal mode (no screw dislocation)
         if self.mode == 1:
@@ -144,7 +152,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 chk_box.deleteLater()
 
             for i in range(num_directions):
-                chk_box_name = directions[i]
+                chk_box_name = file_info.directions[i]
                 self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
                 check_box_names.append(chk_box_name)
                 checkboxes.append(self.chk_box_direction)
@@ -350,23 +358,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"Plot: {self.plot}")
 
     def run_calc(self):
+        
         logger.info(
-            'Calculation started with:\
-            PCA: %s\
-            CDA: %s\
-            Growth Rates: %s\
-            Plotting: %s', self.pca, self.cda, self.growthrates, self.plot)
+            'Calculation started with:\n\
+            PCA: %s\n\
+            CDA: %s\n\
+            Growth Rates: %s\n\
+            Plotting: %s\n', self.pca, self.cda, self.growthrates, self.plot)
+
+        find = Find()
+        save_folder = find.create_aspects_folder(self.folder_path)
 
         if self.growthrates:
             growth = GrowthRate()
             growth.run_calc_growth(
                 self.folder_path,
                 directions=self.checked_directions,
-                plotting=self.plot
+                plotting=self.plot,
+                savefolder=save_folder
             )
+
+        if self.sa_vol and self.pca is False:
+            aspect_ratio = AspectRatio()
+            savar_df = aspect_ratio.savar_calc(subfolder=self.folder_path, savefolder=save_folder)
+            find.summary_compare(summary_csv=self.summary_file, aspect_df=savar_df, savefolder=save_folder)
+
+        if self.pca and self.sa_vol:
+            aspect_ratio = AspectRatio()
+            pca_df = aspect_ratio.shape_all(subfolder=self.folder_path, savefolder=save_folder)
+            find.summary_compare(summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder)
+
         if self.aspectratio:
             aspect_ratio = AspectRatio()
-            print("Aspect Ratio Selected")
 
             if self.cda:
 
@@ -379,43 +402,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 print("All Directions -->", self.checked_directions)
                 print("Short:Medium:Long -->", selected_directions)
 
-                find = Find()
-
-                ar_df, savefolder = find.build_AR_CDA(
+                cda_df = aspect_ratio.build_AR_CDA(
                     folderpath=self.folder_path,
                     folders=self.folders,
                     directions=self.checked_directions,
                     selected=selected_directions,
+                    savefolder=save_folder
                 )
 
                 zn_df = aspect_ratio.defining_equation(
                     directions=selected_directions,
-                    ar_df=ar_df,
-                    filepath=savefolder
+                    ar_df=cda_df,
+                    filepath=save_folder
                 )
 
-                """aspect_ratio.Zingg_No_Crystals(zn_df=zn_df,
-                                               folderpath=savefolder)"""
+            if self.pca and self.sa_vol:
+                aspect_ratio.PCA_shape_percentage(
+                    pca_df=pca_df,
+                    folderpath=save_folder
+                )
 
-            if self.pca:
-                pca_df, savefolder = aspect_ratio.build_AR_PCA(
-                    subfolder=self.folder_path
+            if self.pca and self.sa_vol is False:
+                pca_df = aspect_ratio.build_AR_PCA(
+                    subfolder=self.folder_path,
+                    savefolder=save_folder
                 )
 
                 aspect_ratio.PCA_shape_percentage(
                     pca_df=pca_df,
-                    folderpath=savefolder
+                    folderpath=save_folder
                 )
-                if self.pca and self.cda:
-                    aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
-                                                            cda_df=zn_df,
-                                                            folderpath=savefolder)
-        if self.sa_vol:
-            aspect_ratio = AspectRatio()
-            aspect_ratio.savar_calc(subfolder=self.folder_path)
-        if self.pca and self.sa_vol:
-            aspect_ratio = AspectRatio()
-            aspect_ratio.shape_all(subfolder=self.folder_path)
+            if self.pca and self.cda:
+                aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
+                                                        cda_df=zn_df,
+                                                        folderpath=save_folder)
+                
 
     def output_folder_button(self):
         try:
