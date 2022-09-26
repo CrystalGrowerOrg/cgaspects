@@ -33,10 +33,14 @@ from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
 
-logging.basicConfig(level=logging.DEBUG, filename='CrystalAspects.log', filemode='w',
-                    format='%(asctime)s-%(levelname)s: %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename="CrystalAspects.log",
+    filemode="w",
+    format="%(asctime)s-%(levelname)s: %(message)s",
+)
 
-logger = logging.getLogger('CrystalAspects_Logger')
+logger = logging.getLogger("CrystalAspects_Logger")
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -132,17 +136,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.folders = file_info.folders
 
-
         if file_info.size_files:
             self.growthrates = True
             self.growthRate_checkBox.setChecked(True)
 
         if self.growthrates is False:
             self.growthRate_checkBox.setEnabled(False)
-        
 
         num_directions = len(file_info.directions)
-        print('Number of Directions:', num_directions)
+        print("Number of Directions:", num_directions)
 
         # Setting contents if its in normal mode (no screw dislocation)
         if self.mode == 1:
@@ -181,8 +183,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(self.checkboxnames)
 
         """Creating CrystalAspects folder"""
-        find.create_aspects_folder(self.folder_path)
-        logger.debug('Filepath [%s] read and CrystalAspects folder created at: %s', self.folder_path, )
+        logger.debug(
+            "Filepath [%s] read and CrystalAspects folder created at: %s",
+            self.folder_path,
+        )
 
     def check_facet(self, state):
         if state == Qt.Checked:
@@ -346,7 +350,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"PCA: {self.cda}")
         else:
             self.cda = False
-            print('CDA is not checked')
+            print("CDA is not checked")
             print(f"CDA: {self.cda}")
 
     def plot_check(self, state):
@@ -358,13 +362,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"Plot: {self.plot}")
 
     def run_calc(self):
-        
+
         logger.info(
-            'Calculation started with:\n\
+            "Calculation started with:\n\
             PCA: %s\n\
             CDA: %s\n\
             Growth Rates: %s\n\
-            Plotting: %s\n', self.pca, self.cda, self.growthrates, self.plot)
+            Plotting: %s\n",
+            self.pca,
+            self.cda,
+            self.growthrates,
+            self.plot,
+        )
+
+        logger.info("All Selected Directions: %s\n", self.checked_directions)
 
         find = Find()
         save_folder = find.create_aspects_folder(self.folder_path)
@@ -375,18 +386,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.folder_path,
                 directions=self.checked_directions,
                 plotting=self.plot,
-                savefolder=save_folder
+                savefolder=save_folder,
             )
 
         if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
-            savar_df = aspect_ratio.savar_calc(subfolder=self.folder_path, savefolder=save_folder)
-            find.summary_compare(summary_csv=self.summary_file, aspect_df=savar_df, savefolder=save_folder)
+            savar_df = aspect_ratio.savar_calc(
+                subfolder=self.folder_path, savefolder=save_folder
+            )
+            find.summary_compare(
+                summary_csv=self.summary_file,
+                aspect_df=savar_df,
+                savefolder=save_folder,
+            )
 
         if self.pca and self.sa_vol:
             aspect_ratio = AspectRatio()
-            pca_df = aspect_ratio.shape_all(subfolder=self.folder_path, savefolder=save_folder)
-            find.summary_compare(summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder)
+            pca_df = aspect_ratio.shape_all(
+                subfolder=self.folder_path, savefolder=save_folder
+            )
+            find.summary_compare(
+                summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
+            )
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
@@ -399,44 +420,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 selected_directions = [short, medium, long]
 
-                print("All Directions -->", self.checked_directions)
-                print("Short:Medium:Long -->", selected_directions)
+                logger.info(
+                    "Selected Directions (for CDA): %s, %s, %s\n", short, medium, long
+                )
 
                 cda_df = aspect_ratio.build_AR_CDA(
                     folderpath=self.folder_path,
                     folders=self.folders,
                     directions=self.checked_directions,
                     selected=selected_directions,
-                    savefolder=save_folder
+                    savefolder=save_folder,
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=selected_directions,
-                    ar_df=cda_df,
-                    filepath=save_folder
+                    directions=selected_directions, ar_df=cda_df, filepath=save_folder
                 )
 
             if self.pca and self.sa_vol:
-                aspect_ratio.PCA_shape_percentage(
-                    pca_df=pca_df,
-                    folderpath=save_folder
-                )
+                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
 
             if self.pca and self.sa_vol is False:
                 pca_df = aspect_ratio.build_AR_PCA(
-                    subfolder=self.folder_path,
-                    savefolder=save_folder
+                    subfolder=self.folder_path, savefolder=save_folder
                 )
 
-                aspect_ratio.PCA_shape_percentage(
-                    pca_df=pca_df,
-                    folderpath=save_folder
-                )
+                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
             if self.pca and self.cda:
-                aspect_ratio.Zingg_CDA_shape_percentage(pca_df=pca_df,
-                                                        cda_df=zn_df,
-                                                        folderpath=save_folder)
-                
+                aspect_ratio.Zingg_CDA_shape_percentage(
+                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
+                )
 
     def output_folder_button(self):
         try:

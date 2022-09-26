@@ -30,11 +30,8 @@ class AspectRatio:
         path = Path(subfolder)
 
         final_array = np.empty((0, 6), np.float64)
-        # print(final_array.shape)
-        XYZ_folder = subfolder / "XYZ_files"
 
-
-        for files in Path(subfolder).iterdir():
+        for files in path.iterdir():
             if files.is_dir():
                 for file in files.iterdir():
                     print(files)

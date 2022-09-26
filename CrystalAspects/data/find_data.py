@@ -25,7 +25,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence
 
-logger = logging.getLogger('CrystalAspects_Logger')
+logger = logging.getLogger("CrystalAspects_Logger")
+
 
 class Find:
     def __init__(self):
@@ -64,8 +65,11 @@ class Find:
         size_files = []
         supersats = []
         directions = []
-        file_info = namedtuple('file_info', 'supersats, size_files, directions, growth_mod, folders, summary_file')
-        
+        file_info = namedtuple(
+            "file_info",
+            "supersats, size_files, directions, growth_mod, folders, summary_file",
+        )
+
         i = 0
         for folder in folders:
             files = os.listdir(folder)
@@ -115,7 +119,9 @@ class Find:
                                         directions.append(facet)
             i += 1
 
-        infomation = file_info(supersats, size_files, directions, growth_mod, folders, summary_file)
+        infomation = file_info(
+            supersats, size_files, directions, growth_mod, folders, summary_file
+        )
 
         return infomation
 
@@ -185,7 +191,7 @@ class Find:
     def summary_compare(
         self, summary_csv, savefolder, aspect_csv=False, aspect_df="", cg_version="new"
     ):
-    
+
         summary_df = pd.read_csv(summary_csv)
 
         if aspect_csv:
@@ -203,15 +209,15 @@ class Find:
             search_string = "_".join(search[:-1])
 
             int_cols = summary_cols[1:]
-            print('Int cols', int_cols)
+            print("Int cols", int_cols)
             summary_df = summary_df.set_index(summary_cols[0])
             compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
-            print('Compare array shape', compare_array.shape)
+            print("Compare array shape", compare_array.shape)
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
                 num_string = f"{search_string}_{sim_num}"
-                print('num string', num_string)
+                print("num string", num_string)
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 collect_row = summary_df.filter(items=[num_string], axis=0).values

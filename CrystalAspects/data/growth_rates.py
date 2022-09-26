@@ -32,7 +32,9 @@ class GrowthRate:
 
         calc = Calculate()
 
-        growth_rate_df = calc.calc_growth_rate(file_info.size_files, file_info.supersats, file_info.directions)
+        growth_rate_df = calc.calc_growth_rate(
+            file_info.size_files, file_info.supersats, file_info.directions
+        )
         growth_rate_df.to_csv(savefolder / "growthrates.csv")
 
         if plotting:
