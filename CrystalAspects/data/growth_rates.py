@@ -23,20 +23,16 @@ class GrowthRate:
 
         return rates_folder
 
-    def run_calc_growth(self, path, directions, plotting=True):
+    def run_calc_growth(self, path, directions, savefolder, plotting=True):
         """Returns the final df/csv of the
         growth rates vs supersaturation"""
 
-        savefolder1 = self.creates_rates_folder(path)
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        savefolder = savefolder1 / time_string
-        savefolder.mkdir(parents=True, exist_ok=True)
         find = Find()
-        supersats, size_files, directions, _, _ = find.find_info(path)
+        file_info = find.find_info(path)
 
         calc = Calculate()
 
-        growth_rate_df = calc.calc_growth_rate(size_files, supersats, directions)
+        growth_rate_df = calc.calc_growth_rate(file_info.size_files, file_info.supersats, file_info.directions)
         growth_rate_df.to_csv(savefolder / "growthrates.csv")
 
         if plotting:
