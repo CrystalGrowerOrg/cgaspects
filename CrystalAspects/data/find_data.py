@@ -255,6 +255,8 @@ class Find:
 
         print(full_df)
 
+        return full_df
+
     def energy_from_sph(self, csv_path, solvents=["water"]):
 
         csv = Path(csv_path)
