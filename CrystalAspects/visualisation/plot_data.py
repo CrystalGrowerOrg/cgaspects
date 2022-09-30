@@ -17,18 +17,18 @@ from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
 class Plotting:
+
     def create_plots_folder(self, path):
         plots_folder = Path(path) / "CGPlots"
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def build_PCAZinng(self, csv="", df="", folderpath="./outputs", i_plot=False):
-        if df == "":
-            df = pd.read_csv(csv)
-
+    def build_PCAZingg(
+            self, csv="", df="", folderpath="./outputs", i_plot=False
+    ):
         if csv != "":
             folderpath = Path(csv).parents[0]
-
+            df = pd.read_csv(csv)
         savefolder = self.create_plots_folder(folderpath)
 
         interactions = [
@@ -54,12 +54,12 @@ class Plotting:
             plt.title(textstr)
             plt.xlabel("S/M")
             plt.ylabel("M/L")
-            # plt.xlim(0.0, 1.0)
-            # plt.ylim(0.0, 1.0)
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
             savepath = f"{savefolder}/PCAZingg_{interaction}"
-            plt.savefig(savepath, dpi=300)
+            plt.savefig(savepath, dpi=900)
 
             if i_plot:
                 fig = px.scatter(
@@ -72,153 +72,230 @@ class Plotting:
                 fig.write_html(f"{savefolder}/PCAZingg_{interaction}.html")
                 fig.show()
 
-    def build_zingg_seperated_i(self, df=""):
-        eq1 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 1]
-        eq2 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 2]
-        eq3 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 3]
-        eq4 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 4]
-        eq5 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 5]
-        eq6 = zn_df[zn_df["CDA Aspect Ratio Equation"] == 6]
+    def Aspect_Extended_Plot(
+            self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
+    ):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
 
-        x_data = eq1["S/M"]
-        y_data = eq1["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
+        savefolder = self.create_plots_folder(folderpath)
+        extended_df = df
+
+        i = 0
+        x_data = extended_df[f"AspectRatio_{selected[i]}/{selected[i+1]}"]
+        y_data = extended_df[f"AspectRatio_{selected[i+1]}/{selected[i+2]}"]
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
+        plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
+        savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
+        plt.savefig(savepath, dpi=900)
+
+        interactions = [
+            col
+            for col in extended_df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+
+        for interaction in interactions:
+            c_df = extended_df[interaction]
+            print(c_df)
+            colour = list(set(c_df))
+            textstr = interaction
+            props = dict(boxstyle="square", facecolor="white")
+
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+            plt.axhline(y=0.66, color="black", linestyle="--")
+            plt.axvline(x=0.66, color="black", linestyle="--")
+            plt.title(textstr)
+            plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
+            plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
+            plt.xlim(0.0)
+            plt.ylim(0.0)
+            cbar = plt.colorbar(ticks=colour)
+            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
+            print(savepath)
+            plt.savefig(savepath, dpi=900)
+
+    def CDA_Plot(
+            self, csv="", df="", folderpath="./outputs", i_plot=False
+    ):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+
+        zn_df = df
+        savefolder = self.create_plots_folder(folderpath)
+
+        x_data = zn_df['S/M']
+        y_data = zn_df['M/L']
+
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.xlabel('S/M')
+        plt.ylabel('M/L')
+        savepath = f"{savefolder}/CDA"
+        plt.savefig(savepath, dpi=900)
+
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+
+        for interaction in interactions:
+            c_df = df[interaction]
+            colour = list(set(c_df))
+            textstr = interaction
+            props = dict(boxstyle="square", facecolor="white")
+
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+            plt.axhline(y=0.66, color="black", linestyle="--")
+            plt.axvline(x=0.66, color="black", linestyle="--")
+            plt.title(textstr)
+            plt.xlabel("S/M")
+            plt.ylabel("M/L")
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
+            cbar = plt.colorbar(ticks=colour)
+            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            savepath = f"{savefolder}/CDAZingg_{interaction}"
+            plt.savefig(savepath, dpi=900)
+
+            if i_plot:
+                fig = px.scatter(
+                    df,
+                    x="S/M",
+                    y="M/L",
+                    color=interaction,
+                    hover_data=["Simulation Number"],
+                )
+                fig.write_html(f"{savefolder}/CDAZingg_{interaction}.html")
+                fig.show()
+
+    def PCA_CDA_Plot(
+            self, csv="", df="", folderpath="./outputs", i_plot=False
+    ):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+
+        zn_df = df
+        savefolder = self.create_plots_folder(folderpath)
+
+        equations = set(zn_df["CDA_Equation"])
+
+        for equation in equations:
+            textstr = equation
+            equation_df = zn_df[zn_df["CDA_Equation"] == equation]
+            x_data = equation_df['S:M']
+            y_data = equation_df['M:L']
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, s=1.2)
+            plt.axhline(y=0.66, color="black", linestyle="--")
+            plt.axvline(x=0.66, color="black", linestyle="--")
+            plt.title(textstr)
+            plt.xlabel("S:M")
+            plt.ylabel("M:L")
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
+            savepath = f"{savefolder}/PCA_CDA_eq{equation}"
+            plt.savefig(savepath, dpi=900)
+
+            if i_plot:
+                fig = px.scatter(
+                    df,
+                    x="S:M",
+                    y="M:L",
+                    hover_data=["Simulation Number"],
+                )
+                fig.write_html(f"{savefolder}/PCA_CDA_eq{equation}.html")
+                fig.show()
+
+    def build_zingg_seperated_i(
+            self, csv="", df="", folderpath="./outputs", i_plot=False
+    ):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+
+        zn_df = df
+        savefolder = self.create_plots_folder(folderpath)
+        equations = set(zn_df["CDA_Equation"])
+
+        for equation in equations:
+            textstr = "CDA Equation" + equation
+            equation_df = zn_df[zn_df["CDA_Equation"] == equation]
+            x_data = equation_df['S/M']
+            y_data = equation_df['M/L']
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, s=1.2)
+            plt.axhline(y=0.66, color="black", linestyle="--")
+            plt.axvline(x=0.66, color="black", linestyle="--")
+            plt.title(textstr)
+            plt.xlabel("S:M")
+            plt.ylabel("M:L")
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
+            savepath = f"{savefolder}/CDA_Zingg_eq{equation}"
+            plt.savefig(savepath, dpi=900)
+
+            if i_plot:
+                fig = px.scatter(
+                    df,
+                    x="S/M",
+                    y="M/L",
+                    hover_data=["Simulation Number"],
+                )
+                fig.write_html(f"{savefolder}/CDA_Zingg_eq{equation}.html")
+                fig.show()
+
+    ####################################
+    # Plotting Surface Area and Volume #
+    ####################################
+
+    def SAVAR_plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+
+        savar_df = df
+
+        savefolder = self.create_plots_folder(folderpath)
+        interactions = [
+            col
+            for col in savar_df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+
+        x_data = savar_df['Volume (Vol)']
+        y_data = savar_df['Surface_Area (SA)']
         plt.figure()
-        plt.scatter(
-            x_data, y_data, c=eq1["CDA Aspect Ratio Equation"], cmap="plasma", s=1.2
-        )
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("110:100")
-        plt.ylabel("100:001")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        # cbar = plt.colorbar(ticks=colour)
-        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
-        savepath = newfolderpath + "Zingg Diagrameq1"
-        plt.savefig(savepath, transparent=True, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq1-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+        for interaction in interactions:
+            c_df = savar_df[interaction]
+            colour = list(set(savar_df))
+            textstr = interaction
+            props = dict(boxstyle="square", facecolor="white")
 
-        x_data = eq2["S/M"]
-        y_data = eq2["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
-        plt.figure()
-        plt.scatter(x_data, y_data, c="Purple", s=1.2)
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("001:100")
-        plt.ylabel("100:110")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        savepath = newfolderpath + "Zingg Diagrameq2"
-        plt.savefig(savepath, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq2-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+            plt.xlabel('Volume (nm)')
+            plt.ylabel('Surface Area (nm)')
+            savepath = f"{savefolder}/SAVAR_{interaction}"
+            plt.savefig(savepath, dpi=900)
 
-        x_data = eq3["S/M"]
-        y_data = eq3["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
-        plt.figure()
-        plt.scatter(x_data, y_data, c="Red", s=1.2)
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("100:001")
-        plt.ylabel("001:110")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        # cbar = plt.colorbar(ticks=colour)
-        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
-        savepath = newfolderpath + "Zingg Diagrameq3"
-        plt.savefig(savepath, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq3-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
-
-        x_data = eq4["S/M"]
-        y_data = eq4["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
-        plt.figure()
-        plt.scatter(x_data, y_data, c="salmon", s=1.2)
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("110:001")
-        plt.ylabel("001:100")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        # cbar = plt.colorbar(ticks=colour)
-        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
-        savepath = newfolderpath + "Zingg Diagrameq4"
-        plt.savefig(savepath, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq4-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
-
-        x_data = eq5["S/M"]
-        y_data = eq5["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
-        plt.figure()
-        plt.scatter(x_data, y_data, c="Orange", s=1.2)
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("100:110")
-        plt.ylabel("110:001")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        # cbar = plt.colorbar(ticks=colour)
-        # cbar.set_label(r'$\Delta G_{crystallisation}$ (kcal/mol)')
-        savepath = newfolderpath + "Zingg Diagrameq5"
-        plt.savefig(savepath, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq5-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
-
-        x_data = eq6["S/M"]
-        y_data = eq6["M/L"]
-        # colour = eq1['CDA Aspect Ratio Equation']
-        props = dict(boxstyle="square", facecolor="white")
-        plt.figure()
-        plt.scatter(x_data, y_data, c="Yellow", s=1.2)
-        plt.axhline(y=0.66, color="black", linestyle="--")
-        plt.axvline(x=0.66, color="black", linestyle="--")
-        # plt.title(textstr)
-        plt.xlabel("001:110")
-        plt.ylabel("110:100")
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        savepath = newfolderpath + "Zingg Diagrameq6"
-        plt.savefig(savepath, dpi=300)
-        plt.xlim(0.1, 1.0)
-        plt.ylim(0.6, 1.0)
-        # plt.show()
-        SAVEPATH2 = newfolderpath + "Zingg Diagrameq6-2"
-        plt.savefig(SAVEPATH2, transparent=True, dpi=300)
-
-    def PCA_CDA_plot(self, csv, df="", folderpath="./outputs", i_plot=False):
-
-        return
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.xlabel('Volume (nm)')
+        plt.ylabel('Surface Area (nm)')
+        savepath = f"{savefolder}/SAVAR"
+        plt.savefig(savepath, dpi=900)
 
     def sph_plot(self, csv, mode=1):
         savefolder = self.create_plots_folder(Path(csv).parents[0])
@@ -288,7 +365,6 @@ class Plotting:
                     hover_data=["Simulation Number"],
                 )
                 fig.write_html(f"{savefolder}/SPH_ints_{i}.html")
-                # fig.show()
 
     def visualise_pca(self, xyz):
 
@@ -397,7 +473,7 @@ class Plotting:
         plt.show()
 
     ################################
-    # Plotting Growth Rates
+    # Plotting Growth Rates        #
     ################################
 
     def plot_growth_rates(self, gr_df, lengths, savepath):
@@ -410,11 +486,9 @@ class Plotting:
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")
             plt.tight_layout()
-        # plt.show()
         plt.savefig(savepath / "Growth_rates+Dissolution_rates2", dpi=300)
 
         growth_data = gr_df[gr_df["Supersaturation"] >= 0]
-        # print(growth_data)
         plt.clf()
         plt.figure(figsize=(5, 5))
 
@@ -424,7 +498,6 @@ class Plotting:
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")
             plt.tight_layout()
-        # plt.show()
         plt.savefig(savepath / "Growth_rates2", dpi=300)
 
         plt.clf()
@@ -438,11 +511,9 @@ class Plotting:
             plt.xlim(0.0, 2.5)
             plt.ylim(0.0, 0.4)
             plt.tight_layout()
-        # plt.show()
         plt.savefig(savepath / "Growth_rates2_zoomed", dpi=300)
 
         dissolution_data = gr_df[gr_df["Supersaturation"] <= 0]
-        # print(dissolution_data)
         plt.clf()
         plt.figure(figsize=(7, 5))
         for i in lengths:
@@ -453,7 +524,6 @@ class Plotting:
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Dissolution Rate")
             plt.tight_layout()
-        # plt.show()
         plt.savefig(savepath / "Dissolution_rates2", dpi=300)
 
         plt.clf()
@@ -467,6 +537,4 @@ class Plotting:
             plt.xlim(-2.5, 0.0)
             plt.ylim(-2.5, 0.0)
             plt.tight_layout()
-        # plt.show()
         plt.savefig(savepath / "Dissolution2_zoomed", dpi=300)
-        return

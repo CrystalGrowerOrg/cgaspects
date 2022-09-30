@@ -117,6 +117,8 @@ class AspectRatio:
 
         df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
 
+        print(df)
+
         return df
 
     def savar_calc(self, subfolder, savefolder):
@@ -143,7 +145,7 @@ class AspectRatio:
         # Converting np array to pandas df
         df = pd.DataFrame(
             sav_final_df,
-            columns=["Simulation Number", "Volume", "Surface_Area", "SA:Vol"],
+            columns=["Simulation Number", "Volume (Vol)", "Surface_Area (SA)", "SA:Vol"],
         )
         df.to_csv(savefolder / "SA_Vol_ratio.csv", index=False)
        
@@ -186,7 +188,9 @@ class AspectRatio:
 
         return df
 
-    def defining_equation(self, directions, ar_df="", csv="", filepath="."):
+    def defining_equation(
+            self, directions, ar_df="", csv="", filepath="."
+    ):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function"""
 
@@ -377,7 +381,7 @@ class AspectRatio:
         percentage_df.columns = ["Laths", "Plates", "Blocks", "Needles"]
         percentage_df.to_csv(Path(folderpath) / "Percentage_Shapes_CDA.csv")
 
-        return total_df, percentage_df
+        return pca_cda_df
 
     def Zingg_No_Crystals(self, zn_df="", csv="", folderpath="."):
         """analysis of the CDA data to output total and percentage of crystals

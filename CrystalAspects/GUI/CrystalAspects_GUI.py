@@ -32,6 +32,7 @@ from CrystalAspects.GUI.gui_commands import GUICommands
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
+from CrystalAspects.visualisation.plot_data import Plotting
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -63,7 +64,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthmod = False
         self.cda = False
         self.pca = False
-        self.savar = False
+        self.sa_vol = False
         self.screwdislocations = []
         self.folder_path = ""
         self.folders = []
@@ -379,6 +380,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         find = Find()
         save_folder = find.create_aspects_folder(self.folder_path)
+        plotting = Plotting()
 
         if self.growthrates:
             growth = GrowthRate()
@@ -392,22 +394,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
             savar_df = aspect_ratio.savar_calc(
-                subfolder=self.folder_path, savefolder=save_folder
+                subfolder=self.folder_path,
+                savefolder=save_folder
             )
-            find.summary_compare(
+            savar_df_final = find.summary_compare(
                 summary_csv=self.summary_file,
                 aspect_df=savar_df,
                 savefolder=save_folder,
             )
+            if self.plot:
+                plotting.SAVAR_plot(
+                    df=savar_df_final,
+                    folderpath=save_folder)
 
         if self.pca and self.sa_vol:
             aspect_ratio = AspectRatio()
             pca_df = aspect_ratio.shape_all(
-                subfolder=self.folder_path, savefolder=save_folder
+                subfolder=self.folder_path,
+                savefolder=save_folder
             )
-            find.summary_compare(
-                summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
+            plot_df = find.summary_compare(
+                summary_csv=self.summary_file,
+                aspect_df=pca_df,
+                savefolder=save_folder
             )
+            if self.plot:
+                plotting.SAVAR_plot(
+                    df=plot_df,
+                    folderpath=save_folder)
+                plotting.build_PCAZingg(
+                    df=plot_df,
+                    folderpath=save_folder)
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
@@ -433,22 +450,67 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=selected_directions, ar_df=cda_df, filepath=save_folder
+                    directions=selected_directions,
+                    ar_df=cda_df,
+                    filepath=save_folder
+                )
+                zn_df_final = find.summary_compare(
+                    summary_csv=self.summary_file,
+                    aspect_df=zn_df,
+                    savefolder=save_folder,
                 )
 
+                if self.plot:
+                    plotting.CDA_Plot(
+                        df=zn_df_final,
+                        folderpath=save_folder
+                    )
+                    plotting.build_zingg_seperated_i(
+                        df=zn_df_final,
+                        folderpath=save_folder
+                    )
+                    plotting.Aspect_Extended_Plot(
+                        df=zn_df_final,
+                        selected=selected_directions,
+                        folderpath=save_folder
+                    )
+
             if self.pca and self.sa_vol:
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
+                aspect_ratio.PCA_shape_percentage(
+                    pca_df=pca_df,
+                    folderpath=save_folder
+                )
 
             if self.pca and self.sa_vol is False:
                 pca_df = aspect_ratio.build_AR_PCA(
-                    subfolder=self.folder_path, savefolder=save_folder
+                    subfolder=self.folder_path,
+                    savefolder=save_folder
                 )
 
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
-            if self.pca and self.cda:
-                aspect_ratio.Zingg_CDA_shape_percentage(
-                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
+                aspect_ratio.PCA_shape_percentage(
+                    pca_df=pca_df,
+                    folderpath=save_folder
                 )
+                if self.plot:
+                    plotting.build_PCAZinng(
+                        df=pca_df,
+                        folderpath=save_folder
+                    )
+
+            if self.pca and self.cda:
+                pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
+                    pca_df=pca_df,
+                    cda_df=zn_df,
+                    folderpath=save_folder
+                )
+                if self.plot:
+                    plotting.PCA_CDA_Plot(
+                        df=pca_cda_df, folderpath=save_folder
+                    )
+                    plotting.build_PCAZingg(
+                        df=pca_df,
+                        folderpath=save_folder
+                    )
 
     def output_folder_button(self):
         try:
