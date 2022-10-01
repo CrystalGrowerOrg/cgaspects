@@ -228,7 +228,7 @@ class Find:
 
         if cg_version == "old":
             int_cols = summary_cols[1:]
-            compare_array = np.empty((0, len(aspect_cols) - 1 + len(int_cols)))
+            compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
@@ -237,7 +237,7 @@ class Find:
                 print(aspect_row)
                 collect_row = [summary_df.iloc[sim_num].values[1:]]
                 print(collect_row)
-                collect_row = np.concatenate([aspect_row, collect_row], axis=1)
+                collect_row = np.concatenate([[[sim_num]], aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)
 
@@ -245,6 +245,7 @@ class Find:
         cols = aspect_cols.append(int_cols)
         print(f"COLS:::: {cols}")
         compare_df = pd.DataFrame(compare_array, columns=cols)
+        print(compare_df)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
 
         aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"

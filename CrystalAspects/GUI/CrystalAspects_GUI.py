@@ -1,6 +1,4 @@
 # Project module imports
-from asyncio import FastChildWatcher
-from traceback import format_exception_only
 from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
