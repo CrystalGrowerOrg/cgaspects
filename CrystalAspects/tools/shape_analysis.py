@@ -63,8 +63,7 @@ class CrystalShape:
 
         return self.distance
 
-    def get_PCA(self, xyz_vals, n=3):
-        filetype = ".XYZ"
+    def get_PCA(self, xyz_vals, filetype='.XYZ', n=3):
         pca = PCA(n_components=n)
 
         if filetype == ".XYZ" or ".xyz":
