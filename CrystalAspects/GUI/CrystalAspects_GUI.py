@@ -1,4 +1,5 @@
 # Project module imports
+from CrystalAspects.visualisation import replotting
 from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
@@ -453,9 +454,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         find = Find()
         save_folder = find.create_aspects_folder(self.folder_path)
-
-        if self.plot:
-            plotting = Plotting()
+        plotting = Plotting()
 
         if self.growthrates:
             growth = GrowthRate()
