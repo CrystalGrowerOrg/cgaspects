@@ -200,7 +200,6 @@ class Find:
         summary_cols = summary_df.columns
         aspect_cols = aspect_df.columns
         
-
         try:
             """This allows the user to pick the two different
             summary file verions from CrystalGrower"""
