@@ -1,9 +1,6 @@
-import imp
-import os
 import numpy as np
 from natsort import natsorted
 import pandas as pd
-import time, sys
 from pathlib import Path
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.calc_data import Calculate
