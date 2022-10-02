@@ -189,7 +189,7 @@ class Find:
         pass
 
     def summary_compare(
-        self, summary_csv, savefolder, aspect_csv=False, aspect_df="", cg_version="new"
+        self, summary_csv, savefolder, aspect_csv=False, aspect_df=""
     ):
 
         summary_df = pd.read_csv(summary_csv)
@@ -199,8 +199,9 @@ class Find:
 
         summary_cols = summary_df.columns
         aspect_cols = aspect_df.columns
+        
 
-        if cg_version == "new":
+        try:
             """This allows the user to pick the two different
             summary file verions from CrystalGrower"""
 
@@ -226,7 +227,7 @@ class Find:
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)
 
-        if cg_version == "old":
+        except Exception:
             int_cols = summary_cols[1:]
             compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
