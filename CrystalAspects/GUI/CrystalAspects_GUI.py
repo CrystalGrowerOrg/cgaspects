@@ -1,6 +1,5 @@
 # Project module imports
-from asyncio import FastChildWatcher
-from traceback import format_exception_only
+from CrystalAspects.visualisation import replotting
 from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
@@ -28,11 +27,11 @@ from natsort import natsorted
 from pathlib import Path
 import logging
 
-from CrystalAspects.GUI.gui_commands import GUICommands
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.visualisation.plot_data import Plotting
+from CrystalAspects.visualisation.replotting import Replotting
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -53,8 +52,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
-        self.commands = GUICommands()
         self.growth = GrowthRate()
+        self.replotting = Replotting()
 
         self.checked_directions = []
         self.checkboxnames = []
@@ -99,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
+
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         apply_stylesheet(app, theme="dark_cyan.xml")
@@ -117,6 +117,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
         # self.tabWidget.currentChanged.connect(self.tabChanged)
+
+        self.AR_csv = None
+        self.SAVAR_csv = None
+        self.GrowthRate_csv = None
+
+        self.AR_browse_button.clicked.connect(self.replot_AR_read)
+        self.SAVAR_browse_button.clicked.connect(self.replot_SAVAR_read)
+        self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
+
+        self.plot_AR_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.AR_csv))
+        self.plot_GrowthRate_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.GrowthRate_csv))
+        self.plot_SA_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
+        self.plot_vol_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
+        self.plot_SAVAR_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
 
     def read_folder(self, mode):
 
@@ -362,6 +376,66 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.plot = False
             print(f"Plot: {self.plot}")
 
+    def replot_AR_read(self):
+        input_path = self.ar_lineEdit.text()
+
+        if input_path != "":
+            input_path = Path(input_path)
+
+            if input_path.exists():
+                self.AR_csv = input_path
+                self.plot_AR_button.setEnabled(True)
+
+        else:
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                None, "Select Aspect Ratio .csv")
+            input_path = Path(input_path)
+            if input_path.exists():
+                self.AR_csv = input_path
+                self.plot_AR_button.setEnabled(True)
+        
+        self.ar_lineEdit.setText(str(input_path))
+
+    def replot_SAVAR_read(self):
+        input_path = self.SAVAR_lineEdit.text()
+
+        if input_path != "":
+            input_path = Path(input_path)
+
+            if input_path.exists():
+                self.SAVAR_csv = input_path
+                self.plot_SAVAR_button.setEnabled(True)
+
+        else:
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                None, "Select SA : Vol .csv")
+            input_path = Path(input_path)
+            if input_path.exists():
+                self.SAVAR_csv = input_path
+                self.plot_SAVAR_button.setEnabled(True)
+
+        self.SAVAR_lineEdit.setText(str(input_path))
+
+    def replot_GrowthRate_read(self):
+        input_path = self.GrowthRate_lineEdit.text()
+
+        if input_path != "":
+            input_path = Path(input_path)
+
+            if input_path.exists():
+                self.GrowthRate_csv = input_path
+                self.plot_GrowthRate_button.setEnabled(True)
+
+        else:
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                None, "Select Growth Rate .csv")
+            input_path = Path(input_path)
+            if input_path.exists():
+                self.GrowthRate_csv = input_path
+                self.plot_GrowthRate_button.setEnabled(True)
+
+        self.GrowthRate_lineEdit.setText(str(input_path))
+
     def run_calc(self):
 
         logger.info(
@@ -492,7 +566,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     folderpath=save_folder
                 )
                 if self.plot:
-                    plotting.build_PCAZinng(
+                    plotting.build_PCAZingg(
                         df=pca_df,
                         folderpath=save_folder
                     )
