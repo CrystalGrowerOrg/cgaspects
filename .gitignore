@@ -2,7 +2,6 @@
 tests/ADIPAC.stl
 tests/CrystalAspectsTest/20220919_163041/CrystalAspects/
 .DS_Store
-CrystalAspects.egg-info
 CrystalAspects/__pycache__
 CrystalAspects/data/__pycache__
 CrystalAspects/GUI/__pycache__
