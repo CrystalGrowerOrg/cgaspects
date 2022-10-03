@@ -17,15 +17,12 @@ from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
 class Plotting:
-
     def create_plots_folder(self, path):
         plots_folder = Path(path) / "CGPlots"
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def build_PCAZingg(
-            self, csv="", df="", folderpath="./outputs", i_plot=False
-    ):
+    def build_PCAZingg(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -73,7 +70,7 @@ class Plotting:
                 fig.show()
 
     def Aspect_Extended_Plot(
-            self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
+        self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
     ):
         if csv != "":
             folderpath = Path(csv).parents[0]
@@ -120,9 +117,7 @@ class Plotting:
             print(savepath)
             plt.savefig(savepath, dpi=900)
 
-    def CDA_Plot(
-            self, csv="", df="", folderpath="./outputs", i_plot=False
-    ):
+    def CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -130,12 +125,12 @@ class Plotting:
         zn_df = df
         savefolder = self.create_plots_folder(folderpath)
 
-        x_data = zn_df['S/M']
-        y_data = zn_df['M/L']
+        x_data = zn_df["S/M"]
+        y_data = zn_df["M/L"]
 
         plt.scatter(x_data, y_data, s=1.2)
-        plt.xlabel('S/M')
-        plt.ylabel('M/L')
+        plt.xlabel("S/M")
+        plt.ylabel("M/L")
         savepath = f"{savefolder}/CDA"
         plt.savefig(savepath, dpi=900)
 
@@ -177,9 +172,7 @@ class Plotting:
                 fig.write_html(f"{savefolder}/CDAZingg_{interaction}.html")
                 fig.show()
 
-    def PCA_CDA_Plot(
-            self, csv="", df="", folderpath="./outputs", i_plot=False
-    ):
+    def PCA_CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -192,8 +185,8 @@ class Plotting:
         for equation in equations:
             textstr = equation
             equation_df = zn_df[zn_df["CDA_Equation"] == equation]
-            x_data = equation_df['S:M']
-            y_data = equation_df['M:L']
+            x_data = equation_df["S:M"]
+            y_data = equation_df["M:L"]
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
@@ -218,7 +211,7 @@ class Plotting:
                 fig.show()
 
     def build_zingg_seperated_i(
-            self, csv="", df="", folderpath="./outputs", i_plot=False
+        self, csv="", df="", folderpath="./outputs", i_plot=False
     ):
         if csv != "":
             folderpath = Path(csv).parents[0]
@@ -231,8 +224,8 @@ class Plotting:
         for equation in equations:
             textstr = "CDA Equation" + equation
             equation_df = zn_df[zn_df["CDA_Equation"] == equation]
-            x_data = equation_df['S/M']
-            y_data = equation_df['M/L']
+            x_data = equation_df["S/M"]
+            y_data = equation_df["M/L"]
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
@@ -274,8 +267,8 @@ class Plotting:
             if col.startswith("interaction") or col.startswith("tile")
         ]
 
-        x_data = savar_df['Volume (Vol)']
-        y_data = savar_df['Surface_Area (SA)']
+        x_data = savar_df["Volume (Vol)"]
+        y_data = savar_df["Surface_Area (SA)"]
         plt.figure()
         for interaction in interactions:
             c_df = savar_df[interaction]
@@ -286,14 +279,14 @@ class Plotting:
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-            plt.xlabel('Volume (nm)')
-            plt.ylabel('Surface Area (nm)')
+            plt.xlabel("Volume (nm)")
+            plt.ylabel("Surface Area (nm)")
             savepath = f"{savefolder}/SAVAR_{interaction}"
             plt.savefig(savepath, dpi=900)
 
         plt.scatter(x_data, y_data, s=1.2)
-        plt.xlabel('Volume (nm)')
-        plt.ylabel('Surface Area (nm)')
+        plt.xlabel("Volume (nm)")
+        plt.ylabel("Surface Area (nm)")
         savepath = f"{savefolder}/SAVAR"
         plt.savefig(savepath, dpi=900)
 

@@ -63,7 +63,7 @@ class CrystalShape:
 
         return self.distance
 
-    def get_PCA(self, xyz_vals, filetype='.XYZ', n=3):
+    def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
         pca = PCA(n_components=n)
 
         if filetype == ".XYZ" or ".xyz":
@@ -92,11 +92,9 @@ class CrystalShape:
         SA_hull = hull.area
         sa_vol = SA_hull / vol_hull
 
-        savar_array = np.array([[vol_hull,
-                                 SA_hull,
-                                 sa_vol]])
+        savar_array = np.array([[vol_hull, SA_hull, sa_vol]])
 
-        return(savar_array)
+        return savar_array
 
     def get_all(self, xyz_vals, n=3):
 
@@ -116,20 +114,15 @@ class CrystalShape:
         aspect1 = small / medium
         aspect2 = medium / long
 
-        shape_info = np.array([[aspect1,
-                                aspect2,
-                                SA_hull,
-                                vol_hull,
-                                sa_vol]])
+        shape_info = np.array([[aspect1, aspect2, SA_hull, vol_hull, sa_vol]])
 
-        '''shape_info = {
+        """shape_info = {
                 "Aspect Ratio S:M": aspect1,
                 "Aspect Ratio M:L": aspect2,
                 "Surface Area (SA)": SA_hull,
                 "Volume (Vol)": vol_hull,
                 "SA : Vol": sa_vol
-                }'''
-
+                }"""
 
         return shape_info
 
