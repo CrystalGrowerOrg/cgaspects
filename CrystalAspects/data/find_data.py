@@ -51,6 +51,8 @@ class Find:
         for item in contents:
             item_name = item
             item_path = path / item
+            if item.startswith('._'):
+                continue
             if item.endswith("summary.csv"):
                 summary_file = item_path
             if os.path.isdir(item_path):
@@ -189,8 +191,9 @@ class Find:
         pass
 
     def summary_compare(
-        self, summary_csv, savefolder, aspect_csv=False, aspect_df="", cg_version="new"
+        self, summary_csv, savefolder, aspect_csv=False, aspect_df="", cg_version="old"
     ):
+        print(summary_csv)
 
         summary_df = pd.read_csv(summary_csv)
 
@@ -228,11 +231,11 @@ class Find:
 
         if cg_version == "old":
             int_cols = summary_cols[1:]
-            compare_array = np.empty((0, len(aspect_cols) - 1 + len(int_cols)))
+            compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
-                aspect_row = row.values[1:]
+                aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 print(aspect_row)
                 collect_row = [summary_df.iloc[sim_num].values[1:]]
@@ -243,6 +246,7 @@ class Find:
 
         print(aspect_cols, int_cols)
         cols = aspect_cols.append(int_cols)
+        print(aspect_cols)
         print(f"COLS:::: {cols}")
         compare_df = pd.DataFrame(compare_array, columns=cols)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
