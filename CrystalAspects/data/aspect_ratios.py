@@ -73,7 +73,7 @@ class AspectRatio:
     def build_AR_CDA(self, folders, folderpath, savefolder, directions, selected):
 
         path = Path(folderpath)
-        
+
         ar_array = np.empty((0, len(directions) + 1))
         sim_num = 1
         for folder in folders:
@@ -145,14 +145,19 @@ class AspectRatio:
         # Converting np array to pandas df
         df = pd.DataFrame(
             sav_final_df,
-            columns=["Simulation Number", "Volume (Vol)", "Surface_Area (SA)", "SA:Vol"],
+            columns=[
+                "Simulation Number",
+                "Volume (Vol)",
+                "Surface_Area (SA)",
+                "SA:Vol",
+            ],
         )
         df.to_csv(savefolder / "SA_Vol_ratio.csv", index=False)
-       
+
         return df
 
     def shape_all(self, subfolder, savefolder):
-        
+
         shape_final_df = np.empty((0, 6), np.float64)
 
         for files in Path(subfolder).iterdir():
@@ -167,30 +172,31 @@ class AspectRatio:
                             print(shape_data)
                             shape_data = np.insert(shape_data, 0, sim_num, axis=1)
                             print(shape_data)
-                            shape_final_df = np.append(shape_final_df, shape_data, axis=0)
+                            shape_final_df = np.append(
+                                shape_final_df, shape_data, axis=0
+                            )
                             print(shape_final_df.shape)
                         except (StopIteration, UnicodeDecodeError):
                             continue
-        
+
         # Converting np array to pandas df
         df = pd.DataFrame(
             shape_final_df,
-            columns=["Simulation Number",
-                     "S:M",
-                     "M:L",
-                     "Surface_Area (SA)",
-                     "Volume (Vol)",
-                     "SA:Vol"],
+            columns=[
+                "Simulation Number",
+                "S:M",
+                "M:L",
+                "Surface_Area (SA)",
+                "Volume (Vol)",
+                "SA:Vol",
+            ],
         )
         print(df)
         df.to_csv(savefolder / "Shape Properties.csv", index=False)
-        
 
         return df
 
-    def defining_equation(
-            self, directions, ar_df="", csv="", filepath="."
-    ):
+    def defining_equation(self, directions, ar_df="", csv="", filepath="."):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function"""
 
@@ -466,7 +472,7 @@ class AspectRatio:
         if csv != "":
             csv = Path(csv)
             pca_df = pd.read_csv(csv)
-        
+
         total = len(pca_df)
         lath = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] <= 0.667)]
         plate = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] >= 0.667)]
@@ -501,7 +507,7 @@ class AspectRatio:
             block_percentage = total_block / total * 100
         except ZeroDivisionError:
             block_percentage = 0
-            
+
         try:
             needle_percentage = total_needle / total * 100
         except ZeroDivisionError:

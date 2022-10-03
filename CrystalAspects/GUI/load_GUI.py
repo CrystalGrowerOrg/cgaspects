@@ -20,14 +20,20 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         MainWindow.setFont(font)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("../../../CrystalGrower-DataProcessor/GUI/icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap("../../../CrystalGrower-DataProcessor/GUI/icon.png"),
+            QtGui.QIcon.Normal,
+            QtGui.QIcon.Off,
+        )
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName("gridLayout")
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
@@ -145,7 +151,9 @@ class Ui_MainWindow(object):
         self.aspect_directions_HLayout.setObjectName("aspect_directions_HLayout")
         self.long_facet = QtWidgets.QComboBox(self.aspect_options_frame)
         self.long_facet.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.long_facet.sizePolicy().hasHeightForWidth())
@@ -173,7 +181,9 @@ class Ui_MainWindow(object):
         self.aspect_directions_HLayout.addWidget(self.ratio_label1)
         self.medium_facet = QtWidgets.QComboBox(self.aspect_options_frame)
         self.medium_facet.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.medium_facet.sizePolicy().hasHeightForWidth())
@@ -201,7 +211,9 @@ class Ui_MainWindow(object):
         self.aspect_directions_HLayout.addWidget(self.ratio_label2)
         self.short_facet = QtWidgets.QComboBox(self.aspect_options_frame)
         self.short_facet.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.short_facet.sizePolicy().hasHeightForWidth())
@@ -221,10 +233,14 @@ class Ui_MainWindow(object):
         self.aspect_ranges_HLayout.setObjectName("aspect_ranges_HLayout")
         self.aspect_range_checkBox = QtWidgets.QCheckBox(self.aspect_options_frame)
         self.aspect_range_checkBox.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.aspect_range_checkBox.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.aspect_range_checkBox.sizePolicy().hasHeightForWidth()
+        )
         self.aspect_range_checkBox.setSizePolicy(sizePolicy)
         self.aspect_range_checkBox.setMinimumSize(QtCore.QSize(70, 0))
         font = QtGui.QFont()
@@ -236,7 +252,9 @@ class Ui_MainWindow(object):
         self.aspect_range_checkBox.setFont(font)
         self.aspect_range_checkBox.setObjectName("aspect_range_checkBox")
         self.aspect_ranges_HLayout.addWidget(self.aspect_range_checkBox)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.aspect_ranges_HLayout.addItem(spacerItem)
         self.lm_range_input = QtWidgets.QLineEdit(self.aspect_options_frame)
         self.lm_range_input.setEnabled(False)
@@ -264,7 +282,9 @@ class Ui_MainWindow(object):
         self.aspect_ranges_HLayout.addWidget(self.lm_plusminus_label)
         self.lm_spinBox = QtWidgets.QSpinBox(self.aspect_options_frame)
         self.lm_spinBox.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.lm_spinBox.sizePolicy().hasHeightForWidth())
@@ -290,7 +310,9 @@ class Ui_MainWindow(object):
         self.lm_percent_label.setFont(font)
         self.lm_percent_label.setObjectName("lm_percent_label")
         self.aspect_ranges_HLayout.addWidget(self.lm_percent_label)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.aspect_ranges_HLayout.addItem(spacerItem1)
         self.ms_range_input = QtWidgets.QLineEdit(self.aspect_options_frame)
         self.ms_range_input.setEnabled(False)
@@ -318,7 +340,9 @@ class Ui_MainWindow(object):
         self.aspect_ranges_HLayout.addWidget(self.ms_plusminus_label)
         self.ms_spinBox = QtWidgets.QSpinBox(self.aspect_options_frame)
         self.ms_spinBox.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ms_spinBox.sizePolicy().hasHeightForWidth())
@@ -344,17 +368,23 @@ class Ui_MainWindow(object):
         self.ms_percent_label.setFont(font)
         self.ms_percent_label.setObjectName("ms_percent_label")
         self.aspect_ranges_HLayout.addWidget(self.ms_percent_label)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.aspect_ranges_HLayout.addItem(spacerItem2)
         self.verticalLayout_7.addLayout(self.aspect_ranges_HLayout)
         self.ladderLayout = QtWidgets.QHBoxLayout()
         self.ladderLayout.setObjectName("ladderLayout")
         self.count_checkBox = QtWidgets.QCheckBox(self.aspect_options_frame)
         self.count_checkBox.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.count_checkBox.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.count_checkBox.sizePolicy().hasHeightForWidth()
+        )
         self.count_checkBox.setSizePolicy(sizePolicy)
         self.count_checkBox.setMinimumSize(QtCore.QSize(120, 0))
         font = QtGui.QFont()
@@ -366,7 +396,9 @@ class Ui_MainWindow(object):
         self.count_checkBox.setFont(font)
         self.count_checkBox.setObjectName("count_checkBox")
         self.ladderLayout.addWidget(self.count_checkBox)
-        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem3 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.ladderLayout.addItem(spacerItem3)
         self.count_range = QtWidgets.QLineEdit(self.aspect_options_frame)
         self.count_range.setEnabled(True)
@@ -382,10 +414,14 @@ class Ui_MainWindow(object):
         self.ladderLayout.addWidget(self.count_range)
         self.count_plusminus_label = QtWidgets.QLabel(self.aspect_options_frame)
         self.count_plusminus_label.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.count_plusminus_label.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.count_plusminus_label.sizePolicy().hasHeightForWidth()
+        )
         self.count_plusminus_label.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -398,10 +434,14 @@ class Ui_MainWindow(object):
         self.ladderLayout.addWidget(self.count_plusminus_label)
         self.count_spinBox = QtWidgets.QSpinBox(self.aspect_options_frame)
         self.count_spinBox.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.count_spinBox.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.count_spinBox.sizePolicy().hasHeightForWidth()
+        )
         self.count_spinBox.setSizePolicy(sizePolicy)
         self.count_spinBox.setMinimumSize(QtCore.QSize(50, 25))
         font = QtGui.QFont()
@@ -448,18 +488,6 @@ class Ui_MainWindow(object):
         self.plotting_gBox.setObjectName("plotting_gBox")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.plotting_gBox)
         self.gridLayout_3.setObjectName("gridLayout_3")
-        self.plot_GrowthRate_button = QtWidgets.QPushButton(self.plotting_gBox)
-        self.plot_GrowthRate_button.setEnabled(False)
-        self.plot_GrowthRate_button.setMinimumSize(QtCore.QSize(0, 50))
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.plot_GrowthRate_button.setFont(font)
-        self.plot_GrowthRate_button.setObjectName("plot_GrowthRate_button")
-        self.gridLayout_3.addWidget(self.plot_GrowthRate_button, 2, 0, 1, 1)
         self.plot_AR_button = QtWidgets.QPushButton(self.plotting_gBox)
         self.plot_AR_button.setEnabled(False)
         self.plot_AR_button.setMinimumSize(QtCore.QSize(0, 50))
@@ -472,126 +500,6 @@ class Ui_MainWindow(object):
         self.plot_AR_button.setFont(font)
         self.plot_AR_button.setObjectName("plot_AR_button")
         self.gridLayout_3.addWidget(self.plot_AR_button, 1, 0, 1, 1)
-        self.plot_SA_button = QtWidgets.QPushButton(self.plotting_gBox)
-        self.plot_SA_button.setEnabled(False)
-        self.plot_SA_button.setMinimumSize(QtCore.QSize(0, 50))
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.plot_SA_button.setFont(font)
-        self.plot_SA_button.setObjectName("plot_SA_button")
-        self.gridLayout_3.addWidget(self.plot_SA_button, 3, 0, 1, 1)
-        self.plot_vol_button = QtWidgets.QPushButton(self.plotting_gBox)
-        self.plot_vol_button.setEnabled(False)
-        self.plot_vol_button.setMinimumSize(QtCore.QSize(0, 50))
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.plot_vol_button.setFont(font)
-        self.plot_vol_button.setObjectName("plot_vol_button")
-        self.gridLayout_3.addWidget(self.plot_vol_button, 7, 0, 1, 1)
-        self.gridLayout_6 = QtWidgets.QGridLayout()
-        self.gridLayout_6.setSpacing(0)
-        self.gridLayout_6.setObjectName("gridLayout_6")
-        self.ar_csv_label = QtWidgets.QLabel(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.ar_csv_label.setFont(font)
-        self.ar_csv_label.setObjectName("ar_csv_label")
-        self.gridLayout_6.addWidget(self.ar_csv_label, 0, 0, 1, 1)
-        self.growthrate_cs_label = QtWidgets.QLabel(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.growthrate_cs_label.setFont(font)
-        self.growthrate_cs_label.setObjectName("growthrate_cs_label")
-        self.gridLayout_6.addWidget(self.growthrate_cs_label, 4, 0, 1, 1)
-        self.savar_csv_label = QtWidgets.QLabel(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.savar_csv_label.setFont(font)
-        self.savar_csv_label.setObjectName("savar_csv_label")
-        self.gridLayout_6.addWidget(self.savar_csv_label, 2, 0, 1, 1)
-        self.ar_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.ar_lineEdit.setFont(font)
-        self.ar_lineEdit.setObjectName("ar_lineEdit")
-        self.gridLayout_6.addWidget(self.ar_lineEdit, 1, 0, 1, 2)
-        self.AR_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.AR_browse_button.setFont(font)
-        self.AR_browse_button.setObjectName("AR_browse_button")
-        self.gridLayout_6.addWidget(self.AR_browse_button, 1, 2, 1, 1)
-        self.SAVAR_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.SAVAR_lineEdit.setFont(font)
-        self.SAVAR_lineEdit.setObjectName("SAVAR_lineEdit")
-        self.gridLayout_6.addWidget(self.SAVAR_lineEdit, 3, 0, 1, 2)
-        self.SAVAR_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.SAVAR_browse_button.setFont(font)
-        self.SAVAR_browse_button.setObjectName("SAVAR_browse_button")
-        self.gridLayout_6.addWidget(self.SAVAR_browse_button, 3, 2, 1, 1)
-        self.GrowthRate_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.GrowthRate_lineEdit.setFont(font)
-        self.GrowthRate_lineEdit.setObjectName("GrowthRate_lineEdit")
-        self.gridLayout_6.addWidget(self.GrowthRate_lineEdit, 5, 0, 1, 1)
-        self.GrowthRate_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        font.setBold(False)
-        font.setItalic(False)
-        font.setWeight(50)
-        self.GrowthRate_browse_button.setFont(font)
-        self.GrowthRate_browse_button.setObjectName("GrowthRate_browse_button")
-        self.gridLayout_6.addWidget(self.GrowthRate_browse_button, 5, 2, 1, 1)
-        self.gridLayout_3.addLayout(self.gridLayout_6, 0, 0, 1, 1)
-        spacerItem4 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout_3.addItem(spacerItem4, 10, 0, 1, 1)
         self.plot_SAVAR_button = QtWidgets.QPushButton(self.plotting_gBox)
         self.plot_SAVAR_button.setEnabled(False)
         self.plot_SAVAR_button.setMinimumSize(QtCore.QSize(0, 50))
@@ -603,7 +511,120 @@ class Ui_MainWindow(object):
         font.setWeight(50)
         self.plot_SAVAR_button.setFont(font)
         self.plot_SAVAR_button.setObjectName("plot_SAVAR_button")
-        self.gridLayout_3.addWidget(self.plot_SAVAR_button, 8, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_SAVAR_button, 6, 0, 1, 1)
+        spacerItem4 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.gridLayout_3.addItem(spacerItem4, 8, 0, 1, 1)
+        self.plot_GrowthRate_button = QtWidgets.QPushButton(self.plotting_gBox)
+        self.plot_GrowthRate_button.setEnabled(False)
+        self.plot_GrowthRate_button.setMinimumSize(QtCore.QSize(0, 50))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.plot_GrowthRate_button.setFont(font)
+        self.plot_GrowthRate_button.setObjectName("plot_GrowthRate_button")
+        self.gridLayout_3.addWidget(self.plot_GrowthRate_button, 2, 0, 1, 1)
+        self.gridLayout_6 = QtWidgets.QGridLayout()
+        self.gridLayout_6.setSpacing(0)
+        self.gridLayout_6.setObjectName("gridLayout_6")
+        self.summaryfile_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
+        self.summaryfile_lineEdit.setEnabled(False)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.summaryfile_lineEdit.setFont(font)
+        self.summaryfile_lineEdit.setObjectName("summaryfile_lineEdit")
+        self.gridLayout_6.addWidget(self.summaryfile_lineEdit, 5, 0, 1, 1)
+        self.summary_cs_label = QtWidgets.QLabel(self.plotting_gBox)
+        self.summary_cs_label.setEnabled(False)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.summary_cs_label.setFont(font)
+        self.summary_cs_label.setObjectName("summary_cs_label")
+        self.gridLayout_6.addWidget(self.summary_cs_label, 4, 0, 1, 1)
+        self.ar_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.ar_lineEdit.setFont(font)
+        self.ar_lineEdit.setObjectName("ar_lineEdit")
+        self.gridLayout_6.addWidget(self.ar_lineEdit, 1, 0, 1, 2)
+        self.GrowthRate_lineEdit = QtWidgets.QLineEdit(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.GrowthRate_lineEdit.setFont(font)
+        self.GrowthRate_lineEdit.setObjectName("GrowthRate_lineEdit")
+        self.gridLayout_6.addWidget(self.GrowthRate_lineEdit, 3, 0, 1, 1)
+        self.AR_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.AR_browse_button.setFont(font)
+        self.AR_browse_button.setObjectName("AR_browse_button")
+        self.gridLayout_6.addWidget(self.AR_browse_button, 1, 2, 1, 1)
+        self.summaryfile_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
+        self.summaryfile_browse_button.setEnabled(False)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.summaryfile_browse_button.setFont(font)
+        self.summaryfile_browse_button.setObjectName("summaryfile_browse_button")
+        self.gridLayout_6.addWidget(self.summaryfile_browse_button, 5, 2, 1, 1)
+        self.growthrate_cs_label = QtWidgets.QLabel(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.growthrate_cs_label.setFont(font)
+        self.growthrate_cs_label.setObjectName("growthrate_cs_label")
+        self.gridLayout_6.addWidget(self.growthrate_cs_label, 2, 0, 1, 1)
+        self.GrowthRate_browse_button = QtWidgets.QPushButton(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.GrowthRate_browse_button.setFont(font)
+        self.GrowthRate_browse_button.setObjectName("GrowthRate_browse_button")
+        self.gridLayout_6.addWidget(self.GrowthRate_browse_button, 3, 2, 1, 1)
+        self.ar_csv_label = QtWidgets.QLabel(self.plotting_gBox)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.ar_csv_label.setFont(font)
+        self.ar_csv_label.setObjectName("ar_csv_label")
+        self.gridLayout_6.addWidget(self.ar_csv_label, 0, 0, 1, 1)
+        self.gridLayout_3.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.plotting_gBox, 0, 0, 1, 1)
         self.normalMode_toolBox.addItem(self.normal_plotting_page, "")
         self.horizontalLayout_7.addWidget(self.normalMode_toolBox)
@@ -611,10 +632,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.run_calc_button = QtWidgets.QPushButton(self.scrollAreaWidgetContents_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.run_calc_button.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.run_calc_button.sizePolicy().hasHeightForWidth()
+        )
         self.run_calc_button.setSizePolicy(sizePolicy)
         self.run_calc_button.setMinimumSize(QtCore.QSize(170, 0))
         font = QtGui.QFont()
@@ -628,7 +653,9 @@ class Ui_MainWindow(object):
         self.run_calc_button.setObjectName("run_calc_button")
         self.horizontalLayout_4.addWidget(self.run_calc_button)
         self.reset_button = QtWidgets.QPushButton(self.scrollAreaWidgetContents_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.reset_button.sizePolicy().hasHeightForWidth())
@@ -668,14 +695,20 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.output_label.setFont(font)
         self.output_label.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.output_label.setAlignment(QtCore.Qt.AlignBottom|QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing)
+        self.output_label.setAlignment(
+            QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing
+        )
         self.output_label.setObjectName("output_label")
         self.verticalLayout_11.addWidget(self.output_label, 0, QtCore.Qt.AlignTop)
         self.output_textBox = QtWidgets.QTextEdit(self.tab_normal)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.output_textBox.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.output_textBox.sizePolicy().hasHeightForWidth()
+        )
         self.output_textBox.setSizePolicy(sizePolicy)
         self.output_textBox.setMinimumSize(QtCore.QSize(300, 535))
         font = QtGui.QFont()
@@ -685,8 +718,9 @@ class Ui_MainWindow(object):
         font.setItalic(False)
         font.setWeight(75)
         self.output_textBox.setFont(font)
-        self.output_textBox.setStyleSheet("background-color: rgb(58, 64, 85);\n"
-"color: rgb(255, 255, 255);")
+        self.output_textBox.setStyleSheet(
+            "background-color: rgb(58, 64, 85);\n" "color: rgb(255, 255, 255);"
+        )
         self.output_textBox.setReadOnly(True)
         self.output_textBox.setObjectName("output_textBox")
         self.verticalLayout_11.addWidget(self.output_textBox)
@@ -771,11 +805,12 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents_10.setObjectName("scrollAreaWidgetContents_10")
         self.gridLayout_13 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents_10)
         self.gridLayout_13.setObjectName("gridLayout_13")
-        self.output_textBox_3 = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_10)
-        self.output_textBox_3.setStyleSheet("background-color: rgb(58, 64, 85);\n"
-"color: rgb(255, 255, 255);")
-        self.output_textBox_3.setObjectName("output_textBox_3")
-        self.gridLayout_13.addWidget(self.output_textBox_3, 0, 0, 1, 1)
+        self.output_textBox_2 = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_10)
+        self.output_textBox_2.setStyleSheet(
+            "background-color: rgb(58, 64, 85);\n" "color: rgb(255, 255, 255);"
+        )
+        self.output_textBox_2.setObjectName("output_textBox_2")
+        self.gridLayout_13.addWidget(self.output_textBox_2, 0, 0, 1, 1)
         self.scrollArea_8.setWidget(self.scrollAreaWidgetContents_10)
         self.gridLayout_12.addWidget(self.scrollArea_8, 1, 2, 3, 1)
         self.verticalLayout.addLayout(self.gridLayout_12)
@@ -817,10 +852,14 @@ class Ui_MainWindow(object):
         self.vis_vLayout_4 = QtWidgets.QGridLayout()
         self.vis_vLayout_4.setObjectName("vis_vLayout_4")
         self.vis_scrollArea = QtWidgets.QScrollArea(self.tab_3d)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(3)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.vis_scrollArea.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.vis_scrollArea.sizePolicy().hasHeightForWidth()
+        )
         self.vis_scrollArea.setSizePolicy(sizePolicy)
         self.vis_scrollArea.setWidgetResizable(True)
         self.vis_scrollArea.setObjectName("vis_scrollArea")
@@ -836,7 +875,9 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidget(self.scrollAreaWidgetContents_3)
         self.vis_vLayout_4.addWidget(self.vis_scrollArea, 1, 2, 5, 2)
         self.scrollArea_5 = QtWidgets.QScrollArea(self.tab_3d)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(2)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.scrollArea_5.sizePolicy().hasHeightForWidth())
@@ -879,11 +920,12 @@ class Ui_MainWindow(object):
         self.E_variables_layout = QtWidgets.QGridLayout()
         self.E_variables_layout.setObjectName("E_variables_layout")
         self.verticalLayout_10.addLayout(self.E_variables_layout)
-        self.output_textBox_4 = QtWidgets.QTextEdit(self.variables_page)
-        self.output_textBox_4.setStyleSheet("background-color: rgb(58, 64, 85);\n"
-"color: rgb(255, 255, 255);")
-        self.output_textBox_4.setObjectName("output_textBox_4")
-        self.verticalLayout_10.addWidget(self.output_textBox_4)
+        self.output_textBox_3 = QtWidgets.QTextEdit(self.variables_page)
+        self.output_textBox_3.setStyleSheet(
+            "background-color: rgb(58, 64, 85);\n" "color: rgb(255, 255, 255);"
+        )
+        self.output_textBox_3.setObjectName("output_textBox_3")
+        self.verticalLayout_10.addWidget(self.output_textBox_3)
         self.ThreeD_toolBox.addItem(self.variables_page, "")
         self.vis_options_page = QtWidgets.QWidget()
         self.vis_options_page.setGeometry(QtCore.QRect(0, 0, 95, 95))
@@ -926,7 +968,9 @@ class Ui_MainWindow(object):
         self.vis_vLayout_10 = QtWidgets.QFormLayout()
         self.vis_vLayout_10.setObjectName("vis_vLayout_10")
         self.zoom_slider = QtWidgets.QSlider(self.scrollAreaWidgetContents_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
@@ -940,32 +984,48 @@ class Ui_MainWindow(object):
         self.zoom_slider.setFont(font)
         self.zoom_slider.setOrientation(QtCore.Qt.Horizontal)
         self.zoom_slider.setObjectName("zoom_slider")
-        self.vis_vLayout_10.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.zoom_slider)
+        self.vis_vLayout_10.setWidget(
+            0, QtWidgets.QFormLayout.FieldRole, self.zoom_slider
+        )
         self.point_slider = QtWidgets.QSlider(self.scrollAreaWidgetContents_7)
         self.point_slider.setOrientation(QtCore.Qt.Horizontal)
         self.point_slider.setObjectName("point_slider")
-        self.vis_vLayout_10.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.point_slider)
+        self.vis_vLayout_10.setWidget(
+            1, QtWidgets.QFormLayout.FieldRole, self.point_slider
+        )
         self.brightness_slider = QtWidgets.QSlider(self.scrollAreaWidgetContents_7)
         self.brightness_slider.setMaximum(100)
         self.brightness_slider.setOrientation(QtCore.Qt.Horizontal)
         self.brightness_slider.setObjectName("brightness_slider")
-        self.vis_vLayout_10.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.brightness_slider)
+        self.vis_vLayout_10.setWidget(
+            2, QtWidgets.QFormLayout.FieldRole, self.brightness_slider
+        )
         self.resolution_slider = QtWidgets.QSlider(self.scrollAreaWidgetContents_7)
         self.resolution_slider.setOrientation(QtCore.Qt.Horizontal)
         self.resolution_slider.setObjectName("resolution_slider")
-        self.vis_vLayout_10.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.resolution_slider)
+        self.vis_vLayout_10.setWidget(
+            3, QtWidgets.QFormLayout.FieldRole, self.resolution_slider
+        )
         self.zoom_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         self.zoom_label.setObjectName("zoom_label")
-        self.vis_vLayout_10.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.zoom_label)
+        self.vis_vLayout_10.setWidget(
+            0, QtWidgets.QFormLayout.LabelRole, self.zoom_label
+        )
         self.pointsize_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         self.pointsize_label.setObjectName("pointsize_label")
-        self.vis_vLayout_10.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.pointsize_label)
+        self.vis_vLayout_10.setWidget(
+            1, QtWidgets.QFormLayout.LabelRole, self.pointsize_label
+        )
         self.brightness_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         self.brightness_label.setObjectName("brightness_label")
-        self.vis_vLayout_10.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.brightness_label)
+        self.vis_vLayout_10.setWidget(
+            2, QtWidgets.QFormLayout.LabelRole, self.brightness_label
+        )
         self.resolution_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         self.resolution_label.setObjectName("resolution_label")
-        self.vis_vLayout_10.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.resolution_label)
+        self.vis_vLayout_10.setWidget(
+            3, QtWidgets.QFormLayout.LabelRole, self.resolution_label
+        )
         self.vis_vLayout_9.addLayout(self.vis_vLayout_10)
         self.colour_mode_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         font = QtGui.QFont()
@@ -1006,7 +1066,9 @@ class Ui_MainWindow(object):
         self.bgcolour_comboBox = QtWidgets.QComboBox(self.scrollAreaWidgetContents_7)
         self.bgcolour_comboBox.setObjectName("bgcolour_comboBox")
         self.vis_vLayout_9.addWidget(self.bgcolour_comboBox)
-        spacerItem5 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem5 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.vis_vLayout_9.addItem(spacerItem5)
         self.gridLayout_15.addLayout(self.vis_vLayout_9, 0, 0, 1, 1)
         self.vis_options_scrollArea.setWidget(self.scrollAreaWidgetContents_7)
@@ -1018,10 +1080,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.convexhull_page)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.start_3dcalc_button = QtWidgets.QPushButton(self.convexhull_page)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.start_3dcalc_button.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.start_3dcalc_button.sizePolicy().hasHeightForWidth()
+        )
         self.start_3dcalc_button.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -1033,10 +1099,14 @@ class Ui_MainWindow(object):
         self.start_3dcalc_button.setObjectName("start_3dcalc_button")
         self.verticalLayout_9.addWidget(self.start_3dcalc_button)
         self.stop_3dcalc_button = QtWidgets.QPushButton(self.convexhull_page)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.stop_3dcalc_button.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.stop_3dcalc_button.sizePolicy().hasHeightForWidth()
+        )
         self.stop_3dcalc_button.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -1057,17 +1127,19 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_3d, "")
         self.gridLayout.addWidget(self.tabWidget, 1, 1, 1, 1)
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
-        self.progressBar.setStyleSheet("QProgressBar {\n"
-"    background-color: rgb(213, 215, 255);\n"
-"    color: rgb(0, 0, 127);\n"
-"    border-style: none;\n"
-"    border-radius: 10px;\n"
-"    text-align: center;\n"
-"}\n"
-"QProgressBar::chunk{\n"
-"    border-radius: 10px;\n"
-"    background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));\n"
-"}")
+        self.progressBar.setStyleSheet(
+            "QProgressBar {\n"
+            "    background-color: rgb(213, 215, 255);\n"
+            "    color: rgb(0, 0, 127);\n"
+            "    border-style: none;\n"
+            "    border-radius: 10px;\n"
+            "    text-align: center;\n"
+            "}\n"
+            "QProgressBar::chunk{\n"
+            "    border-radius: 10px;\n"
+            "    background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));\n"
+            "}"
+        )
         self.progressBar.setProperty("value", 24)
         self.progressBar.setObjectName("progressBar")
         self.gridLayout.addWidget(self.progressBar, 2, 1, 1, 1)
@@ -1075,10 +1147,14 @@ class Ui_MainWindow(object):
         self.vis_vLayout_3.setObjectName("vis_vLayout_3")
         self.simFolder_Button = QtWidgets.QPushButton(self.centralwidget)
         self.simFolder_Button.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.simFolder_Button.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.simFolder_Button.sizePolicy().hasHeightForWidth()
+        )
         self.simFolder_Button.setSizePolicy(sizePolicy)
         self.simFolder_Button.setMinimumSize(QtCore.QSize(170, 0))
         font = QtGui.QFont()
@@ -1091,10 +1167,14 @@ class Ui_MainWindow(object):
         self.simFolder_Button.setObjectName("simFolder_Button")
         self.vis_vLayout_3.addWidget(self.simFolder_Button, 0, QtCore.Qt.AlignLeft)
         self.outFolder_Button = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.outFolder_Button.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.outFolder_Button.sizePolicy().hasHeightForWidth()
+        )
         self.outFolder_Button.setSizePolicy(sizePolicy)
         self.outFolder_Button.setMinimumSize(QtCore.QSize(170, 0))
         font = QtGui.QFont()
@@ -1128,7 +1208,10 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "CrystalAspects"))
         self.facet_gBox.setTitle(_translate("MainWindow", "Crystal Directions"))
-        self.normalMode_toolBox.setItemText(self.normalMode_toolBox.indexOf(self.widget), _translate("MainWindow", "Select Directions"))
+        self.normalMode_toolBox.setItemText(
+            self.normalMode_toolBox.indexOf(self.widget),
+            _translate("MainWindow", "Select Directions"),
+        )
         self.growthRate_checkBox.setText(_translate("MainWindow", "Growth Rate"))
         self.sa_vol_checkBox.setText(_translate("MainWindow", "Surface Area : Volume"))
         self.aspectRatio_checkBox.setText(_translate("MainWindow", "Aspect Ratio"))
@@ -1145,39 +1228,80 @@ class Ui_MainWindow(object):
         self.count_plusminus_label.setText(_translate("MainWindow", "+/-"))
         self.count_percent_label.setText(_translate("MainWindow", "%"))
         self.plot_checkBox.setText(_translate("MainWindow", "Plot"))
-        self.normalMode_toolBox.setItemText(self.normalMode_toolBox.indexOf(self.normal_calc_page), _translate("MainWindow", "Calculations"))
-        self.plot_GrowthRate_button.setText(_translate("MainWindow", "Generate Growth Rate Plots"))
-        self.plot_AR_button.setText(_translate("MainWindow", "Generate Aspect Ratio Plots"))
-        self.plot_SA_button.setText(_translate("MainWindow", "Generate Surface Area Plots"))
-        self.plot_vol_button.setText(_translate("MainWindow", "Generate Volume Plots"))
-        self.ar_csv_label.setText(_translate("MainWindow", "Aspect Ratio Information (.CSV) "))
-        self.growthrate_cs_label.setText(_translate("MainWindow", "Growth Rates Information (.CSV)"))
-        self.savar_csv_label.setText(_translate("MainWindow", "Surface Area / Volume Information (.CSV)"))
+        self.normalMode_toolBox.setItemText(
+            self.normalMode_toolBox.indexOf(self.normal_calc_page),
+            _translate("MainWindow", "Calculations"),
+        )
+        self.plot_AR_button.setText(
+            _translate("MainWindow", "Generate Aspect Ratio Plots")
+        )
+        self.plot_SAVAR_button.setText(
+            _translate("MainWindow", "Generate Surface Area / Volume Plots")
+        )
+        self.plot_GrowthRate_button.setText(
+            _translate("MainWindow", "Generate Growth Rate Plots")
+        )
+        self.summary_cs_label.setText(
+            _translate("MainWindow", "Simulation Summary Information (.CSV)")
+        )
         self.AR_browse_button.setText(_translate("MainWindow", "Browse/Read"))
-        self.SAVAR_browse_button.setText(_translate("MainWindow", "Browse/Read"))
+        self.summaryfile_browse_button.setText(_translate("MainWindow", "Browse/Read"))
+        self.growthrate_cs_label.setText(
+            _translate("MainWindow", "Growth Rates Information (.CSV)")
+        )
         self.GrowthRate_browse_button.setText(_translate("MainWindow", "Browse/Read"))
-        self.plot_SAVAR_button.setText(_translate("MainWindow", "Generate Surface Area / Volume Plots"))
-        self.normalMode_toolBox.setItemText(self.normalMode_toolBox.indexOf(self.normal_plotting_page), _translate("MainWindow", "Re-plotting Options"))
+        self.ar_csv_label.setText(
+            _translate("MainWindow", "Crystal Aspects Information (.CSV) ")
+        )
+        self.normalMode_toolBox.setItemText(
+            self.normalMode_toolBox.indexOf(self.normal_plotting_page),
+            _translate("MainWindow", "Re-plotting Options"),
+        )
         self.run_calc_button.setText(_translate("MainWindow", "RUN"))
         self.reset_button.setText(_translate("MainWindow", "RESET"))
         self.output_label.setText(_translate("MainWindow", "Output:"))
-        self.output_textBox.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Arial\',\'Arial\',\'Arial\'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
-"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'Arial\'; font-weight:400;\"><br /></p></body></html>"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_normal), _translate("MainWindow", "Aspects"))
-        self.summary_file_label.setText(_translate("MainWindow", "Option 1: Read Summary File"))
-        self.select_summary_map_button.setText(_translate("MainWindow", "Select Summary File"))
-        self.aspects_ouput_label.setText(_translate("MainWindow", "Option 2: Read Data Processor Output"))
-        self.select_output_button1.setText(_translate("MainWindow", "Select Output File"))
-        self.manual_entry_label.setText(_translate("MainWindow", "Option 3: Enter Manually"))
+        self.output_textBox.setHtml(
+            _translate(
+                "MainWindow",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '<html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "p, li { white-space: pre-wrap; }\n"
+                "</style></head><body style=\" font-family:'Arial','Arial','Arial'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
+                "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Arial'; font-weight:400;\"><br /></p></body></html>",
+            )
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_normal), _translate("MainWindow", "Aspects")
+        )
+        self.summary_file_label.setText(
+            _translate("MainWindow", "Option 1: Read Summary File")
+        )
+        self.select_summary_map_button.setText(
+            _translate("MainWindow", "Select Summary File")
+        )
+        self.aspects_ouput_label.setText(
+            _translate("MainWindow", "Option 2: Read Data Processor Output")
+        )
+        self.select_output_button1.setText(
+            _translate("MainWindow", "Select Output File")
+        )
+        self.manual_entry_label.setText(
+            _translate("MainWindow", "Option 3: Enter Manually")
+        )
         self.manual_entry_button.setText(_translate("MainWindow", "Open Manual Entry"))
         self.generate_map_button.setText(_translate("MainWindow", "Generate Map"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_maps), _translate("MainWindow", "Crystal Maps"))
-        self.select_summary_slider_button.setText(_translate("MainWindow", "Select Summary File"))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_maps),
+            _translate("MainWindow", "Crystal Maps"),
+        )
+        self.select_summary_slider_button.setText(
+            _translate("MainWindow", "Select Summary File")
+        )
         self.EVariable_title_label_2.setText(_translate("MainWindow", "Variables"))
-        self.ThreeD_toolBox.setItemText(self.ThreeD_toolBox.indexOf(self.variables_page), _translate("MainWindow", "Variables"))
+        self.ThreeD_toolBox.setItemText(
+            self.ThreeD_toolBox.indexOf(self.variables_page),
+            _translate("MainWindow", "Variables"),
+        )
         self.point_type_label.setText(_translate("MainWindow", "Point Type"))
         self.display_options_label.setText(_translate("MainWindow", "Display Options"))
         self.zoom_label.setText(_translate("MainWindow", "Zoom"))
@@ -1187,10 +1311,20 @@ class Ui_MainWindow(object):
         self.colour_mode_label.setText(_translate("MainWindow", "Colour Mode"))
         self.colour_label.setText(_translate("MainWindow", "Colour"))
         self.colour_label_2.setText(_translate("MainWindow", "Background Colour"))
-        self.ThreeD_toolBox.setItemText(self.ThreeD_toolBox.indexOf(self.vis_options_page), _translate("MainWindow", "Visualiser Options"))
+        self.ThreeD_toolBox.setItemText(
+            self.ThreeD_toolBox.indexOf(self.vis_options_page),
+            _translate("MainWindow", "Visualiser Options"),
+        )
         self.start_3dcalc_button.setText(_translate("MainWindow", "Calculate 3D Data"))
         self.stop_3dcalc_button.setText(_translate("MainWindow", "Stop Calculation"))
-        self.ThreeD_toolBox.setItemText(self.ThreeD_toolBox.indexOf(self.convexhull_page), _translate("MainWindow", "Convex Hull"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3d), _translate("MainWindow", "3D Data"))
-        self.simFolder_Button.setText(_translate("MainWindow", "Open Simulations Folder"))
+        self.ThreeD_toolBox.setItemText(
+            self.ThreeD_toolBox.indexOf(self.convexhull_page),
+            _translate("MainWindow", "Convex Hull"),
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_3d), _translate("MainWindow", "3D Data")
+        )
+        self.simFolder_Button.setText(
+            _translate("MainWindow", "Open Simulations Folder")
+        )
         self.outFolder_Button.setText(_translate("MainWindow", "Go to Output Folder"))

@@ -1,5 +1,4 @@
 chmpy==1.0b1
-DataProcessor==0.0.11
 matplotlib==3.5.3
 natsort==8.2.0
 numpy==1.23.2
