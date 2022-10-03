@@ -1,8 +1,19 @@
 
 tests/ADIPAC.stl
+tests/
+.DS_Store
+/**/.DS_Store
+.idea
+.vscode
 tests/CrystalAspectsTest/20220919_163041/CrystalAspects/
 CrystalAspects/__pycache__
 CrystalAspects/data/__pycache__
 CrystalAspects/GUI/__pycache__
 CrystalAspects/tools/__pycache__
 CrystalAspects/visualisation/__pycache__
+CrystalAspects.egg-info/top_level.txt
+CrystalAspects.egg-info/SOURCES.txt
+CrystalAspects.log
+CrystalAspects.egg-info/requires.txt
+CrystalAspects.egg-info/PKG-INFO
+CrystalAspects.egg-info/dependency_links.txt
