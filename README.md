@@ -10,4 +10,9 @@ git clone https://github.com/AJen01/CG-DataProcessing.git
 
 ```
 
-Install through running the setup.py
+Once the repository is cloned, and once you are in the directory.
+
+In your command line:
+```
+pip install .
+```
