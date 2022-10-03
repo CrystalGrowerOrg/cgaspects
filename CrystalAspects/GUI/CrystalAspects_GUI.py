@@ -1,6 +1,3 @@
-# Project module imports
-from load_GUI import Ui_MainWindow
-
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import (
@@ -26,6 +23,9 @@ from natsort import natsorted
 from pathlib import Path
 import logging
 
+# Project Module imports
+
+from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
