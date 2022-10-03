@@ -51,6 +51,8 @@ class Find:
         for item in contents:
             item_name = item
             item_path = path / item
+            if item.startswith('._'):
+                continue
             if item.endswith("summary.csv"):
                 summary_file = item_path
             if os.path.isdir(item_path):
@@ -191,6 +193,7 @@ class Find:
     def summary_compare(
         self, summary_csv, savefolder, aspect_csv=False, aspect_df=""
     ):
+        print(summary_csv)
 
         summary_df = pd.read_csv(summary_csv)
 
@@ -226,33 +229,34 @@ class Find:
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)
 
-        except Exception:
+        except AttributeError:
             int_cols = summary_cols[1:]
             compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1)
-                aspect_row = row.values[1:]
+                aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 print(aspect_row)
                 collect_row = [summary_df.iloc[sim_num].values[1:]]
                 print(collect_row)
-                collect_row = np.concatenate([[[sim_num]], aspect_row, collect_row], axis=1)
+                collect_row = np.concatenate([aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)
 
         print(aspect_cols, int_cols)
         cols = aspect_cols.append(int_cols)
+        print(aspect_cols)
         print(f"COLS:::: {cols}")
         compare_df = pd.DataFrame(compare_array, columns=cols)
         print(compare_df)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
 
         aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
-        failed_sims_csv = f"{savefolder}/failed_sims.csv"
+        #failed_sims_csv = f"{savefolder}/failed_sims.csv"
 
-        full_df.to_csv(aspect_energy_csv)
-        summary_df.to_csv(failed_sims_csv)
+        full_df.to_csv(aspect_energy_csv, index=None)
+        #summary_df.to_csv(failed_sims_csv)
 
         print(full_df)
 
