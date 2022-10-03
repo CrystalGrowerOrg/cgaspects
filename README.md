@@ -6,7 +6,7 @@ Clone the repository:
 
 
 ```
-git clone https://github.com/AJen01/CG-DataProcessing.git
+git clone https://github.com/AJen01/CG-DataProcessing.git depth=1
 ```
 
 Once the repository is cloned, and once you are in the directory.
