@@ -1,4 +1,4 @@
-chmpy==1.0b1
+chmpy==1.0b5
 matplotlib==3.5.3
 natsort==8.2.0
 numpy==1.23.2
