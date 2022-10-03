@@ -1,0 +1,12 @@
+chmpy==1.0b5
+matplotlib==3.5.3
+natsort==8.2.0
+numpy==1.23.2
+pandas==1.4.4
+plotly==5.10.0
+PyQt5==5.15.7
+qt-material==2.12
+scikit_learn==1.1.2
+scipy==1.9.1
+setuptools==65.3.0
+trimesh==3.14.1
