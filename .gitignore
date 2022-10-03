@@ -5,3 +5,8 @@ tests/CrystalAspectsTest/20220919_163041/CrystalAspects/
 .vscode
 .idea
 CrystalAspects.egg-info
+CrystalAspects/__pycache__
+CrystalAspects/data/__pycache__
+CrystalAspects/GUI/__pycache__
+CrystalAspects/tools/__pycache__
+CrystalAspects/visualisation/__pycache__

@@ -1,5 +1,4 @@
 # Project module imports
-from CrystalAspects.visualisation import replotting
 from load_GUI import Ui_MainWindow
 
 # PyQT5 imports
@@ -21,7 +20,7 @@ import os, sys, time, subprocess
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import webbrowser
 from natsort import natsorted
 from pathlib import Path
@@ -53,7 +52,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
         self.growth = GrowthRate()
-        self.replotting = Replotting()
 
         self.checked_directions = []
         self.checkboxnames = []
@@ -67,6 +65,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.screwdislocations = []
         self.folder_path = ""
         self.folders = []
+        self.mode = 1
+        self.summary_csv = None
+        self.replot_info = None
+        self.replot_folder = None
 
         self.plot = False
 
@@ -98,7 +100,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
-
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         apply_stylesheet(app, theme="dark_cyan.xml")
@@ -123,14 +124,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.GrowthRate_csv = None
 
         self.AR_browse_button.clicked.connect(self.replot_AR_read)
-        self.SAVAR_browse_button.clicked.connect(self.replot_SAVAR_read)
         self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
 
-        self.plot_AR_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.AR_csv))
-        self.plot_GrowthRate_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.GrowthRate_csv))
-        self.plot_SA_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
-        self.plot_vol_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
-        self.plot_SAVAR_button.clicked.connect(lambda: self.replotting.replot_AR(csv=self.SAVAR_csv))
+        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
+        self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
 
     def read_folder(self, mode):
 
@@ -335,6 +332,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aspect_range_checkBox.setChecked(False)
             self.output_textBox.clear()
 
+        self.summary_cs_label.setEnabled(False)
+        self.summaryfile_lineEdit.setEnabled(False)
+        self.summaryfile_browse_button.setEnabled(False)
+        self.plot_AR_button.setEnabled(False)
+        self.plot_GrowthRate_button.setEnabled(False)
+        self.plot_SAVAR_button.setEnabled(False)
+        self.plot_SA_button.setEnabled(False)
+        self.plot_vol_button.setEnabled(False)
+
+    def input_directions(self, directions):
+        check_box_names = []
+        checkboxes = []
+
+        num_directions = len(directions)
+        # Deletes current directions
+        for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
+            chk_box.deleteLater()
+
+        for i in range(num_directions):
+            chk_box_name = directions[i]
+            self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
+            check_box_names.append(chk_box_name)
+            checkboxes.append(self.chk_box_direction)
+
+            self.chk_box_direction.setEnabled(True)
+            self.chk_box_direction.stateChanged.connect(self.check_facet)
+            sizePolicy = QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+            )
+            sizePolicy.setHorizontalStretch(0)
+            sizePolicy.setVerticalStretch(1)
+            sizePolicy.setHeightForWidth(
+                self.chk_box_direction.sizePolicy().hasHeightForWidth()
+            )
+            self.chk_box_direction.setSizePolicy(sizePolicy)
+            font = QtGui.QFont()
+            font.setFamily("Arial")
+            font.setPointSize(10)
+            self.chk_box_direction.setFont(font)
+            self.chk_box_direction.setText(chk_box_name)
+
+            self.verticalLayout_2.addWidget(self.chk_box_direction)
+
+            self.checkboxnames = check_box_names
+            self.checkboxes = checkboxes
+            print(self.checkboxnames)
+
     def growth_rate_check(self, state):
         if state == Qt.Checked:
             self.growthrates = True
@@ -382,39 +426,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if input_path != "":
             input_path = Path(input_path)
 
-            if input_path.exists():
+            if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
                 self.plot_AR_button.setEnabled(True)
 
         else:
             input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Aspect Ratio .csv")
+                None, "Select Aspect Ratio .csv"
+            )
             input_path = Path(input_path)
-            if input_path.exists():
+            if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
                 self.plot_AR_button.setEnabled(True)
-        
+
         self.ar_lineEdit.setText(str(input_path))
 
-    def replot_SAVAR_read(self):
-        input_path = self.SAVAR_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists():
-                self.SAVAR_csv = input_path
-                self.plot_SAVAR_button.setEnabled(True)
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select SA : Vol .csv")
-            input_path = Path(input_path)
-            if input_path.exists():
-                self.SAVAR_csv = input_path
-                self.plot_SAVAR_button.setEnabled(True)
-
-        self.SAVAR_lineEdit.setText(str(input_path))
+        self.reread_info(input_path)
 
     def replot_GrowthRate_read(self):
         input_path = self.GrowthRate_lineEdit.text()
@@ -422,19 +449,112 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if input_path != "":
             input_path = Path(input_path)
 
-            if input_path.exists():
+            if input_path.exists() and input_path.suffix == ".csv":
                 self.GrowthRate_csv = input_path
                 self.plot_GrowthRate_button.setEnabled(True)
 
         else:
             input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Growth Rate .csv")
+                None, "Select Growth Rate .csv"
+            )
             input_path = Path(input_path)
-            if input_path.exists():
+            if input_path.exists() and input_path.suffix == ".csv":
                 self.GrowthRate_csv = input_path
                 self.plot_GrowthRate_button.setEnabled(True)
 
         self.GrowthRate_lineEdit.setText(str(input_path))
+
+    def replot_summary_read(self):
+
+        find = Find()
+
+        input_path = self.summaryfile_lineEdit.text()
+
+        if input_path != "":
+            input_path = Path(input_path)
+
+            if input_path.exists() and input_path.suffix == ".csv":
+                self.summary_csv = input_path
+
+        else:
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                None, "Select Growth Rate .csv"
+            )
+            input_path = Path(input_path)
+            if input_path.exists() and input_path.suffix == ".csv":
+                self.summary_csv = input_path
+
+        self.summaryfile_lineEdit.setText(str(input_path))
+
+        find.summary_compare(
+            summary_csv=input_path,
+            savefolder=self.replot_folder,
+            aspect_csv=self.AR_csv,
+        )
+
+        self.AR_csv = f"{self.replot_folder}/aspectratio_energy.csv"
+
+        self.replot_info._replace(Energies=True)
+
+    def reread_info(self, csv):
+
+        find = Find()
+        replot_info = namedtuple(
+            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol"
+        )
+
+        self.replot_folder = find.create_aspects_folder(self.folder_path)
+        df = pd.read_csv(csv)
+
+        directions = []
+        energies = False
+        pca = False
+        cda = False
+        equations = False
+        savar = False
+
+        for col in df.columns:
+            if col.startswith(" ") or col.startswith("-"):
+                directions.append(col)
+            if col.startswith("interactions") or col.startswith("tile"):
+                energies = True
+            if col.startswith("S:M"):
+                pca = True
+            if col.startswith("S/M"):
+                cda = True
+            if col.startswith("CDA_Equations"):
+                equations = True
+            if col.startswith("SA"):
+                savar = True
+
+        self.input_directions(directions=directions)
+
+        if energies is False:
+            self.summary_cs_label.setEnabled(True)
+            self.summaryfile_lineEdit.setEnabled(True)
+            self.summaryfile_browse_button.setEnabled(True)
+
+        self.replot_info = replot_info(
+            Directions=directions,
+            PCA=pca,
+            CDA=cda,
+            Equations=equations,
+            Energies=energies,
+            SAVol=savar,
+        )
+
+    def call_replot(self, replot_mode):
+        replot = Replotting()
+
+        if replot_mode == 1:
+            replot.replot_AR(
+                csv=self.AR_csv, info=self.replot_info, selected=self.checked_directions
+            )
+
+        if replot_mode == 2:
+            replot.replot_GrowthRate(
+                csv=self.GrowthRate_csv, selected=self.checked_directions
+            )
 
     def run_calc(self):
 
@@ -468,8 +588,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
             savar_df = aspect_ratio.savar_calc(
-                subfolder=self.folder_path,
-                savefolder=save_folder
+                subfolder=self.folder_path, savefolder=save_folder
             )
             savar_df_final = find.summary_compare(
                 summary_csv=self.summary_file,
@@ -477,28 +596,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 savefolder=save_folder,
             )
             if self.plot:
-                plotting.SAVAR_plot(
-                    df=savar_df_final,
-                    folderpath=save_folder)
+                plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
 
         if self.pca and self.sa_vol:
             aspect_ratio = AspectRatio()
             pca_df = aspect_ratio.shape_all(
-                subfolder=self.folder_path,
-                savefolder=save_folder
+                subfolder=self.folder_path, savefolder=save_folder
             )
             plot_df = find.summary_compare(
-                summary_csv=self.summary_file,
-                aspect_df=pca_df,
-                savefolder=save_folder
+                summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
             )
             if self.plot:
-                plotting.SAVAR_plot(
-                    df=plot_df,
-                    folderpath=save_folder)
-                plotting.build_PCAZingg(
-                    df=plot_df,
-                    folderpath=save_folder)
+                plotting.SAVAR_plot(df=plot_df, folderpath=save_folder)
+                plotting.build_PCAZingg(df=plot_df, folderpath=save_folder)
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
@@ -524,9 +634,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=selected_directions,
-                    ar_df=cda_df,
-                    filepath=save_folder
+                    directions=selected_directions, ar_df=cda_df, filepath=save_folder
                 )
                 zn_df_final = find.summary_compare(
                     summary_csv=self.summary_file,
@@ -535,56 +643,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
 
                 if self.plot:
-                    plotting.CDA_Plot(
-                        df=zn_df_final,
-                        folderpath=save_folder
-                    )
+                    plotting.CDA_Plot(df=zn_df_final, folderpath=save_folder)
                     plotting.build_zingg_seperated_i(
-                        df=zn_df_final,
-                        folderpath=save_folder
+                        df=zn_df_final, folderpath=save_folder
                     )
                     plotting.Aspect_Extended_Plot(
                         df=zn_df_final,
                         selected=selected_directions,
-                        folderpath=save_folder
+                        folderpath=save_folder,
                     )
 
             if self.pca and self.sa_vol:
-                aspect_ratio.PCA_shape_percentage(
-                    pca_df=pca_df,
-                    folderpath=save_folder
-                )
+                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
 
             if self.pca and self.sa_vol is False:
                 pca_df = aspect_ratio.build_AR_PCA(
-                    subfolder=self.folder_path,
-                    savefolder=save_folder
+                    subfolder=self.folder_path, savefolder=save_folder
                 )
 
-                aspect_ratio.PCA_shape_percentage(
-                    pca_df=pca_df,
-                    folderpath=save_folder
-                )
+                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
                 if self.plot:
-                    plotting.build_PCAZingg(
-                        df=pca_df,
-                        folderpath=save_folder
-                    )
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
             if self.pca and self.cda:
                 pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
-                    pca_df=pca_df,
-                    cda_df=zn_df,
-                    folderpath=save_folder
+                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
                 )
                 if self.plot:
-                    plotting.PCA_CDA_Plot(
-                        df=pca_cda_df, folderpath=save_folder
-                    )
-                    plotting.build_PCAZingg(
-                        df=pca_df,
-                        folderpath=save_folder
-                    )
+                    plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
     def output_folder_button(self):
         try:
@@ -644,4 +731,3 @@ if __name__ == "__main__":
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
-    

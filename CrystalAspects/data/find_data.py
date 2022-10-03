@@ -51,7 +51,7 @@ class Find:
         for item in contents:
             item_name = item
             item_path = path / item
-            if item.startswith('._'):
+            if item.startswith("._"):
                 continue
             if item.endswith("summary.csv"):
                 summary_file = item_path
@@ -190,9 +190,7 @@ class Find:
     def build_SAVAR(self):
         pass
 
-    def summary_compare(
-        self, summary_csv, savefolder, aspect_csv=False, aspect_df=""
-    ):
+    def summary_compare(self, summary_csv, savefolder, aspect_csv=False, aspect_df=""):
         print(summary_csv)
 
         summary_df = pd.read_csv(summary_csv)
@@ -202,7 +200,7 @@ class Find:
 
         summary_cols = summary_df.columns
         aspect_cols = aspect_df.columns
-        
+
         try:
             """This allows the user to pick the two different
             summary file verions from CrystalGrower"""
@@ -253,10 +251,10 @@ class Find:
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
 
         aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
-        #failed_sims_csv = f"{savefolder}/failed_sims.csv"
+        # failed_sims_csv = f"{savefolder}/failed_sims.csv"
 
         full_df.to_csv(aspect_energy_csv, index=None)
-        #summary_df.to_csv(failed_sims_csv)
+        # summary_df.to_csv(failed_sims_csv)
 
         print(full_df)
 
