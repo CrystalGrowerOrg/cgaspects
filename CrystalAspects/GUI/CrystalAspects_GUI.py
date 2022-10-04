@@ -2,23 +2,20 @@
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import (
     QApplication,
-    QComboBox,
     QMainWindow,
     QMessageBox,
     QShortcut,
-    QFileDialog,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
 
 # General imports
-import os, sys, time, subprocess
+import os, sys, subprocess
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from collections import defaultdict, namedtuple
-import webbrowser
 from natsort import natsorted
 from pathlib import Path
 import logging
