@@ -48,6 +48,8 @@ class Find:
         files = os.listdir(path)
         contents = natsorted(files)
         folders = []
+        summary_file = None
+        growth_mod = None
         for item in contents:
             item_name = item
             item_path = path / item
