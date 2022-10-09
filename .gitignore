@@ -15,3 +15,4 @@ CrystalAspects.egg-info/requires.txt
 CrystalAspects.egg-info/PKG-INFO
 CrystalAspects.egg-info/dependency_links.txt
 CrystalAspects/**/__pycache__
+CrystalAspects/build

@@ -12,11 +12,8 @@ from qt_material import apply_stylesheet
 
 # General imports
 import os, sys, subprocess
-import numpy as np
 import pandas as pd
-from pandas import DataFrame
-from collections import defaultdict, namedtuple
-from natsort import natsorted
+from collections import namedtuple
 from pathlib import Path
 import logging
 
@@ -26,8 +23,12 @@ from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
+from CrystalAspects.tools.visualiser import Visualiser
+from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.visualisation.replotting import Replotting
+
+basedir = os.path.dirname(__file__)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -43,8 +44,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.setWindowIcon(QtGui.QIcon("icon.png"))
         apply_stylesheet(app, theme="dark_cyan.xml")
+
         self.setupUi(self)
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
@@ -74,10 +75,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("############################################")
         print("####        CrystalAspects v1.00        ####")
         print("############################################")
+        apply_stylesheet(app, theme="dark_cyan.xml")
 
-        """###################################################
-        ############      Keyboard Shortcuts      ############
-        ###################################################"""
+        self.key_shortcuts()
+        self.connect_buttons()
+
+    def key_shortcuts(self):
 
         self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
         self.openKS.activated.connect(self.read_folder)
@@ -97,13 +100,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
 
-        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        apply_stylesheet(app, theme="dark_cyan.xml")
-
+    def connect_buttons(self):
+        
+        self.tabWidget.currentChanged.connect(self.tabChanged)
         # Open Folder
         try:
-            self.simFolder_Button.clicked.connect(lambda: self.read_folder(1))
+            self.simFolder_Button.clicked.connect(lambda: self.read_folder(self.mode))
         except IndexError:
             pass
 
@@ -128,7 +131,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def read_folder(self, mode):
 
-        self.mode = mode
+        if self.mode == 2:
+            slider = create_slider()
+            slider.read_crystals()
+            return
+        
         find = Find()
 
         self.folder_path = Path(
@@ -698,6 +705,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 msg.setWindowTitle("Error: Folder not found!")
                 msg.exec_()
 
+    def tabChanged(self):
+        self.mode = self.tabWidget.currentIndex() + 1
+        if self.mode == 1:
+            print('Normal Mode selected')
+            self.simFolder_Button.setText('Open Simulations Folder')
+            self.progressBar.show()
+        if self.mode == 2:
+            print('3D Data mode selected')
+            self.simFolder_Button.setText('XYZ/Simulations Folder')
+            self.progressBar.hide()
+            self.output_textBox_3.setText('Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders')
+
+
 
 # Override sys excepthook to prevent app abortion upon any error
 # (Reverts to old PyQt4 behaviour of
@@ -725,6 +745,7 @@ if __name__ == "__main__":
     # ############# Runs the application ############## #
     QApplication.setAttribute(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QtWidgets.QApplication(sys.argv)
+    app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, 'icon.png')))
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
