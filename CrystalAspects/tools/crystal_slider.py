@@ -1,0 +1,256 @@
+# ==> GUI Engine imports
+from re import L
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QFileDialog
+
+# ==> Non-GUI imports
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from collections import defaultdict
+import concurrent.futures
+from natsort import natsorted
+
+# ==> Local imports
+from CrystalAspects.GUI.load_GUI import Ui_MainWindow
+from CrystalAspects.tools.visualiser import Visualiser, vis_GLWidget
+
+
+class create_slider(QMainWindow, Ui_MainWindow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+        self.vis = Visualiser()
+        self.xyz_list = []
+
+    # FUNCTION: Updates output text box
+    def output_text(self, update_text):
+
+        self.output_textBox_3.append(update_text)
+
+    # Read Summary file
+    def read_summary(self):
+
+        # Select summary file and read in as a Dataframe
+        self.summary_file = QFileDialog.getOpenFileName(None, "Read Summary File")
+        self.summary_file = Path(self.summary_file[0])
+        print(self.summary_file)
+
+        self.summ_df = pd.read_csv(self.summary_file)
+        if list(self.summ_df.columns)[-1].startswith("Unnamed"):
+            self.summ_df = self.summ_df.iloc[:, 1:-1]
+        else:
+            self.summ_df = self.summ_df.iloc[:, 1:]
+        print(self.summ_df)
+        self.output_text(self.summ_df.to_string())
+
+        column_names = list(self.summ_df)
+        print("columns", column_names)
+
+        # Create dictionary to store the change in variables (tile/interaction energies)
+        var_dict = defaultdict(list)
+
+        # Records the variable values from summary file
+        for column in column_names:
+            for index, row in self.summ_df.iterrows():
+                if row[str(column)] not in var_dict[column]:
+                    var_dict[column].append(row[str(column)])
+
+        print(var_dict)
+        self.output_text(str(var_dict))
+
+        self.var = len(column_names)
+        iteration_list = []
+        slider_list = []
+        dspinbox_list = []
+
+        for i in range(self.var):
+            label_name = f"varSlider_name_{i+1}"
+            name = column_names[i]
+            slider = f"varSlider_{i+1}"
+            dspinbox = f"spinBox_{i+1}"
+            min_var = var_dict[column_names[i]][0]
+            min_percent = int(min_var * 100)
+            max_var = var_dict[column_names[i]][-1]
+            max_percent = int(max_var * 100)
+            print("min:", min_var)
+            print("max:", max_var)
+            iteration = var_dict[column_names[i]][1] - var_dict[column_names[i]][0]
+            iteration = float("{:.2f}".format(iteration))
+            iteration_list.append(iteration)
+            print(iteration)
+            self.label_name = QtWidgets.QLabel(self.tab_3d)
+            font = QtGui.QFont()
+            font.setFamily("Arial")
+            self.label_name.setFont(font)
+            self.label_name.setObjectName(label_name)
+            self.label_name.setText(str(name))
+            self.E_variables_layout.addWidget(self.label_name, i, 0, 1, 1)
+            self.slider = QtWidgets.QSlider(self.tab_3d)
+            self.slider.setOrientation(QtCore.Qt.Horizontal)
+            self.slider.setObjectName(slider)
+            self.slider.setMinimum(min_percent)
+            self.slider.setMaximum(max_percent)
+            self.slider.setTickInterval(int(iteration * 100))
+            slider_list.append(self.slider)
+
+            try:
+                self.vis = Visualiser()
+                self.slider.valueChanged.connect(
+                    lambda: self.slider_change(
+                        var=self.var,
+                        slider_list=slider_list,
+                        dspinbox_list=dspinbox_list,
+                        summ_df=self.summ_df,
+                        crystals=self.xyz_list
+                    )
+                )
+            except NameError:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Warning)
+                msg.setText("Please load in the images first!")
+                msg.setInformativeText(
+                    "You have not loaded in the images, please use the 'Open Images Folder' Button to load in the images first."
+                )
+                msg.setWindowTitle("Error: No Images Found!")
+                msg.exec_()
+            self.E_variables_layout.addWidget(self.slider, i, 1, 1, 1)
+            self.dspinbox = QtWidgets.QDoubleSpinBox(self.tab_3d)
+            self.dspinbox.setObjectName(dspinbox)
+            self.dspinbox.setMinimum(min_var)
+            self.dspinbox.setMaximum(max_var)
+            self.dspinbox.setSingleStep(iteration)
+            dspinbox_list.append(self.dspinbox)
+            self.dspinbox.valueChanged.connect(
+                lambda: self.dspinbox_change(
+                    var=self.var,
+                    dspinbox_list=dspinbox_list,
+                    slider_list=slider_list,
+                )
+            )
+            self.E_variables_layout.addWidget(self.dspinbox, i, 2, 1, 1)
+
+        self.progressBar.setValue(100)
+        self.statusBar().showMessage("Complete: Summary file read in!")
+
+    def read_crystals(self):
+
+        self.crystal_num = 0
+
+        self.statusBar().showMessage("Reading Images...")
+
+        xyz_folderpath = QFileDialog.getExistingDirectory(
+            None, "Select Folder that contains the Crystal Outputs (.XYZ)"
+        )
+        xyz_folderpath = Path(xyz_folderpath[0])
+        try:
+            self.crystal_xyz_list = list(xyz_folderpath.glob("*.XYZ"))
+        except:
+            pass
+        
+        try:
+            self.crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
+        except:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText(
+                "Please make sure the folder you have selected contains XYZ files that are from the simulation(s)"
+            )
+            msg.setWindowTitle("Error! No XYZ files detected.")
+            msg.exec_()
+
+        self.crystal_xyz_list = natsorted(self.crystal_xyz_list)
+        print(self.crystal_xyz_list)
+        self.output_text(f"Number of Images found: {str(len(self.crystal_xyz_list))}")
+        self.statusBar().showMessage("Complete: Image data read in!")
+
+        self.select_summary_slider_button.setEnabled(True)
+        self.build_crystaldata(self.crystal_xyz_list)
+
+    def build_crystaldata(self, xyz_file_list):
+        n = len(xyz_file_list)
+        xyz_list = []
+        self.statusBar().showMessage("Please wait, XYZ values are being extracted...")
+       
+
+        for i, xyz_file in enumerate(xyz_file_list):
+
+            xyz = np.loadtxt(xyz_file, skiprows=2)[:, 3:]
+            self.xyz_list.append(xyz)
+            self.progressBar.setValue(int(i / n) * 100)
+
+    def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
+        slider = self.sender()
+        i = 0
+        for name in slider_list:
+            if name == slider:
+                slider_value = name.value()
+                print(slider_value)
+                dspinbox_list[i].setValue(slider_value / 100)
+            i += 1
+        value_list = []
+        filter_df = summ_df
+        for i in range(var):
+            value = slider_list[i].value() / 100
+            print(f'locking for: {value}')
+            filter_df = filter_df[(summ_df.iloc[:, i] == value)]
+            value_list.append(value)
+        print('Combination: ', value_list)
+        print(filter_df)
+        for row in filter_df.index:
+            XYZ_vals = images[row]
+            self.output_textBox_3.append(f'Row Number: {row}')
+            self.vis.update_XYZ(XYZ_vals)
+            
+    def dspinbox_change(self, var, dspinbox_list, slider_list):
+        dspinbox = self.sender()
+        i = 0
+        for name in dspinbox_list:
+            if name == dspinbox:
+                dspinbox_value = name.value()
+                print(dspinbox_value)
+                slider_list[i].setValue(int(dspinbox_value * 100))
+            i += 1
+        value_list = []
+        for i in range(var):
+            value = dspinbox_list[i].value()
+            value_list.append(value)
+        print(value_list)
+
+    # ###### Control Buttons #########
+    def next_crystal_connect(self):
+
+        self.slider = Visualiser()
+        self.crystal_num = +1
+        selected_crystal = self.crystal_xyz_list[self.crystal_num]
+        print(selected_crystal)
+
+        self.slider.update_XYZ(selected_crystal)
+
+        print("next clicked")
+
+    def prev_crystal(self):
+        self.crystal_num = -1
+        selected_crystal = self.crystal_xyz_list[self.crystal_num]
+        print(selected_crystal)
+
+        print("prev clicked")
+        self.vis.update_XYZ(selected_crystal)
+
+    def end_crystal(self):
+        print("end clicked")
+
+    def start_crystal(self):
+        print("start clicked")
+
+    def play_crystal(self):
+        print("play clicked")
+
+    def pause_crystal(self):
+        print("pause clicked")
+
+    def rewind_crystal(self):
+        print("rewind clicked")
+
+    def fast_crystal(self):
+        print("fast clicked")
