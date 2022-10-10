@@ -50,6 +50,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
         self.growth = GrowthRate()
+        self.vis = Visualiser()
+        self.slider = create_slider()
+        apply_stylesheet(app, theme="dark_cyan.xml")
+
+        self.welcome_message()
+        self.key_shortcuts()
+        self.connect_buttons()
+        self.init_parameters()
+
+    def init_parameters(self):
 
         self.checked_directions = []
         self.checkboxnames = []
@@ -64,21 +74,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.folder_path = ""
         self.folders = []
         self.mode = 1
+        self.plot = False
+
         self.summary_csv = None
         self.replot_info = None
         self.replot_folder = None
-
-        self.plot = False
+        self.AR_csv = None
+        self.SAVAR_csv = None
+        self.GrowthRate_csv = None
 
         self.progressBar.setValue(0)
-        # Welcome msg
-        print("############################################")
-        print("####        CrystalAspects v1.00        ####")
-        print("############################################")
-        apply_stylesheet(app, theme="dark_cyan.xml")
-
-        self.key_shortcuts()
-        self.connect_buttons()
 
     def key_shortcuts(self):
 
@@ -92,18 +97,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.resetKS.activated.connect(self.reset_button_function)
         self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
         # self.applyKS.activated.connect(self.apply_clicked)
-
-        self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
-        self.pca_checkBox.stateChanged.connect(self.pca_checked)
-        self.cda_checkBox.stateChanged.connect(self.cda_checked)
-        self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
-        self.reset_button.clicked.connect(self.reset_button_function)
-        self.plot_checkBox.setEnabled(True)
-
+    
+    def welcome_message(self):
+        print("############################################")
+        print("####        CrystalAspects v1.00        ####")
+        print("############################################")
 
     def connect_buttons(self):
         
         self.tabWidget.currentChanged.connect(self.tabChanged)
+
         # Open Folder
         try:
             self.simFolder_Button.clicked.connect(lambda: self.read_folder(self.mode))
@@ -112,58 +115,60 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
         self.plot_checkBox.stateChanged.connect(self.plot_check)
-
         self.run_calc_button.clicked.connect(self.run_calc)
-        self.outFolder_Button.clicked.connect(self.output_folder_button)
-        # self.count_checkBox.stateChanged.connect(self.count_check)
-        # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
-        # self.tabWidget.currentChanged.connect(self.tabChanged)
-
-        self.AR_csv = None
-        self.SAVAR_csv = None
-        self.GrowthRate_csv = None
-
         self.AR_browse_button.clicked.connect(self.replot_AR_read)
         self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
 
         self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
         self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
+        self.select_summary_slider_button.clicked.connect(self.slider.read_summary)
+
+        # Checkboxes
+        self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
+        self.pca_checkBox.stateChanged.connect(self.pca_checked)
+        self.cda_checkBox.stateChanged.connect(self.cda_checked)
+        self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
+        self.reset_button.clicked.connect(self.reset_button_function)
+        self.plot_checkBox.setEnabled(True)
+        self.outFolder_Button.clicked.connect(self.output_folder_button)
+        # self.count_checkBox.stateChanged.connect(self.count_check)
+        # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
 
     def read_folder(self, mode):
+        find = Find()
 
         if self.mode == 2:
             slider = create_slider()
-            slider.read_crystals()
-            return
-        
-        find = Find()
-
-        self.folder_path = Path(
-            QtWidgets.QFileDialog.getExistingDirectory(
-                None, "Select CrystalGrower Output Folder"
-            )
-        )
-        checkboxes = []
-        check_box_names = []
-
-        file_info = find.find_info(self.folder_path)
-
-        self.summary_file = file_info.summary_file
-
-        self.folders = file_info.folders
-
-        if file_info.size_files:
-            self.growthrates = True
-            self.growthRate_checkBox.setChecked(True)
-
-        if self.growthrates is False:
-            self.growthRate_checkBox.setEnabled(False)
-
-        num_directions = len(file_info.directions)
-        print("Number of Directions:", num_directions)
-
-        # Setting contents if its in normal mode (no screw dislocation)
+            self.folder_path, crystal_file_list = slider.read_crystals()
+            find.create_aspects_folder(self.folder_path)
+            Visualiser.initGUI(self, crystal_file_list)
+            self.select_summary_slider_button.setEnabled(True)
+            
         if self.mode == 1:
+
+            self.folder_path = Path(
+                QtWidgets.QFileDialog.getExistingDirectory(
+                    None, "Select CrystalGrower Output Folder"
+                )
+            )
+            checkboxes = []
+            check_box_names = []
+
+            file_info = find.find_info(self.folder_path)
+
+            self.summary_file = file_info.summary_file
+
+            self.folders = file_info.folders
+
+            if file_info.size_files:
+                self.growthrates = True
+                self.growthRate_checkBox.setChecked(True)
+
+            if self.growthrates is False:
+                self.growthRate_checkBox.setEnabled(False)
+
+            num_directions = len(file_info.directions)
+            print("Number of Directions:", num_directions)
 
             # Deletes current directions
             for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
@@ -198,11 +203,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.checkboxes = checkboxes
             print(self.checkboxnames)
 
-        """Creating CrystalAspects folder"""
-        logger.debug(
-            "Filepath [%s] read and CrystalAspects folder created at: %s",
-            self.folder_path,
-        )
+            """Creating CrystalAspects folder"""
+            logger.debug(
+                "Filepath [%s] read and CrystalAspects folder created at: %s",
+                str(self.folder_path)
+            )
 
     def check_facet(self, state):
         if state == Qt.Checked:
@@ -714,7 +719,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.mode == 2:
             print('3D Data mode selected')
             self.simFolder_Button.setText('XYZ/Simulations Folder')
-            self.progressBar.hide()
             self.output_textBox_3.setText('Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders')
 
 
