@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1084</width>
-    <height>858</height>
+    <height>762</height>
    </rect>
   </property>
   <property name="font">
@@ -55,7 +55,7 @@
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -76,7 +76,7 @@
              <x>0</x>
              <y>0</y>
              <width>497</width>
-             <height>686</height>
+             <height>590</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -99,7 +99,7 @@
                    <x>0</x>
                    <y>0</y>
                    <width>471</width>
-                   <height>528</height>
+                   <height>432</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -117,7 +117,7 @@
                        <x>0</x>
                        <y>0</y>
                        <width>445</width>
-                       <height>502</height>
+                       <height>406</height>
                       </rect>
                      </property>
                      <layout class="QGridLayout" name="gridLayout_8">
@@ -175,7 +175,7 @@
                    <x>0</x>
                    <y>0</y>
                    <width>473</width>
-                   <height>513</height>
+                   <height>432</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -825,7 +825,7 @@
                    <x>0</x>
                    <y>0</y>
                    <width>471</width>
-                   <height>528</height>
+                   <height>432</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1284,7 +1284,7 @@ p, li { white-space: pre-wrap; }
                    <x>0</x>
                    <y>0</y>
                    <width>761</width>
-                   <height>680</height>
+                   <height>584</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -1316,7 +1316,7 @@ p, li { white-space: pre-wrap; }
                    <x>0</x>
                    <y>0</y>
                    <width>249</width>
-                   <height>680</height>
+                   <height>584</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_10">
@@ -1331,7 +1331,7 @@ p, li { white-space: pre-wrap; }
                        <x>0</x>
                        <y>0</y>
                        <width>225</width>
-                       <height>596</height>
+                       <height>500</height>
                       </rect>
                      </property>
                      <attribute name="label">
