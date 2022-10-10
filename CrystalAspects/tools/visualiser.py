@@ -1,3 +1,4 @@
+from unittest import skip
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
@@ -12,6 +13,7 @@ from OpenGL.arrays import vbo
 from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
 import ctypes
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -19,18 +21,27 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from colorsys import hls_to_rgb
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
+from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
 class Visualiser(QMainWindow, Ui_MainWindow):
-    def __init__(self):
-        QtWidgets.QMainWindow.__init__(self)  # call the init for the parent class
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # call the init for the parent class
+        self.setupUi(self)
+        # self.initGUI
+        self.xyz = None
+        self.xyz_file_list = None
 
-        self.initGUI
-        self.parameters()
+    def initGUI(self, xyz_file_list, xyz_list=[]):
 
-    def initGUI(self):
+        if xyz_file_list:
+            self.xyz_file_list = xyz_file_list
 
+            self.xyz = np.loadtxt(Path(self.xyz_file_list[0]), skiprows=2)
+            print(self.xyz)
+        
         self.glWidget = vis_GLWidget(self)
+        self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.updateGL
         self.gl_vLayout.addWidget(self.glWidget)
         self.colourList = [
@@ -58,69 +69,21 @@ class Visualiser(QMainWindow, Ui_MainWindow):
             self.glWidget.get_colour_type
         )
 
-        self.point_slider.setMinimum(1)
+        '''self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
         self.point_slider.setTickInterval(0.5)
-        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)
-
-    def parameters(self):
-        self.xyz = None
-        self.xyz_list = None
-
+        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)'''
+           
     def get_colour(self, value):
         print(value)
 
-    def get_xyz_list(self, xyz_list):
-
-        self.xyz_list = xyz_list
-        print("xyz_list recieved")
-
     def update_XYZ(self, XYZ_filepath):
 
-        self.xyz = XYZ_filepath
+        self.xyz = np.loadtxt(Path(XYZ_filepath), skiprows=2)
+        print(self.xyz)
+        self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.glWidget.updateGL()
-
-    def slider_change(self, var, slider_list, dspinbox_list, summ_df, images):
-        slider = self.sender()
-        i = 0
-        for name in slider_list:
-            if name == slider:
-                slider_value = name.value()
-                print(slider_value)
-                dspinbox_list[i].setValue(slider_value / 100)
-            i += 1
-        value_list = []
-        filter_df = summ_df
-        for i in range(var):
-            value = slider_list[i].value() / 100
-            print(f'locking for: {value}')
-            filter_df = filter_df[(summ_df.iloc[:, i] == value)]
-            value_list.append(value)
-        print('Combination: ', value_list)
-        print(filter_df)
-        for row in filter_df.index:
-            print(row)
-            XYZ_filepath = images[row]
-            XYZ_filepath = XYZ_filepath.replace("\a", "/a")
-            print(XYZ_filepath)
-            self.output_textBox_4.append(f'Row Number: {row}')
-            self.update_XYZ(XYZ_filepath)
-            
-    def dspinbox_change(self, var, dspinbox_list, slider_list, summ_df):
-        dspinbox = self.sender()
-        i = 0
-        for name in dspinbox_list:
-            if name == dspinbox:
-                dspinbox_value = name.value()
-                print(dspinbox_value)
-                slider_list[i].setValue(int(dspinbox_value * 100))
-            i += 1
-        value_list = []
-        for i in range(var):
-            value = dspinbox_list[i].value()
-            value_list.append(value)
-        print(value_list)
 
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
@@ -129,7 +92,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         QtOpenGL.QGLWidget.__init__(self, parent)
 
         self.bg_colour = None
-
+        self.xyz = None
         self.rotX = 0.0
         self.rotY = 0.0
         self.rotZ = 0.0
@@ -151,6 +114,11 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             cm.twilight_shifted,
             cm.hsv,
         ]
+
+    def pass_XYZ(self, xyz):
+        self.xyz = xyz
+        print('XYZ cordinates passed on OpenGL widget(class)')
+        print(self.xyz)
 
     def get_colour(self, value):
 
@@ -323,15 +291,17 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.vbo = self.CreateBuffer(vArray)
 
     def LoadVertices(self,):
+        print('Load Vertices')
+        print(self.xyz)
         point_cloud = self.xyz
 
         layers = point_cloud[:, 2]
-        l_max = int(np.nanmax(layers[layers < 107]))
+        l_max = int(np.nanmax(layers[layers < 99]))
 
         # Loading the point cloud from file
         def vis_pc(xyz, color_axis=-1, C_Choice=self.colour_picked):
-            pcd = xyz
-            pcd.points = xyz[:, 3:]
+            pcd_points = xyz[:, 3:]
+            pcd_colors = None
 
             if color_axis >= 0:
                 if color_axis == 3:
@@ -339,16 +309,18 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
                 else:
                     axis_vis = xyz[:, color_axis]
 
-                pcd.colors = C_Choice(axis_vis / l_max)[:, 0:3]
+                pcd_colors = C_Choice(axis_vis / l_max)[:, 0:3]
 
-            return pcd
+            return (pcd_points, pcd_colors)
 
-        points = np.asarray(
-            vis_pc(point_cloud, self.colour_type, C_Choice=self.colour_picked).points
-        ).astype("float32")
-        colors = np.asarray(
-            vis_pc(point_cloud, self.colour_type, C_Choice=self.colour_picked).colors
-        ).astype("float32")
+        points, colors = vis_pc(
+            point_cloud,
+            self.colour_type,
+            C_Choice=self.colour_picked
+        )
+
+        points = np.asarray(points).astype("float32")
+        colors = np.asarray(colors).astype("float32")
 
         attributes = np.concatenate((points, colors), axis=1)
 

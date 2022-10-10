@@ -142,19 +142,24 @@ class create_slider(QMainWindow, Ui_MainWindow):
         xyz_folderpath = QFileDialog.getExistingDirectory(
             None, "Select Folder that contains the Crystal Outputs (.XYZ)"
         )
-        xyz_folderpath = Path(xyz_folderpath[0])
+        xyz_folderpath = Path(xyz_folderpath)
+
         try:
-            self.crystal_xyz_list = list(xyz_folderpath.glob("*.XYZ"))
-        except:
-            pass
-        
+            print(xyz_folderpath)
+            self.crystal_xyz_list = xyz_folderpath.glob("*.XYZ")
+        except Exception as exc:
+            print(f'Tried to look for XYZ within current directory: {repr(exc)}\
+                , will look within subdirectories now.')
+
         try:
-            self.crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
-        except:
+            self.crystal_xyz_list = xyz_folderpath.rglob("*.XYZ")
+        except Exception as exc:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
-                "Please make sure the folder you have selected contains XYZ files that are from the simulation(s)"
+                f"Please make sure the folder you have selected \
+                contains XYZ files that are from the simulation(s)\
+                \n Python Error: {repr(exc)}"
             )
             msg.setWindowTitle("Error! No XYZ files detected.")
             msg.exec_()
@@ -164,20 +169,26 @@ class create_slider(QMainWindow, Ui_MainWindow):
         self.output_text(f"Number of Images found: {str(len(self.crystal_xyz_list))}")
         self.statusBar().showMessage("Complete: Image data read in!")
 
-        self.select_summary_slider_button.setEnabled(True)
-        self.build_crystaldata(self.crystal_xyz_list)
+        return (xyz_folderpath, self.crystal_xyz_list)
 
     def build_crystaldata(self, xyz_file_list):
         n = len(xyz_file_list)
         xyz_list = []
         self.statusBar().showMessage("Please wait, XYZ values are being extracted...")
-       
 
         for i, xyz_file in enumerate(xyz_file_list):
+            print(xyz_file)
 
-            xyz = np.loadtxt(xyz_file, skiprows=2)[:, 3:]
+            xyz = np.loadtxt(Path(xyz_file), skiprows=2)[:, 3:]
+
+            """This throws a ValueError: Wrong number of columns at line ######,
+            when the XYZ is a movie! To be fixed in the future."""
+            print(xyz)
             self.xyz_list.append(xyz)
+            print(len(self.xyz_list))
             self.progressBar.setValue(int(i / n) * 100)
+        
+        print(f'Number of Crystals Read: {len(xyz_list)}')
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
