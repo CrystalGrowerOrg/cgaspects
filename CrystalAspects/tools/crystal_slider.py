@@ -32,19 +32,19 @@ class create_slider(QMainWindow, Ui_MainWindow):
     def read_summary(self):
 
         # Select summary file and read in as a Dataframe
-        self.summary_file = QFileDialog.getOpenFileName(None, "Read Summary File")
-        self.summary_file = Path(self.summary_file[0])
-        print(self.summary_file)
+        summary_file = QFileDialog.getOpenFileName(None, "Read Summary File")
+        summary_file = Path(summary_file[0])
+        print(summary_file)
 
-        self.summ_df = pd.read_csv(self.summary_file)
-        if list(self.summ_df.columns)[-1].startswith("Unnamed"):
-            self.summ_df = self.summ_df.iloc[:, 1:-1]
+        summ_df = pd.read_csv(summary_file)
+        if list(summ_df.columns)[-1].startswith("Unnamed"):
+            summ_df = summ_df.iloc[:, 1:-1]
         else:
-            self.summ_df = self.summ_df.iloc[:, 1:]
-        print(self.summ_df)
-        self.output_text(self.summ_df.to_string())
+            summ_df = summ_df.iloc[:, 1:]
+        print(summ_df)
+        self.output_text(summ_df.to_string())
 
-        column_names = list(self.summ_df)
+        column_names = list(summ_df)
         print("columns", column_names)
 
         # Create dictionary to store the change in variables (tile/interaction energies)
@@ -52,19 +52,20 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
         # Records the variable values from summary file
         for column in column_names:
-            for index, row in self.summ_df.iterrows():
+            for index, row in summ_df.iterrows():
                 if row[str(column)] not in var_dict[column]:
                     var_dict[column].append(row[str(column)])
 
         print(var_dict)
         self.output_text(str(var_dict))
 
-        self.var = len(column_names)
+        var = len(column_names)
         iteration_list = []
         slider_list = []
         dspinbox_list = []
 
-        for i in range(self.var):
+        for i in range(var):
+            print('Adding Varible Sliders')
             label_name = f"varSlider_name_{i+1}"
             name = column_names[i]
             slider = f"varSlider_{i+1}"
@@ -98,7 +99,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
                 self.vis = Visualiser()
                 self.slider.valueChanged.connect(
                     lambda: self.slider_change(
-                        var=self.var,
+                        var=var,
                         slider_list=slider_list,
                         dspinbox_list=dspinbox_list,
                         summ_df=self.summ_df,
@@ -123,7 +124,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
             dspinbox_list.append(self.dspinbox)
             self.dspinbox.valueChanged.connect(
                 lambda: self.dspinbox_change(
-                    var=self.var,
+                    var=var,
                     dspinbox_list=dspinbox_list,
                     slider_list=slider_list,
                 )
