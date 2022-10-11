@@ -50,8 +50,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
         self.growth = GrowthRate()
-        self.vis = Visualiser()
-        self.slider = create_slider()
+        
         apply_stylesheet(app, theme="dark_cyan.xml")
 
         self.welcome_message()
@@ -75,6 +74,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.folders = []
         self.mode = 1
         self.plot = False
+        self.xyz = None
+        self.xyz_list = []
 
         self.summary_csv = None
         self.replot_info = None
@@ -121,7 +122,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
         self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
-        self.select_summary_slider_button.clicked.connect(self.slider.read_summary)
+        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)
 
         # Checkboxes
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
@@ -134,14 +135,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
 
+    def read_summary_vis(self):
+        create_slider.read_summary(self)
+
     def read_folder(self, mode):
         find = Find()
 
         if self.mode == 2:
             slider = create_slider()
-            self.folder_path, crystal_file_list = slider.read_crystals()
+            self.folder_path, self.xyz_list = slider.read_crystals()
             find.create_aspects_folder(self.folder_path)
-            Visualiser.initGUI(self, crystal_file_list)
+            Visualiser.initGUI(self, self.xyz_list)
             self.select_summary_slider_button.setEnabled(True)
             
         if self.mode == 1:
@@ -270,43 +274,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def aspect_ratio_checked(self, state):
 
-        if self.mode == 1:
-            print("Clicked", state)
-            if state == Qt.Checked:
-                self.aspectratio = True
+        if state == Qt.Checked:
+            self.aspectratio = True
+            self.pca_checkBox.setEnabled(True)
+            self.cda_checkBox.setEnabled(True)
+
+            if self.cda:
                 self.long_facet.setEnabled(True)
                 self.medium_facet.setEnabled(True)
                 self.aspect_range_checkBox.setEnabled(True)
-                self.count_checkBox.setEnabled(True)
+                # self.count_checkBox.setEnabled(True)
                 self.ratio_label1.setEnabled(True)
-                self.pca_checkBox.setEnabled(True)
-                self.cda_checkBox.setEnabled(True)
 
                 if len(self.checked_directions) >= 3:
                     self.short_facet.setEnabled(True)
                     self.ratio_label2.setEnabled(True)
 
-            else:
-                # Clear
-                self.long_facet.setEnabled(False)
-                self.medium_facet.setEnabled(False)
-                self.short_facet.setEnabled(False)
-                self.lm_range_input.clear()
-                self.ms_range_input.clear()
-                self.lm_spinBox.setValue(0)
-                self.ms_spinBox.setValue(0)
-                self.aspect_range_checkBox.setChecked(False)
-                self.aspect_range_checkBox.setEnabled(False)
-                self.ratio_label1.setEnabled(False)
-                self.ratio_label2.setEnabled(False)
-                self.count_checkBox.setChecked(False)
-                self.count_checkBox.setEnabled(False)
+        else:
+            # Clear
+            self.pca_checkBox.setEnabled(False)
+            self.cda_checkBox.setEnabled(False)
+            self.long_facet.setEnabled(False)
+            self.medium_facet.setEnabled(False)
+            self.short_facet.setEnabled(False)
+            self.lm_range_input.clear()
+            self.ms_range_input.clear()
+            self.lm_spinBox.setValue(0)
+            self.ms_spinBox.setValue(0)
+            self.aspect_range_checkBox.setChecked(False)
+            self.aspect_range_checkBox.setEnabled(False)
+            self.ratio_label1.setEnabled(False)
+            self.ratio_label2.setEnabled(False)
+            self.count_checkBox.setChecked(False)
+            self.count_checkBox.setEnabled(False)
 
     def reset_button_function(self):
 
-        self.checked_directions = []
-        self.checkboxnames = []
-        self.checkboxes = []
+        self.init_parameters()
 
         # Initialise Progressbar
         self.progressBar.setValue(0)
@@ -416,10 +420,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if state == Qt.Checked:
             self.cda = True
             print(f"PCA: {self.cda}")
+
+            self.long_facet.setEnabled(True)
+            self.medium_facet.setEnabled(True)
+            self.aspect_range_checkBox.setEnabled(True)
+            # self.count_checkBox.setEnabled(True)
+            self.ratio_label1.setEnabled(True)
+
+            if len(self.checked_directions) >= 3:
+                self.short_facet.setEnabled(True)
+                self.ratio_label2.setEnabled(True)
         else:
             self.cda = False
             print("CDA is not checked")
             print(f"CDA: {self.cda}")
+
+            self.long_facet.setEnabled(False)
+            self.medium_facet.setEnabled(False)
+            self.aspect_range_checkBox.setEnabled(False)
+            self.count_checkBox.setEnabled(False)
+            self.ratio_label1.setEnabled(False)
+            self.short_facet.setEnabled(False)
+            self.ratio_label2.setEnabled(False)
 
     def plot_check(self, state):
         if state == Qt.Checked:
@@ -709,6 +731,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
                 msg.setWindowTitle("Error: Folder not found!")
                 msg.exec_()
+
+    def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
+        slider = self.sender()
+        i = 0
+        for name in slider_list:
+            if name == slider:
+                slider_value = name.value()
+                print(slider_value)
+                dspinbox_list[i].setValue(slider_value / 100)
+            i += 1
+        value_list = []
+        filter_df = summ_df
+        for i in range(var):
+            value = slider_list[i].value() / 100
+            print(f'locking for: {value}')
+            filter_df = filter_df[(summ_df.iloc[:, i] == value)]
+            value_list.append(value)
+        print('Combination: ', value_list)
+        print(filter_df)
+        for row in filter_df.index:
+            XYZ_vals = crystals[row]
+            self.output_textBox_3.append(f'Row Number: {row}')
+            Visualiser.update_XYZ(self, XYZ_vals)
+
+    def dspinbox_change(self, var, dspinbox_list, slider_list):
+        dspinbox = self.sender()
+        i = 0
+        for name in dspinbox_list:
+            if name == dspinbox:
+                dspinbox_value = name.value()
+                print(dspinbox_value)
+                slider_list[i].setValue(int(dspinbox_value * 100))
+            i += 1
+        value_list = []
+        for i in range(var):
+            value = dspinbox_list[i].value()
+            value_list.append(value)
+        print(value_list)
 
     def tabChanged(self):
         self.mode = self.tabWidget.currentIndex() + 1

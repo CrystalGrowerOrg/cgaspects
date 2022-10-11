@@ -21,12 +21,6 @@ class create_slider(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.vis = Visualiser()
-        self.xyz_list = []
-
-    # FUNCTION: Updates output text box
-    def output_text(self, update_text):
-
-        self.output_textBox_3.append(update_text)
 
     # Read Summary file
     def read_summary(self):
@@ -42,7 +36,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
         else:
             summ_df = summ_df.iloc[:, 1:]
         print(summ_df)
-        self.output_text(summ_df.to_string())
+        self.output_textBox_3.append(summ_df.to_string())
 
         column_names = list(summ_df)
         print("columns", column_names)
@@ -57,7 +51,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
                     var_dict[column].append(row[str(column)])
 
         print(var_dict)
-        self.output_text(str(var_dict))
+        self.output_textBox_3.append(str(var_dict))
 
         var = len(column_names)
         iteration_list = []
@@ -102,7 +96,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
                         var=var,
                         slider_list=slider_list,
                         dspinbox_list=dspinbox_list,
-                        summ_df=self.summ_df,
+                        summ_df=summ_df,
                         crystals=self.xyz_list
                     )
                 )
@@ -167,7 +161,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
         self.crystal_xyz_list = natsorted(self.crystal_xyz_list)
         print(self.crystal_xyz_list)
-        self.output_text(f"Number of Images found: {str(len(self.crystal_xyz_list))}")
+        self.output_textBox_3.append(f"Number of Images found: {str(len(self.crystal_xyz_list))}")
         self.statusBar().showMessage("Complete: Image data read in!")
 
         return (xyz_folderpath, self.crystal_xyz_list)
@@ -190,44 +184,6 @@ class create_slider(QMainWindow, Ui_MainWindow):
             self.progressBar.setValue(int(i / n) * 100)
         
         print(f'Number of Crystals Read: {len(xyz_list)}')
-
-    def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
-        slider = self.sender()
-        i = 0
-        for name in slider_list:
-            if name == slider:
-                slider_value = name.value()
-                print(slider_value)
-                dspinbox_list[i].setValue(slider_value / 100)
-            i += 1
-        value_list = []
-        filter_df = summ_df
-        for i in range(var):
-            value = slider_list[i].value() / 100
-            print(f'locking for: {value}')
-            filter_df = filter_df[(summ_df.iloc[:, i] == value)]
-            value_list.append(value)
-        print('Combination: ', value_list)
-        print(filter_df)
-        for row in filter_df.index:
-            XYZ_vals = images[row]
-            self.output_textBox_3.append(f'Row Number: {row}')
-            self.vis.update_XYZ(XYZ_vals)
-            
-    def dspinbox_change(self, var, dspinbox_list, slider_list):
-        dspinbox = self.sender()
-        i = 0
-        for name in dspinbox_list:
-            if name == dspinbox:
-                dspinbox_value = name.value()
-                print(dspinbox_value)
-                slider_list[i].setValue(int(dspinbox_value * 100))
-            i += 1
-        value_list = []
-        for i in range(var):
-            value = dspinbox_list[i].value()
-            value_list.append(value)
-        print(value_list)
 
     # ###### Control Buttons #########
     def next_crystal_connect(self):
