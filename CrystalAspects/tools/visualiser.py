@@ -39,7 +39,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
 
             self.xyz = np.loadtxt(Path(self.xyz_file_list[0]), skiprows=2)
             print(self.xyz)
-        
+
         self.glWidget = vis_GLWidget(self)
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.updateGL
