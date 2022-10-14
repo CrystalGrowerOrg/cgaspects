@@ -209,6 +209,7 @@ class Find:
 
             search = summary_df.iloc[0, 0]
             search = search.split("_")
+            start_num = int(search[-1])
             search_string = "_".join(search[:-1])
 
             int_cols = summary_cols[1:]
@@ -218,13 +219,13 @@ class Find:
             print("Compare array shape", compare_array.shape)
 
             for index, row in aspect_df.iterrows():
-                sim_num = int(row["Simulation Number"] - 1)
+                sim_num = int(row["Simulation Number"] - 1 + start_num)
                 num_string = f"{search_string}_{sim_num}"
                 print("num string", num_string)
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 collect_row = summary_df.filter(items=[num_string], axis=0).values
-                print(collect_row)
+                print(f'Row from aspect file: {aspect_row}\nRow from summuary: {collect_row}')
                 collect_row = np.concatenate([aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)

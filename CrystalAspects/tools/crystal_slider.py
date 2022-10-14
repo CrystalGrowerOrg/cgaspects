@@ -140,14 +140,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
         xyz_folderpath = Path(xyz_folderpath)
 
         try:
-            print(xyz_folderpath)
-            self.crystal_xyz_list = xyz_folderpath.glob("*.XYZ")
-        except Exception as exc:
-            print(f'Tried to look for XYZ within current directory: {repr(exc)}\
-                , will look within subdirectories now.')
-
-        try:
-            self.crystal_xyz_list = xyz_folderpath.rglob("*.XYZ")
+            self.crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
         except Exception as exc:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -158,6 +151,10 @@ class create_slider(QMainWindow, Ui_MainWindow):
             )
             msg.setWindowTitle("Error! No XYZ files detected.")
             msg.exec_()
+
+        for item in self.crystal_xyz_list:
+            if Path(item).name.startswith("._"):
+                self.crystal_xyz_list.remove(item)
 
         self.crystal_xyz_list = natsorted(self.crystal_xyz_list)
         print(self.crystal_xyz_list)

@@ -62,6 +62,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.colourmode_comboBox.setCurrentIndex(2)
         self.colour_comboBox.addItems(self.colourList)
         self.bgcolour_comboBox.addItems(["White", "Black"])
+        self.bgcolour_comboBox.setCurrentIndex(1)
 
         self.colour_comboBox.currentIndexChanged.connect(self.glWidget.get_colour)
         self.bgcolour_comboBox.currentIndexChanged.connect(self.glWidget.get_bg_colour)
@@ -80,7 +81,6 @@ class Visualiser(QMainWindow, Ui_MainWindow):
     def update_XYZ(self, XYZ_filepath):
 
         self.xyz = np.loadtxt(Path(XYZ_filepath), skiprows=2)
-        print(self.xyz)
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.glWidget.updateGL()

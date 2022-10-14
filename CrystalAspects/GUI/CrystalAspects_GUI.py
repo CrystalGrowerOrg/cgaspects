@@ -207,12 +207,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.checkboxes = checkboxes
             print(self.checkboxnames)
 
-            """Creating CrystalAspects folder"""
-            logger.debug(
-                "Filepath [%s] read and CrystalAspects folder created at: %s",
-                str(self.folder_path)
-            )
-
     def check_facet(self, state):
         if state == Qt.Checked:
             chk_box = self.sender()
@@ -604,8 +598,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.info("All Selected Directions: %s\n", self.checked_directions)
 
         find = Find()
-        save_folder = find.create_aspects_folder(self.folder_path)
         plotting = Plotting()
+
+        save_folder = find.create_aspects_folder(self.folder_path)
+
+        """Creating CrystalAspects folder"""
+        logger.debug(
+            "Filepath read: %s", 
+            str(self.folder_path)
+        )
+        logger.debug(
+            "CrystalAspects folder created: %s",
+            str(save_folder)
+        )
 
         if self.growthrates:
             growth = GrowthRate()
