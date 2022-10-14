@@ -264,7 +264,7 @@ class Plotting:
         interactions = [
             col
             for col in savar_df.columns
-            if col.startswith("interaction") or col.startswith("tile")
+            if col.startswith("interaction") or col.startswith("tile") or col.startswith("temperature")
         ]
 
         x_data = savar_df["Volume (Vol)"]
@@ -272,13 +272,15 @@ class Plotting:
         plt.figure()
         for interaction in interactions:
             c_df = savar_df[interaction]
-            colour = list(set(savar_df))
+            colour = list(set(c_df))
             textstr = interaction
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+            cbar = plt.colorbar(ticks=colour)
+            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
             plt.xlabel("Volume (nm)")
             plt.ylabel("Surface Area (nm)")
             savepath = f"{savefolder}/SAVAR_{interaction}"
