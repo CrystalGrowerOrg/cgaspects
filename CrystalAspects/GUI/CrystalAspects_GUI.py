@@ -1,13 +1,9 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QMessageBox,
-    QShortcut,
-)
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
+from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence
+from matplotlib.pyplot import plot
 from qt_material import apply_stylesheet
 
 # General imports
@@ -23,10 +19,12 @@ from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
+from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.visualisation.replotting import Replotting
+from CrystalAspects.GUI.gui_threads import Worker_XYZ
 
 basedir = os.path.dirname(__file__)
 
@@ -50,7 +48,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
         self.growth = GrowthRate()
-        
+        self.shape = CrystalShape()
+        self.threadpool = QThreadPool()
+
         apply_stylesheet(app, theme="dark_cyan.xml")
 
         self.welcome_message()
@@ -98,14 +98,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.resetKS.activated.connect(self.reset_button_function)
         self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
         # self.applyKS.activated.connect(self.apply_clicked)
-    
+
     def welcome_message(self):
         print("############################################")
         print("####        CrystalAspects v1.00        ####")
         print("############################################")
 
     def connect_buttons(self):
-        
+
         self.tabWidget.currentChanged.connect(self.tabChanged)
 
         # Open Folder
@@ -132,6 +132,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
         self.outFolder_Button.clicked.connect(self.output_folder_button)
+        self.threed_calc_button.clicked.connect(self.update_XYZ_info)
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
 
@@ -147,7 +148,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             find.create_aspects_folder(self.folder_path)
             Visualiser.initGUI(self, self.xyz_list)
             self.select_summary_slider_button.setEnabled(True)
-            
+
         if self.mode == 1:
 
             self.folder_path = Path(
@@ -596,118 +597,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         logger.info("All Selected Directions: %s\n", self.checked_directions)
-
+        calc_info_tuple = namedtuple(
+            "Information",
+            [
+                "folder_path",
+                "checked_directions",
+                "summary_file",
+                "folders",
+                "cda",
+                "pca",
+                "growthrates",
+                "sa_vol",
+                "plot",
+            ],
+        )
         find = Find()
         plotting = Plotting()
 
-        save_folder = find.create_aspects_folder(self.folder_path)
-
-        """Creating CrystalAspects folder"""
-        logger.debug(
-            "Filepath read: %s", 
-            str(self.folder_path)
+        calc_info = calc_info_tuple(
+            folder_path=self.folder_path,
+            checked_directions=self.checked_directions,
+            summary_file=self.summary_file,
+            folders=self.folders,
+            cda=self.cda,
+            pca=self.pca,
+            growthrates=self.growthrates,
+            sa_vol=self.sa_vol,
+            plot=self.plot
         )
-        logger.debug(
-            "CrystalAspects folder created: %s",
-            str(save_folder)
-        )
 
-        if self.growthrates:
-            growth = GrowthRate()
-            growth.run_calc_growth(
-                self.folder_path,
-                directions=self.checked_directions,
-                plotting=self.plot,
-                savefolder=save_folder,
-            )
-
-        if self.sa_vol and self.pca is False:
-            aspect_ratio = AspectRatio()
-            savar_df = aspect_ratio.savar_calc(
-                subfolder=self.folder_path, savefolder=save_folder
-            )
-            savar_df_final = find.summary_compare(
-                summary_csv=self.summary_file,
-                aspect_df=savar_df,
-                savefolder=save_folder,
-            )
-            if self.plot:
-                plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
-
-        if self.pca and self.sa_vol:
-            aspect_ratio = AspectRatio()
-            pca_df = aspect_ratio.shape_all(
-                subfolder=self.folder_path, savefolder=save_folder
-            )
-            plot_df = find.summary_compare(
-                summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
-            )
-            if self.plot:
-                plotting.SAVAR_plot(df=plot_df, folderpath=save_folder)
-                plotting.build_PCAZingg(df=plot_df, folderpath=save_folder)
-
-        if self.aspectratio:
-            aspect_ratio = AspectRatio()
-
-            if self.cda:
-
-                long = self.long_facet.currentText()
-                medium = self.medium_facet.currentText()
-                short = self.short_facet.currentText()
-
-                selected_directions = [short, medium, long]
-
-                logger.info(
-                    "Selected Directions (for CDA): %s, %s, %s\n", short, medium, long
-                )
-
-                cda_df = aspect_ratio.build_AR_CDA(
-                    folderpath=self.folder_path,
-                    folders=self.folders,
-                    directions=self.checked_directions,
-                    selected=selected_directions,
-                    savefolder=save_folder,
-                )
-
-                zn_df = aspect_ratio.defining_equation(
-                    directions=selected_directions, ar_df=cda_df, filepath=save_folder
-                )
-                zn_df_final = find.summary_compare(
-                    summary_csv=self.summary_file,
-                    aspect_df=zn_df,
-                    savefolder=save_folder,
-                )
-
-                if self.plot:
-                    plotting.CDA_Plot(df=zn_df_final, folderpath=save_folder)
-                    plotting.build_zingg_seperated_i(
-                        df=zn_df_final, folderpath=save_folder
-                    )
-                    plotting.Aspect_Extended_Plot(
-                        df=zn_df_final,
-                        selected=selected_directions,
-                        folderpath=save_folder,
-                    )
-
-            if self.pca and self.sa_vol:
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
-
-            if self.pca and self.sa_vol is False:
-                pca_df = aspect_ratio.build_AR_PCA(
-                    subfolder=self.folder_path, savefolder=save_folder
-                )
-
-                aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
-                if self.plot:
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
-
-            if self.pca and self.cda:
-                pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
-                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
-                )
-                if self.plot:
-                    plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
     def output_folder_button(self):
         try:
@@ -750,14 +668,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filter_df = summ_df
         for i in range(var):
             value = slider_list[i].value() / 100
-            print(f'locking for: {value}')
+            print(f"locking for: {value}")
             filter_df = filter_df[(summ_df.iloc[:, i] == value)]
             value_list.append(value)
-        print('Combination: ', value_list)
+        print("Combination: ", value_list)
         print(filter_df)
         for row in filter_df.index:
             XYZ_vals = crystals[row]
-            self.output_textBox_3.append(f'Row Number: {row}')
+            self.output_textBox_3.append(f"Row Number: {row}")
             Visualiser.update_XYZ(self, XYZ_vals)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
@@ -775,17 +693,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             value_list.append(value)
         print(value_list)
 
+    def insert_info(self, result):
+
+        print("Trying to data on GUI")
+        aspect1 = result.aspect1
+        aspect2 = result.aspect2
+        shape_class = "Unassigned"
+
+        if aspect1 >= 2 / 3:
+            if aspect2 >= 2 / 3:
+                shape_class = "block"
+            else:
+                shape_class = "needle"
+        if aspect1 <= 2 / 3:
+            if aspect2 <= 2 / 3:
+                shape_class = "plate"
+            else:
+                shape_class = "lath"
+
+        self.sm_label.setText("Small/Medium: {:.2f}".format(aspect1))
+        self.ml_label.setText("Medium/Long: {:.2f}".format(aspect2))
+        self.shape_label.setText(f"Shape: {shape_class}")
+        self.crystal_sa_label.setText(
+            "Crystal Surface Area (nm^2): {:2g}".format(result.surface_area)
+        )
+        self.crystal_vol_label.setText(
+            "Crystal Volume (nm^3): {:2g}".format(result.volume)
+        )
+        self.crystal_savol_label.setText(
+            "Surface Area/Volume: {:2g}".format(result.sa_vol)
+        )
+
+    def update_XYZ_info(self, xyz):
+
+        worker = Worker_XYZ(xyz)
+        worker.signals.result.connect(self.insert_info)
+        worker.signals.result.connect(self.update_progress)
+        self.threadpool.start(worker)
+
+    def update_progress(self, progress):
+        self.progressBar.setValue(progess)
+
     def tabChanged(self):
         self.mode = self.tabWidget.currentIndex() + 1
         if self.mode == 1:
-            print('Normal Mode selected')
-            self.simFolder_Button.setText('Open Simulations Folder')
+            print("Normal Mode selected")
+            self.simFolder_Button.setText("Open Simulations Folder")
             self.progressBar.show()
         if self.mode == 2:
-            print('3D Data mode selected')
-            self.simFolder_Button.setText('XYZ/Simulations Folder')
-            self.output_textBox_3.setText('Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders')
-
+            print("3D Data mode selected")
+            self.simFolder_Button.setText("XYZ/Simulations Folder")
+            self.output_textBox_3.setText(
+                "Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders"
+            )
 
 
 # Override sys excepthook to prevent app abortion upon any error
@@ -814,7 +774,7 @@ if __name__ == "__main__":
     # ############# Runs the application ############## #
     QApplication.setAttribute(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QtWidgets.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, 'icon.png')))
+    app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icon.png")))
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
