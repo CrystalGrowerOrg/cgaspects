@@ -68,11 +68,11 @@ class Visualiser(QMainWindow, Ui_MainWindow):
             self.glWidget.get_colour_type
         )
 
-        '''self.point_slider.setMinimum(1)
+        """self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
         self.point_slider.setTickInterval(0.5)
-        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)'''
-           
+        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)"""
+
     def get_colour(self, value):
         print(value)
 
@@ -83,6 +83,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.glWidget.initGeometry()
         self.glWidget.updateGL()
         self.update_XYZ_info(self.xyz)
+
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
@@ -115,7 +116,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
-        print('XYZ cordinates passed on OpenGL widget(class)')
+        print("XYZ cordinates passed on OpenGL widget(class)")
 
     def get_colour(self, value):
 
@@ -203,9 +204,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         # self.lastPos = QtCore.QtPoint()
 
         # Point size
-        gl.glPointSize(
-            self.point_size
-        )
+        gl.glPointSize(self.point_size)
         gl.glEnable(gl.GL_POINT_SMOOTH)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -220,7 +219,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         gl.glEnableClientState(gl.GL_COLOR_ARRAY)
         # (12 bytes) : the rgb color starts after the 3 coordinates x, y, z
-        offset = (3 * 4)  
+        offset = 3 * 4
         gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
 
         # Drawing points
@@ -287,10 +286,10 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.vbo = self.CreateBuffer(vArray)
 
-
-
-    def LoadVertices(self,):
-        print('Load Vertices')
+    def LoadVertices(
+        self,
+    ):
+        print("Load Vertices")
         point_cloud = self.xyz
 
         layers = point_cloud[:, 2]
@@ -312,9 +311,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             return (pcd_points, pcd_colors)
 
         points, colors = vis_pc(
-            point_cloud,
-            self.colour_type,
-            C_Choice=self.colour_picked
+            point_cloud, self.colour_type, C_Choice=self.colour_picked
         )
 
         points = np.asarray(points).astype("float32")

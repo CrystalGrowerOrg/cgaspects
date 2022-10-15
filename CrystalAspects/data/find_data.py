@@ -225,7 +225,9 @@ class Find:
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 collect_row = summary_df.filter(items=[num_string], axis=0).values
-                print(f'Row from aspect file: {aspect_row}\nRow from summuary: {collect_row}')
+                print(
+                    f"Row from aspect file: {aspect_row}\nRow from summuary: {collect_row}"
+                )
                 collect_row = np.concatenate([aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
                 print(compare_array.shape)
