@@ -291,7 +291,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def LoadVertices(self,):
         print('Load Vertices')
-         point_cloud = self.xyz
+        point_cloud = self.xyz
 
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
