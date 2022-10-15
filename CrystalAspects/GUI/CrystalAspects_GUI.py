@@ -620,7 +620,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pca=self.pca,
             growthrates=self.growthrates,
             sa_vol=self.sa_vol,
-            plot=self.plot
+            plot=self.plot,
         )
 
         worker_calc = Worker_Calc(calc_info)
@@ -710,10 +710,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_progress(self, progress):
         self.progressBar.setValue(progress)
-    
+
     def update_statusbar(self, status):
-        self.statusBar().showMessage(status)  
-      
+        self.statusBar().showMessage(status)
+
     def thread_finished(self):
         print("THREAD COMPLETED!")
 
@@ -729,7 +729,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.output_textBox_3.setText(
                 "Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders"
             )
-    
+
     def output_folder_button(self):
         try:
             dir_path = os.path.realpath(self.folder_path / "CrystalAspects")

@@ -58,7 +58,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
         dspinbox_list = []
 
         for i in range(var):
-            print('Adding Varible Sliders')
+            print("Adding Varible Sliders")
             label_name = f"varSlider_name_{i+1}"
             name = column_names[i]
             slider = f"varSlider_{i+1}"
@@ -96,7 +96,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
                         slider_list=slider_list,
                         dspinbox_list=dspinbox_list,
                         summ_df=summ_df,
-                        crystals=self.xyz_list
+                        crystals=self.xyz_list,
                     )
                 )
             except NameError:
@@ -157,7 +157,9 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
         self.crystal_xyz_list = natsorted(self.crystal_xyz_list)
         print(self.crystal_xyz_list)
-        self.output_textBox_3.append(f"Number of Images found: {str(len(self.crystal_xyz_list))}")
+        self.output_textBox_3.append(
+            f"Number of Images found: {str(len(self.crystal_xyz_list))}"
+        )
         self.statusBar().showMessage("Complete: Image data read in!")
 
         return (xyz_folderpath, self.crystal_xyz_list)
@@ -178,8 +180,8 @@ class create_slider(QMainWindow, Ui_MainWindow):
             self.xyz_list.append(xyz)
             print(len(self.xyz_list))
             self.progressBar.setValue(int(i / n) * 100)
-        
-        print(f'Number of Crystals Read: {len(xyz_list)}')
+
+        print(f"Number of Crystals Read: {len(xyz_list)}")
 
     # ###### Control Buttons #########
     def next_crystal_connect(self):

@@ -264,7 +264,9 @@ class Plotting:
         interactions = [
             col
             for col in savar_df.columns
-            if col.startswith("interaction") or col.startswith("tile") or col.startswith("temperature")
+            if col.startswith("interaction")
+            or col.startswith("tile")
+            or col.startswith("temperature")
         ]
 
         x_data = savar_df["Volume (Vol)"]

@@ -45,7 +45,7 @@ def read_XYZ(filepath):
 
 def create_shape_txt(path):
     folder_path = Path(path)
-    shape_class = 'Unassigned'
+    shape_class = "Unassigned"
     print(shape_class)
 
     for xyz_file in folder_path.rglob("*.XYZ"):
@@ -59,19 +59,21 @@ def create_shape_txt(path):
 
         if aspect1 >= 2 / 3:
             if aspect2 >= 2 / 3:
-                shape_class = 'block'
+                shape_class = "block"
             else:
-                shape_class = 'needle'
+                shape_class = "needle"
         if aspect1 <= 2 / 3:
             if aspect2 <= 2 / 3:
-                shape_class = 'plate'
+                shape_class = "plate"
             else:
-                shape_class = 'lath'
+                shape_class = "lath"
 
-        with open(xyz_file.parents[0] / f'shape_{sim_num}.txt', 'w') as output:
-            print(f'Simulation: {sim_num}-->{shape_class}')
+        with open(xyz_file.parents[0] / f"shape_{sim_num}.txt", "w") as output:
+            print(f"Simulation: {sim_num}-->{shape_class}")
             output.write(shape_class)
-            output.write(f'S:M={aspect1}\nM:L={aspect2}')
+            output.write(f"S:M={aspect1}\nM:L={aspect2}")
 
 
-create_shape_txt('/Users/alvin/Library/CloudStorage/OneDrive-TheUniversityofManchester/Adipic_Acid/ADIPIC_testset')
+create_shape_txt(
+    "/Users/alvin/Library/CloudStorage/OneDrive-TheUniversityofManchester/Adipic_Acid/ADIPIC_testset"
+)

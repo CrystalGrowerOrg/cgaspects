@@ -4,8 +4,11 @@ import trimesh
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 
+
 class CrystalShape:
-    def __init__(self,):
+    def __init__(
+        self,
+    ):
         pass
 
     def normalise_verts(self, verts):
@@ -37,7 +40,7 @@ class CrystalShape:
 
         if filetype == ".XYZ" or ".xyz":
             pca.fit(self.normalise_verts(xyz_vals))
-        
+
         # pca_vectors = pca.components_
         # pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
@@ -79,4 +82,3 @@ class CrystalShape:
         shape_info = np.array([[aspect1, aspect2, SA_hull, vol_hull, sa_vol]])
 
         return shape_info
-
