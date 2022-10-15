@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from collections import defaultdict
-import concurrent.futures
 from natsort import natsorted
 
 # ==> Local imports

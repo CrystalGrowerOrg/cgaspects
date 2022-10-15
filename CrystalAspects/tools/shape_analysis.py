@@ -79,3 +79,4 @@ class CrystalShape:
         shape_info = np.array([[aspect1, aspect2, SA_hull, vol_hull, sa_vol]])
 
         return shape_info
+

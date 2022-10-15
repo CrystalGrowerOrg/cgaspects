@@ -27,22 +27,20 @@ from CrystalAspects.tools.shape_analysis import CrystalShape
 class Visualiser(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)  # call the init for the parent class
-        self.setupUi(self)
         # self.initGUI
         self.xyz = None
-        self.xyz_file_list = None
+        self.xyz_file_list = []
 
     def initGUI(self, xyz_file_list, xyz_list=[]):
 
         if xyz_file_list:
             self.xyz_file_list = xyz_file_list
-
-            self.xyz = np.loadtxt(Path(self.xyz_file_list[0]), skiprows=2)
-            print(self.xyz)
+            self.xyz = np.loadtxt(self.xyz_file_list[0], skiprows=2)
 
         self.glWidget = vis_GLWidget(self)
         self.glWidget.pass_XYZ(self.xyz)
-        self.glWidget.updateGL
+        self.glWidget.initGeometry()
+        self.update_XYZ_info(self.xyz)
         self.gl_vLayout.addWidget(self.glWidget)
         self.colourList = [
             "Viridis",
@@ -84,7 +82,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.glWidget.updateGL()
-
+        self.update_XYZ_info(self.xyz)
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
@@ -118,7 +116,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def pass_XYZ(self, xyz):
         self.xyz = xyz
         print('XYZ cordinates passed on OpenGL widget(class)')
-        print(self.xyz)
 
     def get_colour(self, value):
 
@@ -290,10 +287,11 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.vbo = self.CreateBuffer(vArray)
 
+
+
     def LoadVertices(self,):
         print('Load Vertices')
-        print(self.xyz)
-        point_cloud = self.xyz
+         point_cloud = self.xyz
 
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
