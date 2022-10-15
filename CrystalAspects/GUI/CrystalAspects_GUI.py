@@ -24,7 +24,7 @@ from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.visualisation.replotting import Replotting
-from CrystalAspects.GUI.gui_threads import Worker_XYZ
+from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc
 
 basedir = os.path.dirname(__file__)
 
@@ -132,7 +132,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
         self.outFolder_Button.clicked.connect(self.output_folder_button)
-        self.threed_calc_button.clicked.connect(self.update_XYZ_info)
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
 
@@ -596,7 +595,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.plot,
         )
 
-        logger.info("All Selected Directions: %s\n", self.checked_directions)
         calc_info_tuple = namedtuple(
             "Information",
             [
@@ -604,6 +602,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "checked_directions",
                 "summary_file",
                 "folders",
+                "aspectratio",
                 "cda",
                 "pca",
                 "growthrates",
@@ -611,14 +610,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "plot",
             ],
         )
-        find = Find()
-        plotting = Plotting()
-
         calc_info = calc_info_tuple(
             folder_path=self.folder_path,
             checked_directions=self.checked_directions,
             summary_file=self.summary_file,
             folders=self.folders,
+            aspectratio=self.aspectratio,
             cda=self.cda,
             pca=self.pca,
             growthrates=self.growthrates,
@@ -626,34 +623,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             plot=self.plot
         )
 
+        worker_calc = Worker_Calc(calc_info)
+        worker_calc.signals.finished.connect(self.thread_finished)
+        worker_calc.signals.progress.connect(self.update_progress)
+        worker_calc.signals.message.connect(self.update_statusbar)
+        self.threadpool.start(worker_calc)
+        print("Calculation Submitted")
 
-    def output_folder_button(self):
-        try:
-            dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
-            if sys.platform == "win32":
-                os.startfile(dir_path)
-            else:
-                opener = "open" if sys.platform == "darwin" else "xdg-open"
-                subprocess.call([opener, dir_path])
-            self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
-        except NameError:
-            try:
-                dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
-                if sys.platform == "win32":
-                    os.startfile(dir_path)
-                else:
-                    opener = "open" if sys.platform == "darwin" else "xdg-open"
-                    subprocess.call([opener, dir_path])
-                self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
-            except NameError:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setText("Please select CrystalGrower output folder first!")
-                msg.setInformativeText(
-                    "An output folder is created only once you have selected a CrystalGrower output folder."
-                )
-                msg.setWindowTitle("Error: Folder not found!")
-                msg.exec_()
+    def update_XYZ_info(self, xyz):
+
+        worker_xyz = Worker_XYZ(xyz)
+        worker_xyz.signals.result.connect(self.insert_info)
+        worker_xyz.signals.progress.connect(self.update_progress)
+        worker_xyz.signals.message.connect(self.update_statusbar)
+        self.threadpool.start(worker_xyz)
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
@@ -676,6 +659,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for row in filter_df.index:
             XYZ_vals = crystals[row]
             self.output_textBox_3.append(f"Row Number: {row}")
+            self.update_progress(0)
             Visualiser.update_XYZ(self, XYZ_vals)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
@@ -695,7 +679,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def insert_info(self, result):
 
-        print("Trying to data on GUI")
+        print("Inserting data to GUI!")
         aspect1 = result.aspect1
         aspect2 = result.aspect2
         shape_class = "Unassigned"
@@ -724,15 +708,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "Surface Area/Volume: {:2g}".format(result.sa_vol)
         )
 
-    def update_XYZ_info(self, xyz):
-
-        worker = Worker_XYZ(xyz)
-        worker.signals.result.connect(self.insert_info)
-        worker.signals.result.connect(self.update_progress)
-        self.threadpool.start(worker)
-
     def update_progress(self, progress):
-        self.progressBar.setValue(progess)
+        self.progressBar.setValue(progress)
+    
+    def update_statusbar(self, status):
+        self.statusBar().showMessage(status)  
+      
+    def thread_finished(self):
+        print("THREAD COMPLETED!")
 
     def tabChanged(self):
         self.mode = self.tabWidget.currentIndex() + 1
@@ -746,6 +729,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.output_textBox_3.setText(
                 "Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders"
             )
+    
+    def output_folder_button(self):
+        try:
+            dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
+            if sys.platform == "win32":
+                os.startfile(dir_path)
+            else:
+                opener = "open" if sys.platform == "darwin" else "xdg-open"
+                subprocess.call([opener, dir_path])
+            self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
+        except NameError:
+            try:
+                dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
+                if sys.platform == "win32":
+                    os.startfile(dir_path)
+                else:
+                    opener = "open" if sys.platform == "darwin" else "xdg-open"
+                    subprocess.call([opener, dir_path])
+                self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
+            except NameError:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Warning)
+                msg.setText("Please select CrystalGrower output folder first!")
+                msg.setInformativeText(
+                    "An output folder is created only once you have selected a CrystalGrower output folder."
+                )
+                msg.setWindowTitle("Error: Folder not found!")
+                msg.exec_()
 
 
 # Override sys excepthook to prevent app abortion upon any error
