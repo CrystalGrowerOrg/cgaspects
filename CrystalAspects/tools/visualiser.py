@@ -1,4 +1,3 @@
-from unittest import skip
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
@@ -22,6 +21,7 @@ from colorsys import hls_to_rgb
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.shape_analysis import CrystalShape
+from CrystalAspects.GUI.sliders import Sliders
 
 
 class Visualiser(QMainWindow, Ui_MainWindow):
@@ -29,18 +29,26 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)  # call the init for the parent class
         # self.initGUI
         self.xyz = None
-        self.xyz_file_list = []
+        self.show_info = False
 
     def initGUI(self, xyz_file_list, xyz_list=[]):
 
-        if xyz_file_list:
-            self.xyz_file_list = xyz_file_list
-            self.xyz = np.loadtxt(self.xyz_file_list[0], skiprows=2)
-
         self.glWidget = vis_GLWidget(self)
+        self.sliders = Sliders()
+        
+        tot_sims = "Unassigned"
+
+        if xyz_file_list:
+            self.xyz_file_list = [str(path) for path in xyz_file_list]
+            self.fname_comboBox.addItems(self.xyz_file_list)
+            self.glWidget.pass_XYZ_list(xyz_file_list)
+            self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
+            self.fname_comboBox.currentIndexChanged.connect(self.sliders.update_vis_sliders)
+            self.xyz = np.loadtxt(xyz_file_list[0], skiprows=2, dtype=np.float64)
+            tot_sims = len(self.xyz_file_list)
+
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
-        self.update_XYZ_info(self.xyz)
         self.gl_vLayout.addWidget(self.glWidget)
         self.colourList = [
             "Viridis",
@@ -53,7 +61,6 @@ class Visualiser(QMainWindow, Ui_MainWindow):
             "HSV",
         ]
 
-        self.pointtype_comboBox.addItems([])
         self.colourmode_comboBox.addItems(
             ["Atom/Molecule Type", "Atom/Molecule Number", "Layer", "Single Colour"]
         )
@@ -67,14 +74,23 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.colourmode_comboBox.currentIndexChanged.connect(
             self.glWidget.get_colour_type
         )
-
-        """self.point_slider.setMinimum(1)
+        
+        self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
-        self.point_slider.setTickInterval(0.5)
-        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)"""
+        # self.point_slider.setTickInterval(1)
+        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)
+        self.zoom_slider.valueChanged.connect(self.glWidget.zoomGL)
+        self.mainCrystal_slider.setMinimum(0)
+        self.mainCrystal_slider.setMaximum(tot_sims)
+        self.mainCrystal_slider.setTickInterval(1)
+        self.mainCrystal_slider.valueChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.mainCrystal_slider.valueChanged.connect(self.sliders.update_vis_sliders)
+        self.vis_simnum_spinBox.setMinimum(0)
+        self.vis_simnum_spinBox.setMaximum(tot_sims)
+        self.vis_simnum_spinBox.valueChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.vis_simnum_spinBox.valueChanged.connect(self.sliders.update_vis_sliders)
+        self.total_sims_label.setText(str(tot_sims))
 
-    def get_colour(self, value):
-        print(value)
 
     def update_XYZ(self, XYZ_filepath):
 
@@ -82,13 +98,16 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.glWidget.updateGL()
-        self.update_XYZ_info(self.xyz)
-
+        if self.show_info:
+            self.update_XYZ_info(self.xyz)
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
+
+        self.xyz_path_list = []
+        self.sim_num = 0
 
         self.bg_colour = None
         self.xyz = None
@@ -99,7 +118,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.zoomFactor = 1.0
 
         self.colour_picked = cm.viridis
-        self.colour_type = 1
+        self.colour_type = 2
 
         self.point_size = 10
         self.bg_colours = ["#FFFFFF", "#000000"]
@@ -117,6 +136,17 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def pass_XYZ(self, xyz):
         self.xyz = xyz
         print("XYZ cordinates passed on OpenGL widget(class)")
+
+    def pass_XYZ_list(self, xyz_path_list):
+        self.xyz_path_list = xyz_path_list
+        print("XYZ file paths passed to OpenGL widget")
+
+    def get_XYZ_from_list(self, value):
+        self.sim_num = value
+        self.xyz = np.loadtxt(Path(self.xyz_path_list[value]), skiprows=2)
+        self.initGeometry()
+        self.updateGL()
+
 
     def get_colour(self, value):
 
@@ -141,8 +171,12 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def change_point_size(self, val):
         self.point_size = val
-        print("connected", val)
         self.updateGL()
+
+    def zoomGL(self, val):
+        self.zoomFactor = val
+        self.updateGL()
+
 
     def initializeGL(self):
 
@@ -158,7 +192,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.rotY = self.rotY + val
 
     def setRotZ(self, val):
-        self.rotZ = val
+        self.rotZ = self.rotZ + val
 
     def resizeGL(self, width, height):
         gl.glViewport(0, 0, width, height)
@@ -238,28 +272,34 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def mousePressEvent(self, event):
         self.lastPos = event.pos()
 
-    def KeyPressed(self, event):
+    def keyPressEvent(self, event):
         print(event)
-        if event.key() == Qt.Key.Key_W:
+
+        if event.key() == Qt.Key_W:
             print("Up")
             self.rotX += 100
-            self.updateGL()
-
-        if event.key() == Qt.Key.Key_A:
+        if event.key() == Qt.Key_A:
             print("Left")
             self.rotY -= 100
-            self.updateGL()
-
-            # self.setRotY(-1)
-        if event.key() == Qt.Key.Key_S:
+        if event.key() == Qt.Key_S:
             print("Down")
             self.rotX -= 100
-            self.updateGL()
-
-        if event.key() == Qt.Key.Key_D:
+        if event.key() == Qt.Key_D:
             print("Right")
             self.rotY -= 100
-            self.updateGL()
+
+        if event.key() == Qt.Key_Right:
+            print('Right Key Pressed')
+            gl.glTranslate(100, 0.0, 0.0)
+        if event.key() == Qt.Key_Left:
+            print('Left Key Pressed')
+            gl.glTranslate(-100.0, 0.0, 0.0)
+        if event.key() == Qt.Key_Down:
+            print('Down Key Pressed')
+            gl.glTranslate(0.0, -100.0, 0.0)
+        if event.key() == Qt.Key_Up:
+            print('Up Key Pressed')
+            gl.glTranslate(0.0, 100.0, 0.0)
 
         self.updateGL()
 
@@ -267,9 +307,21 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         dx = event.x() - self.lastPos.x()
         dy = event.y() - self.lastPos.y()
 
+        vec_x = np.array([dx, 0, 0])
+        vec_y = np.array([0, dy, 0])
+
+        def cross(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+            return np.cross(a, b)
+
+        vec_z = cross(vec_x, vec_y)
+        dz = vec_z[-1]
+
         if event.buttons() & QtCore.Qt.LeftButton:
             self.rotX = self.rotX + 1 * dy
             self.rotY = self.rotY + 1 * dx
+
+        if event.buttons() & QtCore.Qt.RightButton:
+            self.rotZ = self.rotZ + 1 * dz
 
         self.updateGL()
 

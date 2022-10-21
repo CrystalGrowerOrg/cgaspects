@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence
 from matplotlib.pyplot import plot
-from qt_material import apply_stylesheet
+from pyparsing import RecursiveGrammarException
+from qt_material import *
 
 # General imports
 import os, sys, subprocess
@@ -18,11 +19,9 @@ import logging
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.visualisation.replotting import Replotting
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc
 
@@ -37,7 +36,6 @@ logging.basicConfig(
 
 logger = logging.getLogger("CrystalAspects_Logger")
 
-
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,13 +48,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growth = GrowthRate()
         self.shape = CrystalShape()
         self.threadpool = QThreadPool()
-
-        apply_stylesheet(app, theme="dark_cyan.xml")
+        self.change_style(theme_main='dark',theme_colour='teal')
 
         self.welcome_message()
         self.key_shortcuts()
         self.connect_buttons()
         self.init_parameters()
+
+    def change_style(self, theme_main, theme_colour, density=-1):
+
+        extra = {
+            # Font
+            'font_family': 'Roboto',
+            # Density Scale
+            'density_scale': str(density)
+        }
+
+        apply_stylesheet(app, f'{theme_main}_{theme_colour}.xml', invert_secondary=False, extra=extra)
+
 
     def init_parameters(self):
 
@@ -134,6 +143,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.outFolder_Button.clicked.connect(self.output_folder_button)
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
+
+    def theme_settings(self):
+        pass
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
