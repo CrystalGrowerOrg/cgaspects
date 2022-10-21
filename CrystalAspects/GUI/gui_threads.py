@@ -2,6 +2,7 @@ from PyQt5.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
 
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
+import numpy as np
 from collections import namedtuple
 import logging
 
@@ -49,14 +50,20 @@ class Worker_XYZ(QRunnable):
 
     @pyqtSlot()
     def run(self):
+
+        centered = self.xyz - np.mean(self.xyz, axis=0)
+        norm = np.linalg.norm(centered, axis=1).max()
+        centered /= norm
+
+
         pca = PCA(n_components=3)
-        pca.fit(self.xyz)
+        pca.fit(centered)
         pca_svalues = pca.singular_values_
 
         self.signals.progress.emit(15)
         self.signals.message.emit("PCA Calulcated! Please wait..")
 
-        hull = ConvexHull(self.xyz)
+        hull = ConvexHull(centered)
         vol_hull = hull.volume
         SA_hull = hull.area
         sa_vol = SA_hull / vol_hull
@@ -81,7 +88,6 @@ class Worker_XYZ(QRunnable):
             sa_vol=sa_vol,
         )
         self.signals.progress.emit(100)
-
         self.signals.result.emit(shape_info)
         self.signals.message.emit(
             "Calculations Complete! Please wait till the data is displayed!"
