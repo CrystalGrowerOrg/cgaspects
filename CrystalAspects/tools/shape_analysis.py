@@ -12,30 +12,72 @@ class CrystalShape:
         pass
 
     def normalise_verts(self, verts):
+        """Normalises xyz crystal shape output through a
+        transformation to unit lenghts and centering."""
 
-        self.centered = verts - np.mean(verts, axis=0)
-        norm = np.linalg.norm(self.centered, axis=1).max()
-        self.centered /= norm
+        centered = verts - np.mean(verts, axis=0)
+        norm = np.linalg.norm(centered, axis=1).max()
+        centered /= norm
 
-        return self.centered
+        return centered
 
-    def read_XYZ(self, filepath):
+    @staticmethod
+    def read_XYZ(filepath):
+        """Read in shape data and generates a np arrary.
+        Supported formats:
+            .XYZ
+            .txt (.xyz format)
+            .stl
+        """
         filepath = Path(filepath)
         print(filepath)
+        xyz_movie = {}
 
-        if filepath.suffix == ".XYZ":
-            print("XYZ File read!")
-            self.xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
-        if filepath.suffix == ".txt":
-            print("xyz File read!")
-            self.xyz = np.loadtxt(filepath, skiprows=2)
-        if filepath.suffix == ".stl":
-            print("stl File read!")
-            self.xyz = trimesh.load(filepath)
+        try:
 
-        return self.xyz
+            if filepath.suffix == ".XYZ":
+                print("XYZ File read!")
+                xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
+            if filepath.suffix == ".txt":
+                print("xyz File read!")
+                xyz = np.loadtxt(filepath, skiprows=2)
+            if filepath.suffix == ".stl":
+                print("stl File read!")
+                xyz = trimesh.load(filepath)
+
+        except ValueError:
+            print("Looking for Video")
+            with open(filepath, 'r') as file:
+                lines = file.readlines()
+                num_frames = int(lines[1].split('//')[1])
+                print(num_frames)
+            
+
+            particle_num_line = 0
+            frame_line = 2
+            for frame in range(num_frames):
+                print(f"#####\nFRAME NUMBER: {frame}")
+                print(f"Particle Number Line: {particle_num_line}")
+                print(f"Frame Start Line: {frame_line}")
+                num_particles = int(lines[particle_num_line])
+                print(f"Frame End Line: {frame_line + num_particles}")
+                print(f"Number of Particles read: {frame_line}")
+
+                xyz = np.loadtxt(lines[frame_line: (frame_line + num_particles)])
+                print(f"Number of Particles in list: {xyz.shape[0]}")
+                xyz_movie[frame] = xyz
+                print(xyz)
+                particle_num_line = frame_line + num_particles
+                frame_line = particle_num_line + 2
+
+        return (xyz, xyz_movie)
 
     def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
+        """Looks to obtain information on a crystal
+        shape as the largest pricipal component is
+        used as the longest length, second component
+        the medium and the third the shortest"""
+
         pca = PCA(n_components=n)
 
         if filetype == ".XYZ" or ".xyz":
@@ -52,6 +94,10 @@ class CrystalShape:
         return pca_svalues
 
     def get_savar(self, xyz_files):
+        """Returns 3D data of a crystal shape,
+            Volume:
+            Surface Area:
+            SA:Vol."""
         hull = ConvexHull(xyz_files)
         vol_hull = hull.volume
         SA_hull = hull.area
@@ -62,11 +108,14 @@ class CrystalShape:
         return savar_array
 
     def get_all(self, xyz_vals, n=3):
+        """Returns both Aspect Ratio through PCA
+        and Surface Area/Volume information on a
+        crystal shape."""
 
         pca = PCA(n_components=n)
         pca.fit(xyz_vals)
-        pca_vectors = pca.components_
-        pca_values = pca.explained_variance_ratio_
+        # pca_vectors = pca.components_
+        # pca_values = pca.explained_variance_ratio_
         pca_svalues = pca.singular_values_
 
         hull = ConvexHull(xyz_vals)

@@ -29,7 +29,7 @@ basedir = os.path.dirname(__file__)
 
 logging.basicConfig(
     level=logging.DEBUG,
-    filename="CrystalAspects.log",
+    filename=Path(basedir).parents[0] / 'outputs' / 'CrystalAspects.log',
     filemode="w",
     format="%(asctime)s-%(levelname)s: %(message)s",
 )
@@ -143,9 +143,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.outFolder_Button.clicked.connect(self.output_folder_button)
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
-
-    def theme_settings(self):
-        pass
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
@@ -590,7 +587,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if replot_mode == 2:
             replot.replot_GrowthRate(
-                csv=self.GrowthRate_csv, selected=self.checked_directions
+                csv=self.GrowthRate_csv,
+                selected=self.checked_directions
             )
 
     def run_calc(self):
@@ -649,6 +647,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_xyz.signals.progress.connect(self.update_progress)
         worker_xyz.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_xyz)
+        
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
@@ -688,6 +687,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             value = dspinbox_list[i].value()
             value_list.append(value)
         print(value_list)
+
+    def update_vis_sliders(self, value):
+        print(value)
+        self.fname_comboBox.setCurrentIndex(value)
+        self.mainCrystal_slider.setValue(value)
+        self.vis_simnum_spinBox.setValue(value)
 
     def insert_info(self, result):
 

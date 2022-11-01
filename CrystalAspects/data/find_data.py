@@ -1,29 +1,10 @@
-from pickletools import float8
-import select
 import numpy as np
 import pandas as pd
-import os
-import sys, time
+import os, time
 from natsort import natsorted
-import re
 from pathlib import Path
 from collections import namedtuple
 import logging
-from CrystalAspects.tools.shape_analysis import CrystalShape as cs
-from CrystalAspects.data.calc_data import Calculate as calc
-from CrystalAspects.data.aspect_ratios import AspectRatio
-
-from PyQt5 import QtWidgets, QtGui, QtCore, QtOpenGL
-from PyQt5.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QMainWindow,
-    QMessageBox,
-    QShortcut,
-    QFileDialog,
-)
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QKeySequence
 
 logger = logging.getLogger("CrystalAspects_Logger")
 
@@ -140,58 +121,6 @@ class Find:
 
         return directions
 
-    def find_cda_directions(self, file):
-        pass
-
-    def build_SPH_distance(
-        self, subfolder, ref_shape_list, l_max=20, id_list=["Distance"]
-    ):
-
-        aspects_folder = self.create_aspects_folder(subfolder)
-
-        n_refs = len(ref_shape_list)
-        distance_array = np.empty((0, 1 + n_refs), np.float64)
-
-        shape = cs(l_max)
-        ref_coeffs_list = []
-
-        for ref_shape in ref_shape_list:
-            ref_coeffs = shape.reference_shape(ref_shape)
-            ref_coeffs_list.append(ref_coeffs)
-
-        for file in Path(subfolder).iterdir():
-            if not file.suffix == ".XYZ":
-                continue
-            distance_list = []
-
-            sim_num = re.findall(r"\d+", Path(file).name)[-1]
-            try:
-                coeffs = shape.get_coeffs(filepath=file)
-                for ref_coeffs in ref_coeffs_list:
-                    distance = shape.compare_shape(
-                        ref_coeffs=ref_coeffs, shape_coeffs=coeffs
-                    )
-                    distance_list.append(distance)
-                arr_data = np.array([[sim_num, *distance_list]])
-
-                distance_array = np.append(distance_array, arr_data, axis=0)
-                print(distance_array.shape)
-
-            except StopIteration:
-                continue
-            except UnicodeDecodeError:
-                continue
-
-        df = pd.DataFrame(distance_array, columns=["Simulation Number", *id_list])
-        df = df.sort_values(by=["Simulation Number"], ignore_index=True)
-        aspects_folder = self.create_aspects_folder(subfolder)
-        sph_csv = f"{aspects_folder}/SpH_compare.csv"
-        print(df)
-        df.to_csv(sph_csv)
-
-    def build_SAVAR(self):
-        pass
-
     def summary_compare(self, summary_csv, savefolder, aspect_csv=False, aspect_df=""):
         print(summary_csv)
 
@@ -254,43 +183,9 @@ class Find:
         compare_df = pd.DataFrame(compare_array, columns=cols)
         print(compare_df)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
-
         aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
-        # failed_sims_csv = f"{savefolder}/failed_sims.csv"
-
         full_df.to_csv(aspect_energy_csv, index=None)
-        # summary_df.to_csv(failed_sims_csv)
 
         print(full_df)
 
         return full_df
-
-    def energy_from_sph(self, csv_path, solvents=["water"]):
-
-        csv = Path(csv_path)
-        df = pd.read_csv(csv)
-
-        interactions = [col for col in df.columns if col.startswith("interaction")]
-
-        solvents_found = [col for col in df.columns if col.startswith("distance")]
-        solvents_matched = []
-        for sol in solvents:
-            for sol_found in solvents_found:
-                if sol in sol_found:
-                    solvents_matched.append(sol_found)
-
-        print(solvents_matched)
-
-        for sol in solvents_matched:
-            print(sol)
-
-            df = df.sort_values(by=[sol])
-
-            for i in interactions:
-                int_label = i.split("_")
-                mean_col = f"mean_{int_label[-1]}"
-                df[mean_col] = df[i].expanding().mean()
-
-            energy_solvent_csv = f"{csv.parents[0]}/mean_energies_{sol}.csv"
-
-            df.to_csv(energy_solvent_csv)
