@@ -10,6 +10,7 @@ from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.visualisation.plot_data import Plotting
+from CrystalAspects.tools.shape_analysis import CrystalShape
 
 logger = logging.getLogger("CrystalAspects_Logger")
 
@@ -17,21 +18,15 @@ logger = logging.getLogger("CrystalAspects_Logger")
 class WorkerSignals(QObject):
     """
     Defines the signals available from a running worker thread.
-
-    Supported signals are:
-
+    Supported signals:
     finished
         No data
-
     error
         tuple (exctype, value, traceback.format_exc() )
-
     result
         object data returned from processing, anything
-
     progress
         int indicating % progress
-
     """
 
     finished = pyqtSignal()
@@ -54,7 +49,6 @@ class Worker_XYZ(QRunnable):
         centered = self.xyz - np.mean(self.xyz, axis=0)
         norm = np.linalg.norm(centered, axis=1).max()
         centered /= norm
-
 
         pca = PCA(n_components=3)
         pca.fit(centered)
@@ -112,6 +106,7 @@ class Worker_Calc(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
+
         logger.info("All Selected Directions: %s\n", self.checked_directions)
 
         find = Find()
@@ -124,7 +119,6 @@ class Worker_Calc(QRunnable):
         logger.debug("CrystalAspects folder created: %s", str(save_folder))
 
         self.signals.message.emit("Calculations Initiated!")
-
         self.signals.progress.emit(10)
 
         if self.growthrates:
@@ -224,20 +218,65 @@ class Worker_Calc(QRunnable):
 
                 aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
                 if self.plot:
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
                     self.signals.message.emit("Plotting PCA Results!")
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
             if self.pca and self.cda:
                 pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
                     pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
-                )
                 self.signals.message.emit("PCA & CDA Calculations complete!")
+                )
                 if self.plot:
+                    self.signals.message.emit("Plotting PCA & CDA Results!")
                     plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
                     plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
-                    self.signals.message.emit("Plotting PCA & CDA Results!")
 
         self.signals.progress.emit(100)
         self.signals.message.emit(
             "Complete! Please open the output folder at {}".format(str(save_folder))
         )
+        self.signals.finished.emit()
+
+
+class Worker_Movies(QRunnable):
+    def __init__(self, filepath):
+        super(Worker_XYZ, self).__init__()
+        self.filepath = filepath
+        self.signals = WorkerSignals()
+
+    def run(self):
+
+
+        results = namedtuple("CrystalXYZ",
+            "xyz",
+            "xyz_movie"
+        )
+
+        self.signals.message.emit("Reading XYZ file. Please wait...")
+        xyz, xyz_movie = CrystalShape.read_XYZ(self.filepath)
+        result = results(xyz=xyz, xyz_movie=xyz_movie)
+
+        self.signals.result.emit(result)
+        self.signals.message.emit("Reading XYZ Complete!")
+        self.signals.progress.emit(100)
+        self.signals.finished.emit()
+
+class Run_Thread:
+    def __init__(self) -> None:
+        pass
+    def run_xyz(self, filepath):
+        worker = Worker_Movies()
+
+        worker_xyz_movie = worker(filepath)
+        worker_xyz_movie.signals.result.connect(self.get_result)
+        worker_xyz_movie.signals.progress.connect(self.update_progress)
+        worker_xyz_movie.signals.message.connect(self.update_statusbar)
+        self.threadpool.start(worker_xyz_movie)
+
+    def get_result(self, result):
+        return result
+
+
+
+
+

@@ -12,7 +12,8 @@ from natsort import natsorted
 
 # ==> Local imports
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
-from CrystalAspects.tools.visualiser import Visualiser, vis_GLWidget
+from CrystalAspects.tools.visualiser import Visualiser
+from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
 class create_slider(QMainWindow, Ui_MainWindow):
@@ -172,10 +173,8 @@ class create_slider(QMainWindow, Ui_MainWindow):
         for i, xyz_file in enumerate(xyz_file_list):
             print(xyz_file)
 
-            xyz = np.loadtxt(Path(xyz_file), skiprows=2)[:, 3:]
+            xyz, _ = CrystalShape.read_XYZ(xyz_file)
 
-            """This throws a ValueError: Wrong number of columns at line ######,
-            when the XYZ is a movie! To be fixed in the future."""
             print(xyz)
             self.xyz_list.append(xyz)
             print(len(self.xyz_list))

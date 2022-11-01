@@ -21,20 +21,20 @@ from colorsys import hls_to_rgb
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.shape_analysis import CrystalShape
-from CrystalAspects.GUI.sliders import Sliders
-
+from CrystalAspects.GUI.gui_threads import Run_Thread
 
 class Visualiser(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)  # call the init for the parent class
         # self.initGUI
         self.xyz = None
-        self.show_info = False
+        self.colour_list = []
+        self.xyz_file_list = []
 
-    def initGUI(self, xyz_file_list, xyz_list=[]):
+    def initGUI(self, xyz_file_list):
 
-        self.glWidget = vis_GLWidget(self)
-        self.sliders = Sliders()
+        self.glWidget = vis_GLWidget()
+        self.xyz_threading = Run_Thread()
         
         tot_sims = "Unassigned"
 
@@ -43,14 +43,16 @@ class Visualiser(QMainWindow, Ui_MainWindow):
             self.fname_comboBox.addItems(self.xyz_file_list)
             self.glWidget.pass_XYZ_list(xyz_file_list)
             self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
-            self.fname_comboBox.currentIndexChanged.connect(self.sliders.update_vis_sliders)
-            self.xyz = np.loadtxt(xyz_file_list[0], skiprows=2, dtype=np.float64)
+            self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
+            self.xyz_threading.run_xyz(xyz_file_list[0])
+            self.xyz, self.movie = self.xyz_threading.get_result()
             tot_sims = len(self.xyz_file_list)
+            self.total_sims_label.setText(str(tot_sims))
 
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.gl_vLayout.addWidget(self.glWidget)
-        self.colourList = [
+        self.colour_list = [
             "Viridis",
             "Plasma",
             "Inferno",
@@ -62,10 +64,13 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         ]
 
         self.colourmode_comboBox.addItems(
-            ["Atom/Molecule Type", "Atom/Molecule Number", "Layer", "Single Colour"]
+            ["Atom/Molecule Type",
+            "Atom/Molecule Number",
+            "Layer",
+            "Single Colour"]
         )
         self.colourmode_comboBox.setCurrentIndex(2)
-        self.colour_comboBox.addItems(self.colourList)
+        self.colour_comboBox.addItems(self.colour_list)
         self.bgcolour_comboBox.addItems(["White", "Black"])
         self.bgcolour_comboBox.setCurrentIndex(1)
 
@@ -84,22 +89,20 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.mainCrystal_slider.setMaximum(tot_sims)
         self.mainCrystal_slider.setTickInterval(1)
         self.mainCrystal_slider.valueChanged.connect(self.glWidget.get_XYZ_from_list)
-        self.mainCrystal_slider.valueChanged.connect(self.sliders.update_vis_sliders)
+        self.mainCrystal_slider.valueChanged.connect(self.update_vis_sliders)
         self.vis_simnum_spinBox.setMinimum(0)
         self.vis_simnum_spinBox.setMaximum(tot_sims)
         self.vis_simnum_spinBox.valueChanged.connect(self.glWidget.get_XYZ_from_list)
-        self.vis_simnum_spinBox.valueChanged.connect(self.sliders.update_vis_sliders)
-        self.total_sims_label.setText(str(tot_sims))
-
+        self.vis_simnum_spinBox.valueChanged.connect(self.update_vis_sliders)
+        self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
     def update_XYZ(self, XYZ_filepath):
 
-        self.xyz = np.loadtxt(Path(XYZ_filepath), skiprows=2)
+        self.xyz_threading.run_xyz(XYZ_filepath)
+        self.xyz, self.movie = self.movie_threading.get_result()
         self.glWidget.pass_XYZ(self.xyz)
         self.glWidget.initGeometry()
         self.glWidget.updateGL()
-        if self.show_info:
-            self.update_XYZ_info(self.xyz)
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
@@ -143,7 +146,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def get_XYZ_from_list(self, value):
         self.sim_num = value
-        self.xyz = np.loadtxt(Path(self.xyz_path_list[value]), skiprows=2)
+        self.xyz, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
         self.initGeometry()
         self.updateGL()
 
@@ -214,15 +217,9 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def paintGL(self):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        # Adding Light
-
-        # gl.glEnable(gl.GL_LIGHTING)
-        """gl.glEnable(gl.GL_LIGHT0)
-        gl.glEnable(gl.GL_COLOR_MATERIAL)
-        gl.glColorMaterial(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE)"""
-
         # pushing matrix
-        gl.glPushMatrix()  # push the current matrix to the current stack
+        gl.glPushMatrix()  
+        # push the current matrix to the current stack
         gl.glLoadIdentity()
         gl.glTranslate(
             0.0, 0.0, -50.0
@@ -233,16 +230,12 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glRotate(self.rotY, 0.0, 1.0, 0.0)
         gl.glRotate(self.rotZ, 0.0, 0.0, 1.0)
         gl.glTranslate(-0.5, -0.5, -0.5)  # first, translate cube center to origin
-        # gl.glCallList(self.object)
-
-        # self.lastPos = QtCore.QtPoint()
 
         # Point size
         gl.glPointSize(self.point_size)
         gl.glEnable(gl.GL_POINT_SMOOTH)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_POINTS)
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 
@@ -259,10 +252,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         # Drawing points
         noOfVertices = self.noPoints
         gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
-        # Disabling Lighting
-        """gl.glDisable(gl.GL_LIGHT0)
-        gl.glDisable(gl.GL_LIGHTING)
-        gl.glDisable(gl.GL_COLOR_MATERIAL)"""
 
         gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
