@@ -1,10 +1,6 @@
-import imp
-from turtle import window_height
 import numpy as np
 import pandas as pd
 import os
-from natsort import natsorted
-import sys, time
 from itertools import permutations
 from statistics import median
 import re
@@ -13,12 +9,35 @@ from pathlib import Path
 from CrystalAspects.tools.shape_analysis import CrystalShape as cs
 from CrystalAspects.data.calc_data import Calculate as calc
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
+
 logger = logging.getLogger("CrystalAspects_Logger")
+
+class WorkerSignals(QObject):
+    """
+    Defines the signals available from a running worker thread.
+    Supported signals are:
+    finished
+        No data
+    error
+        tuple (exctype, value, traceback.format_exc() )
+    result
+        object data returned from processing, anything
+    progress
+        int indicating % progress
+    """
+
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(int)
+    message = pyqtSignal(str)
 
 
 class AspectRatio:
     def __init__(self):
-        pass
+        self.signals = WorkerSignals()
 
     def create_aspects_folder(self, path):
         aspects_folder = Path(path) / "CrystalAspects"
@@ -30,19 +49,18 @@ class AspectRatio:
         path = Path(subfolder)
 
         final_array = np.empty((0, 6), np.float64)
-
-        for files in path.iterdir():
-            if files.is_dir():
-                for file in files.iterdir():
-                    print(files)
+        i = 0
+        for folder in path.iterdir():
+            if folder.is_dir():
+                for file in folder.iterdir():
+                    print(folder)
                     if file.suffix == ".XYZ":
                         print(file)
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz = shape.read_XYZ(file)
+                            xyz, _ = shape.read_XYZ(file)
                             vals = shape.get_PCA(xyz)
-                            # print(vals)
 
                             calculator = calc()
                             ar_data = calculator.aspectratio(vals=vals)
@@ -55,6 +73,7 @@ class AspectRatio:
                             continue
                         except UnicodeDecodeError:
                             continue
+            i += 1
 
         print(final_array.shape)
 
@@ -133,7 +152,7 @@ class AspectRatio:
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz = shape.read_XYZ(file)
+                            xyz, _ = shape.read_XYZ(file)
                             sav_data = shape.get_savar(xyz)
                             sav_data = np.insert(sav_data, 0, sim_num, axis=1)
                             sav_final_df = np.append(sav_final_df, sav_data, axis=0)
@@ -167,7 +186,7 @@ class AspectRatio:
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz = shape.read_XYZ(file)
+                            xyz, _ = shape.read_XYZ(file)
                             shape_data = shape.get_all(xyz)
                             print(shape_data)
                             shape_data = np.insert(shape_data, 0, sim_num, axis=1)
@@ -198,7 +217,15 @@ class AspectRatio:
 
     def defining_equation(self, directions, ar_df="", csv="", filepath="."):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.
-        This means we will also need to input the selected directions into the function"""
+        This means we will also need to input the selected directions into the function.
+        
+        EQ:     a b c
+                a c b
+                b a c
+                b c a
+                c a b
+                c b a
+        """
 
         equations = [combo for combo in permutations(directions)]
         print(equations)
@@ -218,13 +245,6 @@ class AspectRatio:
         with open(Path(filepath) / "CDA_equations.txt", "w") as outfile:
             for i, line in enumerate(equations):
                 outfile.writelines(f"Equation Number{i+1}: {line}\n")
-
-        """ EQ: a b c
-                a c b
-                b a c
-                b c a
-                c a b
-                c b a """
 
         pd.set_option("display.max_rows", None)
         ar_df.loc[(a <= b) & (b <= c), "S/M"] = a / b
