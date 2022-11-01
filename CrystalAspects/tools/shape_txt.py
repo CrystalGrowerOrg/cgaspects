@@ -1,17 +1,34 @@
 from sklearn.decomposition import PCA
+from scipy.spatial import ConvexHull
 from pathlib import Path
 import re
 import numpy as np
 import trimesh
 
-
-def normalise_verts(verts):
+def normalise_verts(verts, path="", write=False):
 
     centered = verts - np.mean(verts, axis=0)
     norm = np.linalg.norm(centered, axis=1).max()
     centered /= norm
+    
+    if write:
+        xyz_path = Path(path)
+        save_path = f"{xyz_path.parents[0]}/{xyz_path.stem}_norm.xyz"
+        np.savetxt(
+            save_path,
+            centered,
+            header=f"{centered.shape[0]}\n{xyz_path.stem} --> Normalised",
+            comments=False,
+        )
 
     return centered
+
+
+def norm_out(path):
+    path = Path(path)
+    for xyz_file in path.rglob("*.XYZ"):
+        xyz = read_XYZ(xyz_file)
+        normalise_verts(xyz, path=xyz_file, write=True)
 
 
 def get_PCA(xyz_vals, n=3):
@@ -23,6 +40,13 @@ def get_PCA(xyz_vals, n=3):
     pca_svalues = pca.singular_values_
 
     return pca_svalues
+
+def get_SAVOL(self, xyz):
+    hull = ConvexHull(xyz)
+    vol_hull = hull.volume
+    SA_hull = hull.area
+
+    return (SA_hull, vol_hull)
 
 
 def read_XYZ(filepath):
@@ -68,12 +92,14 @@ def create_shape_txt(path):
             else:
                 shape_class = "lath"
 
-        with open(xyz_file.parents[0] / f"shape_{sim_num}.txt", "w") as output:
-            print(f"Simulation: {sim_num}-->{shape_class}")
-            output.write(shape_class)
-            output.write(f"S:M={aspect1}\nM:L={aspect2}")
+        surface_area, volume = get_SAVOL(xyz=xyz)
+
+        with open(xyz_file.parents[0] / f"shape_{sim_num}.txt", "w", encoding='utf-6') as output:
+            print(f"Simulation: {sim_num}-->{shape_class}\n")
+            output.write(shape_class + "\n")
+            output.write(f"S:M={aspect1}\nM:L={aspect2}\n")
+            output.write(f"Surface_Area={surface_area}\nVolume={volume}\n")
+            output.write(f"SA/Vol={surface_area/volume}")
 
 
-create_shape_txt(
-    "/Users/alvin/Library/CloudStorage/OneDrive-TheUniversityofManchester/Adipic_Acid/ADIPIC_testset"
-)
+create_shape_txt("path/to/simulation_directory")

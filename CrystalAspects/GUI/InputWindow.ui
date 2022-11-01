@@ -145,7 +145,7 @@ QProgressBar::chunk{
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -237,7 +237,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>450</width>
-             <height>448</height>
+             <height>472</height>
             </rect>
            </property>
            <attribute name="label">
@@ -255,7 +255,7 @@ QProgressBar::chunk{
                  <x>0</x>
                  <y>0</y>
                  <width>424</width>
-                 <height>422</height>
+                 <height>446</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_8">
@@ -313,7 +313,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>433</height>
+             <height>472</height>
             </rect>
            </property>
            <attribute name="label">
@@ -969,7 +969,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>450</width>
-             <height>448</height>
+             <height>472</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1319,10 +1319,30 @@ p, li { white-space: pre-wrap; }
                <x>0</x>
                <y>0</y>
                <width>250</width>
-               <height>564</height>
+               <height>588</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_12">
+              <item row="0" column="0">
+               <widget class="QTextEdit" name="output_textBox_3">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>1</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>75</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(58, 64, 85);
+color: rgb(255, 255, 255);</string>
+                </property>
+               </widget>
+              </item>
               <item row="1" column="0">
                <widget class="QToolBox" name="ThreeD_toolBox">
                 <property name="sizePolicy">
@@ -1346,7 +1366,7 @@ p, li { white-space: pre-wrap; }
                    <x>0</x>
                    <y>0</y>
                    <width>226</width>
-                   <height>390</height>
+                   <height>360</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1482,7 +1502,7 @@ p, li { white-space: pre-wrap; }
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>211</width>
+                   <width>226</width>
                    <height>394</height>
                   </rect>
                  </property>
@@ -1681,26 +1701,67 @@ p, li { white-space: pre-wrap; }
                   </item>
                  </layout>
                 </widget>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QTextEdit" name="output_textBox_3">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>1</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>75</height>
-                 </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">background-color: rgb(58, 64, 85);
-color: rgb(255, 255, 255);</string>
-                </property>
+                <widget class="QWidget" name="video_options">
+                 <attribute name="label">
+                  <string>Video Options</string>
+                 </attribute>
+                 <layout class="QGridLayout" name="gridLayout_11">
+                  <item row="1" column="0" colspan="2">
+                   <widget class="QComboBox" name="current_frame_comboBox"/>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QPushButton" name="end_simvis_button">
+                    <property name="text">
+                     <string>End</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QSpinBox" name="current_frame_spinBox"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QPushButton" name="play_button">
+                    <property name="text">
+                     <string>Play</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="0">
+                   <spacer name="verticalSpacer_2">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="current_frame_label">
+                    <property name="text">
+                     <string>Current Frame</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QPushButton" name="start_simvis_button">
+                    <property name="text">
+                     <string>Start</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QPushButton" name="pause_button">
+                    <property name="text">
+                     <string>Pause</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </widget>
               </item>
              </layout>
@@ -1724,7 +1785,7 @@ color: rgb(255, 255, 255);</string>
                <x>0</x>
                <y>0</y>
                <width>764</width>
-               <height>564</height>
+               <height>588</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_4">
@@ -1734,7 +1795,7 @@ color: rgb(255, 255, 255);</string>
               <item row="2" column="2" alignment="Qt::AlignBottom">
                <widget class="QLabel" name="total_sims_label">
                 <property name="text">
-                 <string>/ #</string>
+                 <string>/ Total</string>
                 </property>
                </widget>
               </item>
@@ -1779,50 +1840,6 @@ color: rgb(255, 255, 255);</string>
    <property name="cursor">
     <cursorShape>ArrowCursor</cursorShape>
    </property>
-  </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1084</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <addaction name="actionOpen_Simulations"/>
-    <addaction name="actionOpen_XYZs"/>
-    <addaction name="actionOpen_Outputs"/>
-   </widget>
-   <widget class="QMenu" name="menuTheme">
-    <property name="title">
-     <string>Theme</string>
-    </property>
-   </widget>
-   <widget class="QMenu" name="menuSettings">
-    <property name="title">
-     <string>Settings</string>
-    </property>
-    <widget class="QMenu" name="menuZoom_Density">
-     <property name="title">
-      <string>Zoom/Density</string>
-     </property>
-     <addaction name="action_12"/>
-     <addaction name="action_13"/>
-     <addaction name="action_14"/>
-     <addaction name="action0_3"/>
-     <addaction name="action1_3"/>
-     <addaction name="action2_3"/>
-     <addaction name="action3_3"/>
-    </widget>
-    <addaction name="menuZoom_Density"/>
-   </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuTheme"/>
-   <addaction name="menuSettings"/>
   </widget>
   <action name="actionOpen_Simulations">
    <property name="text">
