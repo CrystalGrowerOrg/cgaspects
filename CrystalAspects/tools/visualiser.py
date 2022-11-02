@@ -333,6 +333,14 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.vbo = self.CreateBuffer(vArray)
 
+    def xyz_axes(self, scalingArrows, startingSize):
+        glu.gluCylinder(quadricSphere, 0.15 * startingSize, 0.15 * startingSize, startingSize * scalingArrows, 32, 32)
+        gl.glTranslatef(0, 0, startingSize * scalingArrows)
+        glu.gluCylinder(quadricSphere, 0.3 * startingSize, 0, 0.4 * startingSize, 32, 32)
+        gl.glTranslatef(0, 0, -startingSize * scalingArrows)
+        self.updateGL()
+        glTranslatef(0.0, 0.0, -40.0)
+
     def LoadVertices(
         self,
     ):
