@@ -85,7 +85,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.folders = []
         self.mode = 1
         self.plot = False
-        self.vis = None
+        self.vis = False
         self.xyz = None
         self.xyz_list = []
         self.xyz_result = ()
@@ -696,7 +696,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             XYZ_file = crystals[row]
             self.output_textBox_3.append(f"Row Number: {row}")
             self.update_progress(0)
-            Visualiser.update_XYZ(XYZ_file)
+            Visualiser.update_XYZ(self, XYZ_file)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
         dspinbox = self.sender()
