@@ -481,6 +481,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ar_lineEdit.setText(str(input_path))
 
         self.reread_info(input_path)
+        print(input_path)
 
     def replot_GrowthRate_read(self):
         input_path = self.GrowthRate_lineEdit.text()
@@ -502,6 +503,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.plot_GrowthRate_button.setEnabled(True)
 
         self.GrowthRate_lineEdit.setText(str(input_path))
+
+        self.reread_info(input_path)
 
     def replot_summary_read(self):
 
@@ -587,12 +590,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if replot_mode == 1:
             replot.replot_AR(
-                csv=self.AR_csv, info=self.replot_info, selected=self.checked_directions
+                csv=self.AR_csv,
+                info=self.replot_info,
+                selected=self.checked_directions
             )
 
         if replot_mode == 2:
             replot.replot_GrowthRate(
-                csv=self.GrowthRate_csv, selected=self.checked_directions
+                csv=self.GrowthRate_csv,
+                info=self.replot_info,
+                selected=self.checked_directions,
+                savepath=self.replot_folder
+
             )
 
     def run_calc(self):
