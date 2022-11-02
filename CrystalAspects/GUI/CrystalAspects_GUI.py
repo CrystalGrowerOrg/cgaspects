@@ -23,18 +23,19 @@ from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.replotting import Replotting
-from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc
+from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
 
 logging.basicConfig(
     level=logging.DEBUG,
-    filename=Path(basedir).parents[0] / 'outputs' / 'CrystalAspects.log',
+    filename=Path(basedir).parents[0] / "outputs" / "CrystalAspects.log",
     filemode="w",
     format="%(asctime)s-%(levelname)s: %(message)s",
 )
 
 logger = logging.getLogger("CrystalAspects_Logger")
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growth = GrowthRate()
         self.shape = CrystalShape()
         self.threadpool = QThreadPool()
-        self.change_style(theme_main='dark',theme_colour='teal')
+        self.change_style(theme_main="dark", theme_colour="teal")
 
         self.welcome_message()
         self.key_shortcuts()
@@ -59,13 +60,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         extra = {
             # Font
-            'font_family': 'Roboto',
+            "font_family": "Roboto",
             # Density Scale
-            'density_scale': str(density)
+            "density_scale": str(density),
         }
 
-        apply_stylesheet(app, f'{theme_main}_{theme_colour}.xml', invert_secondary=False, extra=extra)
-
+        apply_stylesheet(
+            app, f"{theme_main}_{theme_colour}.xml", invert_secondary=False, extra=extra
+        )
 
     def init_parameters(self):
 
@@ -83,8 +85,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.folders = []
         self.mode = 1
         self.plot = False
+        self.vis = None
         self.xyz = None
         self.xyz_list = []
+        self.xyz_result = ()
 
         self.summary_csv = None
         self.replot_info = None
@@ -154,6 +158,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             slider = create_slider()
             self.folder_path, self.xyz_list = slider.read_crystals()
             find.create_aspects_folder(self.folder_path)
+            print(f"Initial XYZ list: {self.xyz_list}")
             Visualiser.initGUI(self, self.xyz_list)
             self.select_summary_slider_button.setEnabled(True)
 
@@ -596,6 +601,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 info=self.replot_info,
                 selected=self.checked_directions,
                 savepath=self.replot_folder
+
             )
 
     def run_calc(self):
@@ -647,6 +653,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(worker_calc)
         print("Calculation Submitted")
 
+    def run_xyz_movie(self, filepath):
+        worker_xyz_movie = Worker_Movies(filepath)
+        worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
+        worker_xyz_movie.signals.progress.connect(self.update_progress)
+        worker_xyz_movie.signals.message.connect(self.update_statusbar)
+        worker_xyz_movie.signals.finished.connect(
+            lambda: Visualiser.init_crystal(self, result=self.xyz_result)
+        )
+        self.threadpool.start(worker_xyz_movie)
+
+    def get_xyz_movie(self, result):
+        self.xyz_result = result
+
     def update_XYZ_info(self, xyz):
 
         worker_xyz = Worker_XYZ(xyz)
@@ -654,7 +673,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_xyz.signals.progress.connect(self.update_progress)
         worker_xyz.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_xyz)
-        
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
@@ -675,10 +693,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("Combination: ", value_list)
         print(filter_df)
         for row in filter_df.index:
-            XYZ_vals = crystals[row]
+            XYZ_file = crystals[row]
             self.output_textBox_3.append(f"Row Number: {row}")
             self.update_progress(0)
-            Visualiser.update_XYZ(self, XYZ_vals)
+            Visualiser.update_XYZ(XYZ_file)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
         dspinbox = self.sender()
@@ -721,7 +739,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.sm_label.setText("Small/Medium: {:.2f}".format(aspect1))
         self.ml_label.setText("Medium/Long: {:.2f}".format(aspect2))
-        self.shape_label.setText(f"Shape: {shape_class}")
+        self.shape_label.setText(f"General Shape: {shape_class}")
         self.crystal_sa_label.setText(
             "Crystal Surface Area (nm^2): {:2g}".format(result.surface_area)
         )

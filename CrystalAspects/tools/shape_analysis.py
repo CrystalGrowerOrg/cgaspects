@@ -3,6 +3,7 @@ from pathlib import Path
 import trimesh
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
+import sys
 
 
 class CrystalShape:
@@ -22,7 +23,7 @@ class CrystalShape:
         return centered
 
     @staticmethod
-    def read_XYZ(filepath):
+    def read_XYZ(filepath, verbose=False, progress=True):
         """Read in shape data and generates a np arrary.
         Supported formats:
             .XYZ
@@ -37,7 +38,7 @@ class CrystalShape:
 
             if filepath.suffix == ".XYZ":
                 print("XYZ File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)[:, 3:]
+                xyz = np.loadtxt(filepath, skiprows=2)
             if filepath.suffix == ".txt":
                 print("xyz File read!")
                 xyz = np.loadtxt(filepath, skiprows=2)
@@ -45,32 +46,50 @@ class CrystalShape:
                 print("stl File read!")
                 xyz = trimesh.load(filepath)
 
+            progress_num = 100
+
         except ValueError:
             print("Looking for Video")
-            with open(filepath, 'r') as file:
+            with open(filepath, "r", encoding="utf-8") as file:
                 lines = file.readlines()
-                num_frames = int(lines[1].split('//')[1])
+                num_frames = int(lines[1].split("//")[1])
                 print(num_frames)
-            
+
+            if progress:
+                toolbar_width = num_frames
+                # setup toolbar
+                sys.stdout.write("[%s]" % (" " * toolbar_width))
+                sys.stdout.flush()
+                sys.stdout.write(
+                    "\b" * (toolbar_width + 1)
+                )  # return to start of line, after '['
 
             particle_num_line = 0
             frame_line = 2
             for frame in range(num_frames):
-                print(f"#####\nFRAME NUMBER: {frame}")
-                print(f"Particle Number Line: {particle_num_line}")
-                print(f"Frame Start Line: {frame_line}")
                 num_particles = int(lines[particle_num_line])
-                print(f"Frame End Line: {frame_line + num_particles}")
-                print(f"Number of Particles read: {frame_line}")
-
-                xyz = np.loadtxt(lines[frame_line: (frame_line + num_particles)])
-                print(f"Number of Particles in list: {xyz.shape[0]}")
+                xyz = np.loadtxt(lines[frame_line : (frame_line + num_particles)])
                 xyz_movie[frame] = xyz
-                print(xyz)
                 particle_num_line = frame_line + num_particles
                 frame_line = particle_num_line + 2
 
-        return (xyz, xyz_movie)
+                progress_num = ((frame + 1) / num_frames) * 100
+
+                if progress:
+                    sys.stdout.write("#")
+                    sys.stdout.flush()
+
+                if verbose:
+                    print(f"#####\nFRAME NUMBER: {frame}")
+                    print(f"Particle Number Line: {particle_num_line}")
+                    print(f"Frame Start Line: {frame_line}")
+                    print(f"Frame End Line: {frame_line + num_particles}")
+                    print(f"Number of Particles read: {frame_line}")
+
+                    print(f"Number of Particles in list: {xyz.shape[0]}")
+            sys.stdout.write("]\n")
+
+        return (xyz, xyz_movie, progress_num)
 
     def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
         """Looks to obtain information on a crystal
@@ -95,9 +114,9 @@ class CrystalShape:
 
     def get_savar(self, xyz_files):
         """Returns 3D data of a crystal shape,
-            Volume:
-            Surface Area:
-            SA:Vol."""
+        Volume:
+        Surface Area:
+        SA:Vol."""
         hull = ConvexHull(xyz_files)
         vol_hull = hull.volume
         SA_hull = hull.area
