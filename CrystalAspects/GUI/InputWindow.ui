@@ -145,7 +145,7 @@ QProgressBar::chunk{
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="movable">
        <bool>true</bool>
@@ -313,7 +313,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>472</height>
+             <height>457</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1365,8 +1365,8 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>226</width>
-                   <height>360</height>
+                   <width>230</width>
+                   <height>345</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1434,8 +1434,21 @@ color: rgb(255, 255, 255);</string>
                       </property>
                      </widget>
                     </item>
-                    <item row="3" column="0">
-                     <widget class="QComboBox" name="fname_comboBox"/>
+                    <item row="3" column="0" alignment="Qt::AlignLeft">
+                     <widget class="QComboBox" name="fname_comboBox">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>1</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>200</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </widget>
                     </item>
                     <item row="9" column="0">
                      <widget class="QLabel" name="ml_label">
@@ -1444,8 +1457,20 @@ color: rgb(255, 255, 255);</string>
                       </property>
                      </widget>
                     </item>
-                    <item row="4" column="0">
+                    <item row="4" column="0" alignment="Qt::AlignLeft">
                      <widget class="QPushButton" name="show_info_button">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                        <horstretch>1</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>200</width>
+                        <height>0</height>
+                       </size>
+                      </property>
                       <property name="text">
                        <string>Show Information</string>
                       </property>
@@ -1453,10 +1478,22 @@ color: rgb(255, 255, 255);</string>
                     </item>
                    </layout>
                   </item>
-                  <item row="0" column="0">
+                  <item row="0" column="0" alignment="Qt::AlignLeft">
                    <widget class="QPushButton" name="select_summary_slider_button">
                     <property name="enabled">
                      <bool>false</bool>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>1</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>200</width>
+                      <height>0</height>
+                     </size>
                     </property>
                     <property name="font">
                      <font>
@@ -1502,7 +1539,7 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>226</width>
+                   <width>118</width>
                    <height>394</height>
                   </rect>
                  </property>
@@ -1702,6 +1739,14 @@ color: rgb(255, 255, 255);</string>
                  </layout>
                 </widget>
                 <widget class="QWidget" name="video_options">
+                 <property name="geometry">
+                  <rect>
+                   <x>0</x>
+                   <y>0</y>
+                   <width>167</width>
+                   <height>163</height>
+                  </rect>
+                 </property>
                  <attribute name="label">
                   <string>Video Options</string>
                  </attribute>

@@ -173,7 +173,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
         for i, xyz_file in enumerate(xyz_file_list):
             print(xyz_file)
 
-            xyz, _ = CrystalShape.read_XYZ(xyz_file)
+            xyz, _, _ = CrystalShape.read_XYZ(xyz_file)
 
             print(xyz)
             self.xyz_list.append(xyz)

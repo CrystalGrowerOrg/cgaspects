@@ -1,3 +1,4 @@
+import stat
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
@@ -21,37 +22,35 @@ from colorsys import hls_to_rgb
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.shape_analysis import CrystalShape
-from CrystalAspects.GUI.gui_threads import Run_Thread
+
 
 class Visualiser(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)  # call the init for the parent class
-        # self.initGUI
+        super(Visualiser, self).__init__(*args, **kwargs)
+
         self.xyz = None
+        self.movie = None
         self.colour_list = []
         self.xyz_file_list = []
 
     def initGUI(self, xyz_file_list):
 
         self.glWidget = vis_GLWidget()
-        self.xyz_threading = Run_Thread()
-        
+
         tot_sims = "Unassigned"
 
-        if xyz_file_list:
-            self.xyz_file_list = [str(path) for path in xyz_file_list]
-            self.fname_comboBox.addItems(self.xyz_file_list)
-            self.glWidget.pass_XYZ_list(xyz_file_list)
-            self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
-            self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
-            self.xyz_threading.run_xyz(xyz_file_list[0])
-            self.xyz, self.movie = self.xyz_threading.get_result()
-            tot_sims = len(self.xyz_file_list)
-            self.total_sims_label.setText(str(tot_sims))
-
-        self.glWidget.pass_XYZ(self.xyz)
-        self.glWidget.initGeometry()
+        self.xyz_file_list = [str(path) for path in xyz_file_list]
+        print(xyz_file_list)
+        self.fname_comboBox.addItems(self.xyz_file_list)
+        self.glWidget.pass_XYZ_list(xyz_file_list)
+        self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
+        self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.glWidget)
+
+        tot_sims = len(self.xyz_file_list)
+        self.total_sims_label.setText(str(tot_sims))
+
         self.colour_list = [
             "Viridis",
             "Plasma",
@@ -64,10 +63,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         ]
 
         self.colourmode_comboBox.addItems(
-            ["Atom/Molecule Type",
-            "Atom/Molecule Number",
-            "Layer",
-            "Single Colour"]
+            ["Atom/Molecule Type", "Atom/Molecule Number", "Layer", "Single Colour"]
         )
         self.colourmode_comboBox.setCurrentIndex(2)
         self.colour_comboBox.addItems(self.colour_list)
@@ -79,10 +75,10 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.colourmode_comboBox.currentIndexChanged.connect(
             self.glWidget.get_colour_type
         )
-        
+
         self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
-        # self.point_slider.setTickInterval(1)
+        self.point_slider.setValue(10)
         self.point_slider.valueChanged.connect(self.glWidget.change_point_size)
         self.zoom_slider.valueChanged.connect(self.glWidget.zoomGL)
         self.mainCrystal_slider.setMinimum(0)
@@ -96,13 +92,25 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.vis_simnum_spinBox.valueChanged.connect(self.update_vis_sliders)
         self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
+    def init_crystal(self, result):
+        self.xyz, self.movie = result
+        self.glWidget.pass_XYZ(self.xyz)
+        try:
+            self.glWidget.initGeometry()
+        except AttributeError:
+            print("No Crystal Data Found!")
+
     def update_XYZ(self, XYZ_filepath):
 
-        self.xyz_threading.run_xyz(XYZ_filepath)
-        self.xyz, self.movie = self.movie_threading.get_result()
+        self.run_xyz_movie(XYZ_filepath)
         self.glWidget.pass_XYZ(self.xyz)
-        self.glWidget.initGeometry()
-        self.glWidget.updateGL()
+
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
+        except AttributeError:
+            print("No Crystal Data Found!")
+
 
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
@@ -146,10 +154,9 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def get_XYZ_from_list(self, value):
         self.sim_num = value
-        self.xyz, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
+        self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
         self.initGeometry()
         self.updateGL()
-
 
     def get_colour(self, value):
 
@@ -179,7 +186,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def zoomGL(self, val):
         self.zoomFactor = val
         self.updateGL()
-
 
     def initializeGL(self):
 
@@ -218,7 +224,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def paintGL(self):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # pushing matrix
-        gl.glPushMatrix()  
+        gl.glPushMatrix()
         # push the current matrix to the current stack
         gl.glLoadIdentity()
         gl.glTranslate(
@@ -278,16 +284,16 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             self.rotY -= 100
 
         if event.key() == Qt.Key_Right:
-            print('Right Key Pressed')
+            print("Right Key Pressed")
             gl.glTranslate(100, 0.0, 0.0)
         if event.key() == Qt.Key_Left:
-            print('Left Key Pressed')
+            print("Left Key Pressed")
             gl.glTranslate(-100.0, 0.0, 0.0)
         if event.key() == Qt.Key_Down:
-            print('Down Key Pressed')
+            print("Down Key Pressed")
             gl.glTranslate(0.0, -100.0, 0.0)
         if event.key() == Qt.Key_Up:
-            print('Up Key Pressed')
+            print("Up Key Pressed")
             gl.glTranslate(0.0, 100.0, 0.0)
 
         self.updateGL()
@@ -338,9 +344,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def LoadVertices(
         self,
     ):
-        print("Load Vertices")
+        print("Loading Vertices")
         point_cloud = self.xyz
-
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
 
