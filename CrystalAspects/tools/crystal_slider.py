@@ -12,7 +12,6 @@ from natsort import natsorted
 
 # ==> Local imports
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
-from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
@@ -20,8 +19,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.vis = Visualiser()
-
+ 
     # Read Summary file
     def read_summary(self):
 
@@ -90,7 +88,6 @@ class create_slider(QMainWindow, Ui_MainWindow):
             slider_list.append(self.slider)
 
             try:
-                self.vis = Visualiser()
                 self.slider.valueChanged.connect(
                     lambda: self.slider_change(
                         var=var,
@@ -181,41 +178,3 @@ class create_slider(QMainWindow, Ui_MainWindow):
             self.progressBar.setValue(int(i / n) * 100)
 
         print(f"Number of Crystals Read: {len(xyz_list)}")
-
-    # ###### Control Buttons #########
-    def next_crystal_connect(self):
-
-        self.slider = Visualiser()
-        self.crystal_num = +1
-        selected_crystal = self.crystal_xyz_list[self.crystal_num]
-        print(selected_crystal)
-
-        self.slider.update_XYZ(selected_crystal)
-
-        print("next clicked")
-
-    def prev_crystal(self):
-        self.crystal_num = -1
-        selected_crystal = self.crystal_xyz_list[self.crystal_num]
-        print(selected_crystal)
-
-        print("prev clicked")
-        self.vis.update_XYZ(selected_crystal)
-
-    def end_crystal(self):
-        print("end clicked")
-
-    def start_crystal(self):
-        print("start clicked")
-
-    def play_crystal(self):
-        print("play clicked")
-
-    def pause_crystal(self):
-        print("pause clicked")
-
-    def rewind_crystal(self):
-        print("rewind clicked")
-
-    def fast_crystal(self):
-        print("fast clicked")

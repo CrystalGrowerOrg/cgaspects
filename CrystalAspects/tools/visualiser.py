@@ -346,6 +346,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     ):
         print("Loading Vertices")
         point_cloud = self.xyz
+        print(point_cloud)
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
 
