@@ -14,6 +14,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 logger = logging.getLogger("CrystalAspects_Logger")
 
+
 class WorkerSignals(QObject):
     """
     Defines the signals available from a running worker thread.
@@ -59,7 +60,7 @@ class AspectRatio:
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz, _ = shape.read_XYZ(file)
+                            xyz, _, _ = shape.read_XYZ(file)
                             vals = shape.get_PCA(xyz)
 
                             calculator = calc()
@@ -152,7 +153,7 @@ class AspectRatio:
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz, _ = shape.read_XYZ(file)
+                            xyz, _, _ = shape.read_XYZ(file)
                             sav_data = shape.get_savar(xyz)
                             sav_data = np.insert(sav_data, 0, sim_num, axis=1)
                             sav_final_df = np.append(sav_final_df, sav_data, axis=0)
@@ -186,7 +187,7 @@ class AspectRatio:
                         sim_num = re.findall(r"\d+", Path(file).name)[-1]
                         shape = cs()
                         try:
-                            xyz, _ = shape.read_XYZ(file)
+                            xyz, _, _ = shape.read_XYZ(file)
                             shape_data = shape.get_all(xyz)
                             print(shape_data)
                             shape_data = np.insert(shape_data, 0, sim_num, axis=1)
@@ -218,7 +219,7 @@ class AspectRatio:
     def defining_equation(self, directions, ar_df="", csv="", filepath="."):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.
         This means we will also need to input the selected directions into the function.
-        
+
         EQ:     a b c
                 a c b
                 b a c

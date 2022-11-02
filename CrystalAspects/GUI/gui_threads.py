@@ -40,7 +40,7 @@ class Worker_XYZ(QRunnable):
     def __init__(self, xyz):
         super(Worker_XYZ, self).__init__()
         # Store constructor arguments (re-used for processing)
-        self.xyz = xyz
+        self.xyz = xyz[:, 3:]
         self.signals = WorkerSignals()
 
     @pyqtSlot()
@@ -224,8 +224,8 @@ class Worker_Calc(QRunnable):
             if self.pca and self.cda:
                 pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
                     pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
-                self.signals.message.emit("PCA & CDA Calculations complete!")
                 )
+                self.signals.message.emit("PCA & CDA Calculations complete!")
                 if self.plot:
                     self.signals.message.emit("Plotting PCA & CDA Results!")
                     plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
@@ -240,43 +240,21 @@ class Worker_Calc(QRunnable):
 
 class Worker_Movies(QRunnable):
     def __init__(self, filepath):
-        super(Worker_XYZ, self).__init__()
+        super(Worker_Movies, self).__init__()
         self.filepath = filepath
         self.signals = WorkerSignals()
 
     def run(self):
 
-
-        results = namedtuple("CrystalXYZ",
-            "xyz",
-            "xyz_movie"
-        )
+        results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
 
         self.signals.message.emit("Reading XYZ file. Please wait...")
-        xyz, xyz_movie = CrystalShape.read_XYZ(self.filepath)
+        xyz, xyz_movie, progress = CrystalShape.read_XYZ(self.filepath)
+        print(progress)
+        self.signals.progress.emit(progress)
+
         result = results(xyz=xyz, xyz_movie=xyz_movie)
 
         self.signals.result.emit(result)
         self.signals.message.emit("Reading XYZ Complete!")
-        self.signals.progress.emit(100)
         self.signals.finished.emit()
-
-class Run_Thread:
-    def __init__(self) -> None:
-        pass
-    def run_xyz(self, filepath):
-        worker = Worker_Movies()
-
-        worker_xyz_movie = worker(filepath)
-        worker_xyz_movie.signals.result.connect(self.get_result)
-        worker_xyz_movie.signals.progress.connect(self.update_progress)
-        worker_xyz_movie.signals.message.connect(self.update_statusbar)
-        self.threadpool.start(worker_xyz_movie)
-
-    def get_result(self, result):
-        return result
-
-
-
-
-
