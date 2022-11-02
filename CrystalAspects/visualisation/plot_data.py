@@ -363,12 +363,13 @@ class Plotting:
                 )
                 fig.write_html(f"{savefolder}/SPH_ints_{i}.html")
 
+    """    
     def visualise_pca(self, xyz):
 
         shape = CrystalShape()
         savefolder = self.create_plots_folder(Path(xyz).parents[0])
 
-        points = shape.read_XYZ(xyz)
+        points, _, _ = shape.read_XYZ(xyz)
 
         eig_sval, eig_val, eig_vec = shape.get_PCA_nn(points)
 
@@ -467,7 +468,8 @@ class Plotting:
         ax.set_ylabel("y")
         ax.set_zlabel("z")
 
-        plt.show()
+        plt.show() 
+        """
 
     ################################
     # Plotting Growth Rates        #

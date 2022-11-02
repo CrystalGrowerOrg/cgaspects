@@ -5,12 +5,13 @@ import re
 import numpy as np
 import trimesh
 
+
 def normalise_verts(verts, path="", write=False):
 
     centered = verts - np.mean(verts, axis=0)
     norm = np.linalg.norm(centered, axis=1).max()
     centered /= norm
-    
+
     if write:
         xyz_path = Path(path)
         save_path = f"{xyz_path.parents[0]}/{xyz_path.stem}_norm.xyz"
@@ -40,6 +41,7 @@ def get_PCA(xyz_vals, n=3):
     pca_svalues = pca.singular_values_
 
     return pca_svalues
+
 
 def get_SAVOL(self, xyz):
     hull = ConvexHull(xyz)
@@ -94,7 +96,9 @@ def create_shape_txt(path):
 
         surface_area, volume = get_SAVOL(xyz=xyz)
 
-        with open(xyz_file.parents[0] / f"shape_{sim_num}.txt", "w", encoding='utf-6') as output:
+        with open(
+            xyz_file.parents[0] / f"shape_{sim_num}.txt", "w", encoding="utf-6"
+        ) as output:
             print(f"Simulation: {sim_num}-->{shape_class}\n")
             output.write(shape_class + "\n")
             output.write(f"S:M={aspect1}\nM:L={aspect2}\n")
