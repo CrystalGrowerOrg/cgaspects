@@ -1,5 +1,4 @@
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
-
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 import numpy as np
@@ -84,7 +83,7 @@ class Worker_XYZ(QRunnable):
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit(
-            "Calculations Complete! Please wait till the data is displayed!"
+            "Calculations Complete!"
         )
         self.signals.finished.emit()
 
