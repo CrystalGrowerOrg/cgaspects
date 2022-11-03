@@ -32,6 +32,7 @@ class Visualiser(QMainWindow, Ui_MainWindow):
         self.movie = None
         self.colour_list = []
         self.xyz_file_list = []
+        self.frame_list = []
 
     def initGUI(self, xyz_file_list):
 
@@ -95,8 +96,32 @@ class Visualiser(QMainWindow, Ui_MainWindow):
     def init_crystal(self, result):
         self.xyz, self.movie = result
         self.glWidget.pass_XYZ(self.xyz)
+
+        if self.movie:
+            self.frame_list = self.movie.keys()
+            print('Frames: ', self.frame_list)
+            self.current_frame_comboBox.addItems([f'frame_{frame + 1}' for frame in self.frame_list])
+            self.current_frame_spinBox.setMinimum(0)
+            self.current_frame_spinBox.setMaximum(len(self.frame_list))
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(len(self.frame_list))
+            self.current_frame_comboBox.currentIndexChanged.connect(self.update_movie)
+            self.current_frame_spinBox.valueChanged.connect(self.update_movie)
+            self.frame_slider.valueChanged.connect(self.update_movie)
+            self.play_button.clicked.connect(self.play_movie)
+
         try:
             self.glWidget.initGeometry()
+        except AttributeError:
+            print("No Crystal Data Found!")
+
+    def update_frame(self, frame):
+        self.xyz = self.movie[frame]
+        self.glWidget.pass_XYZ(self.xyz)
+
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
         except AttributeError:
             print("No Crystal Data Found!")
 
