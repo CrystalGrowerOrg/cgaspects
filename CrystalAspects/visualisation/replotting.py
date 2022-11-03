@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+# Matplotlib import
+import matplotlib.pyplot as plt
+
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio

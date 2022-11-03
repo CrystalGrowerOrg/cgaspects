@@ -546,6 +546,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol"
         )
 
+        self.folder_path = csv.parent
+
         self.replot_folder = find.create_aspects_folder(self.folder_path)
         df = pd.read_csv(csv)
 
