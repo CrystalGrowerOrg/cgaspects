@@ -89,6 +89,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz = None
         self.xyz_list = []
         self.xyz_result = ()
+        self.frame_list = []
 
         self.summary_csv = None
         self.replot_info = None
@@ -666,6 +667,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def get_xyz_movie(self, result):
         self.xyz_result = result
 
+    def update_movie(self, frame):
+        Visualiser.update_frame(self, frame)
+        self.current_frame_comboBox.setCurrentIndex(frame)
+        self.current_frame_spinBox.setValue(frame)
+        self.frame_slider.setValue(frame)
+
+    def play_movie(self, frames):
+        for frame in range(frames):
+            Visualiser.update_frame(self, frame)
+            self.current_frame_comboBox.setCurrentIndex(frame)
+            self.current_frame_spinBox.setValue(frame)
+            self.frame_slider.setValue(frame)
+
     def update_XYZ_info(self, xyz):
 
         worker_xyz = Worker_XYZ(xyz)
@@ -718,6 +732,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.fname_comboBox.setCurrentIndex(value)
         self.mainCrystal_slider.setValue(value)
         self.vis_simnum_spinBox.setValue(value)
+        self.frame_slider.setValue(value)
 
     def insert_info(self, result):
 
