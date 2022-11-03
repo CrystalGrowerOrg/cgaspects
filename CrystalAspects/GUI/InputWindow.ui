@@ -313,7 +313,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>457</height>
+             <height>317</height>
             </rect>
            </property>
            <attribute name="label">
@@ -968,8 +968,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>450</width>
-             <height>472</height>
+             <width>324</width>
+             <height>344</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1358,7 +1358,7 @@ color: rgb(255, 255, 255);</string>
                  </size>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="variables_page">
                  <property name="geometry">
@@ -1366,7 +1366,7 @@ color: rgb(255, 255, 255);</string>
                    <x>0</x>
                    <y>0</y>
                    <width>230</width>
-                   <height>345</height>
+                   <height>360</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1743,31 +1743,46 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>167</width>
-                   <height>163</height>
+                   <width>226</width>
+                   <height>360</height>
                   </rect>
                  </property>
                  <attribute name="label">
                   <string>Video Options</string>
                  </attribute>
                  <layout class="QGridLayout" name="gridLayout_11">
-                  <item row="1" column="0" colspan="2">
-                   <widget class="QComboBox" name="current_frame_comboBox"/>
+                  <item row="3" column="0">
+                   <widget class="QPushButton" name="play_button">
+                    <property name="text">
+                     <string>Play</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QPushButton" name="pause_button">
+                    <property name="text">
+                     <string>Pause</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="current_frame_label">
+                    <property name="text">
+                     <string>Current Frame</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QPushButton" name="start_simvis_button">
+                    <property name="text">
+                     <string>Start</string>
+                    </property>
+                   </widget>
                   </item>
                   <item row="4" column="1">
                    <widget class="QPushButton" name="end_simvis_button">
                     <property name="text">
                      <string>End</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="1">
-                   <widget class="QSpinBox" name="current_frame_spinBox"/>
-                  </item>
-                  <item row="3" column="0">
-                   <widget class="QPushButton" name="play_button">
-                    <property name="text">
-                     <string>Play</string>
                     </property>
                    </widget>
                   </item>
@@ -1784,24 +1799,16 @@ color: rgb(255, 255, 255);</string>
                     </property>
                    </spacer>
                   </item>
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="current_frame_label">
-                    <property name="text">
-                     <string>Current Frame</string>
-                    </property>
-                   </widget>
+                  <item row="0" column="1">
+                   <widget class="QSpinBox" name="current_frame_spinBox"/>
                   </item>
-                  <item row="4" column="0">
-                   <widget class="QPushButton" name="start_simvis_button">
-                    <property name="text">
-                     <string>Start</string>
-                    </property>
-                   </widget>
+                  <item row="1" column="0" colspan="2">
+                   <widget class="QComboBox" name="current_frame_comboBox"/>
                   </item>
-                  <item row="3" column="1">
-                   <widget class="QPushButton" name="pause_button">
-                    <property name="text">
-                     <string>Pause</string>
+                  <item row="5" column="0" colspan="2">
+                   <widget class="QSlider" name="frame_slider">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
                     </property>
                    </widget>
                   </item>
