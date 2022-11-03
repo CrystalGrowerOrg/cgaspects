@@ -247,6 +247,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             self.update()
 
     def paintGL(self):
+        
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # pushing matrix
         gl.glPushMatrix()
@@ -288,6 +289,17 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
         gl.glPopMatrix()  # restore the previous modelview matrix
+
+
+        """
+        #Draw axes
+
+        gl.glLoadIdentity()
+        gl.glPushMatrix()
+        self.create_arrow(width=1, height=1)
+        gl.glPopMatrix()
+
+        """
 
     def mousePressEvent(self, event):
         self.lastPos = event.pos()
@@ -355,20 +367,124 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         vArray = self.LoadVertices()
         self.noPoints = len(vArray) // 6
         # print("No. of Points: %s" % self.noPoints)
-
         self.vbo = self.CreateBuffer(vArray)
 
-    def xyz_axes(self, scalingArrows, startingSize):
-        glu.gluCylinder(quadricSphere, 0.15 * startingSize, 0.15 * startingSize, startingSize * scalingArrows, 32, 32)
+
+    def DrawArrow(self, scalingArrows, startingSize):
+        GLU.gluCylinder(GLU.gluNewQuadric(), 0.15 * startingSize, 0.15 * startingSize, startingSize * scalingArrows, 32, 32)
         gl.glTranslatef(0, 0, startingSize * scalingArrows)
-        glu.gluCylinder(quadricSphere, 0.3 * startingSize, 0, 0.4 * startingSize, 32, 32)
+        GLU.gluCylinder(GLU.gluNewQuadric(), 0.3 * startingSize, 0, 0.4 * startingSize, 32, 32)
         gl.glTranslatef(0, 0, -startingSize * scalingArrows)
         self.updateGL()
-        glTranslatef(0.0, 0.0, -40.0)
+        gl.glTranslatef(0.0, 0.0, -40.0)
+
+
+    def create_arrow(self, width, height, axtype='cartesian', unitcell=()):
+        #Choose where to position the axes in small viewport
+        gl.glTranslatef(0.0, 0.0, -40.0)
+
+        axes_info = np.empty([3,4])
+        axes_length = np.ones([3])
+        starting_size = 10
+
+        # colours for axes, red = a or X, green = b or Y, blue = c or Z
+        axes_colour = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+        if axtype == 'cartesian':
+        #Rotation angles for drawing XYZ axes
+        # x axis
+            axes_info[0][0] = 90
+            axes_info[0][1] = 0
+            axes_info[0][2] = 1
+            axes_info[0][3] = 0
+            # y axis
+            axes_info[1][0] = -90
+            axes_info[1][1] = 1
+            axes_info[1][2] = 0
+            axes_info[1][3] = 0
+            #z axis
+            axes_info[2][0] = 0
+            axes_info[2][1] = 0
+            axes_info[2][2] = 1
+            axes_info[2][3] = 0
+
+
+        #Rotation angles for drawing abc axes
+        elif axtype == 'fractional':
+            
+            a = unitcell.a
+            b = unitcell.b
+            c = unitcell.c
+            alpha = unitcell.alpha
+            beta = unitcell.beta
+            gamma = unitcell.gamma
+
+            # a axis
+            axes_info[0][0] = 0
+            axes_info[0][1] = 0
+            axes_info[0][2] = 1
+            axes_info[0][3] = 0
+            # b axis
+            axes_info[1][0] = -beta
+            axes_info[1][1] = 1
+            axes_info[1][2] = 0
+            axes_info[1][3] = 0
+            #c axis
+            axes_info[2][0] = -gamma
+            axes_info[2][1] = 0
+            axes_info[2][2] = 1
+            axes_info[2][3] = 0
+
+            # Are axes scaled to unit cell lengths
+            
+            axes_length[0] = a
+            axes_length[1] = b
+            axes_length[2] = c
+
+            abc_list = [a, b, c]
+
+            wwidth = width
+            wheight = height - 20
+            #Find the longest axis
+            abc_ordered = abc_list.sort()
+
+            #If all axes are above 1 scale to the longest value
+            abc_unit = abc_list / abc_ordered[-1]
+            starting_size = 20 / abc_ordered[-1]
+
+        gl.glClear(gl.GL_DEPTH_BUFFER_BIT)
+        gl.glDisable(gl.GL_LIGHTING)
+        gl.glViewport(0, 0, wwidth / 6, wheight / 6)
+
+
+        # Start by rotating -90 about 0 1 0 to be looking down 1 0 0
+        # Then start to draw arrows
+
+        if axtype == 'fractional':
+            gl.glRotatef(90, 0.0, 1.0, 0.0)
+
+        for axes in range(3):
+            #Draw arrow from axis info
+            gl.glColor3f(axes_colour[axes][0], axes_colour[axes][1], axes_colour[axes][2])
+            gl.glRotatef(axes_info[axes][0], axes_info[axes][1], axes_info[axes][2], axes_info[axes][3])
+            self.DrawArrow(axes_length[axes], starting_size)
+            gl.glRotatef(-axes_info[axes][0], axes_info[axes][1], axes_info[axes][2], axes_info[axes][3])
+
+        if axtype == 'fractional':
+            gl.glRotatef(-90, 0.0, 1.0, 0.0)
+
+        #Reset The Current Viewport
+        gl.glViewport(0, 0, wwidth, wheight)
+        #The Type Of Depth Testing To Do
+        gl.glDepthFunc(gl.GL_LEQUAL)
+        #Really Nice Perspective Calculations
+        gl.glHint(gl.GL_PERSPECTIVE_CORRECTION_HINT, gl.GL_NICEST)
+        gl.glEnable(gl.GL_LIGHTING)
+
 
     def LoadVertices(
         self,
-    ):
+    ):  
         print("Loading Vertices")
         point_cloud = self.xyz
         print(point_cloud)
