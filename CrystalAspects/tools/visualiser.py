@@ -24,7 +24,7 @@ from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
-class Visualiser(QMainWindow, Ui_MainWindow):
+class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(Visualiser, self).__init__(*args, **kwargs)
 

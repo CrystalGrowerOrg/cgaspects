@@ -4,15 +4,13 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence
 from matplotlib.pyplot import plot
-from pyparsing import RecursiveGrammarException
-from qt_material import *
+from qt_material import apply_stylesheet
 
 # General imports
 import os, sys, subprocess
 import pandas as pd
 from collections import namedtuple
 from pathlib import Path
-import logging
 
 # Project Module imports
 
@@ -26,15 +24,6 @@ from CrystalAspects.visualisation.replotting import Replotting
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename=Path(basedir).parents[0] / "outputs" / "CrystalAspects.log",
-    filemode="w",
-    format="%(asctime)s-%(levelname)s: %(message)s",
-)
-
-logger = logging.getLogger("CrystalAspects_Logger")
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -608,18 +597,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
     def run_calc(self):
-
-        logger.info(
-            "Calculation started with:\n\
-            PCA: %s\n\
-            CDA: %s\n\
-            Growth Rates: %s\n\
-            Plotting: %s\n",
-            self.pca,
-            self.cda,
-            self.growthrates,
-            self.plot,
-        )
 
         calc_info_tuple = namedtuple(
             "Information",
