@@ -1,10 +1,8 @@
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
-
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 import numpy as np
 from collections import namedtuple
-import logging
 
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.aspect_ratios import AspectRatio
@@ -12,7 +10,6 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
-logger = logging.getLogger("CrystalAspects_Logger")
 
 
 class WorkerSignals(QObject):
@@ -46,18 +43,18 @@ class Worker_XYZ(QRunnable):
     @pyqtSlot()
     def run(self):
 
-        centered = self.xyz - np.mean(self.xyz, axis=0)
+        """centered = self.xyz - np.mean(self.xyz, axis=0)
         norm = np.linalg.norm(centered, axis=1).max()
-        centered /= norm
+        centered /= norm"""
 
         pca = PCA(n_components=3)
-        pca.fit(centered)
+        pca.fit(self.xyz)
         pca_svalues = pca.singular_values_
 
         self.signals.progress.emit(15)
         self.signals.message.emit("PCA Calulcated! Please wait..")
 
-        hull = ConvexHull(centered)
+        hull = ConvexHull(self.xyz)
         vol_hull = hull.volume
         SA_hull = hull.area
         sa_vol = SA_hull / vol_hull
@@ -84,7 +81,7 @@ class Worker_XYZ(QRunnable):
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit(
-            "Calculations Complete! Please wait till the data is displayed!"
+            "Calculations Complete!"
         )
         self.signals.finished.emit()
 
@@ -107,17 +104,11 @@ class Worker_Calc(QRunnable):
 
     def run(self):
 
-        logger.info("All Selected Directions: %s\n", self.checked_directions)
-
         find = Find()
         plotting = Plotting()
 
         save_folder = find.create_aspects_folder(self.folder_path)
-
-        """Creating CrystalAspects folder"""
-        logger.debug("Filepath read: %s", str(self.folder_path))
-        logger.debug("CrystalAspects folder created: %s", str(save_folder))
-
+        
         self.signals.message.emit("Calculations Initiated!")
         self.signals.progress.emit(10)
 
@@ -172,10 +163,6 @@ class Worker_Calc(QRunnable):
                 short = self.short_facet.currentText()
 
                 selected_directions = [short, medium, long]
-
-                logger.info(
-                    "Selected Directions (for CDA): %s, %s, %s\n", short, medium, long
-                )
 
                 cda_df = aspect_ratio.build_AR_CDA(
                     folderpath=self.folder_path,

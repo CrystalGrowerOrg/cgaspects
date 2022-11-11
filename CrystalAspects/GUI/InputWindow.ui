@@ -1358,7 +1358,7 @@ color: rgb(255, 255, 255);</string>
                  </size>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="variables_page">
                  <property name="geometry">
@@ -1366,7 +1366,7 @@ color: rgb(255, 255, 255);</string>
                    <x>0</x>
                    <y>0</y>
                    <width>230</width>
-                   <height>360</height>
+                   <height>345</height>
                   </rect>
                  </property>
                  <attribute name="label">
