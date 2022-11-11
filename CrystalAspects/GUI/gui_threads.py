@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
-import numpy as np
 from collections import namedtuple
 
 from CrystalAspects.data.find_data import Find
