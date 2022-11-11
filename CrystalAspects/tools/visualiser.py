@@ -1,11 +1,7 @@
-import stat
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5 import QtOpenGL
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtGui import QKeySequence
 
 import OpenGL.GL as gl  # python wrapping of OpenGL
 from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
