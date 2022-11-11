@@ -1,5 +1,0 @@
-natsort==8.1.0
-numpy==1.22.3
-pandas==1.4.2
-PyQt5==5.15.6
-qt_material==2.10
