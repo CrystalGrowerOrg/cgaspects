@@ -428,7 +428,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
-            print(f"CDA: {self.cda}")
+            print(f"PCA: {self.cda}")
 
             self.long_facet.setEnabled(True)
             self.medium_facet.setEnabled(True)
@@ -626,7 +626,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             [
                 "folder_path",
                 "checked_directions",
-                "selected_directions",
                 "summary_file",
                 "folders",
                 "aspectratio",
@@ -637,24 +636,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "plot",
             ],
         )
-        print(self.checked_directions)
-        if self.aspectratio:
-            print(self.checked_directions)
-
-            if self.cda:
-
-                long = self.long_facet.currentText()
-                medium = self.medium_facet.currentText()
-                short = self.short_facet.currentText()
-
-                selected_directions = [short, medium, long]
-                print(selected_directions)
-        print(self.folders)
-
         calc_info = calc_info_tuple(
             folder_path=self.folder_path,
             checked_directions=self.checked_directions,
-            selected_directions=selected_directions,
             summary_file=self.summary_file,
             folders=self.folders,
             aspectratio=self.aspectratio,

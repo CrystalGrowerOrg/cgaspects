@@ -94,9 +94,7 @@ class Worker_Calc(QRunnable):
         # Store constructor arguments (re-used for processing)
         self.folder_path = calc_info_tuple.folder_path
         self.checked_directions = calc_info_tuple.checked_directions
-        self.selected_directions = calc_info_tuple.selected_directions
         self.summary_file = calc_info_tuple.summary_file
-        self.folders = calc_info_tuple.folders
         self.aspectratio = calc_info_tuple.aspectratio
         self.cda = calc_info_tuple.cda
         self.pca = calc_info_tuple.pca
@@ -108,12 +106,16 @@ class Worker_Calc(QRunnable):
 
     def run(self):
 
+        logger.info("All Selected Directions: %s\n", self.checked_directions)
+
         find = Find()
         plotting = Plotting()
 
         save_folder = find.create_aspects_folder(self.folder_path)
 
         """Creating CrystalAspects folder"""
+        logger.debug("Filepath read: %s", str(self.folder_path))
+        logger.debug("CrystalAspects folder created: %s", str(save_folder))
 
         self.signals.message.emit("Calculations Initiated!")
         self.signals.progress.emit(10)
@@ -161,20 +163,29 @@ class Worker_Calc(QRunnable):
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
-            print(self.checked_directions)
 
             if self.cda:
+
+                long = self.long_facet.currentText()
+                medium = self.medium_facet.currentText()
+                short = self.short_facet.currentText()
+
+                selected_directions = [short, medium, long]
+
+                logger.info(
+                    "Selected Directions (for CDA): %s, %s, %s\n", short, medium, long
+                )
 
                 cda_df = aspect_ratio.build_AR_CDA(
                     folderpath=self.folder_path,
                     folders=self.folders,
                     directions=self.checked_directions,
-                    selected=self.selected_directions,
+                    selected=selected_directions,
                     savefolder=save_folder,
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=self.selected_directions, ar_df=cda_df, filepath=save_folder
+                    directions=selected_directions, ar_df=cda_df, filepath=save_folder
                 )
                 zn_df_final = find.summary_compare(
                     summary_csv=self.summary_file,
@@ -190,7 +201,7 @@ class Worker_Calc(QRunnable):
                     )
                     plotting.Aspect_Extended_Plot(
                         df=zn_df_final,
-                        selected=self.selected_directions,
+                        selected=selected_directions,
                         folderpath=save_folder,
                     )
                     self.signals.message.emit("Plotting CDA Results!")
