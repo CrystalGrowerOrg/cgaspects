@@ -35,9 +35,9 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
+    codesign_identity='CrystalAspects',
     entitlements_file=None,
-    icon='icon.png',
+    icon=['icon.png'],
 )
 coll = COLLECT(
     exe,
