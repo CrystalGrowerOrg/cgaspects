@@ -7,6 +7,7 @@ tests/
 .vscode
 tests/CrystalAspectsTest/20220919_163041/CrystalAspects/
 CrystalAspects/GUI/build
+CrystalAspects/GUI/CrystalAspects_GUI.spec
 CrystalAspects/GUI/dist
 CrystalAspects.egg-info/top_level.txt
 CrystalAspects.egg-info/SOURCES.txt
