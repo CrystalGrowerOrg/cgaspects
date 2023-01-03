@@ -421,7 +421,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             self.long_facet.setEnabled(True)
             self.medium_facet.setEnabled(True)
-            self.aspect_range_checkBox.setEnabled(True)
+            # self.aspect_range_checkBox.setEnabled(True)
             # self.count_checkBox.setEnabled(True)
             self.ratio_label1.setEnabled(True)
 

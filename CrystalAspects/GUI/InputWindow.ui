@@ -313,7 +313,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>457</height>
+             <height>317</height>
             </rect>
            </property>
            <attribute name="label">
@@ -968,8 +968,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>450</width>
-             <height>472</height>
+             <width>324</width>
+             <height>344</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1366,7 +1366,7 @@ color: rgb(255, 255, 255);</string>
                    <x>0</x>
                    <y>0</y>
                    <width>230</width>
-                   <height>345</height>
+                   <height>360</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1539,14 +1539,21 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>118</width>
-                   <height>394</height>
+                   <width>226</width>
+                   <height>428</height>
                   </rect>
                  </property>
                  <attribute name="label">
                   <string>Visualiser Options</string>
                  </attribute>
                  <layout class="QVBoxLayout" name="verticalLayout">
+                  <item>
+                   <widget class="QPushButton" name="saveFrame_button">
+                    <property name="text">
+                     <string>Save Frame</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="QLabel" name="display_options_label">
                     <property name="font">
@@ -1743,8 +1750,8 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>167</width>
-                   <height>197</height>
+                   <width>226</width>
+                   <height>360</height>
                   </rect>
                  </property>
                  <attribute name="label">
