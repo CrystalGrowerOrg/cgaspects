@@ -2,8 +2,11 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5 import QtOpenGL
+from PyQt5.QtGui import QImage
+from PyQt5.QtWidgets import QInputDialog, QFileDialog
 
 import OpenGL.GL as gl  # python wrapping of OpenGL
+from OpenGL.GL import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE, glGetIntegerv
 from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
 from OpenGL.arrays import vbo
 from OpenGL.GL.shaders import compileProgram, compileShader
@@ -41,6 +44,7 @@ class Visualiser(Ui_MainWindow):
         self.fname_comboBox.addItems(self.xyz_file_list)
         self.glWidget.pass_XYZ_list(xyz_file_list)
         self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
         self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
         self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.glWidget)
@@ -64,7 +68,7 @@ class Visualiser(Ui_MainWindow):
         )
         self.colourmode_comboBox.setCurrentIndex(2)
         self.colour_comboBox.addItems(self.colour_list)
-        self.bgcolour_comboBox.addItems(["White", "Black"])
+        self.bgcolour_comboBox.addItems(["White", "Black", "Transparent"])
         self.bgcolour_comboBox.setCurrentIndex(1)
 
         self.colour_comboBox.currentIndexChanged.connect(self.glWidget.get_colour)
@@ -132,7 +136,6 @@ class Visualiser(Ui_MainWindow):
         except AttributeError:
             print("No Crystal Data Found!")
 
-
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
         self.parent = parent
@@ -153,7 +156,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.colour_type = 2
 
         self.point_size = 10
-        self.bg_colours = ["#FFFFFF", "#000000"]
+        self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
         self.cm_colourList = [
             cm.viridis,
             cm.plasma,
@@ -178,6 +181,45 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
         self.initGeometry()
         self.updateGL()
+
+    def save_render_dialog(self):
+        # Create a list of options for the dropdown menu
+        options = ['640x480', '800x600', '1024x768', '1280x1024']
+
+        # Show the input dialog and get the index of the selected item
+        resolution, ok = QInputDialog.getItem(self, 'Select Resolution', 'Resolution:', options, 0, False)
+
+        file_name = None
+
+        if ok:
+            # User clicked "OK"
+            # Show the save dialog and get the file name and path selected by the user
+            file_name, _ = QFileDialog.getSaveFileName(self, 'Save File', '', 'Images (*.png)')
+        else:
+            # User clicked "Cancel"
+            return
+
+        if file_name:
+            # User selected a file name
+            self.save_render(file_name, resolution)
+        else:
+            # User cancelled the save dialog
+            pass
+
+    def save_render(self, file_name, resolution):
+        # Get the width and height of the viewport
+        width, height = map(int, resolution.split('x'))  # Split the resolution string and convert to integers
+
+        # Read the pixel data from the framebuffer
+        pixels = (ctypes.c_ubyte * (width * height * 4))()
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels)
+
+        # Create a QImage from the pixel data
+        image = QImage(pixels, width, height, QImage.Format_RGBA8888)
+
+        # Save the QImage to a file
+        image.save(file_name)
+
 
     def get_colour(self, value):
 
