@@ -3,7 +3,6 @@ from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence
-from matplotlib.pyplot import plot
 from qt_material import apply_stylesheet
 
 # General imports
@@ -61,6 +60,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def init_parameters(self):
 
         self.checked_directions = []
+        self.selected_directions = []
         self.checkboxnames = []
         self.checkboxes = []
         self.growthrates = False
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def read_summary_vis(self):
         create_slider.read_summary(self)
 
-    def read_folder(self, mode):
+    def read_folder(self):
         find = Find()
 
         if self.mode == 2:
@@ -582,9 +582,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if replot_mode == 1:
             replot.replot_AR(
-                csv=self.AR_csv,
-                info=self.replot_info,
-                selected=self.checked_directions
+                csv=self.AR_csv, info=self.replot_info, selected=self.checked_directions
             )
 
         if replot_mode == 2:
@@ -592,8 +590,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 csv=self.GrowthRate_csv,
                 info=self.replot_info,
                 selected=self.checked_directions,
-                savepath=self.replot_folder
-
+                savepath=self.replot_folder,
             )
 
     def run_calc(self):
@@ -624,14 +621,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 medium = self.medium_facet.currentText()
                 short = self.short_facet.currentText()
 
-                selected_directions = [short, medium, long]
-                print(selected_directions)
+                self.selected_directions = [short, medium, long]
+                print(self.selected_directions)
         print(self.folders)
 
         calc_info = calc_info_tuple(
             folder_path=self.folder_path,
             checked_directions=self.checked_directions,
-            selected_directions=selected_directions,
+            selected_directions=self.selected_directions,
             summary_file=self.summary_file,
             folders=self.folders,
             aspectratio=self.aspectratio,

@@ -313,7 +313,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>317</height>
+             <height>472</height>
             </rect>
            </property>
            <attribute name="label">
@@ -968,8 +968,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>324</width>
-             <height>344</height>
+             <width>450</width>
+             <height>472</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1358,7 +1358,7 @@ color: rgb(255, 255, 255);</string>
                  </size>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>1</number>
                 </property>
                 <widget class="QWidget" name="variables_page">
                  <property name="geometry">
@@ -1663,7 +1663,7 @@ color: rgb(255, 255, 255);</string>
                   <item>
                    <widget class="QLabel" name="point_type_label">
                     <property name="enabled">
-                     <bool>false</bool>
+                     <bool>true</bool>
                     </property>
                     <property name="font">
                      <font>
@@ -1682,7 +1682,7 @@ color: rgb(255, 255, 255);</string>
                   <item>
                    <widget class="QComboBox" name="pointtype_comboBox">
                     <property name="enabled">
-                     <bool>false</bool>
+                     <bool>true</bool>
                     </property>
                    </widget>
                   </item>
