@@ -10,7 +10,6 @@ from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
 
-
 class WorkerSignals(QObject):
     """
     Defines the signals available from a running worker thread.
@@ -79,9 +78,7 @@ class Worker_XYZ(QRunnable):
         )
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
-        self.signals.message.emit(
-            "Calculations Complete!"
-        )
+        self.signals.message.emit("Calculations Complete!")
         self.signals.finished.emit()
 
 
@@ -171,7 +168,9 @@ class Worker_Calc(QRunnable):
                 )
 
                 zn_df = aspect_ratio.defining_equation(
-                    directions=self.selected_directions, ar_df=cda_df, filepath=save_folder
+                    directions=self.selected_directions,
+                    ar_df=cda_df,
+                    filepath=save_folder,
                 )
                 zn_df_final = find.summary_compare(
                     summary_csv=self.summary_file,
