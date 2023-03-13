@@ -141,7 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def read_summary_vis(self):
         create_slider.read_summary(self)
 
-    def read_folder(self):
+    def read_folder(self, mode):
         find = Find()
 
         if self.mode == 2:
