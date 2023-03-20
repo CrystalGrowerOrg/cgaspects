@@ -37,6 +37,15 @@ class Plotting:
         x_data = df["S:M"]
         y_data = df["M:L"]
 
+        plt.figure()
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlabel('S:M')
+        plt.ylabel('M:L')
+        savepath = f'{folderpath}/PCA Zingg'
+        plt.savefig(savepath, dpi=900)
+
         for interaction in interactions:
             c_df = df[interaction]
             colour = list(set(c_df))
@@ -49,12 +58,12 @@ class Plotting:
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
             plt.title(textstr)
-            plt.xlabel("S/M")
-            plt.ylabel("M/L")
+            plt.xlabel("S: M")
+            plt.ylabel("M: L")
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/PCAZingg_{interaction}"
             plt.savefig(savepath, dpi=300)
 
@@ -110,7 +119,7 @@ class Plotting:
             plt.xlim(0.0)
             plt.ylim(0.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
             print(savepath)
             plt.savefig(savepath, dpi=300)
@@ -155,7 +164,7 @@ class Plotting:
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/CDAZingg_{interaction}"
             plt.savefig(savepath, dpi=300)
 
@@ -280,17 +289,18 @@ class Plotting:
             print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
-            plt.xlabel("Volume (nm)")
-            plt.ylabel("Surface Area (nm)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
+            plt.xlabel(r"Volume ($\mu$$m^3$)")
+            plt.ylabel(r"Surface Area ($\mu$$m^2$)")
             savepath = f"{savefolder}/SAVAR_{interaction}"
-            plt.savefig(savepath, dpi=300)
+            plt.savefig(savepath, dpi=900)
+        plt.close()
 
         plt.scatter(x_data, y_data, s=1.2)
-        plt.xlabel("Volume (nm)")
-        plt.ylabel("Surface Area (nm)")
+        plt.xlabel(r"Volume ($\mu$$m^3$)")
+        plt.ylabel(r"Surface Area ($\mu$$m^2$)")
         savepath = f"{savefolder}/SAVAR"
-        plt.savefig(savepath, dpi=300)
+        plt.savefig(savepath, dpi=900)
 
     def sph_plot(self, csv, mode=1):
         savefolder = self.create_plots_folder(Path(csv).parents[0])
