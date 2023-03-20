@@ -85,14 +85,14 @@ def create_shape_txt(path):
 
         if aspect1 >= 2 / 3:
             if aspect2 >= 2 / 3:
-                shape_class = "block"
+                shape_class = "Block"
             else:
-                shape_class = "needle"
+                shape_class = "Needle"
         if aspect1 <= 2 / 3:
             if aspect2 <= 2 / 3:
-                shape_class = "plate"
+                shape_class = "Lath"
             else:
-                shape_class = "lath"
+                shape_class = "Plate"
 
         surface_area, volume = get_SAVOL(xyz=xyz)
 
