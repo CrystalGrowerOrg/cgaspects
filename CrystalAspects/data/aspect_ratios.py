@@ -84,9 +84,9 @@ class AspectRatio:
             columns=["Simulation Number", "Small", "Medium", "Long", "S:M", "M:L"],
         )
         df.to_csv(savefolder / "PCA_AspectRatio.csv", index=False)
-        """aspects_folder = Path(subfolder) / 'CrystalAspects'
+        '''aspects_folder = Path(subfolder) / 'CrystalAspects'
         aspect_csv = f'{aspects_folder}/PCA_aspectratio.csv'
-        df.to_csv(aspect_csv)"""
+        df.to_csv(aspect_csv)'''
 
         return df
 
