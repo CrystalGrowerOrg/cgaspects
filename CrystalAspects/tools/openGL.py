@@ -10,11 +10,14 @@ from OpenGL.GL import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE, glGetIntegerv
 from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
 
 from OpenGL.GL import glGenLists, glNewList, glBegin, GL_COMPILE, GL_TRIANGLES, glVertex3f, glEndList, glEnd, glCallList
-from OpenGL.GLUT import glutSwapBuffers
+from OpenGL.GLUT import glutSwapBuffers, glutSolidSphere
+from OpenGL.GLU import gluNewQuadric, gluSphere
+import OpenGL.GLU as glu
 
 import numpy as np
 import ctypes
 from matplotlib import cm
+from PIL import Image
 
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.crystal_math import transform_axes
@@ -42,7 +45,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.colour_picked = cm.viridis
         self.colour_type = 2
 
-        self.point_size = 10
+        self.point_size = 0.25
         self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
@@ -86,11 +89,9 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         # End the display list
         gl.glEndList()
+        self.updateGL()
 
         return arrow_model
-
-
-
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
@@ -136,23 +137,32 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def save_render(self, file_name, resolution):
         # Get the width and height of the viewport
-        viewport = ctypes.c_int * 4
-        glGetIntegerv(gl.GL_VIEWPORT, viewport)
+        '''viewport = ctypes.c_int * 4
+        gl.glGetIntegerv(gl.GL_VIEWPORT, viewport)
         viewport_width, viewport_height = viewport[2], viewport[3]
         width, height = map(
             int, resolution.split("x")
-        )  # Split the resolution string and convert to integers
+        ) ''' # Split the resolution string and convert to integers
 
         # Calculate the x and y coordinates of the lower left corner of the region to read
-        x = (viewport_width - width) // 2
+        '''x = (viewport_width - width) // 2
         y = (viewport_height - height) // 2
 
         # Read the pixel data from the framebuffer
         pixels = (ctypes.c_ubyte * (width * height * 4))()
-        glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels)
+        gl.glReadPixels(x, y, width, height, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels)
 
         # Create a QImage from the pixel data
-        image = QImage(pixels, width, height, QImage.Format_RGBA8888)
+        image = QImage(pixels, width, height, QImage.Format_RGBA8888)'''
+        viewport = gl.glGetIntegerv(gl.GL_VIEWPORT)
+        viewport_width, viewport_height = viewport[2], viewport[3]
+        width, height = map(int, resolution.split("x"))
+        x = (viewport_width - width) // 2
+        y = (viewport_height - height) // 2
+        pixels = (ctypes.c_ubyte * (width * height * 4))()
+        gl.glReadPixels(x, y, width, height, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels)
+        image = Image.frombytes("RGBA", (width, height), pixels)
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
 
         # Save the QImage to a file
         image.save(file_name)
@@ -182,7 +192,12 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.point_type = self.point_types[value]
         print(f" Point Type: {self.point_types[value]}")
+        print(value)
         self.initGeometry()
+        '''if value == 1:
+            pcd_points = self.LoadVertices()
+            self.draw_spheres(pcd_points)
+            self.initGeometry()'''
         self.updateGL()
 
     def change_point_size(self, val):
@@ -245,55 +260,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         glNewList(self.z_arrow_model, GL_COMPILE)
         # ...
 
-    def paintGL(self):
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glPushMatrix()
-        gl.glLoadIdentity()
-        gl.glTranslate(
-            0.0, 0.0, -50.0
-        )  # third, translate cube to specified depth. Starting depth
-        gl.glScale(0.1 * self.zoomFactor, 0.1 * self.zoomFactor, 0.1 * self.zoomFactor)
-        gl.glRotate(self.rotX, 1.0, 0.0, 0.0)
-        gl.glRotate(self.rotY, 0.0, 1.0, 0.0)
-        gl.glRotate(self.rotZ, 0.0, 0.0, 1.0)
-        gl.glTranslate(-0.5, -0.5, -0.5)  # first, translate cube center to origin
-
-        # Point size
-        gl.glPointSize(self.point_size)
-        gl.glEnable(gl.GL_POINT_SMOOTH)
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        gl.glEnable(gl.GL_NORMALIZE)
-        gl.glShadeModel(gl.GL_SMOOTH)
-
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
-
-        stride = 6 * 4  # (24 bytes) : [x, y, z, r, g, b] * sizeof(float)
-
-        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
-        gl.glVertexPointer(3, gl.GL_FLOAT, stride, None)
-
-        gl.glEnableClientState(gl.GL_COLOR_ARRAY)
-        offset = 3 * 4
-        gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
-
-        # Drawing points
-        noOfVertices = self.noPoints
-        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
-
-        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
-        gl.glDisableClientState(gl.GL_COLOR_ARRAY)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-
-        # Render the arrow models
-
-        print(self.x_arrow_model)
-
-        gl.glCallList(self.x_arrow_model)
-        gl.glCallList(self.y_arrow_model)
-        gl.glCallList(self.z_arrow_model)
-
-        gl.glPopMatrix()  # restore the previous modelview matrix
 
 
     def mousePressEvent(self, event):
@@ -340,7 +306,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         if event.buttons() & QtCore.Qt.LeftButton:
             self.rotX = self.rotX + 1 * dy
             self.rotY = self.rotY + 1 * dx
-            self.rotZ = self.rotZ + 1 * dz
+            #self.rotZ = self.rotZ + 1 * dz
 
         if (
             event.buttons() & QtCore.Qt.LeftButton
@@ -357,10 +323,15 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def initGeometry(self):
 
-        vArray = self.LoadVertices()
+        vArrayv = self.LoadVertices()
+        vArray = vArrayv.flatten()
         self.noPoints = len(vArray) // 6
+        print("v array is: ")
+        print(vArray)
         # print("No. of Points: %s" % self.noPoints)
         self.vbo = self.CreateBuffer(vArray)
+        '''self.draw_spheres(self.LoadVertices())'''
+
 
     def LoadVertices(
         self,
@@ -394,8 +365,133 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         colors = np.asarray(colors).astype("float32")
 
         attributes = np.concatenate((points, colors), axis=1)
+        print("attributes")
+        print(attributes)
+        print("attributes.flatten")
+        print(attributes.flatten())
 
-        return attributes.flatten()
+        return attributes
+
+    # Create sphere
+    def create_sphere(self, radius, num_subdiv):
+        quad = gluNewQuadric()
+        glu.gluQuadricNormals(quad, glu.GLU_SMOOTH)
+        glu.gluQuadricTexture(quad, gl.GL_TRUE)
+        glu.gluSphere(quad, radius, num_subdiv, num_subdiv)
+
+    def PointCloud(self):
+        point_cloud = self.xyz
+        points = point_cloud[:, 3:]
+
+        return points
+
+    # Drawing spheres
+    def draw_spheres(self, points):
+        print('Draw Spheres')
+        print(points)
+        radius = 0.1  # Sphere radius
+        for p in points:
+            gl.glTranslatef(p[0], p[1], p[2])
+            glutSolidSphere(radius, 16, 16)
+            gl.glTranslatef(-p[0], -p[1], -p[2])
+        #gl.glPopMatrix()
+        self.updateGL()
+
+    def paintGL(self):
+        # Clear the color and depth buffers
+        '''if self.point_type == "Sphere":'''
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+        # Push Matrix
+        gl.glPushMatrix()
+
+        # Enabling Lighting
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_LIGHT0)
+        gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (1, 1, 1, 0))
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+        # set material properties
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 100)
+
+        '''for p in self.PointCloud():
+            gl.glTranslatef(p[0], p[1], p[2])
+            glutSolidSphere(self.point_size, 16, 16)
+            gl.glTranslatef(-p[0], -p[1], -p[2])
+        gl.glPopMatrix()
+        glutSwapBuffers()'''
+
+        # push the current matrix to the current stack
+        gl.glLoadIdentity()
+        gl.glTranslate(0.0, 0.0, -50.0)  # third, translate cube to specified depth. Starting depth
+        gl.glScale(0.1 * self.zoomFactor, 0.1 * self.zoomFactor, 0.1 * self.zoomFactor)
+        # gl.glScale(20.0, 20.0, 20.0)       # second, scale cube
+        gl.glRotate(self.rotX, 1.0, 0.0, 0.0)
+        gl.glRotate(self.rotY, 0.0, 1.0, 0.0)
+        gl.glRotate(self.rotZ, 0.0, 0.0, 1.0)
+        gl.glTranslate(-0.5, -0.5, -0.5)  # first, translate cube center to origin
+
+        # Point size
+        gl.glPointSize(self.point_size)
+        gl.glEnable(gl.GL_POINT_SMOOTH)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
+
+        stride = 6 * 4  # (24 bates) : [x, y, z, r, g, b] * sizeof(float)
+
+        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glVertexPointer(3, gl.GL_FLOAT, stride, None)
+
+        gl.glEnableClientState(gl.GL_COLOR_ARRAY)
+        # (12 bytes) : the rgb color starts after the 3 coordinates x, y, z
+        offset = 3 * 4
+        gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
+
+        # Drawing points
+        '''noOfVertices = self.noPoints
+        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)'''
+
+
+
+        '''if self.point_type == "Spheres":
+            self.draw_spheres(self.PointCloud())'''
+        #gl.glLoadIdentity()
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glPushMatrix()
+        for p in self.PointCloud():
+            gl.glTranslatef(p[0], p[1], p[2])
+            glutSolidSphere(self.point_size, 16, 16)
+            gl.glTranslatef(-p[0], -p[1], -p[2])
+        gl.glPopMatrix()
+
+        glutSwapBuffers()
+
+        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+        gl.glPopMatrix()  # restore the previous modelview matrix
+
+        # Draw Arrows
+        '''gl.glLoadIdentity()
+        self.createArrow()'''
+        #gl.glPopMatrix()
+
+        #glutSwapBuffers()
+        """"
+        #Draw axes
+        gl.glLoadIdentity()
+        gl.glPushMatrix()
+        self.create_arrow(width=1, height=1)
+        gl.glPopMatrix()
+        """
+
 
     def CreateBuffer(self, attributes):
         bufferdata = (ctypes.c_float * len(attributes))(*attributes)  # float buffer

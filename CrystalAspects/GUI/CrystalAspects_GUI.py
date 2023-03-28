@@ -141,7 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def read_summary_vis(self):
         create_slider.read_summary(self)
 
-    def read_folder(self):
+    def read_folder(self, mode):
         find = Find()
 
         if self.mode == 2:
@@ -735,14 +735,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if aspect1 >= 2 / 3:
             if aspect2 >= 2 / 3:
-                shape_class = "block"
+                shape_class = "Block"
             else:
-                shape_class = "needle"
+                shape_class = "Needle"
         if aspect1 <= 2 / 3:
             if aspect2 <= 2 / 3:
-                shape_class = "plate"
+                shape_class = "Lath"
             else:
-                shape_class = "lath"
+                shape_class = "Plate"
 
         self.sm_label.setText("Small/Medium: {:.2f}".format(aspect1))
         self.ml_label.setText("Medium/Long: {:.2f}".format(aspect2))
