@@ -70,6 +70,12 @@ class Replotting:
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             pylustrator.start()
+            #% start: automatic generated code from pylustrator
+            plt.figure(3).ax_dict = {ax.get_label(): ax for ax in plt.figure(3).axes}
+            import matplotlib as mpl
+            getattr(plt.figure(3), '_pylustrator_init', lambda: ...)()
+            plt.figure(3).axes[0].collections[0].set_edgecolor("#ff0000ff")
+            #% end: automatic generated code from pylustrator
             plt.show()
 
         """
