@@ -11,6 +11,11 @@ import pandas as pd
 from collections import namedtuple
 from pathlib import Path
 
+# Testing imports
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
 # Project Module imports
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
@@ -19,7 +24,7 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting
+from CrystalAspects.visualisation.replotting import Replotting # testing
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
@@ -121,6 +126,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plot_checkBox.stateChanged.connect(self.plot_check)
         self.run_calc_button.clicked.connect(self.run_calc)
         self.AR_browse_button.clicked.connect(self.replot_AR_read)
+        #self.summaryfile_browse_button.connect(self.replot_summary_read)
         self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
 
         self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
@@ -578,6 +584,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def call_replot(self, replot_mode):
+
+        '''tested = testing()
+        tested.testplot()'''
+
         replot = Replotting()
 
         if replot_mode == 1:

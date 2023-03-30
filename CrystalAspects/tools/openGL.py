@@ -299,20 +299,20 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         dx = event.x() - self.lastPos.x()
         dy = event.y() - self.lastPos.y()
 
-        dz = dx * 0.1  # Scale the rotation amount
+        dz = dx * 0.01  # Scale the rotation amount
         dz = max(-100, min(dz, 100))  # Clamp the rotation amount to a certain range
         self.rotZ += dz  # Update the rotZ value
 
         if event.buttons() & QtCore.Qt.LeftButton:
-            self.rotX = self.rotX + 1 * dy
-            self.rotY = self.rotY + 1 * dx
+            self.rotX = self.rotX + 0.5 * dy
+            self.rotY = self.rotY + 0.5 * dx
             #self.rotZ = self.rotZ + 1 * dz
 
         if (
             event.buttons() & QtCore.Qt.LeftButton
             & QtCore.Qt.RightButton
         ):
-            self.rotZ = self.rotZ + 1 * dz
+            self.rotZ = self.rotZ + 0.1 * dz
 
         if event.buttons() & QtCore.Qt.RightButton:
             gl.glTranslate(dx * 100, dy * 100, dz * 100)
@@ -415,8 +415,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         # set material properties
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
+        #gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [5.0, 1.0, 1.0, 1.0])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 100)
 
         '''for p in self.PointCloud():
