@@ -585,8 +585,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def call_replot(self, replot_mode):
 
-        '''tested = testing()
-        tested.testplot()'''
+        tested = testing()
+        tested.testplot()
 
         replot = Replotting()
 
