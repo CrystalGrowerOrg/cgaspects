@@ -4,11 +4,9 @@ from pathlib import Path
 
 # PyQt imports
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout
 
 # Matplotlib import
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib
@@ -71,11 +69,18 @@ class Replotting:
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-<<<<<<< Updated upstream
             pylustrator.start()
-=======
-            #pylustrator.start()
->>>>>>> Stashed changes
+            '''#% start: automatic generated code from pylustrator
+            plt.figure(3).ax_dict = {ax.get_label(): ax for ax in plt.figure(3).axes}
+            import matplotlib as mpl
+            getattr(plt.figure(3), '_pylustrator_init', lambda: ...)()
+            plt.figure(3).axes[0].collections[0].set_edgecolor("#ff0000ff")
+            #% end: automatic generated code from pylustrator'''
+            #% start: automatic generated code from pylustrator
+            plt.figure(3).ax_dict = {ax.get_label(): ax for ax in plt.figure(3).axes}
+            import matplotlib as mpl
+            getattr(plt.figure(3), '_pylustrator_init', lambda: ...)()
+            #% end: automatic generated code from pylustrator
             plt.show()
 
         """
@@ -89,7 +94,6 @@ class Replotting:
         """
 
     def replot_GrowthRate(self, csv, info, selected, savepath):
-        plt.close()
         print(csv, info, selected)
         gr_df = pd.read_csv(csv)
         x_data = gr_df["Supersaturation"]
@@ -102,7 +106,7 @@ class Replotting:
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")
             plt.tight_layout()
-            #pylustrator.start()
+            pylustrator.start()
             plt.show()
 
 
@@ -110,7 +114,7 @@ class Replotting:
     def replot_SAVAR(self, csv):
         pass
 
-class testing:
+'''class testing:
 
     def __init__(self):
         super(testing, self).__init__()
@@ -132,4 +136,4 @@ class testing:
         plt.plot(x, y)
 
         #self.setCentralWidget(sc)
-        plt.show()
+        plt.show()'''
