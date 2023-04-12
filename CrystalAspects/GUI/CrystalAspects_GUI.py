@@ -13,8 +13,12 @@ from pathlib import Path
 
 # Testing imports
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('QT5Agg')
+
 
 # Project Module imports
 
@@ -24,7 +28,7 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting # testing
+from CrystalAspects.visualisation.replotting import Replotting, testing
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
@@ -129,7 +133,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #self.summaryfile_browse_button.connect(self.replot_summary_read)
         self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
 
-        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
+        '''self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))'''
+        self.generate_PCA = QtWidgets.QPushButton(self.Plotting_Frame,
+                                                  clicked=lambda: self.Morphology_plot(csv=self.AR_csv,
+                                                                                       info=self.replot_info,
+                                                                                       selected=self.checked_directions))
+
         self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
         self.select_summary_slider_button.clicked.connect(self.read_summary_vis)
 
@@ -352,6 +361,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.summary_cs_label.setEnabled(False)
         self.summaryfile_lineEdit.setEnabled(False)
         self.summaryfile_browse_button.setEnabled(False)
+        self.generate_PCA.setEnable(False)
         self.plot_AR_button.setEnabled(False)
         self.plot_GrowthRate_button.setEnabled(False)
         self.plot_SAVAR_button.setEnabled(False)
@@ -454,6 +464,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.plot = False
             print(f"Plot: {self.plot}")
+
+    def plot_PCA_read(self):
+        input_path = self.ar_lineEdit.text()
+
+        if input_path != "":
+            input_path = Path(input_path)
+
+            if input_path.exists() and input_path.suffix == ".csv":
+                self.AR_csv = input_path
+                self.generate_PCA.setEnabled(True)
 
     def replot_AR_read(self):
         input_path = self.ar_lineEdit.text()
@@ -584,11 +604,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def call_replot(self, replot_mode):
-
-        tested = testing()
-        tested.testplot()
+        #tested.testplot()
 
         replot = Replotting()
+
+        print('Entered replotting')
 
         if replot_mode == 1:
             replot.replot_AR(
@@ -602,6 +622,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 selected=self.checked_directions,
                 savepath=self.replot_folder,
             )
+
+    def Morphology_plot(self, csv, info, selected):
+        print(csv, info, selected)
+        folderpath = Path(csv)
+        df = pd.read_csv(csv)
+        # savefolder = self.create_plots_folder(folderpath)
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+
+        x_data = df["S:M"]
+        y_data = df["M:L"]
+        print(x_data)
+
+        '''self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)'''
+        # Clear figure
+        self.figure.clear()
+
+        # Plot the data
+        plt.title('Morpholgy Map')
+        plt.scatter(x_data, y_data, s=2.0)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlabel('S:M')
+        plt.ylabel('M:L')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        self.canvas.draw()
+
 
     def run_calc(self):
 

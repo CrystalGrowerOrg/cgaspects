@@ -12,9 +12,9 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib
-import pylustrator
 matplotlib.use('QT5Agg')
 
+from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
@@ -29,6 +29,7 @@ class Replotting:
         super(Replotting, self).__init__()
 
     def replot_AR(self, csv, info, selected):
+        print('Entered Plotting')
         print(csv, info, selected)
         folderpath = Path(csv)
         df = pd.read_csv(csv)
@@ -41,8 +42,12 @@ class Replotting:
 
         x_data = df["S:M"]
         y_data = df["M:L"]
+        print(x_data)
 
-        plt.figure()
+        # Clear figure
+        self.figure.clear()
+
+        # Plot the data
         plt.scatter(x_data, y_data, s=1.2)
         plt.axhline(y=0.66, color='black', linestyle='--')
         plt.axvline(x=0.66, color='black', linestyle='--')
@@ -50,8 +55,9 @@ class Replotting:
         plt.ylabel('M:L')
         plt.xlim(0.0, 1.0)
         plt.ylim(0.0, 1.0)
-        #savepath = f'{folderpath}/PCA Zingg'
-        #plt.show()
+
+        # Refresh canvas
+        self.canvas.draw()
 
         for interaction in interactions:
             c_df = df[interaction]
@@ -71,11 +77,7 @@ class Replotting:
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-<<<<<<< Updated upstream
-            pylustrator.start()
-=======
             #pylustrator.start()
->>>>>>> Stashed changes
             plt.show()
 
         """
@@ -117,19 +119,34 @@ class testing:
 
 
     def testplot(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        print(csv, info, selected)
+        folderpath = Path(csv)
+        df = pd.read_csv(csv)
+        # savefolder = self.create_plots_folder(folderpath)
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
 
-        # Create our pandas DataFrame with some simple
-        # data and headers.
-        x = np.linspace(-5, 5, 100)
-        y = np.sin(x)
-        print(x)
+        x_data = df["S:M"]
+        y_data = df["M:L"]
+        print(x_data)
 
-        # plot the pandas DataFrame, passing in the
-        # matplotlib Canvas axes.
-        #fig.clear()
-        plt.plot(x, y)
+        # Clear figure
+        self.figure.clear()
 
-        #self.setCentralWidget(sc)
-        plt.show()
+        # Plot the data
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlabel('S:M')
+        plt.ylabel('M:L')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+
+        # Refresh canvas
+        self.canvas.draw()
+
+
+
