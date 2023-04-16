@@ -95,7 +95,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.AR_csv = None
         self.SAVAR_csv = None
         self.GrowthRate_csv = None
-
+        # Creat horizontal layout
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.Plotting_Frame)
+        # Create Canvas
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)
+        # End canvas
+        # Add canvas
+        self.horizontalLayout_4.addWidget(self.canvas)
+        # End of horizontal layout
         self.progressBar.setValue(0)
 
     def key_shortcuts(self):
@@ -105,6 +113,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.open_outKS = QShortcut(QKeySequence("Ctrl+Shift+O"), self)
         # self.open_outKS.activated.connect(self.output_folder_button)
         self.closeKS = QShortcut(QKeySequence("Ctrl+Q"), self)
+        self.closeKS = QShortcut(QKeySequence("Cmd+Q"), self)
         self.closeKS.activated.connect(QApplication.instance().quit)
         self.resetKS = QShortcut(QKeySequence("Ctrl+R"), self)
         self.resetKS.activated.connect(self.reset_button_function)
@@ -129,18 +138,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
         self.plot_checkBox.stateChanged.connect(self.plot_check)
         self.run_calc_button.clicked.connect(self.run_calc)
-        self.AR_browse_button.clicked.connect(self.replot_AR_read)
+        '''self.PCA_Browse_Button.clicked.connect(self.plot_PCA_read)'''
+        '''self.AR_browse_button.clicked.connect(self.replot_AR_read)
         #self.summaryfile_browse_button.connect(self.replot_summary_read)
         self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
 
-        '''self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))'''
+        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
         self.generate_PCA = QtWidgets.QPushButton(self.Plotting_Frame,
                                                   clicked=lambda: self.Morphology_plot(csv=self.AR_csv,
                                                                                        info=self.replot_info,
                                                                                        selected=self.checked_directions))
-
         self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
-        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)
+        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)'''
 
         # Checkboxes
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
@@ -466,7 +475,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"Plot: {self.plot}")
 
     def plot_PCA_read(self):
-        input_path = self.ar_lineEdit.text()
+        input_path = self.PCA_lineEdit.text()
 
         if input_path != "":
             input_path = Path(input_path)
@@ -474,6 +483,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
                 self.generate_PCA.setEnabled(True)
+        else:
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                None, "Select Aspect Ratio .csv"
+            )
+            input_path = Path(input_path)
+            if input_path.exists() and input_path.suffix == ".csv":
+                self.AR_csv = input_path
+                self.generate_PCA.setEnabled(False)
+
+        self.PCA_lineEdit.setText(str(input_path))
+
+        self.reread_info(input_path)
+        print(input_path)
 
     def replot_AR_read(self):
         input_path = self.ar_lineEdit.text()
@@ -483,7 +505,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
+                self.plot_AR_button.setEnabled(False)
 
         else:
             input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -492,7 +514,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             input_path = Path(input_path)
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
+                self.plot_AR_button.setEnabled(False)
 
         self.ar_lineEdit.setText(str(input_path))
 
@@ -555,6 +577,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.replot_info._replace(Energies=True)
 
     def reread_info(self, csv):
+        print('reading info')
 
         find = Find()
         replot_info = namedtuple(
