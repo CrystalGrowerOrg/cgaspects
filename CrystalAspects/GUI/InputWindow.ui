@@ -1245,7 +1245,7 @@ QProgressBar::chunk{
                  </layout>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton">
+                 <widget class="QPushButton" name="clearPlots">
                   <property name="text">
                    <string>Clear Plots</string>
                   </property>

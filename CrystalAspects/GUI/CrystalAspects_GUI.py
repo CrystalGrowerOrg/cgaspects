@@ -154,7 +154,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Plotting buttons
         self.AR_browse_button.clicked.connect(self.replot_AR_read)
         self.GeneratePlots.clicked.connect(lambda: self.call_replot())
-        self.subplot_button.clicked.connect(self.subplotting())
+        self.subplot_button.clicked.connect(lambda: self.subplotting())
+        self.threeD_plotting_button.clicked.connect(lambda: self.threeD_plotting())
+        self.cl
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
@@ -598,8 +600,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         replot = Replotting
         print('Entering replotting options')
 
-    def call_subplots(self):
+    def subplotting(self):
         print('entered subplotting')
+
+    def threeD_plotting(self):
+        print('entered 3D plotting')
 
 
 
