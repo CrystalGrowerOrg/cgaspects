@@ -961,7 +961,7 @@ QProgressBar::chunk{
               <property name="title">
                <string/>
               </property>
-              <widget class="QWidget" name="">
+              <widget class="QWidget" name="layoutWidget">
                <property name="geometry">
                 <rect>
                  <x>9</x>
@@ -1045,7 +1045,7 @@ QProgressBar::chunk{
                        </widget>
                       </item>
                       <item row="9" column="2">
-                       <widget class="QPushButton" name="GrowthRate_browse_button">
+                       <widget class="QPushButton" name="ARExtra_browse_button">
                         <property name="font">
                          <font>
                           <family>Arial</family>
@@ -1154,6 +1154,13 @@ QProgressBar::chunk{
                     </item>
                     <item>
                      <widget class="QComboBox" name="PlottingOptions">
+                      <property name="font">
+                       <font>
+                        <pointsize>13</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
                       <item>
                        <property name="text">
                         <string>Morphology Map</string>
@@ -1214,14 +1221,14 @@ QProgressBar::chunk{
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout">
                     <item>
-                     <widget class="QPushButton" name="pushButton">
+                     <widget class="QPushButton" name="threeD_plotting_button">
                       <property name="text">
                        <string>3D Plotting</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QPushButton" name="pushButton_2">
+                     <widget class="QPushButton" name="subplot_button">
                       <property name="text">
                        <string>2D Subplots</string>
                       </property>
@@ -1230,6 +1237,13 @@ QProgressBar::chunk{
                    </layout>
                   </item>
                  </layout>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="clearPlots_Button">
+                  <property name="text">
+                   <string>Clear Plots</string>
+                  </property>
+                 </widget>
                 </item>
                 <item>
                  <spacer name="verticalSpacer">
