@@ -138,18 +138,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
         self.plot_checkBox.stateChanged.connect(self.plot_check)
         self.run_calc_button.clicked.connect(self.run_calc)
-        '''self.PCA_Browse_Button.clicked.connect(self.plot_PCA_read)'''
-        '''self.AR_browse_button.clicked.connect(self.replot_AR_read)
-        #self.summaryfile_browse_button.connect(self.replot_summary_read)
-        self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
-
-        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
-        self.generate_PCA = QtWidgets.QPushButton(self.Plotting_Frame,
-                                                  clicked=lambda: self.Morphology_plot(csv=self.AR_csv,
-                                                                                       info=self.replot_info,
-                                                                                       selected=self.checked_directions))
-        self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
-        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)'''
 
         # Checkboxes
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
