@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>1027</height>
+    <width>1793</width>
+    <height>1292</height>
    </rect>
   </property>
   <property name="font">
@@ -212,7 +212,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>450</width>
-             <height>744</height>
+             <height>1009</height>
             </rect>
            </property>
            <attribute name="label">
@@ -230,7 +230,7 @@ QProgressBar::chunk{
                  <x>0</x>
                  <y>0</y>
                  <width>424</width>
-                 <height>718</height>
+                 <height>983</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_8">
@@ -288,7 +288,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>473</width>
-             <height>744</height>
+             <height>1009</height>
             </rect>
            </property>
            <attribute name="label">
@@ -949,7 +949,7 @@ QProgressBar::chunk{
              <x>0</x>
              <y>0</y>
              <width>450</width>
-             <height>744</height>
+             <height>1009</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1032,7 +1032,10 @@ QProgressBar::chunk{
                        </widget>
                       </item>
                       <item row="9" column="0">
-                       <widget class="QLineEdit" name="GrowthRate_lineEdit">
+                       <widget class="QLineEdit" name="CAExtra_lineEdit">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
                         <property name="font">
                          <font>
                           <family>Arial</family>
@@ -1046,6 +1049,9 @@ QProgressBar::chunk{
                       </item>
                       <item row="9" column="2">
                        <widget class="QPushButton" name="ARExtra_browse_button">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
                         <property name="font">
                          <font>
                           <family>Arial</family>
@@ -1239,7 +1245,7 @@ QProgressBar::chunk{
                  </layout>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="clearPlots_Button">
+                 <widget class="QPushButton" name="pushButton">
                   <property name="text">
                    <string>Clear Plots</string>
                   </property>
@@ -1344,8 +1350,8 @@ QProgressBar::chunk{
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>339</width>
-               <height>860</height>
+               <width>427</width>
+               <height>1125</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_12">
@@ -1565,8 +1571,8 @@ color: rgb(255, 255, 255);</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>315</width>
-                   <height>529</height>
+                   <width>403</width>
+                   <height>728</height>
                   </rect>
                  </property>
                  <attribute name="label">
@@ -1869,8 +1875,8 @@ color: rgb(255, 255, 255);</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>1031</width>
-               <height>860</height>
+               <width>1296</width>
+               <height>1125</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_4">
