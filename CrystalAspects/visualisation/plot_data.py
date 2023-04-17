@@ -141,6 +141,8 @@ class Plotting:
         plt.ylabel("M/L---- Plotting on canvas")
         savepath = f"{savefolder}/CDA"
         plt.savefig(savepath, dpi=300)
+        self.canvas.clear()
+        plt.close()
 
         interactions = [
             col
