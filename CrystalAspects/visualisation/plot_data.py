@@ -135,9 +135,10 @@ class Plotting:
         x_data = zn_df["S/M"]
         y_data = zn_df["M/L"]
 
+        #plt.ion()
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel("S/M")
-        plt.ylabel("M/L")
+        plt.ylabel("M/L---- Plotting on canvas")
         savepath = f"{savefolder}/CDA"
         plt.savefig(savepath, dpi=300)
 
