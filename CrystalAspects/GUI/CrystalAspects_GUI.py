@@ -95,6 +95,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.AR_csv = None
         self.SAVAR_csv = None
         self.GrowthRate_csv = None
+        self.select_plots = []
         # Creat horizontal layout
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.Plotting_Frame)
         # Create Canvas
@@ -149,6 +150,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.outFolder_Button.clicked.connect(self.output_folder_button)
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
+
+        # Plotting buttons
+        self.AR_browse_button.clicked.connect(self.replot_AR_read)
+        self.GeneratePlots.clicked.connect(lambda: self.call_replot())
+        self.subplot_button.clicked.connect(self.subplotting())
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
@@ -353,17 +359,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ms_spinBox.setEnabled(False)
             self.ms_percent_label.setEnabled(False)
             self.aspect_range_checkBox.setChecked(False)
-            self.output_textBox.clear()
 
         self.summary_cs_label.setEnabled(False)
         self.summaryfile_lineEdit.setEnabled(False)
         self.summaryfile_browse_button.setEnabled(False)
-        self.generate_PCA.setEnable(False)
+        self.ARExtra_browse_button.setEnable(False)
+        self.CAExtra_lineEdit.setEnable(False)
+        self.SelectPlots.setEnabled(False)
         self.plot_AR_button.setEnabled(False)
         self.plot_GrowthRate_button.setEnabled(False)
         self.plot_SAVAR_button.setEnabled(False)
         self.plot_SA_button.setEnabled(False)
         self.plot_vol_button.setEnabled(False)
+        self.canvas.clear()
 
     def input_directions(self, directions):
         check_box_names = []
@@ -462,29 +470,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.plot = False
             print(f"Plot: {self.plot}")
 
-    def plot_PCA_read(self):
-        input_path = self.PCA_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.AR_csv = input_path
-                self.generate_PCA.setEnabled(True)
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Aspect Ratio .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.AR_csv = input_path
-                self.generate_PCA.setEnabled(False)
-
-        self.PCA_lineEdit.setText(str(input_path))
-
-        self.reread_info(input_path)
-        print(input_path)
-
     def replot_AR_read(self):
         input_path = self.ar_lineEdit.text()
 
@@ -493,7 +478,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(False)
+                self.GeneratePlots.setEnabled(True)
 
         else:
             input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -502,35 +487,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             input_path = Path(input_path)
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(False)
+                self.GeneratePlots.setEnabled(True)
 
         self.ar_lineEdit.setText(str(input_path))
 
         self.reread_info(input_path)
         print(input_path)
-
-    def replot_GrowthRate_read(self):
-        input_path = self.GrowthRate_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Growth Rate .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        self.GrowthRate_lineEdit.setText(str(input_path))
-
-        self.reread_info(input_path)
 
     def replot_summary_read(self):
 
@@ -569,7 +531,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         find = Find()
         replot_info = namedtuple(
-            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol"
+            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol, Temperature, CDA_Extended, Supersaturation, GrowthRates"
         )
 
         self.folder_path = csv.parent
@@ -583,20 +545,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         cda = False
         equations = False
         savar = False
+        temperature = False
+        cda_extended = False
+        supersaturation = False
+        gr_rate = False
 
         for col in df.columns:
             if col.startswith(" ") or col.startswith("-"):
                 directions.append(col)
-            if col.startswith("interactions") or col.startswith("tile"):
+            if col.startswith("interaction") or col.startswith("tile"):
                 energies = True
             if col.startswith("S:M"):
                 pca = True
             if col.startswith("S/M"):
                 cda = True
-            if col.startswith("CDA_Equations"):
+            if col.startswith("CDA_Equation"):
                 equations = True
             if col.startswith("SA"):
                 savar = True
+            if col.startswith("temperature"):
+                temperature = True
+            if col.startswith("AspectRatio"):
+                cda_extended = True
+            if col.startswith("supersaturation"):
+                supersaturation = True
+            if col.startswith("Growth"):
+                gr_rate = True
 
         self.input_directions(directions=directions)
 
@@ -612,9 +586,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Equations=equations,
             Energies=energies,
             SAVol=savar,
+            Temperature=temperature,
+            CDA_Extended=cda_extended,
+            Supersaturation=supersaturation,
+            GrowthRates=gr_rate
         )
+        print(self.replot_info)
+        self.SelectPlots.setEnabled(True)
 
-    def call_replot(self, replot_mode):
+    def call_replot(self):
+        replot = Replotting
+        print('Entering replotting options')
+
+    def call_subplots(self):
+        print('entered subplotting')
+
+
+
+    '''def call_replot(self, replot_mode):
         #tested.testplot()
 
         replot = Replotting()
@@ -632,7 +621,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 info=self.replot_info,
                 selected=self.checked_directions,
                 savepath=self.replot_folder,
-            )
+            )'''
 
     def Morphology_plot(self, csv, info, selected):
         print(csv, info, selected)
