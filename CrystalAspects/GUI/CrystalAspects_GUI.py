@@ -156,7 +156,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.GeneratePlots.clicked.connect(lambda: self.call_replot())
         self.subplot_button.clicked.connect(lambda: self.subplotting())
         self.threeD_plotting_button.clicked.connect(lambda: self.threeD_plotting())
-        self.cl
+        self.clearPlots.clicked.connect(lambda: self.clearPlotting())
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
@@ -368,12 +368,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ARExtra_browse_button.setEnable(False)
         self.CAExtra_lineEdit.setEnable(False)
         self.SelectPlots.setEnabled(False)
-        self.plot_AR_button.setEnabled(False)
-        self.plot_GrowthRate_button.setEnabled(False)
-        self.plot_SAVAR_button.setEnabled(False)
-        self.plot_SA_button.setEnabled(False)
-        self.plot_vol_button.setEnabled(False)
+        self.GeneratePlots.setEnabled(False)
         self.canvas.clear()
+
+    def clearPlotting(self):
+        print('Clearing Figure')
+        self.figure.clear()
+        plt.close()
 
     def input_directions(self, directions):
         check_box_names = []
@@ -595,6 +596,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         print(self.replot_info)
         self.SelectPlots.setEnabled(True)
+        self.plot_selection(self.replot_info)
+
+    def plot_selection(self, plotting_info):
+        print('plot selection entered')
+        print(plotting_info)
+        if plotting_info.PCA == False:
+            pass
+        if plotting_info.CDA == False:
+            pass
+        if plotting_info.CDA == True:
+            print('CDA True')
+            self.select_plots
 
     def call_replot(self):
         replot = Replotting

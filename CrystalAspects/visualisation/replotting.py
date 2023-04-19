@@ -78,7 +78,7 @@ class Replotting:
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             #pylustrator.start()
-            plt.show()
+            #plt.show()
 
         """
         CDA
