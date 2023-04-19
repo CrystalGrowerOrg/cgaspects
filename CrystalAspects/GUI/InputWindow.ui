@@ -1167,31 +1167,6 @@ QProgressBar::chunk{
                         <bold>false</bold>
                        </font>
                       </property>
-                      <item>
-                       <property name="text">
-                        <string>Morphology Map</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string>CDA Aspect Ratio</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string>Morphology Map by CDA Equation</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string>Growth Rates</string>
-                       </property>
-                      </item>
-                      <item>
-                       <property name="text">
-                        <string>Extended CDA Aspect Ratio</string>
-                       </property>
-                      </item>
                      </widget>
                     </item>
                     <item>
