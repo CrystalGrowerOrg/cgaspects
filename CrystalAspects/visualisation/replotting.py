@@ -28,6 +28,48 @@ class Replotting:
     def __init__(self):
         super(Replotting, self).__init__()
 
+    def calculate_plots(self, csv="", info=""):
+        print("Info:  ")
+        print(info)
+        print("Entered calculate plots")
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+        plot_list = []
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+        print(interactions)
+        number_interactions = len(interactions)
+        print(number_interactions)
+
+        if info.PCA == True:
+            plot_list.append("Morphology Map")
+        if info.Energies and info.PCA == True:
+            for interaction in interactions:
+                plot_list.append("PCA Aspect Ratio " + interaction)
+        if info.CDA == True:
+            plot_list.append("CDA Aspect Ratio")
+        if info.CDA and info.Energies == True:
+            for interaction in interactions:
+                plot_list.append("CDA Aspect Ratio " + interaction)
+        if info.SAVol == True:
+            plot_list.append("Surface Area vs Volume")
+        if info.SAVol and info.Energies == True:
+            for interaction in interactions:
+                plot_list.extend("Surface area vs Volume " + interaction)
+        if info.CDA_Extended == True:
+            plot_list.append("Extended CDA")
+        if info.CDA_Extended and info.Energies == True:
+            for interaction in interactions:
+                plot_list.append("CDA Extended " + interaction)
+        print("List of plots =====")
+        print(plot_list)
+
+        return plot_list
+
     def replot_AR(self, csv, info, selected):
         print('Entered Plotting')
         print(csv, info, selected)

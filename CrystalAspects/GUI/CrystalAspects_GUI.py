@@ -533,10 +533,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('reading info')
 
         find = Find()
+        replot = Replotting()
         replot_info = namedtuple(
             "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol, Temperature, CDA_Extended, Supersaturation, GrowthRates"
         )
-
         self.folder_path = csv.parent
 
         self.replot_folder = find.create_aspects_folder(self.folder_path)
@@ -595,12 +595,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             GrowthRates=gr_rate
         )
         print(self.replot_info)
+        plot_list = replot.calculate_plots(csv=csv, info=self.replot_info)
         self.SelectPlots.setEnabled(True)
+        self.SelectPlots.addItems(plot_list)
         self.plot_selection(self.replot_info)
 
     def plot_selection(self, plotting_info):
         print('plot selection entered')
         print(plotting_info)
+
         if plotting_info.PCA == True:
             self.PlottingOptions.addItem("Morphology Mapping")
 
@@ -624,8 +627,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.PlottingOptions.addItem("Surface Area vs Volume")
 
         if self.PlottingOptions == "CDA Aspect Ratio":
-            Print("Plotting Options Selected")
-        self.plotting_choices(self.PlottingOptions)
+            print("Plotting Options Selected")
 
     def plotting_choices(self, plot_option_selected):
         print("plotting choices entered")
@@ -642,28 +644,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def threeD_plotting(self):
         print('entered 3D plotting')
-
-
-
-    '''def call_replot(self, replot_mode):
-        #tested.testplot()
-
-        replot = Replotting()
-
-        print('Entered replotting')
-
-        if replot_mode == 1:
-            replot.replot_AR(
-                csv=self.AR_csv, info=self.replot_info, selected=self.checked_directions
-            )
-
-        if replot_mode == 2:
-            replot.replot_GrowthRate(
-                csv=self.GrowthRate_csv,
-                info=self.replot_info,
-                selected=self.checked_directions,
-                savepath=self.replot_folder,
-            )'''
 
     def Morphology_plot(self, csv, info, selected):
         print(csv, info, selected)
