@@ -601,13 +601,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def plot_selection(self, plotting_info):
         print('plot selection entered')
         print(plotting_info)
-        if plotting_info.PCA == False:
-            pass
-        if plotting_info.CDA == False:
-            pass
+        if plotting_info.PCA == True:
+            self.PlottingOptions.addItem("Morphology Mapping")
+
+        if plotting_info.PCA and plotting_info.Equations == True:
+            self.PlottingOptions.addItem("Morphology Map by CDA Equation")
+
         if plotting_info.CDA == True:
             print('CDA True')
-            self.select_plots
+            self.PlottingOptions.addItem("CDA Aspect Ratio")
+
+        if plotting_info.PCA and plotting_info.Energies == True:
+            self.PlottingOptions.addItem("Morphology Map vs Energy")
+
+        if plotting_info.GrowthRates == True:
+            self.PlottingOptions.addItem("Growth Rates")
+
+        if plotting_info.CDA_Extended == True:
+            self.PlottingOptions.addItem("Extended CDA Aspect Ratio")
+
+        if plotting_info.SAVol == True:
+            self.PlottingOptions.addItem("Surface Area vs Volume")
+
+        if self.PlottingOptions == "CDA Aspect Ratio":
+            Print("Plotting Options Selected")
+        self.plotting_choices(self.PlottingOptions)
+
+    def plotting_choices(self, plot_option_selected):
+        print("plotting choices entered")
+        print(plot_option_selected)
+        if plot_option_selected == "Extended CDA Aspect Ratio":
+            self.SelectPlots.addItem("Extended no energy")
 
     def call_replot(self):
         replot = Replotting

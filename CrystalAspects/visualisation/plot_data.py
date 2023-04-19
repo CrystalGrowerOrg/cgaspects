@@ -22,6 +22,20 @@ class Plotting:
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
+    def calculate_plots(self, csv="", info=""):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+        plot_list = []
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+        print(interactions)
+
+        pass
+
     def build_PCAZingg(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
