@@ -597,39 +597,49 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print(self.replot_info)
         plot_list = replot.calculate_plots(csv=csv, info=self.replot_info)
         self.SelectPlots.setEnabled(True)
-        self.SelectPlots.addItems(plot_list)
-        self.plot_selection(self.replot_info)
+        #self.SelectPlots.addItems(plot_list)
+        selected = self.plot_selection(self.replot_info)
+        self.plotting_choices(plot_option_selected=selected, whole_plot_list=plot_list)
 
     def plot_selection(self, plotting_info):
         print('plot selection entered')
         print(plotting_info)
 
+        selected = []
+
         if plotting_info.PCA == True:
             self.PlottingOptions.addItem("Morphology Mapping")
+            selected.append("Morphology Mapping")
 
         if plotting_info.PCA and plotting_info.Equations == True:
             self.PlottingOptions.addItem("Morphology Map by CDA Equation")
+            selected.append("Morphology Map by CDA Equation")
 
         if plotting_info.CDA == True:
             print('CDA True')
             self.PlottingOptions.addItem("CDA Aspect Ratio")
+            selected.append("CDA Aspect Ratio")
 
         if plotting_info.PCA and plotting_info.Energies == True:
             self.PlottingOptions.addItem("Morphology Map vs Energy")
+            selected.append("Morphology Map vs Energy")
 
         if plotting_info.GrowthRates == True:
             self.PlottingOptions.addItem("Growth Rates")
+            selected.append("Growth Rates")
 
         if plotting_info.CDA_Extended == True:
             self.PlottingOptions.addItem("Extended CDA Aspect Ratio")
+            selected.append("Extended CDA Aspect Ratio")
 
         if plotting_info.SAVol == True:
             self.PlottingOptions.addItem("Surface Area vs Volume")
+            selected.append("Surface Area vs Volume")
+        print(selected)
 
-        if self.PlottingOptions == "CDA Aspect Ratio":
-            print("Plotting Options Selected")
+        return selected
 
-    def plotting_choices(self, plot_option_selected):
+    def plotting_choices(self, plot_option_selected, whole_plot_list):
         print("plotting choices entered")
         print(plot_option_selected)
         if plot_option_selected == "Extended CDA Aspect Ratio":
