@@ -65,6 +65,8 @@ class Replotting:
         if info.CDA_Extended and info.Energies == True:
             for interaction in interactions:
                 plot_list.append("CDA Extended " + interaction)
+        if info.CDA and info.Temperature == True:
+            plot_list.append("CDA Aspect Ratio vs Temperature")
         print("List of plots =====")
         print(plot_list)
 
