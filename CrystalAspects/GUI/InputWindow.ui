@@ -998,6 +998,9 @@ QProgressBar::chunk{
                       </item>
                       <item row="7" column="0">
                        <widget class="QLabel" name="growthrate_cs_label">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
                         <property name="font">
                          <font>
                           <family>Arial</family>

@@ -538,6 +538,7 @@ class Ui_MainWindow(object):
         self.summaryfile_lineEdit.setObjectName("summaryfile_lineEdit")
         self.gridLayout_6.addWidget(self.summaryfile_lineEdit, 13, 0, 1, 1)
         self.growthrate_cs_label = QtWidgets.QLabel(self.layoutWidget)
+        self.growthrate_cs_label.setEnabled(False)
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(13)
