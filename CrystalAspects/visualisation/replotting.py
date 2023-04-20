@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QT5Agg')
 
-from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
@@ -64,7 +63,7 @@ class Replotting:
             plot_list.append("Extended CDA")
         if info.CDA_Extended and info.Energies == True:
             for interaction in interactions:
-                plot_list.append("CDA Extended " + interaction)
+                plot_list.append("Extended CDA " + interaction)
         if info.CDA and info.Temperature == True:
             plot_list.append("CDA Aspect Ratio vs Temperature")
         print("List of plots =====")

@@ -158,6 +158,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threeD_plotting_button.clicked.connect(lambda: self.threeD_plotting())
         self.clearPlots.clicked.connect(lambda: self.clearPlotting())
 
+        self.PlottingOptions.currentTextChanged.connect(self.plotting_choices)
+
     def read_summary_vis(self):
         create_slider.read_summary(self)
 
@@ -599,6 +601,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SelectPlots.setEnabled(True)
         #self.SelectPlots.addItems(plot_list)
         selected = self.plot_selection(self.replot_info)
+        PlottingOption = self.PlottingOptions
         self.plotting_choices(plot_option_selected=selected, whole_plot_list=plot_list)
 
     def plot_selection(self, plotting_info):
@@ -641,9 +644,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def plotting_choices(self, plot_option_selected, whole_plot_list):
         print("plotting choices entered")
-        print(plot_option_selected)
-        if plot_option_selected == "Extended CDA Aspect Ratio":
-            self.SelectPlots.addItem("Extended no energy")
+        filtered_plot_list = []
+        if self.PlottingOptions.currentText() == "CDA Aspect Ratio":
+            for item in whole_plot_list:
+                if item.startswith("CDA Aspect Ratio"):
+                    filtered_plot_list.append(item)
+            print("CDA Aspect Ratio")
+            self.SelectPlots.addItems(filtered_plot_list)
+        if self.PlottingOptions.currentText() == "Extended CDA Aspect Ratio":
+            filtered_plot_list = [item.startswith("Extended CDA") for item in whole_plot_list]
+            for item in whole_plot_list:
+                if item.startswith("Extended CDA"):
+                    filtered_plot_list.append(item)
+            print("Extended CDA")
+            self.SelectPlots.addItems(filtered_plot_list)
+        self.PlottingOptions.update()
+        print(filtered_plot_list)
+
+        self.SelectPlots.update()
 
     def call_replot(self):
         replot = Replotting
