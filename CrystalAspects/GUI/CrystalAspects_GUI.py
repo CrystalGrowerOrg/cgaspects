@@ -89,7 +89,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_result = ()
         self.frame_list = []
         self.plot_list = []
-        self.current_plot = ""
+        self.equation_list = []
 
         self.summary_csv = None
         self.replot_info = None
@@ -98,15 +98,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SAVAR_csv = None
         self.GrowthRate_csv = None
         self.select_plots = []
-        '''# Creat horizontal layout
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.Plotting_Frame)
-        # Create Canvas
-        self.figure = plt.figure()
-        self.canvas = FigureCanvas(self.figure)
-        # End canvas
-        # Add canvas
-        self.horizontalLayout_4.addWidget(self.canvas)
-        # End of horizontal layout'''
         self.progressBar.setValue(0)
 
     def key_shortcuts(self):
@@ -160,7 +151,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.clearPlots.clicked.connect(lambda: self.clearPlotting())
         self.PlottingOptions.currentTextChanged.connect(lambda: self.plotting_choices(whole_plot_list=self.plot_list))
         self.GeneratePlots.clicked.connect(lambda: self.call_replot())
-        #self.GeneratePlots = QtWidgets.QPushButton(self.Plotting_Frame, clicked=lambda: self.call_replot())
+        self.clearPlots.clicked.connect(lambda: self.clearPlotting())
 
     def read_summary_vis(self):
         create_slider.read_summary(self)
@@ -378,8 +369,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def clearPlotting(self):
         print('Clearing Figure')
-        self.figure.clear()
-        plt.close()
 
     def input_directions(self, directions):
         check_box_names = []
@@ -546,7 +535,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.folder_path = csv.parent
 
-        self.replot_folder = find.create_aspects_folder(self.folder_path)
+        '''self.replot_folder = find.create_aspects_folder(self.folder_path)'''
         df = pd.read_csv(csv)
 
         directions = []
@@ -602,7 +591,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             GrowthRates=gr_rate
         )
         print(self.replot_info)
-        self.plot_list = replot.calculate_plots(csv=csv, info=self.replot_info)
+        self.plot_list, self.equation_list = replot.calculate_plots(csv=csv, info=self.replot_info)
         self.SelectPlots.setEnabled(True)
         selected = self.plot_selection(self.replot_info)
 
@@ -613,12 +602,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         selected = []
 
         if plotting_info.PCA == True:
-            self.PlottingOptions.addItem("Morphology Map")
-            selected.append("Morphology Map")
+            self.PlottingOptions.addItem("PCA Morphology Map")
+            selected.append("PCA Morphology Map")
 
         if plotting_info.PCA and plotting_info.Equations == True:
             self.PlottingOptions.addItem("Morphology Map by CDA Equation")
             selected.append("Morphology Map by CDA Equation")
+
+        if plotting_info.PCA and plotting_info.Energies and plotting_info.Equations == True:
+            self.PlottingOptions.addItem("Morphology Map by CDA Equation vs Energy")
+            selected.append("Morphology Map by CDA Equation vs Energy")
 
         if plotting_info.CDA == True:
             print('CDA True')
@@ -640,6 +633,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if plotting_info.SAVol == True:
             self.PlottingOptions.addItem("Surface Area vs Volume")
             selected.append("Surface Area vs Volume")
+        if plotting_info.SAVol and plotting_info.Energies == True:
+            self.PlottingOptions.addItem("Surface Area vs Volume vs Energy")
+            selected.append("Surface Area vs Volume vs Energy")
         print(selected)
 
         return selected
@@ -659,7 +655,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if item.startswith("Extended CDA"):
                     filtered_plot_list.append(item)
             print("Extended CDA")
-        if self.PlottingOptions.currentText() == "Morphology Map":
+        if self.PlottingOptions.currentText() == "Morphology Map by CDA Equation vs Energy":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map filter energy "):
+                    filtered_plot_list.append(item)
+            print("Morphology Map filter energy ")
+        if self.PlottingOptions.currentText() == "PCA Morphology Map":
             for item in whole_plot_list:
                 if item.startswith("Morphology Map"):
                     filtered_plot_list.append(item)
@@ -674,6 +675,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if item.startswith("Surface Area vs Volume"):
                     filtered_plot_list.append(item)
             print("Surface Area vs Volume")
+            if self.PlottingOptions.currentText() == "Surface Area vs Volume vs Energy":
+                for item in whole_plot_list:
+                    if item.startswith("Surface Area vs Volume vs Energy "):
+                        filtered_plot_list.append(item)
+                print("Surface Area vs Volume vs Energy")
         if self.PlottingOptions.currentText() == "Morphology Map vs Temperature":
             for item in whole_plot_list:
                 if item.startswith("Morphology Map vs Temperature"):
@@ -692,52 +698,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SelectPlots.addItems(filtered_plot_list)
         print(filtered_plot_list)
         self.SelectPlots.update()
-        self.current_plot = self.SelectPlots.currentText()
 
     def call_replot(self):
         print('Entering call replot')
         replot = Replotting()
+        self.current_plot = self.SelectPlots.currentText()
+        print(self.current_plot)
         replot.plotting_called(csv=self.AR_csv,
                                selected=self.current_plot,
-                               frame=self.Plotting_Frame)
+                               plot_frame=self.Plotting_Frame,
+                               equations_list=self.equation_list)
 
     def subplotting(self):
         print('entered subplotting')
 
     def threeD_plotting(self):
         print('entered 3D plotting')
-
-    def Morphology_plot(self, csv, info, selected):
-        print(csv, info, selected)
-        folderpath = Path(csv)
-        df = pd.read_csv(csv)
-        # savefolder = self.create_plots_folder(folderpath)
-        interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
-        ]
-
-        x_data = df["S:M"]
-        y_data = df["M:L"]
-        print(x_data)
-
-        '''self.figure = plt.figure()
-        self.canvas = FigureCanvas(self.figure)'''
-        # Clear figure
-        self.figure.clear()
-
-        # Plot the data
-        plt.title('Morpholgy Map')
-        plt.scatter(x_data, y_data, s=2.0)
-        plt.axhline(y=0.66, color='black', linestyle='--')
-        plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlabel('S:M')
-        plt.ylabel('M:L')
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        self.canvas.draw()
-
 
     def run_calc(self):
 

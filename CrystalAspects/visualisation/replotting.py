@@ -22,11 +22,10 @@ from CrystalAspects.visualisation.plot_data import Plotting
 
 
 class Replotting:
-    '''def __init__(self):
-        pass'''
 
     def __init__(self):
         super(Replotting, self).__init__()
+        self.equations_list = []
 
     def calculate_plots(self, csv="", info=""):
         print("Info:  ")
@@ -47,7 +46,6 @@ class Replotting:
         equations = []
         if info.Equations == True:
             equations = self.read_equations()
-
         if info.PCA == True:
             plot_list.append("Morphology Map")
         if info.Energies and info.PCA == True:
@@ -56,6 +54,10 @@ class Replotting:
         if info.PCA and info.Equations == True:
             for equation in equations:
                 plot_list.append("Morphology Map filtered by " + equation)
+        if info.Energies and info.PCA and info.Equations == True:
+            for interaction in interactions:
+                for equation in equations:
+                    plot_list.append("Morphology Map filter energy " + interaction + " " + equation)
         if info.CDA == True:
             plot_list.append("CDA Aspect Ratio")
         if info.CDA and info.Energies == True:
@@ -65,7 +67,7 @@ class Replotting:
             plot_list.append("Surface Area vs Volume")
         if info.SAVol and info.Energies == True:
             for interaction in interactions:
-                plot_list.extend("Surface area vs Volume " + interaction)
+                plot_list.append("Surface Area vs Volume vs Energy " + interaction)
         if info.CDA_Extended == True:
             plot_list.append("Extended CDA")
         if info.CDA_Extended and info.Energies == True:
@@ -80,7 +82,7 @@ class Replotting:
         print("List of plots =====")
         print(plot_list)
 
-        return plot_list
+        return plot_list, equations
 
     def read_equations(self):
         print("Entering Read Equations")
@@ -110,7 +112,7 @@ class Replotting:
                                        + tuple_obj[1] + ' : ' \
                                        + tuple_obj[2]
                         equations_list.append(equation_obj)
-            else:
+            '''else:
                 eq_problem = QMessageBox()
                 eq_problem.setText("File incorrect.\n"
                                    "Please select file named: CDA_equations.txt")
@@ -120,20 +122,37 @@ class Replotting:
                 if QMessageBox.Retry:
                     # User clicked "Retry"
                     self.read_equations()
-                    return
+                    return'''
 
         print("equations_list :  ")
         print(equations_list)
+        self.equations_list = equations_list
+        print("self.equations_list ======")
+        print(self.equations_list)
+
         return equations_list
 
-    def plotting_called(self, csv, selected, frame):
+    def plotting_called(self, csv, selected, plot_frame, equations_list):
         print("entering plotting called")
+        # Reading the dataframe
         df = pd.read_csv(csv)
         print(df)
+        # Reading self.current_plots() coming from self.SelectPlots.currentText()
         selected = selected
+        # Finding interactions in data frame if there are any
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+        print(interactions)
         print(selected)
-        # Creat horizontal layout
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(frame)
+        # Finding extended CDA in data frame if there are any
+        extended = [col for col in df.columns
+                    if col.startswith("AspectRatio")]
+        print(extended)
+        # Create horizontal layout
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(plot_frame)
         # Create Canvas
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.figure)
@@ -142,9 +161,9 @@ class Replotting:
         self.horizontalLayout_4.addWidget(self.canvas)
         # End of horizontal layout
 
-        if selected == "Morphology Map":
+        if selected == "PCA Morphology Map":
             #self.figure.clear()
-            print("Entering Morphology Map")
+            print("Entering PCA Morphology Map")
             x_data = df['S:M']
             y_data = df['M:L']
             # Plot the data
@@ -160,6 +179,80 @@ class Replotting:
             # Refresh canvas
             #self.canvas.draw()
 
+        print("printing selected:   ")
+        print(selected)
+
+        for interaction in interactions:
+            if selected.startswith("Morphology Map vs " + interaction) \
+                    or selected.startswith("CDA Aspect Ratio " + interaction)\
+                    or selected.startswith("Extended CDA " + interaction)\
+                    or selected.startswith("Surface Area vs Volume vs Energy" + interaction):
+                self.figure.clear()
+                print(interaction)
+                print("Entering Morphology Map vs " + interaction)
+                self.axes = self.figure.add_subplot(111)
+                c_df = df[interaction]
+                colour = list(set(c_df))
+                if selected.startswith("Morphology Map vs "):
+                    x_data = df['S:M']
+                    y_data = df['M:L']
+                    self.axes.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+                    self.axes.axhline(y=0.66, color='black', linestyle='--')
+                    self.axes.axvline(x=0.66, color='black', linestyle='--')
+                    self.axes.set_xlabel('S: M')
+                    self.axes.set_ylabel('M: L')
+                    self.axes.set_xlim(0.0, 1.0)
+                    self.axes.set_ylim(0.0, 1.0)
+                if selected.startswith("CDA Aspect Ratio "):
+                    x_data = df['S/M']
+                    y_data = df['M/L']
+                    self.axes.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+                    self.axes.axhline(y=0.66, color='black', linestyle='--')
+                    self.axes.axvline(x=0.66, color='black', linestyle='--')
+                    self.axes.set_xlabel('S/ M')
+                    self.axes.set_ylabel('M/ L')
+                    self.axes.set_xlim(0.0, 1.0)
+                    self.axes.set_ylim(0.0, 1.0)
+                if selected.startswith("Extended CDA "):
+                    print("extended CDA")
+                    x_data = df[extended[0]]
+                    y_data = df[extended[1]]
+                    print(x_data)
+                    self.axes.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+                    '''self.axes.axhline(y=0.66, color='black', linestyle='--')
+                    self.axes.axvline(x=0.66, color='black', linestyle='--')'''
+                    self.axes.set_xlabel(extended[0])
+                    self.axes.set_ylabel(extended[1])
+                if selected.startswith("Surface Area vs Volume vs Energy"):
+                    print('Entered Surface Area vs Volume Plotting:  ')
+                    x_data = df["Volume (Vol)"]
+                    y_data = df["Surface_Area (SA)"]
+                    self.axes.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+                    self.axes.set_xlabel(r"Volume ($nm^3$)")
+                    self.axes.set_ylabel(r"Surface Area ($nm^2$)")
+                    # Plot the data
+                self.canvas.draw()
+
+        if selected.startswith("Morphology Map filtered by "):
+            print("Morphology Map filtered by:   ")
+            equation_integer = ''
+            print(equations_list)
+            for item in equations_list:
+                if selected.endswith(item):
+                    equation_integer = equations_list.index(item)
+                    print(equation_integer)
+            self.axes = self.figure.add_subplot(111)
+            equation_df = df[df["CDA_Equation"] == equation_integer+1]
+            x_data = equation_df["S:M"]
+            y_data = equation_df["M:L"]
+            self.axes.scatter(x_data, y_data, s=1.2)
+            self.axes.axhline(y=0.66, color='black', linestyle='--')
+            self.axes.axvline(x=0.66, color='black', linestyle='--')
+            self.axes.set_xlabel('S: M')
+            self.axes.set_ylabel('M: L')
+            self.axes.set_xlim(0.0, 1.0)
+            self.axes.set_ylim(0.0, 1.0)
+            self.canvas.draw()
 
     def replot_AR(self, csv, info, selected):
         print('Entered Plotting')
