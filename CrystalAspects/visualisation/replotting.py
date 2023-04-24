@@ -151,7 +151,7 @@ class Replotting:
         extended = [col for col in df.columns
                     if col.startswith("AspectRatio")]
         print(extended)
-        # Create horizontal layout
+        '''# Create horizontal layout
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(plot_frame)
         # Create Canvas
         self.figure = plt.figure()
@@ -159,7 +159,7 @@ class Replotting:
         # End canvas
         # Add canvas
         self.horizontalLayout_4.addWidget(self.canvas)
-        # End of horizontal layout
+        # End of horizontal layout'''
 
         if selected == "PCA Morphology Map":
             #self.figure.clear()
@@ -174,7 +174,7 @@ class Replotting:
             plt.ylabel('M:L')
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
-            self.canvas.draw()
+            # self.canvas.draw()
 
             # Refresh canvas
             #self.canvas.draw()
@@ -203,6 +203,7 @@ class Replotting:
                     self.axes.set_ylabel('M: L')
                     self.axes.set_xlim(0.0, 1.0)
                     self.axes.set_ylim(0.0, 1.0)
+                    self.axes.show()
                 if selected.startswith("CDA Aspect Ratio "):
                     x_data = df['S/M']
                     y_data = df['M/L']
@@ -231,7 +232,7 @@ class Replotting:
                     self.axes.set_xlabel(r"Volume ($nm^3$)")
                     self.axes.set_ylabel(r"Surface Area ($nm^2$)")
                     # Plot the data
-                self.canvas.draw()
+                #self.canvas.draw()
 
         if selected.startswith("Morphology Map filtered by "):
             print("Morphology Map filtered by:   ")
