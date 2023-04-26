@@ -1301,6 +1301,16 @@ QProgressBar::chunk{
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
+          <widget class="QTableWidget" name="DisplayDataFrame">
+           <property name="geometry">
+            <rect>
+             <x>-2</x>
+             <y>-2</y>
+             <width>1281</width>
+             <height>1131</height>
+            </rect>
+           </property>
+          </widget>
          </widget>
         </item>
        </layout>

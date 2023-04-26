@@ -1,6 +1,6 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut, QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
@@ -28,7 +28,7 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting, testing
+from CrystalAspects.visualisation.replotting import Replotting
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
@@ -537,6 +537,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         '''self.replot_folder = find.create_aspects_folder(self.folder_path)'''
         df = pd.read_csv(csv)
+        self.ShowData(df)
 
         directions = []
         energies = False
@@ -594,6 +595,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plot_list, self.equation_list = replot.calculate_plots(csv=csv, info=self.replot_info)
         self.SelectPlots.setEnabled(True)
         selected = self.plot_selection(self.replot_info)
+
+    def ShowData(self, df):
+        print('Entering Display CSV')
+        print(df)
+        df = df.iloc[:, 1:]
+        self.table = self.DisplayDataFrame
+        self.table.setRowCount(df.shape[0])
+        self.table.setColumnCount(df.shape[1])
+        self.table.setHorizontalHeaderLabels(df.columns)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        for row in df.iterrows():
+            values = row[1]
+            for col_index, value in enumerate(values):
+                if isinstance(value, (float, int)):
+                    value = '{0:0,.3f}'.format(value)
+                tableItem = QTableWidgetItem(str(value))
+                self.table.setItem(row[0], col_index, tableItem)
+                
+
+        #self.table.setItem(QTableWidgetItem(df))
+
 
     def plot_selection(self, plotting_info):
         print('plot selection entered')

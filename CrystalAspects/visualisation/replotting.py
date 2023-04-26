@@ -5,7 +5,8 @@ import ast
 
 # PyQt imports
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout, QMessageBox, QInputDialog
+from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, \
+    QVBoxLayout, QMessageBox, QInputDialog
 
 # Matplotlib import
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -151,6 +152,7 @@ class Replotting:
         extended = [col for col in df.columns
                     if col.startswith("AspectRatio")]
         print(extended)
+        self.figure = plt.figure()
         '''# Create horizontal layout
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(plot_frame)
         # Create Canvas
@@ -161,7 +163,7 @@ class Replotting:
         self.horizontalLayout_4.addWidget(self.canvas)
         # End of horizontal layout'''
 
-        if selected == "PCA Morphology Map":
+        if selected == "Morphology Map":
             #self.figure.clear()
             print("Entering PCA Morphology Map")
             x_data = df['S:M']
@@ -174,6 +176,7 @@ class Replotting:
             plt.ylabel('M:L')
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
+            plt.show()
             # self.canvas.draw()
 
             # Refresh canvas
@@ -203,7 +206,7 @@ class Replotting:
                     self.axes.set_ylabel('M: L')
                     self.axes.set_xlim(0.0, 1.0)
                     self.axes.set_ylim(0.0, 1.0)
-                    self.axes.show()
+                    #self.axes.show()
                 if selected.startswith("CDA Aspect Ratio "):
                     x_data = df['S/M']
                     y_data = df['M/L']
@@ -232,6 +235,7 @@ class Replotting:
                     self.axes.set_xlabel(r"Volume ($nm^3$)")
                     self.axes.set_ylabel(r"Surface Area ($nm^2$)")
                     # Plot the data
+                plt.show()
                 #self.canvas.draw()
 
         if selected.startswith("Morphology Map filtered by "):
@@ -253,7 +257,11 @@ class Replotting:
             self.axes.set_ylabel('M: L')
             self.axes.set_xlim(0.0, 1.0)
             self.axes.set_ylim(0.0, 1.0)
-            self.canvas.draw()
+            plt.show()
+            #self.canvas.draw()
+
+    def PlotPopUp(self):
+        print("Entered Plot Pop Up")
 
     def replot_AR(self, csv, info, selected):
         print('Entered Plotting')
@@ -333,47 +341,3 @@ class Replotting:
             plt.tight_layout()
             #pylustrator.start()
             plt.show()
-
-
-
-    def replot_SAVAR(self, csv):
-        pass
-
-class testing:
-
-    def __init__(self):
-        super(testing, self).__init__()
-
-
-    def testplot(self, parent=None, width=5, height=4, dpi=100):
-        print(csv, info, selected)
-        folderpath = Path(csv)
-        df = pd.read_csv(csv)
-        # savefolder = self.create_plots_folder(folderpath)
-        interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
-        ]
-
-        x_data = df["S:M"]
-        y_data = df["M:L"]
-        print(x_data)
-
-        # Clear figure
-        self.figure.clear()
-
-        # Plot the data
-        plt.scatter(x_data, y_data, s=1.2)
-        plt.axhline(y=0.66, color='black', linestyle='--')
-        plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlabel('S:M')
-        plt.ylabel('M:L')
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-
-        # Refresh canvas
-        self.canvas.draw()
-
-
-
