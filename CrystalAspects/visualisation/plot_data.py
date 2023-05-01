@@ -138,10 +138,9 @@ class Plotting:
         #plt.ion()
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel("S/M")
-        plt.ylabel("M/L---- Plotting on canvas")
+        plt.ylabel("M/L")
         savepath = f"{savefolder}/CDA"
         plt.savefig(savepath, dpi=300)
-        self.canvas.clear()
         plt.close()
 
         interactions = [
@@ -225,7 +224,7 @@ class Plotting:
     ):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv) 
 
         zn_df = df
         savefolder = self.create_plots_folder(folderpath)
