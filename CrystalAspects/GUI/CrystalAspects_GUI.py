@@ -28,11 +28,10 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting
+from CrystalAspects.visualisation.replotting import Replotting, PlotWindow
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 
 basedir = os.path.dirname(__file__)
-
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -736,6 +735,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def threeD_plotting(self):
         print('entered 3D plotting')
+        self.current_plot = self.SelectPlots.currentText()
+        if self.AR_csv.suffix == '.csv':
+            plot_window = PlotWindow(self)
+            plot_window.plotting_info(csv=self.AR_csv,
+                                      selected=self.current_plot,
+                                      equation_list=self.equation_list)
+            plot_window.exec_()
+        else:
+            pass
 
     def run_calc(self):
 
@@ -751,8 +759,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "cda",
                 "pca",
                 "growthrates",
-                "sa_vol",
-                "plot",
+                "sa_vol"
             ],
         )
         print(self.checked_directions)
@@ -779,8 +786,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             cda=self.cda,
             pca=self.pca,
             growthrates=self.growthrates,
-            sa_vol=self.sa_vol,
-            plot=self.plot,
+            sa_vol=self.sa_vol
         )
 
         worker_calc = Worker_Calc(calc_info)

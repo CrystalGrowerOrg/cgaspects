@@ -74,6 +74,7 @@ class Find:
                     # directions = self.find_growth_directions(f_path)
 
                 if f_name.endswith("simulation_parameters.txt"):
+                    print(f_path)
                     with open(f_path, "r", encoding="utf-8") as sim_file:
                         lines = sim_file.readlines()
 
