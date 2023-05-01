@@ -11,13 +11,13 @@ import pandas as pd
 from collections import namedtuple
 from pathlib import Path
 
-# Testing imports
+'''# Testing imports
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('QT5Agg')
+matplotlib.use('QT5Agg')'''
 
 
 # Project Module imports
@@ -746,7 +746,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pass
 
     def run_calc(self):
-
         calc_info_tuple = namedtuple(
             "Information",
             [
@@ -795,6 +794,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_calc.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_calc)
         print("Calculation Submitted")
+        #self.show_data(df=worker_calc)
+
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
