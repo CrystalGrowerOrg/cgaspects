@@ -96,14 +96,14 @@ class Worker_Calc(QRunnable):
         self.pca = calc_info_tuple.pca
         self.growthrates = calc_info_tuple.growthrates
         self.sa_vol = calc_info_tuple.sa_vol
-        self.plot = calc_info_tuple.plot
+        #self.plot = calc_info_tuple.plot
 
         self.signals = WorkerSignals()
 
     def run(self):
 
         find = Find()
-        plotting = Plotting()
+        #plotting = Plotting()
 
         save_folder = find.create_aspects_folder(self.folder_path)
 
@@ -114,12 +114,10 @@ class Worker_Calc(QRunnable):
 
         if self.growthrates:
             growth = GrowthRate()
-            growth.run_calc_growth(
-                self.folder_path,
-                directions=self.checked_directions,
-                plotting=self.plot,
-                savefolder=save_folder,
-            )
+            growth_df = growth.run_calc_growth(
+                        self.folder_path,
+                        directions=self.checked_directions,
+                        savefolder=save_folder)
 
             self.signals.message.emit("Growth Rate Calculations complete!")
 
@@ -134,9 +132,9 @@ class Worker_Calc(QRunnable):
                 savefolder=save_folder,
             )
             self.signals.message.emit("SA:Vol Calculations complete!")
-            if self.plot:
+            '''if self.plot:
                 plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
-                self.signals.message.emit("Plotting SA:Vol Results!")
+                self.signals.message.emit("Plotting SA:Vol Results!")'''
 
         if self.pca and self.sa_vol:
             aspect_ratio = AspectRatio()
@@ -146,12 +144,13 @@ class Worker_Calc(QRunnable):
             plot_df = find.summary_compare(
                 summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
             )
+            final_df  = plot_df
             self.signals.message.emit("PCA & SA:Vol Calculations complete!")
 
-            if self.plot:
+            '''if self.plot:
                 plotting.SAVAR_plot(df=plot_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=plot_df, folderpath=save_folder)
-                self.signals.message.emit("Plotting PCA & SA:Vol Results!")
+                self.signals.message.emit("Plotting PCA & SA:Vol Results!")'''
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
@@ -177,9 +176,10 @@ class Worker_Calc(QRunnable):
                     aspect_df=zn_df,
                     savefolder=save_folder,
                 )
+                final_df = zn_df_final
                 self.signals.message.emit("CDA Calculations complete!")
 
-                if self.plot:
+                '''if self.plot:
                     plotting.CDA_Plot(df=zn_df_final, folderpath=save_folder)
                     plotting.build_zingg_seperated_i(
                         df=zn_df_final, folderpath=save_folder
@@ -189,7 +189,7 @@ class Worker_Calc(QRunnable):
                         selected=self.selected_directions,
                         folderpath=save_folder,
                     )
-                    self.signals.message.emit("Plotting CDA Results!")
+                    self.signals.message.emit("Plotting CDA Results!")'''
 
             if self.pca and self.sa_vol:
                 aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
@@ -198,29 +198,30 @@ class Worker_Calc(QRunnable):
                 pca_df = aspect_ratio.build_AR_PCA(
                     subfolder=self.folder_path, savefolder=save_folder
                 )
+                final_df = pca_df
                 self.signals.message.emit("PCA Calculations complete!")
 
                 aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
-                if self.plot:
+                '''if self.plot:
                     self.signals.message.emit("Plotting PCA Results!")
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
 
             if self.pca and self.cda:
                 pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
                     pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
                 )
+                final_df = pca_cda_df
                 self.signals.message.emit("PCA & CDA Calculations complete!")
-                if self.plot:
+                '''if self.plot:
                     self.signals.message.emit("Plotting PCA & CDA Results!")
                     plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
 
         self.signals.progress.emit(100)
         self.signals.message.emit(
             "Complete! Please open the output folder at {}".format(str(save_folder))
         )
         self.signals.finished.emit()
-
 
 class Worker_Movies(QRunnable):
     def __init__(self, filepath):
