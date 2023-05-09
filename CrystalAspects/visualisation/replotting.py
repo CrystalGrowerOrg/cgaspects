@@ -530,6 +530,18 @@ class PlotWindow(QDialog):
             # Refresh canvas
             #self.canvas.draw()
 
+        if selected.startswith("CDA Aspect Ratio"):
+            print("CDA Aspect Ratio:  ")
+            x_data = df["S/M"]
+            y_data = df["M/L"]
+            self.ax.scatter(x_data, y_data, s=1.2)
+            self.ax.axhline(y=0.66, color='black', linestyle='--')
+            self.ax.axvline(x=0.66, color='black', linestyle='--')
+            self.ax.set_xlabel('S/ M')
+            self.ax.set_ylabel('M/ L')
+            self.ax.set_xlim(0.0, 1.0)
+            self.ax.set_ylim(0.0, 1.0)
+
         print("printing selected:   ")
         print(selected)
 
@@ -620,9 +632,9 @@ class PlotWindow(QDialog):
         if self.checkbox_grid.isChecked():
             self.ax.grid()
         self.annot = self.ax.annotate("", xy=(0, 0), xytext=(20, 20),
-                                     textcoords="offset points",
-                                     bbox=dict(boxstyle="round", fc="w"),
-                                     arrowprops=dict(arrowstyle="->"))
+                                      textcoords="offset points",
+                                      bbox=dict(boxstyle="round", fc="w"),
+                                      arrowprops=dict(arrowstyle="->"))
         self.annot.set_visible(False)
 
         self.canvas.draw()
@@ -642,6 +654,10 @@ class PlotWindow(QDialog):
         vis = self.annot.get_visible()
         if event.inaxes == self.ax:
             cont, ind = self.scatter.contains(event)
+            print('printing IND')
+            print(ind)
+            print('Printing CONT')
+            print(cont)
             if cont:
                 self.update_annot(ind)
                 self.annot.set_visible(True)
@@ -650,6 +666,10 @@ class PlotWindow(QDialog):
                 if vis:
                     self.annot.set_visible(False)
                     self.figure.canvas.draw_idle()
+        else:
+            if vis:
+                self.annot.set_visible(False)
+            self.figure.canvas.draw_idle()
 
     def add_trendline(self):
         if self.scatter is None:

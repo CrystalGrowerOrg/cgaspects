@@ -119,6 +119,8 @@ class AspectRatio:
                         for direction in directions:
                             if len_line.startswith(direction):
                                 lengths.append(float(len_line.split(" ")[-2]))
+                            '''else:
+                                lengths.append('NaN')'''
             ar_array = np.vstack((ar_array, lengths))
 
             sim_num += 1
