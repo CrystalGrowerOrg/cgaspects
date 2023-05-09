@@ -9,7 +9,6 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
-
 class WorkerSignals(QObject):
     """
     Defines the signals available from a running worker thread.
@@ -144,7 +143,7 @@ class Worker_Calc(QRunnable):
             plot_df = find.summary_compare(
                 summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
             )
-            final_df  = plot_df
+            final_df = plot_df
             self.signals.message.emit("PCA & SA:Vol Calculations complete!")
 
             '''if self.plot:
@@ -210,7 +209,6 @@ class Worker_Calc(QRunnable):
                 pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
                     pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
                 )
-                final_df = pca_cda_df
                 self.signals.message.emit("PCA & CDA Calculations complete!")
                 '''if self.plot:
                     self.signals.message.emit("Plotting PCA & CDA Results!")

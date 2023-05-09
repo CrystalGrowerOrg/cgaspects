@@ -11,15 +11,6 @@ import pandas as pd
 from collections import namedtuple
 from pathlib import Path
 
-'''# Testing imports
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('QT5Agg')'''
-
-
 # Project Module imports
 
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
@@ -598,7 +589,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def ShowData(self, df):
         print('Entering Display CSV')
         print(df)
-        df = df.iloc[:, 1:]
+        df = df.iloc[:, 0:]
         self.table = self.DisplayDataFrame
         self.table.setRowCount(df.shape[0])
         self.table.setColumnCount(df.shape[1])
@@ -611,8 +602,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     value = '{0:0,.3f}'.format(value)
                 tableItem = QTableWidgetItem(str(value))
                 self.table.setItem(row[0], col_index, tableItem)
-                
-
         #self.table.setItem(QTableWidgetItem(df))
 
 
@@ -794,8 +783,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_calc.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_calc)
         print("Calculation Submitted")
-        #self.show_data(df=worker_calc)
-
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
@@ -916,6 +903,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         print("THREAD COMPLETED!")
+        '''DataFrame = self.folder_path / 'CrystalAspects' / 'aspectratio_energy.csv'
+        print(self.AR_csv)
+        print("Printed CSV")
+        self.AR_csv = DataFrame
+        self.reread_info(csv=self.AR_csv)'''
 
     def tabChanged(self):
         self.mode = self.tabWidget.currentIndex() + 1
