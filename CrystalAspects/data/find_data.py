@@ -74,7 +74,7 @@ class Find:
                     # directions = self.find_growth_directions(f_path)
 
                 if f_name.endswith("simulation_parameters.txt"):
-                    print(f_path)
+                    #print(f_path)
                     with open(f_path, "r", encoding="utf-8") as sim_file:
                         lines = sim_file.readlines()
 
@@ -123,7 +123,7 @@ class Find:
         return directions
 
     def summary_compare(self, summary_csv, savefolder, aspect_csv=False, aspect_df=""):
-        print(summary_csv)
+
 
         summary_df = pd.read_csv(summary_csv)
 
@@ -143,24 +143,24 @@ class Find:
             search_string = "_".join(search[:-1])
 
             int_cols = summary_cols[1:]
-            print("Int cols", int_cols)
+            #print("Int cols", int_cols)
             summary_df = summary_df.set_index(summary_cols[0])
             compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
-            print("Compare array shape", compare_array.shape)
+            #print("Compare array shape", compare_array.shape)
 
             for index, row in aspect_df.iterrows():
                 sim_num = int(row["Simulation Number"] - 1 + start_num)
                 num_string = f"{search_string}_{sim_num}"
-                print("num string", num_string)
+                #print("num string", num_string)
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
                 collect_row = summary_df.filter(items=[num_string], axis=0).values
-                print(
+                '''print(
                     f"Row from aspect file: {aspect_row}\nRow from summuary: {collect_row}"
-                )
+                )'''
                 collect_row = np.concatenate([aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
-                print(compare_array.shape)
+                #print(compare_array.shape)
 
         except AttributeError:
             int_cols = summary_cols[1:]
@@ -170,23 +170,23 @@ class Find:
                 sim_num = int(row["Simulation Number"] - 1)
                 aspect_row = row.values
                 aspect_row = np.array([aspect_row])
-                print(aspect_row)
+                #print(aspect_row)
                 collect_row = [summary_df.iloc[sim_num].values[1:]]
-                print(collect_row)
+                #print(collect_row)
                 collect_row = np.concatenate([aspect_row, collect_row], axis=1)
                 compare_array = np.append(compare_array, collect_row, axis=0)
-                print(compare_array.shape)
+                #print(compare_array.shape)
 
-        print(aspect_cols, int_cols)
+        #print(aspect_cols, int_cols)
         cols = aspect_cols.append(int_cols)
-        print(aspect_cols)
-        print(f"COLS:::: {cols}")
+        #print(aspect_cols)
+        #print(f"COLS:::: {cols}")
         compare_df = pd.DataFrame(compare_array, columns=cols)
-        print(compare_df)
+        #print(compare_df)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
         aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
         full_df.to_csv(aspect_energy_csv, index=None)
 
-        print(full_df)
+        #print(full_df)
 
         return full_df
