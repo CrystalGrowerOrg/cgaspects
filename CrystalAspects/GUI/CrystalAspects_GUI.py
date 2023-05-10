@@ -761,8 +761,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 short = self.short_facet.currentText()
 
                 self.selected_directions = [short, medium, long]
+                print('clicked run calc')
                 print(self.selected_directions)
-        print(self.folders)
 
         calc_info = calc_info_tuple(
             folder_path=self.folder_path,
