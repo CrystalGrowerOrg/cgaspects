@@ -97,9 +97,9 @@ class AspectRatio:
         print('selected directions:')
         print(selected)
 
-        ar_array = np.empty((0, len(directions) + 1))
+        #ar_array = np.empty((0, len(directions) + 1))
         ar_keys = ["Simulation Number"] + directions
-        #print("AR_keys", ar_keys)
+        print("AR_keys", ar_keys)
         ar_dict = {k: [] for k in ar_keys}
         print("ar_dict", ar_dict)
         sim_num = 1
@@ -108,18 +108,18 @@ class AspectRatio:
             for f in files:
                 f_path = path / folder / f
                 f_name = f
-
                 if f_name.startswith("._"):
                     continue
                 if f_name.endswith("simulation_parameters.txt"):
                     with open(f_path, "r", encoding="utf-8") as sim_file:
                         lines = sim_file.readlines()
-
                     for line in lines:
-                        if line.startswith("Size of crystal at frame output"):
-                            frame = lines.index(line) + 1
-
-                    ar_dict["Simulation Number"].append(sim_num)
+                        try:
+                            if line.startswith("Size of crystal at frame output"):
+                                frame = lines.index(line) + 1
+                                ar_dict["Simulation Number"].append(sim_num)
+                        except NameError:
+                            continue
 
                     len_info_lines = lines[frame:]
                     for len_line in len_info_lines:
@@ -130,9 +130,9 @@ class AspectRatio:
                                 #print(ar_dict)
 
             sim_num += 1
-
+        print("sim_num = ", sim_num)
         print("Order of Directions in Columns =", *directions)
-        #print("ar_dict", ar_dict)
+        print("ar_dict", ar_dict)
 
         df = pd.DataFrame.from_dict(ar_dict)
         print("df", ar_dict)
