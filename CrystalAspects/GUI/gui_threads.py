@@ -6,7 +6,6 @@ from collections import namedtuple
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
 class WorkerSignals(QObject):
