@@ -643,7 +643,7 @@ class PlotWindow(QDialog):
 
         pos = self.scatter.get_offsets()[ind["ind"][0]]
         self.annot.xy = pos
-        text = "{}".format(" ".join(list(map(str, ind["ind"]))))
+        text = "Simulation Number: " + "{}".format(" ".join(list(map(str, ind["ind"]))))
         self.annot.set_text(text)
         #self.annot.get_bbox_patch().set_facecolor(self.c_df(norm(c[ind["ind"][0]])))
         self.annot.get_bbox_patch().set_alpha(0.4)
@@ -652,24 +652,23 @@ class PlotWindow(QDialog):
 
     def on_hover(self, event):
         vis = self.annot.get_visible()
-        if event.inaxes == self.ax:
-            cont, ind = self.scatter.contains(event)
-            print('printing IND')
-            print(ind)
-            print('Printing CONT')
-            print(cont)
-            if cont:
-                self.update_annot(ind)
-                self.annot.set_visible(True)
-                self.figure.canvas.draw_idle()
+        try:
+            if event.inaxes == self.ax:
+                cont, ind = self.scatter.contains(event)
+                if cont:
+                    self.update_annot(ind)
+                    self.annot.set_visible(True)
+                    self.figure.canvas.draw_idle()
+                else:
+                    if vis:
+                        self.annot.set_visible(False)
+                        self.figure.canvas.draw_idle()
             else:
                 if vis:
                     self.annot.set_visible(False)
-                    self.figure.canvas.draw_idle()
-        else:
-            if vis:
-                self.annot.set_visible(False)
-            self.figure.canvas.draw_idle()
+                self.figure.canvas.draw_idle()
+        except NameError:
+            pass
 
     def add_trendline(self):
         if self.scatter is None:
