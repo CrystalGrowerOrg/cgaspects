@@ -15,7 +15,6 @@ from mpl_toolkits.mplot3d import proj3d
 # Current Project imports
 from CrystalAspects.tools.shape_analysis import CrystalShape
 
-
 class Plotting:
     def create_plots_folder(self, path):
         plots_folder = Path(path) / "CGPlots"
