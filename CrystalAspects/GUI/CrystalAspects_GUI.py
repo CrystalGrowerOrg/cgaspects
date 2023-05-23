@@ -775,14 +775,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pca=self.pca,
             growthrates=self.growthrates,
             sa_vol=self.sa_vol
-        )
 
-        worker_calc = Worker_Calc(calc_info)
+        find = Find()
+        plotting = Plotting()
+        save_folder = find.create_aspects_folder(self.folder_path)
+
+        '''worker_calc = Worker_Calc(calc_info)
         worker_calc.signals.finished.connect(self.thread_finished)
         worker_calc.signals.progress.connect(self.update_progress)
         worker_calc.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_calc)
-        print("Calculation Submitted")
+        print("Calculation Submitted")'''
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
