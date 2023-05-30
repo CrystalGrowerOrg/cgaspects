@@ -1,19 +1,10 @@
 # Miscellaneous imports
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import plotly.express as px
-from sklearn.decomposition import PCA
-
 
 # Matplotlib imports
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-
-# Current Project imports
-from CrystalAspects.tools.shape_analysis import CrystalShape
 
 class Plotting:
     def create_plots_folder(self, path):
