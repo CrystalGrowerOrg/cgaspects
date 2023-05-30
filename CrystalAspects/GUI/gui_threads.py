@@ -145,10 +145,10 @@ class Worker_Calc(QRunnable):
             final_df = plot_df
             self.signals.message.emit("PCA & SA:Vol Calculations complete!")
 
-            '''if self.plot:
+            if self.plot:
                 plotting.SAVAR_plot(df=plot_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=plot_df, folderpath=save_folder)
-                self.signals.message.emit("Plotting PCA & SA:Vol Results!")'''
+                self.signals.message.emit("Plotting PCA & SA:Vol Results!")
 
         if self.aspectratio:
             aspect_ratio = AspectRatio()
