@@ -2,7 +2,7 @@
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut, QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt, QThreadPool
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QKeyEvent
 from qt_material import apply_stylesheet
 
 # General imports
@@ -91,18 +91,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar.setValue(0)
 
     def key_shortcuts(self):
-
+        # Create a QShortcut with the specified key sequence
+        close = QShortcut(QKeySequence("Ctrl+Q"), self)
+        # Connect the activated signal of the shortcut to the close() method
+        close.activated.connect(self.close)
+        # Open read folder
         self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
-        self.openKS.activated.connect(self.read_folder)
+        try:
+            self.openKS.activated.connect(lambda: self.read_folder(self.mode))
+        except IndexError:
+            pass
+        # Open output folder
         self.open_outKS = QShortcut(QKeySequence("Ctrl+Shift+O"), self)
-        # self.open_outKS.activated.connect(self.output_folder_button)
-        self.closeKS = QShortcut(QKeySequence("Ctrl+Q"), self)
-        self.closeKS = QShortcut(QKeySequence("Cmd+Q"), self)
-        self.closeKS.activated.connect(QApplication.instance().quit)
+        try:
+            self.open_outKS.activated.connect(self.output_folder_button)
+        except IndexError:
+            pass
+        # Reset everything
         self.resetKS = QShortcut(QKeySequence("Ctrl+R"), self)
         self.resetKS.activated.connect(self.reset_button_function)
-        self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
-        # self.applyKS.activated.connect(self.apply_clicked)
+        '''self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
+        # self.applyKS.activated.connect(self.apply_clicked)'''
 
     def welcome_message(self):
         print("############################################")
@@ -351,11 +360,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ar_lineEdit.clear()
         self.summaryfile_lineEdit.setEnabled(False)
         self.summaryfile_browse_button.setEnabled(False)
-        self.ARExtra_browse_button.setEnable(False)
-        self.CAExtra_lineEdit.setEnable(False)
+        #self.ARExtra_browse_button.setEnable(False)
+        #self.CAExtra_lineEdit.setEnable(False)
         self.SelectPlots.setEnabled(False)
         self.GeneratePlots.setEnabled(False)
-        self.canvas.clear()
 
     def clearPlotting(self):
         print('Clearing Figure')
@@ -587,6 +595,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         selected = self.plot_selection(self.replot_info)
 
     def ShowData(self, df):
+        ''' Displaying the dataframe as a QTable '''
         print('Entering Display CSV')
         print(df)
         df = df.iloc[:, 0:]
