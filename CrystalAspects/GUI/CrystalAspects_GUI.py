@@ -746,7 +746,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pass
 
     def run_calc(self):
-        calc_info_tuple = namedtuple(
+        '''calc_info_tuple = namedtuple(
             "Information",
             [
                 "folder_path",
@@ -761,7 +761,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "sa_vol",
                 "plot"
             ],
-        )
+        )'''
         print(self.checked_directions)
         if self.aspectratio:
             print(self.checked_directions)
@@ -776,7 +776,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 print('clicked run calc')
                 print(self.selected_directions)
 
-        calc_info = calc_info_tuple(
+        '''calc_info = calc_info_tuple(
             folder_path=self.folder_path,
             checked_directions=self.checked_directions,
             selected_directions=self.selected_directions,
@@ -787,7 +787,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pca=self.pca,
             growthrates=self.growthrates,
             sa_vol=self.sa_vol,
-            plot=self.plot)
+            plot=self.plot)'''
 
         find = Find()
         plotting = Plotting()
@@ -802,6 +802,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 aspect_df=savar_df,
                 savefolder=save_folder,
             )
+            if self.plot:
+                plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
         if self.pca and self.sa_vol:
             aspect_ratio = AspectRatio()
             pca_df = aspect_ratio.shape_all(
