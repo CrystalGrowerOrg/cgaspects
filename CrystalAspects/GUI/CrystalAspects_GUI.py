@@ -12,7 +12,6 @@ from collections import namedtuple
 from pathlib import Path
 
 # Project Module imports
-
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
@@ -154,7 +153,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.GeneratePlots.clicked.connect(lambda: self.call_replot())
         self.clearPlots.clicked.connect(lambda: self.clearPlotting())
 
+        # Visualisation Buttons
+        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary_vis())
+
     def read_summary_vis(self):
+        print('Entering Reading Summary file')
         create_slider.read_summary(self)
 
     def read_folder(self, mode):
