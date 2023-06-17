@@ -45,7 +45,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.colour_picked = cm.viridis
         self.colour_type = 2
 
-        self.point_size = 0.25
+        self.point_size = 6.0
         self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
@@ -260,8 +260,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         glNewList(self.z_arrow_model, GL_COMPILE)
         # ...
 
-
-
     def mousePressEvent(self, event):
         self.lastPos = event.pos()
 
@@ -404,24 +402,24 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         # Push Matrix
-        gl.glPushMatrix()
+        '''gl.glPushMatrix()'''
 
         # Enabling Lighting
-        gl.glEnable(gl.GL_LIGHTING)
-        gl.glEnable(gl.GL_LIGHT0)
-        gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (1, 1, 1, 0))
+        #gl.glEnable(gl.GL_LIGHTING)
+        #gl.glEnable(gl.GL_LIGHT0)
+        '''gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (1, 1, 1, 0))
         gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
         gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)'''
 
         # set material properties
         #gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [5.0, 1.0, 1.0, 1.0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 100)
+        '''gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [5.0, 1.0, 1.0, 1.0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 100)'''
 
         '''for p in self.PointCloud():
             gl.glTranslatef(p[0], p[1], p[2])
-            glutSolidSphere(self.point_size, 16, 16)
+            #glutSolidSphere(self.point_size, 16, 16)
             gl.glTranslatef(-p[0], -p[1], -p[2])
         gl.glPopMatrix()
         glutSwapBuffers()'''
@@ -455,8 +453,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
 
         # Drawing points
-        '''noOfVertices = self.noPoints
-        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)'''
+        noOfVertices = self.noPoints
+        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
 
 
 
@@ -464,19 +462,19 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             self.draw_spheres(self.PointCloud())'''
         #gl.glLoadIdentity()
         gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glPushMatrix()
+        '''gl.glPushMatrix()
         for p in self.PointCloud():
             gl.glTranslatef(p[0], p[1], p[2])
-            glutSolidSphere(self.point_size, 16, 16)
+            #glutSolidSphere(self.point_size, 16, 16)
             gl.glTranslatef(-p[0], -p[1], -p[2])
-        gl.glPopMatrix()
+        gl.glPopMatrix()'''
 
         glutSwapBuffers()
 
         gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        gl.glPopMatrix()  # restore the previous modelview matrix
+        #gl.glPopMatrix()  # restore the previous modelview matrix
 
         # Draw Arrows
         '''gl.glLoadIdentity()

@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 import sys
 
 def read_xyz_file(filename):
+    """Opening and reading the .XYZ file"""
     with open(filename, 'r') as f:
         lines = f.readlines()[2:]
         coordinates = []
@@ -54,7 +55,7 @@ def measure_crystal_size_xyz(coordinates):
 
 def determine_crystal_shape(aspect1, aspect2):
     """Creating the definition of the shape according
-    to the Zingg diagram"""
+    to the Zingg diagram, used by both PCA and OBA"""
     if aspect1 <= 0.667 and aspect2 <= 0.667:
         return "Lath"
     elif aspect1 <= 0.667 and aspect2 >= 0.667:
@@ -153,4 +154,3 @@ collect_all(
     folder="/Users/Nathan/Documents/University/CrystalGrower/DaniMOF/1-5/20230506_132334/",
     savefolder="/Users/Nathan/Documents/University/CrystalGrower/DaniMOF/1-5/20230506_132334/CrystalAspects/",
 )
-
