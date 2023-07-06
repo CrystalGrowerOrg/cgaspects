@@ -19,7 +19,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
- 
+
     # Read Summary file
     def read_summary(self):
 

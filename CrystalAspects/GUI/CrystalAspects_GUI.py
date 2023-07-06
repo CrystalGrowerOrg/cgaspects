@@ -15,8 +15,9 @@ from pathlib import Path
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.tools.shape_analysis import CrystalShape
+#from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
+from CrystalAspects.tools.AspectRatioXYZ import CrystalShape
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.replotting import Replotting, PlotWindow
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
@@ -795,6 +796,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         find = Find()
         plotting = Plotting()
         save_folder = find.create_aspects_folder(self.folder_path)
+
         if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
             savar_df = aspect_ratio.savar_calc(
@@ -885,6 +887,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 #self.signals.message.emit("Plotting PCA & CDA Results!")
                 plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+
+        AspectXYZ = CrystalShape()
+        if self.aspectratio:
+            print('folderpath =', self.folder_path)
+            xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
+            print(xyz_df)
+
 
         '''worker_calc = Worker_Calc(calc_info)
         worker_calc.signals.finished.connect(self.thread_finished)
