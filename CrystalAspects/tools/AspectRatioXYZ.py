@@ -146,7 +146,7 @@ class CrystalShape:
         aspect1 = small / medium
         aspect2 = medium / long
 
-        shape = determine_crystal_shape(aspect1, aspect2)  # Get Zingg definition of crystal
+        shape = self.determine_crystal_shape(aspect1, aspect2)  # Get Zingg definition of crystal
 
         pca_shape = np.array([[small, medium, long, aspect1, aspect2, shape]])
 
@@ -184,10 +184,10 @@ class CrystalShape:
                     if file.suffix == ".XYZ":
                         sim_num = re.findall(r"\d+", file.name)[-1]
                         try:
-                            xyz, _, _ = read_XYZ(file)  # Read .XYZ file
-                            pca_size = get_PCA(xyz)  # Collect PCA data
-                            crystal_size = measure_crystal_size_xyz(xyz)  # Collect OBA data
-                            savar_size = get_savar(xyz)  # Collect SAVAR data
+                            xyz, _, _ = self.read_XYZ(file)  # Read .XYZ file
+                            pca_size = self.get_PCA(xyz)  # Collect PCA data
+                            crystal_size = self.measure_crystal_size_xyz(xyz)  # Collect OBA data
+                            savar_size = self.get_savar(xyz)  # Collect SAVAR data
                             sim_num_value = np.array([[sim_num]])  # Generate simulation number
                             size_data = np.concatenate((sim_num_value,
                                                         crystal_size,

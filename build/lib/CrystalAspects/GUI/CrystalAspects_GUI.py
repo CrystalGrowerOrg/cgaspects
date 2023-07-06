@@ -888,9 +888,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
-        CrystalShape() = AspectRatioXYZ
+        AspectXYZ = CrystalShape()
         if self.aspectratio:
-            xyz_df = AspectXYZ.collect_all(folder=folder_path)
+            print('folderpath =', self.folder_path)
+            xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
             print(xyz_df)
 
 
