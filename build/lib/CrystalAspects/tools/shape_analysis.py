@@ -130,7 +130,8 @@ class CrystalShape:
         """Returns both Aspect Ratio through PCA
         and Surface Area/Volume information on a
         crystal shape."""
-
+        xyz_vals = xyz_vals[0:, 3:]
+        print(xyz_vals)
         pca = PCA(n_components=n)
         pca.fit(xyz_vals)
         # pca_vectors = pca.components_
@@ -150,3 +151,4 @@ class CrystalShape:
         shape_info = np.array([[aspect1, aspect2, SA_hull, vol_hull, sa_vol]])
 
         return shape_info
+

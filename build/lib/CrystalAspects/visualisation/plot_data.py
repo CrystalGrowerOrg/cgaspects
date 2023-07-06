@@ -1,20 +1,10 @@
 # Miscellaneous imports
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import plotly.express as px
-from sklearn.decomposition import PCA
-
 
 # Matplotlib imports
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-
-# Current Project imports
-from CrystalAspects.tools.shape_analysis import CrystalShape
-
 
 class Plotting:
     def create_plots_folder(self, path):
@@ -37,6 +27,15 @@ class Plotting:
         x_data = df["S:M"]
         y_data = df["M:L"]
 
+        plt.figure()
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlabel('S:M')
+        plt.ylabel('M:L')
+        savepath = f'{folderpath}/PCA Zingg'
+        plt.savefig(savepath, dpi=900)
+
         for interaction in interactions:
             c_df = df[interaction]
             colour = list(set(c_df))
@@ -49,14 +48,14 @@ class Plotting:
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
             plt.title(textstr)
-            plt.xlabel("S/M")
-            plt.ylabel("M/L")
+            plt.xlabel("S: M")
+            plt.ylabel("M: L")
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/PCAZingg_{interaction}"
-            plt.savefig(savepath, dpi=900)
+            plt.savefig(savepath, dpi=300)
 
             if i_plot:
                 fig = px.scatter(
@@ -86,7 +85,7 @@ class Plotting:
         plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
         plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
         savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
-        plt.savefig(savepath, dpi=900)
+        plt.savefig(savepath, dpi=300)
 
         interactions = [
             col
@@ -104,18 +103,16 @@ class Plotting:
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-            plt.axhline(y=0.66, color="black", linestyle="--")
-            plt.axvline(x=0.66, color="black", linestyle="--")
             plt.title(textstr)
             plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
             plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
             plt.xlim(0.0)
             plt.ylim(0.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
             print(savepath)
-            plt.savefig(savepath, dpi=900)
+            plt.savefig(savepath, dpi=300)
 
     def CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
@@ -128,11 +125,13 @@ class Plotting:
         x_data = zn_df["S/M"]
         y_data = zn_df["M/L"]
 
+        #plt.ion()
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel("S/M")
         plt.ylabel("M/L")
         savepath = f"{savefolder}/CDA"
-        plt.savefig(savepath, dpi=900)
+        plt.savefig(savepath, dpi=300)
+        plt.close()
 
         interactions = [
             col
@@ -157,9 +156,9 @@ class Plotting:
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/CDAZingg_{interaction}"
-            plt.savefig(savepath, dpi=900)
+            plt.savefig(savepath, dpi=300)
 
             if i_plot:
                 fig = px.scatter(
@@ -198,7 +197,7 @@ class Plotting:
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             savepath = f"{savefolder}/PCA_CDA_eq{equation}"
-            plt.savefig(savepath, dpi=900)
+            plt.savefig(savepath, dpi=300)
 
             if i_plot:
                 fig = px.scatter(
@@ -215,7 +214,7 @@ class Plotting:
     ):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv) 
 
         zn_df = df
         savefolder = self.create_plots_folder(folderpath)
@@ -237,7 +236,7 @@ class Plotting:
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
             savepath = f"{savefolder}/CDA_Zingg_eq{equation}"
-            plt.savefig(savepath, dpi=900)
+            plt.savefig(savepath, dpi=300)
 
             if i_plot:
                 fig = px.scatter(
@@ -282,15 +281,16 @@ class Plotting:
             print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             cbar = plt.colorbar(ticks=colour)
-            cbar.set_label(r"$\Delta G_{Crystallisation}$ (kcal/mol)")
-            plt.xlabel("Volume (nm)")
-            plt.ylabel("Surface Area (nm)")
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
+            plt.xlabel(r"Volume ($\mu$$m^3$)")
+            plt.ylabel(r"Surface Area ($\mu$$m^2$)")
             savepath = f"{savefolder}/SAVAR_{interaction}"
             plt.savefig(savepath, dpi=900)
+        plt.close()
 
         plt.scatter(x_data, y_data, s=1.2)
-        plt.xlabel("Volume (nm)")
-        plt.ylabel("Surface Area (nm)")
+        plt.xlabel(r"Volume ($\mu$$m^3$)")
+        plt.ylabel(r"Surface Area ($\mu$$m^2$)")
         savepath = f"{savefolder}/SAVAR"
         plt.savefig(savepath, dpi=900)
 

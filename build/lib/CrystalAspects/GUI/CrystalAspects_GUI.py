@@ -1,41 +1,30 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut, QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt, QThreadPool
-from PyQt5.QtGui import QKeySequence
-from matplotlib.pyplot import plot
-from pyparsing import RecursiveGrammarException
-from qt_material import *
+from PyQt5.QtGui import QKeySequence, QKeyEvent
+from qt_material import apply_stylesheet
 
 # General imports
 import os, sys, subprocess
 import pandas as pd
 from collections import namedtuple
 from pathlib import Path
-import logging
 
 # Project Module imports
-
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.tools.shape_analysis import CrystalShape
+#from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
+from CrystalAspects.tools.AspectRatioXYZ import CrystalShape
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting
+from CrystalAspects.visualisation.replotting import Replotting, PlotWindow
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
+from CrystalAspects.visualisation.plot_data import Plotting
+from CrystalAspects.data.aspect_ratios import AspectRatio
 
 basedir = os.path.dirname(__file__)
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename=Path(basedir).parents[0] / "outputs" / "CrystalAspects.log",
-    filemode="w",
-    format="%(asctime)s-%(levelname)s: %(message)s",
-)
-
-logger = logging.getLogger("CrystalAspects_Logger")
-
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -72,6 +61,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def init_parameters(self):
 
         self.checked_directions = []
+        self.selected_directions = []
         self.checkboxnames = []
         self.checkboxes = []
         self.growthrates = False
@@ -90,6 +80,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_list = []
         self.xyz_result = ()
         self.frame_list = []
+        self.plot_list = []
+        self.equation_list = []
 
         self.summary_csv = None
         self.replot_info = None
@@ -97,21 +89,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.AR_csv = None
         self.SAVAR_csv = None
         self.GrowthRate_csv = None
-
+        self.select_plots = []
         self.progressBar.setValue(0)
 
     def key_shortcuts(self):
-
+        # Create a QShortcut with the specified key sequence
+        close = QShortcut(QKeySequence("Ctrl+Q"), self)
+        # Connect the activated signal of the shortcut to the close() method
+        close.activated.connect(self.close)
+        # Open read folder
         self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
-        self.openKS.activated.connect(self.read_folder)
+        try:
+            self.openKS.activated.connect(lambda: self.read_folder(self.mode))
+        except IndexError:
+            pass
+        # Open output folder
         self.open_outKS = QShortcut(QKeySequence("Ctrl+Shift+O"), self)
-        # self.open_outKS.activated.connect(self.output_folder_button)
-        self.closeKS = QShortcut(QKeySequence("Ctrl+Q"), self)
-        self.closeKS.activated.connect(QApplication.instance().quit)
+        try:
+            self.open_outKS.activated.connect(self.output_folder_button)
+        except IndexError:
+            pass
+        # Reset everything
         self.resetKS = QShortcut(QKeySequence("Ctrl+R"), self)
         self.resetKS.activated.connect(self.reset_button_function)
-        self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
-        # self.applyKS.activated.connect(self.apply_clicked)
+        '''self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
+        # self.applyKS.activated.connect(self.apply_clicked)'''
 
     def welcome_message(self):
         print("############################################")
@@ -131,12 +133,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
         self.plot_checkBox.stateChanged.connect(self.plot_check)
         self.run_calc_button.clicked.connect(self.run_calc)
-        self.AR_browse_button.clicked.connect(self.replot_AR_read)
-        self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
-
-        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
-        self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
-        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)
 
         # Checkboxes
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
@@ -149,7 +145,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.count_checkBox.stateChanged.connect(self.count_check)
         # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
 
+        # Plotting buttons
+        self.AR_browse_button.clicked.connect(self.replot_AR_read)
+        self.subplot_button.clicked.connect(lambda: self.subplotting())
+        self.threeD_plotting_button.clicked.connect(lambda: self.threeD_plotting())
+        self.clearPlots.clicked.connect(lambda: self.clearPlotting())
+        self.PlottingOptions.currentTextChanged.connect(lambda: self.plotting_choices(whole_plot_list=self.plot_list))
+        self.GeneratePlots.clicked.connect(lambda: self.call_replot())
+        self.clearPlots.clicked.connect(lambda: self.clearPlotting())
+
+        # Visualisation Buttons
+        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary_vis())
+
     def read_summary_vis(self):
+        print('Entering Reading Summary file')
         create_slider.read_summary(self)
 
     def read_folder(self, mode):
@@ -352,16 +361,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ms_spinBox.setEnabled(False)
             self.ms_percent_label.setEnabled(False)
             self.aspect_range_checkBox.setChecked(False)
-            self.output_textBox.clear()
 
         self.summary_cs_label.setEnabled(False)
+        self.ar_lineEdit.clear()
         self.summaryfile_lineEdit.setEnabled(False)
         self.summaryfile_browse_button.setEnabled(False)
-        self.plot_AR_button.setEnabled(False)
-        self.plot_GrowthRate_button.setEnabled(False)
-        self.plot_SAVAR_button.setEnabled(False)
-        self.plot_SA_button.setEnabled(False)
-        self.plot_vol_button.setEnabled(False)
+        #self.ARExtra_browse_button.setEnable(False)
+        #self.CAExtra_lineEdit.setEnable(False)
+        self.SelectPlots.setEnabled(False)
+        self.GeneratePlots.setEnabled(False)
+
+    def clearPlotting(self):
+        print('Clearing Figure')
 
     def input_directions(self, directions):
         check_box_names = []
@@ -428,11 +439,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def cda_checked(self, state):
         if state == Qt.Checked:
             self.cda = True
-            print(f"PCA: {self.cda}")
+            print(f"CDA: {self.cda}")
 
             self.long_facet.setEnabled(True)
             self.medium_facet.setEnabled(True)
-            self.aspect_range_checkBox.setEnabled(True)
+            # self.aspect_range_checkBox.setEnabled(True)
             # self.count_checkBox.setEnabled(True)
             self.ratio_label1.setEnabled(True)
 
@@ -461,6 +472,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(f"Plot: {self.plot}")
 
     def replot_AR_read(self):
+        self.PlottingOptions.clear()
         input_path = self.ar_lineEdit.text()
 
         if input_path != "":
@@ -468,7 +480,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
+                self.GeneratePlots.setEnabled(True)
 
         else:
             input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -477,35 +489,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             input_path = Path(input_path)
             if input_path.exists() and input_path.suffix == ".csv":
                 self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
+                self.GeneratePlots.setEnabled(True)
 
         self.ar_lineEdit.setText(str(input_path))
 
         self.reread_info(input_path)
         print(input_path)
-
-    def replot_GrowthRate_read(self):
-        input_path = self.GrowthRate_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Growth Rate .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        self.GrowthRate_lineEdit.setText(str(input_path))
-
-        self.reread_info(input_path)
 
     def replot_summary_read(self):
 
@@ -540,16 +529,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.replot_info._replace(Energies=True)
 
     def reread_info(self, csv):
+        print('reading info')
+        print(self.AR_csv)
 
         find = Find()
+        replot = Replotting()
         replot_info = namedtuple(
-            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol"
+            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol, Temperature, CDA_Extended, Supersaturation, GrowthRates"
         )
-
         self.folder_path = csv.parent
 
-        self.replot_folder = find.create_aspects_folder(self.folder_path)
+        '''self.replot_folder = find.create_aspects_folder(self.folder_path)'''
         df = pd.read_csv(csv)
+        self.ShowData(df)
 
         directions = []
         energies = False
@@ -557,20 +549,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         cda = False
         equations = False
         savar = False
+        temperature = False
+        cda_extended = False
+        supersaturation = False
+        gr_rate = False
 
         for col in df.columns:
             if col.startswith(" ") or col.startswith("-"):
                 directions.append(col)
-            if col.startswith("interactions") or col.startswith("tile"):
+            if col.startswith("interaction") or col.startswith("tile"):
                 energies = True
             if col.startswith("S:M"):
                 pca = True
             if col.startswith("S/M"):
                 cda = True
-            if col.startswith("CDA_Equations"):
+            if col.startswith("CDA_Equation"):
                 equations = True
             if col.startswith("SA"):
                 savar = True
+            if col.startswith("temperature"):
+                temperature = True
+            if col.startswith("AspectRatio"):
+                cda_extended = True
+            if col.startswith("supersaturation"):
+                supersaturation = True
+            if col.startswith("Growth"):
+                gr_rate = True
 
         self.input_directions(directions=directions)
 
@@ -586,46 +590,172 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Equations=equations,
             Energies=energies,
             SAVol=savar,
+            Temperature=temperature,
+            CDA_Extended=cda_extended,
+            Supersaturation=supersaturation,
+            GrowthRates=gr_rate
         )
+        print(self.replot_info)
+        self.plot_list, self.equation_list = replot.calculate_plots(csv=csv, info=self.replot_info)
+        self.SelectPlots.setEnabled(True)
+        selected = self.plot_selection(self.replot_info)
 
-    def call_replot(self, replot_mode):
+    def ShowData(self, df):
+        ''' Displaying the dataframe as a QTable '''
+        print('Entering Display CSV')
+        print(df)
+        df = df.iloc[:, 0:]
+        self.table = self.DisplayDataFrame
+        self.table.setRowCount(df.shape[0])
+        self.table.setColumnCount(df.shape[1])
+        self.table.setHorizontalHeaderLabels(df.columns)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        for row in df.iterrows():
+            values = row[1]
+            for col_index, value in enumerate(values):
+                if isinstance(value, (float, int)):
+                    value = '{0:0,.3f}'.format(value)
+                tableItem = QTableWidgetItem(str(value))
+                self.table.setItem(row[0], col_index, tableItem)
+        #self.table.setItem(QTableWidgetItem(df))
+
+
+    def plot_selection(self, plotting_info):
+        print('plot selection entered')
+        print(plotting_info)
+
+        selected = []
+
+        if plotting_info.PCA == True:
+            self.PlottingOptions.addItem("PCA Morphology Map")
+            selected.append("PCA Morphology Map")
+
+        if plotting_info.PCA and plotting_info.Equations == True:
+            self.PlottingOptions.addItem("Morphology Map by CDA Equation")
+            selected.append("Morphology Map by CDA Equation")
+
+        if plotting_info.PCA and plotting_info.Energies and plotting_info.Equations == True:
+            self.PlottingOptions.addItem("Morphology Map by CDA Equation vs Energy")
+            selected.append("Morphology Map by CDA Equation vs Energy")
+
+        if plotting_info.CDA == True:
+            print('CDA True')
+            self.PlottingOptions.addItem("CDA Aspect Ratio")
+            selected.append("CDA Aspect Ratio")
+
+        if plotting_info.PCA and plotting_info.Energies == True:
+            self.PlottingOptions.addItem("Morphology Map vs Energy")
+            selected.append("Morphology Map vs Energy")
+
+        if plotting_info.GrowthRates == True:
+            self.PlottingOptions.addItem("Growth Rates")
+            selected.append("Growth Rates")
+
+        if plotting_info.CDA_Extended == True:
+            self.PlottingOptions.addItem("Extended CDA Aspect Ratio")
+            selected.append("Extended CDA Aspect Ratio")
+
+        if plotting_info.SAVol == True:
+            self.PlottingOptions.addItem("Surface Area vs Volume")
+            selected.append("Surface Area vs Volume")
+        if plotting_info.SAVol and plotting_info.Energies == True:
+            self.PlottingOptions.addItem("Surface Area vs Volume vs Energy")
+            selected.append("Surface Area vs Volume vs Energy")
+        print(selected)
+
+        return selected
+
+    def plotting_choices(self, whole_plot_list):
+        self.SelectPlots.clear()
+        self.SelectPlots.update()
+        print("plotting choices entered")
+        filtered_plot_list = []
+        if self.PlottingOptions.currentText() == "CDA Aspect Ratio":
+            for item in whole_plot_list:
+                if item.startswith("CDA Aspect Ratio"):
+                    filtered_plot_list.append(item)
+            print("CDA Aspect Ratio")
+        if self.PlottingOptions.currentText() == "Extended CDA Aspect Ratio":
+            for item in whole_plot_list:
+                if item.startswith("Extended CDA"):
+                    filtered_plot_list.append(item)
+            print("Extended CDA")
+        if self.PlottingOptions.currentText() == "Morphology Map by CDA Equation vs Energy":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map filter energy "):
+                    filtered_plot_list.append(item)
+            print("Morphology Map filter energy ")
+        if self.PlottingOptions.currentText() == "PCA Morphology Map":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map"):
+                    filtered_plot_list.append(item)
+            print("Morphology Mapping")
+        if self.PlottingOptions.currentText() == "Morphology Map vs Energy":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map vs "):
+                    filtered_plot_list.append(item)
+            print("Morphology Map vs Energy")
+        if self.PlottingOptions.currentText() == "Surface Area vs Volume":
+            for item in whole_plot_list:
+                if item.startswith("Surface Area vs Volume"):
+                    filtered_plot_list.append(item)
+            print("Surface Area vs Volume")
+            if self.PlottingOptions.currentText() == "Surface Area vs Volume vs Energy":
+                for item in whole_plot_list:
+                    if item.startswith("Surface Area vs Volume vs Energy "):
+                        filtered_plot_list.append(item)
+                print("Surface Area vs Volume vs Energy")
+        if self.PlottingOptions.currentText() == "Morphology Map vs Temperature":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map vs Temperature"):
+                    filtered_plot_list.append(item)
+            print("Morphology Map vs Temperature")
+        if self.PlottingOptions.currentText() == "Growth Rates":
+            for item in whole_plot_list:
+                if item.startswith("Growth Rates"):
+                    filtered_plot_list.append(item)
+            print("Growth Rates")
+        if self.PlottingOptions.currentText() == "Morphology Map by CDA Equation":
+            for item in whole_plot_list:
+                if item.startswith("Morphology Map filtered by "):
+                    filtered_plot_list.append(item)
+            print("Morphology Map by CDA Equation")
+        self.SelectPlots.addItems(filtered_plot_list)
+        print(filtered_plot_list)
+        self.SelectPlots.update()
+
+    def call_replot(self):
+        print('Entering call replot')
         replot = Replotting()
+        self.current_plot = self.SelectPlots.currentText()
+        print(self.current_plot)
+        replot.plotting_called(csv=self.AR_csv,
+                               selected=self.current_plot,
+                               plot_frame=self.Plotting_Frame,
+                               equations_list=self.equation_list)
 
-        if replot_mode == 1:
-            replot.replot_AR(
-                csv=self.AR_csv,
-                info=self.replot_info,
-                selected=self.checked_directions
-            )
+    def subplotting(self):
+        print('entered subplotting')
 
-        if replot_mode == 2:
-            replot.replot_GrowthRate(
-                csv=self.GrowthRate_csv,
-                info=self.replot_info,
-                selected=self.checked_directions,
-                savepath=self.replot_folder
-
-            )
+    def threeD_plotting(self):
+        print('entered 3D plotting')
+        self.current_plot = self.SelectPlots.currentText()
+        if self.AR_csv.suffix == '.csv':
+            plot_window = PlotWindow(self)
+            plot_window.plotting_info(csv=self.AR_csv,
+                                      selected=self.current_plot,
+                                      equation_list=self.equation_list)
+            plot_window.exec_()
+        else:
+            pass
 
     def run_calc(self):
-
-        logger.info(
-            "Calculation started with:\n\
-            PCA: %s\n\
-            CDA: %s\n\
-            Growth Rates: %s\n\
-            Plotting: %s\n",
-            self.pca,
-            self.cda,
-            self.growthrates,
-            self.plot,
-        )
-
-        calc_info_tuple = namedtuple(
+        '''calc_info_tuple = namedtuple(
             "Information",
             [
                 "folder_path",
                 "checked_directions",
+                "selected_directions",
                 "summary_file",
                 "folders",
                 "aspectratio",
@@ -633,12 +763,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "pca",
                 "growthrates",
                 "sa_vol",
-                "plot",
+                "plot"
             ],
-        )
-        calc_info = calc_info_tuple(
+        )'''
+        print(self.checked_directions)
+        if self.aspectratio:
+            print(self.checked_directions)
+
+            if self.cda:
+
+                long = self.long_facet.currentText()
+                medium = self.medium_facet.currentText()
+                short = self.short_facet.currentText()
+
+                self.selected_directions = [short, medium, long]
+                print('clicked run calc')
+                print(self.selected_directions)
+
+        '''calc_info = calc_info_tuple(
             folder_path=self.folder_path,
             checked_directions=self.checked_directions,
+            selected_directions=self.selected_directions,
             summary_file=self.summary_file,
             folders=self.folders,
             aspectratio=self.aspectratio,
@@ -646,15 +791,115 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pca=self.pca,
             growthrates=self.growthrates,
             sa_vol=self.sa_vol,
-            plot=self.plot,
-        )
+            plot=self.plot)'''
 
-        worker_calc = Worker_Calc(calc_info)
+        find = Find()
+        plotting = Plotting()
+        save_folder = find.create_aspects_folder(self.folder_path)
+
+        if self.sa_vol and self.pca is False:
+            aspect_ratio = AspectRatio()
+            savar_df = aspect_ratio.savar_calc(
+                subfolder=self.folder_path, savefolder=save_folder
+            )
+            savar_df_final = find.summary_compare(
+                summary_csv=self.summary_file,
+                aspect_df=savar_df,
+                savefolder=save_folder,
+            )
+            if self.plot:
+                plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
+        if self.pca and self.sa_vol:
+            aspect_ratio = AspectRatio()
+            pca_df = aspect_ratio.shape_all(
+                subfolder=self.folder_path, savefolder=save_folder
+            )
+            plot_df = find.summary_compare(
+                summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
+            )
+            final_df = plot_df
+            #self.signals.message.emit("PCA & SA:Vol Calculations complete!")
+
+            if self.plot:
+                plotting.SAVAR_plot(df=plot_df, folderpath=save_folder)
+                plotting.build_PCAZingg(df=plot_df, folderpath=save_folder)
+                #self.signals.message.emit("Plotting PCA & SA:Vol Results!")
+
+        if self.aspectratio:
+            aspect_ratio = AspectRatio()
+            print(self.checked_directions)
+
+            if self.cda:
+
+                cda_df = aspect_ratio.build_AR_CDA(
+                    folderpath=self.folder_path,
+                    folders=self.folders,
+                    directions=self.checked_directions,
+                    selected=self.selected_directions,
+                    savefolder=save_folder,
+                )
+
+                zn_df = aspect_ratio.defining_equation(
+                    directions=self.selected_directions,
+                    ar_df=cda_df,
+                    filepath=save_folder,
+                )
+                zn_df_final = find.summary_compare(
+                    summary_csv=self.summary_file,
+                    aspect_df=zn_df,
+                    savefolder=save_folder,
+                )
+                final_df = zn_df_final
+                #self.signals.message.emit("CDA Calculations complete!")
+
+                if self.plot:
+                    plotting.CDA_Plot(df=zn_df_final, folderpath=save_folder)
+                    plotting.build_zingg_seperated_i(
+                        df=zn_df_final, folderpath=save_folder
+                    )
+                    plotting.Aspect_Extended_Plot(
+                        df=zn_df_final,
+                        selected=self.selected_directions,
+                        folderpath=save_folder,
+                    )
+                    #self.signals.message.emit("Plotting CDA Results!")
+        if self.pca and self.sa_vol:
+            aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
+
+        if self.pca and self.sa_vol is False:
+            pca_df = aspect_ratio.build_AR_PCA(
+                subfolder=self.folder_path, savefolder=save_folder
+            )
+            final_df = pca_df
+            #self.signals.message.emit("PCA Calculations complete!")
+
+            aspect_ratio.PCA_shape_percentage(pca_df=pca_df, folderpath=save_folder)
+            if self.plot:
+                #self.signals.message.emit("Plotting PCA Results!")
+                plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+
+        if self.pca and self.cda:
+            pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
+                pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
+            )
+            #self.signals.message.emit("PCA & CDA Calculations complete!")
+            if self.plot:
+                #self.signals.message.emit("Plotting PCA & CDA Results!")
+                plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
+                plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+
+        CrystalShape() = AspectRatioXYZ
+        if self.aspectratio:
+            xyz_df = AspectXYZ.collect_all(folder=folder_path)
+            print(xyz_df)
+
+
+        '''worker_calc = Worker_Calc(calc_info)
         worker_calc.signals.finished.connect(self.thread_finished)
         worker_calc.signals.progress.connect(self.update_progress)
         worker_calc.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_calc)
-        print("Calculation Submitted")
+        print("Calculation Submitted")'''
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
@@ -745,14 +990,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if aspect1 >= 2 / 3:
             if aspect2 >= 2 / 3:
-                shape_class = "block"
+                shape_class = "Block"
             else:
-                shape_class = "needle"
+                shape_class = "Needle"
         if aspect1 <= 2 / 3:
             if aspect2 <= 2 / 3:
-                shape_class = "plate"
+                shape_class = "Lath"
             else:
-                shape_class = "lath"
+                shape_class = "Plate"
 
         self.sm_label.setText("Small/Medium: {:.2f}".format(aspect1))
         self.ml_label.setText("Medium/Long: {:.2f}".format(aspect2))
@@ -775,6 +1020,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         print("THREAD COMPLETED!")
+        '''DataFrame = self.folder_path / 'CrystalAspects' / 'aspectratio_energy.csv'
+        print(self.AR_csv)
+        print("Printed CSV")
+        self.AR_csv = DataFrame
+        self.reread_info(csv=self.AR_csv)'''
 
     def tabChanged(self):
         self.mode = self.tabWidget.currentIndex() + 1
