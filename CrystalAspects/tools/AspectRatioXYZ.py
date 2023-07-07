@@ -7,7 +7,7 @@ from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 import sys
 
-class CrystalShape:
+class AspectRatioCalc:
     def __init__(
         self,
     ):

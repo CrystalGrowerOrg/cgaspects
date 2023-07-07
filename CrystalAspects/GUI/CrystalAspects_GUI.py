@@ -15,9 +15,9 @@ from pathlib import Path
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-#from CrystalAspects.tools.shape_analysis import CrystalShape
+from CrystalAspects.tools.shape_analysis import CrystalShape, AspectRatioCalc
 from CrystalAspects.tools.visualiser import Visualiser
-from CrystalAspects.tools.AspectRatioXYZ import CrystalShape
+#from CrystalAspects.tools.AspectRatioXYZ import CrystalShape
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.visualisation.replotting import Replotting, PlotWindow
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
@@ -888,7 +888,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
 
-        AspectXYZ = CrystalShape()
+        AspectXYZ = AspectRatioCalc()
         if self.aspectratio:
             print('folderpath =', self.folder_path)
             xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
