@@ -750,22 +750,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pass
 
     def run_calc(self):
-        '''calc_info_tuple = namedtuple(
-            "Information",
-            [
-                "folder_path",
-                "checked_directions",
-                "selected_directions",
-                "summary_file",
-                "folders",
-                "aspectratio",
-                "cda",
-                "pca",
-                "growthrates",
-                "sa_vol",
-                "plot"
-            ],
-        )'''
         print(self.checked_directions)
         if self.aspectratio:
             print(self.checked_directions)
@@ -779,19 +763,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.selected_directions = [short, medium, long]
                 print('clicked run calc')
                 print(self.selected_directions)
-
-        '''calc_info = calc_info_tuple(
-            folder_path=self.folder_path,
-            checked_directions=self.checked_directions,
-            selected_directions=self.selected_directions,
-            summary_file=self.summary_file,
-            folders=self.folders,
-            aspectratio=self.aspectratio,
-            cda=self.cda,
-            pca=self.pca,
-            growthrates=self.growthrates,
-            sa_vol=self.sa_vol,
-            plot=self.plot)'''
 
         find = Find()
         plotting = Plotting()
@@ -940,18 +911,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
                 final_cda_xyz.to_csv(final_cda_xyz_csv, index=None)
                 self.ShowData(final_cda_xyz)
-
-            '''if self.pca and self.cda:
-                pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
-                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
+                aspect_ratio.CDA_Shape_Percentage(
+                    df=final_cda_xyz,
+                    savefolder=save_folder
                 )
-                # self.signals.message.emit("PCA & CDA Calculations complete!")
-                if self.plot:
-                    # self.signals.message.emit("Plotting PCA & CDA Results!")
-                    plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
-                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
-            #self.AR_csv = xyz_df_final
-
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)

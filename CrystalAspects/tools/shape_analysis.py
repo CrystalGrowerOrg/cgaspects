@@ -224,11 +224,11 @@ class AspectRatioCalc:
         the columns OBA Shape Definition and PCA Shape
         Definition to create csv  that shows the percentage
         of each shape found'''
-        OBA_shape_counts = df['OBA Shape Definition'].str.lower().value_counts()
+        OBA_shape_counts = df['OBA Shape'].str.lower().value_counts()
         OBA_total_count = OBA_shape_counts.sum()
         OBA_shape_percentages = OBA_shape_counts / OBA_total_count * 100
 
-        PCA_shape_counts = df['PCA Shape Definition'].str.lower().value_counts()
+        PCA_shape_counts = df['PCA Shape'].str.lower().value_counts()
         PCA_total_count = PCA_shape_counts.sum()
         PCA_shape_percentages = PCA_shape_counts / PCA_total_count * 100
 
@@ -241,9 +241,6 @@ class AspectRatioCalc:
         })
         total_shapes_csv = f"{savefolder}/shape_counts.csv"
         result_df.to_csv(total_shapes_csv, index=False)
-        #result_df.to_csv('shape_counts.csv', index=False)
-
-        return
 
     def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
         """ PCA - (Principal Component analysis)
@@ -285,8 +282,8 @@ class AspectRatioCalc:
         information from each of the relevant functions
         and congregates that into the final DataFrame"""
         col_headings = ["Simulation Number",
-                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "OBA Shape Definition",
-                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "PCA Shape Definition",
+                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "OBA Shape",
+                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "PCA Shape",
                         "Surface Area (SA)", "Volume (Vol)", "SA:Vol Ratio (SAVAR)"
                         ]
         shape_df = None
@@ -312,7 +309,7 @@ class AspectRatioCalc:
                                 shape_df = np.empty((0, col_nums),
                                                     np.float64)
                             shape_df = np.append(shape_df, size_data, axis=0)
-                            print(shape_df)
+                            #print(shape_df)
 
                         except (StopIteration, UnicodeDecodeError):
                             continue
