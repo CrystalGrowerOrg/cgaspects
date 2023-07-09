@@ -155,22 +155,45 @@ class AspectRatio:
         CDA equation'''
         # List of shape columns to consider
         shape_columns = ['OBA Shape', 'PCA Shape']
+        cda_shape_df = pd.DataFrame({
+            'CDA_Equation',
+            'OBA Block',
+            'OBA Lath',
+            'OBA Needle',
+            'OBA Plate',
+            'PCA Block',
+            'PCA Lath',
+            'PCA Needle',
+            'PCA Plate'
+        })
 
         # Iterate over each shape column
         for shape_column in shape_columns:
             # Group the DataFrame by 'Equation number' and shape column, and calculate the counts
-            grouped = df.groupby(['Equation number', shape_column]).size().reset_index(name='Count')
+            grouped = df.groupby(['CDA_Equation', shape_column]).size().reset_index(name='Count')
 
             # Pivot the table to have shape column as columns and 'Equation number' as rows
-            pivot_table = grouped.pivot(index='Equation number', columns=shape_column, values='Count').fillna(0)
+            pivot_table = grouped.pivot(index='CDA_Equation',
+                                        columns=shape_column,
+                                        values='Count'
+                                        ).fillna(0)
 
             # Convert the counts to integers
             pivot_table = pivot_table.astype(int)
-
-            print(f"Total number of shapes for {shape_column}:")
             print(pivot_table)
+            # Merge the pivot table with the existing cda_shape_df DataFrame
+            cda_shape_df = pd.merge(cda_shape_df,
+                                    pivot_table,
+                                    how='outer',
+                                    left_on='CDA_Equation',
+                                    right_index=True
+                                    )
 
-        pass
+        # Sort the DataFrame by 'CDA_Equation' column
+        cda_shape_df.sort_values('CDA_Equation', inplace=True)
+
+        cda_shape_df_csv = f"{savefolder}/shapes and equations.csv"
+        cda_shape_df.to_csv(cda_shape_df_csv)
 
     def savar_calc(self, subfolder, savefolder):
         path = Path(subfolder)
@@ -510,64 +533,3 @@ class AspectRatio:
         percentage_CDA_df.to_csv(Path(folderpath) / "Percentage Crystals CDA.csv")
 
         return percentage_CDA_df
-
-    def PCA_shape_percentage(self, pca_df="", csv="", folderpath="."):
-        """Analysing the PCA data to output total and percentages of crystals
-        This requires PCA .csv"""
-        # pca_df = pd.read_csv(df)
-        # colours = [1, 2, 3, 4, 5, 6]
-        if csv != "":
-            csv = Path(csv)
-            pca_df = pd.read_csv(csv)
-
-        total = len(pca_df)
-        lath = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] <= 0.667)]
-        plate = pca_df[(pca_df["S:M"] <= 0.667) & (pca_df["M:L"] >= 0.667)]
-        block = pca_df[(pca_df["S:M"] >= 0.667) & (pca_df["M:L"] >= 0.667)]
-        needle = pca_df[(pca_df["S:M"] >= 0.667) & (pca_df["M:L"] <= 0.667)]
-        total_lath = len(lath)
-        total_plate = len(plate)
-        total_block = len(block)
-        total_needle = len(needle)
-        total_list = [total, total_lath, total_plate, total_block, total_needle]
-        total_df = pd.DataFrame(total_list).transpose()
-        total_df.columns = [
-            "Number of Crystals",
-            "Laths",
-            "Plates",
-            "Blocks",
-            "Needles",
-        ]
-        total_df.to_csv(Path(folderpath) / "Total_Shapes_PCA.csv")
-
-        try:
-            lath_percentage = total_lath / total * 100
-        except ZeroDivisionError:
-            lath_percentage = 0
-
-        try:
-            plate_percentage = total_plate / total * 100
-        except ZeroDivisionError:
-            plate_percentage = 0
-
-        try:
-            block_percentage = total_block / total * 100
-        except ZeroDivisionError:
-            block_percentage = 0
-
-        try:
-            needle_percentage = total_needle / total * 100
-        except ZeroDivisionError:
-            needle_percentage = 0
-
-        percentage_list = [
-            lath_percentage,
-            plate_percentage,
-            block_percentage,
-            needle_percentage,
-        ]
-        percentage_df = pd.DataFrame(percentage_list).transpose()
-        percentage_df.columns = ["Laths", "Plates", "Blocks", "Needles"]
-        percentage_df.to_csv(Path(folderpath) / "Percentage_Shapes_PCA.csv")
-
-        return percentage_df, total_df
