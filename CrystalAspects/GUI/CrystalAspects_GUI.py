@@ -614,7 +614,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             values = row[1]
             for col_index, value in enumerate(values):
                 if isinstance(value, (float, int)):
-                    value = '{0:0,.3f}'.format(value)
+                    value = QTableWidgetItem('{:,.2f}'.format(value))
                 tableItem = QTableWidgetItem(str(value))
                 self.table.setItem(row[0], col_index, tableItem)
         #self.table.setItem(QTableWidgetItem(df))
@@ -797,7 +797,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         plotting = Plotting()
         save_folder = find.create_aspects_folder(self.folder_path)
 
-        if self.sa_vol and self.pca is False:
+        '''if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
             savar_df = aspect_ratio.savar_calc(
                 subfolder=self.folder_path, savefolder=save_folder
@@ -886,21 +886,72 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.plot:
                 #self.signals.message.emit("Plotting PCA & CDA Results!")
                 plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
-                plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)
+                plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
 
         AspectXYZ = AspectRatioCalc()
+        aspect_ratio = AspectRatio()
         if self.aspectratio:
-            print('folderpath =', self.folder_path)
-            xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
-            print(xyz_df)
+            if self.pca:
+                xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
+                print(xyz_df)
+                xyz_df_final = find.summary_compare(
+                    summary_csv=self.summary_file,
+                    aspect_df=xyz_df
+                )
+                xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
+                xyz_df_final.to_csv(xyz_df_final_csv, index=None)
+                AspectXYZ.shape_number_percentage(
+                    df=xyz_df_final,
+                    savefolder=save_folder
+                )
+                if self.cda is False:
+                    self.ShowData(xyz_df_final)
+            if self.cda:
+                cda_df = aspect_ratio.build_AR_CDA(
+                    folderpath=self.folder_path,
+                    folders=self.folders,
+                    directions=self.checked_directions,
+                    selected=self.selected_directions,
+                    savefolder=save_folder,
+                )
+                zn_df = aspect_ratio.defining_equation(
+                    directions=self.selected_directions,
+                    ar_df=cda_df,
+                    filepath=save_folder,
+                )
+                zn_df_final = find.summary_compare(
+                    summary_csv=self.summary_file,
+                    aspect_df=zn_df
+                )
+                zn_df_final_csv = f"{save_folder}/CDA.csv"
+                zn_df_final.to_csv(zn_df_final_csv, index=None)
+                if self.pca is False:
+                    self.ShowData(zn_df_final)
 
+            if self.cda and self.pca:
+                combined_df = find.combine_XYZ_CDA(
+                    CDA_df=zn_df,
+                    XYZ_df=xyz_df
+                )
+                final_cda_xyz = find.summary_compare(
+                    summary_csv=self.summary_file,
+                    aspect_df=combined_df
+                )
+                final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
+                final_cda_xyz.to_csv(final_cda_xyz_csv, index=None)
+                self.ShowData(final_cda_xyz)
 
-        '''worker_calc = Worker_Calc(calc_info)
-        worker_calc.signals.finished.connect(self.thread_finished)
-        worker_calc.signals.progress.connect(self.update_progress)
-        worker_calc.signals.message.connect(self.update_statusbar)
-        self.threadpool.start(worker_calc)
-        print("Calculation Submitted")'''
+            '''if self.pca and self.cda:
+                pca_cda_df = aspect_ratio.Zingg_CDA_shape_percentage(
+                    pca_df=pca_df, cda_df=zn_df, folderpath=save_folder
+                )
+                # self.signals.message.emit("PCA & CDA Calculations complete!")
+                if self.plot:
+                    # self.signals.message.emit("Plotting PCA & CDA Results!")
+                    plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
+                    plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
+            #self.AR_csv = xyz_df_final
+
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)

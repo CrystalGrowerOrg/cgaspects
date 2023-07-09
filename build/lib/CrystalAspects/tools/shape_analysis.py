@@ -160,73 +160,15 @@ class AspectRatioCalc:
     ):
         pass
 
-    def read_XYZ(self, filepath, verbose=False, progress=True):
-        """Read in shape data and generates a np arrary.
-        Supported formats:
-            .XYZ
-            .txt (.xyz format)
-            .stl
-        """
-        filepath = Path(filepath)
-        print(filepath)
-        xyz_movie = {}
-
-        try:
-
-            if filepath.suffix == ".XYZ":
-                print("XYZ File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".txt":
-                print("xyz File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".stl":
-                print("stl File read!")
-                xyz = trimesh.load(filepath)
-
-            progress_num = 100
-
-        except ValueError:
-            print("Looking for Video")
-            with open(filepath, "r", encoding="utf-8") as file:
-                lines = file.readlines()
-                num_frames = int(lines[1].split("//")[1])
-                print(num_frames)
-
-            if progress:
-                toolbar_width = num_frames
-                # setup toolbar
-                sys.stdout.write("[%s]" % (" " * toolbar_width))
-                sys.stdout.flush()
-                sys.stdout.write(
-                    "\b" * (toolbar_width + 1)
-                )  # return to start of line, after '['
-
-            particle_num_line = 0
-            frame_line = 2
-            for frame in range(num_frames):
-                num_particles = int(lines[particle_num_line])
-                xyz = np.loadtxt(lines[frame_line : (frame_line + num_particles)])
-                xyz_movie[frame] = xyz
-                particle_num_line = frame_line + num_particles
-                frame_line = particle_num_line + 2
-
-                progress_num = ((frame + 1) / num_frames) * 100
-
-                if progress:
-                    sys.stdout.write("#")
-                    sys.stdout.flush()
-
-                if verbose:
-                    print(f"#####\nFRAME NUMBER: {frame}")
-                    print(f"Particle Number Line: {particle_num_line}")
-                    print(f"Frame Start Line: {frame_line}")
-                    print(f"Frame End Line: {frame_line + num_particles}")
-                    print(f"Number of Particles read: {frame_line}")
-
-                    print(f"Number of Particles in list: {xyz.shape[0]}")
-            sys.stdout.write("]\n")
-
-        return xyz, xyz_movie, progress_num
+    def read_XYZ(self, filename):
+        """Opening and reading the .XYZ file"""
+        with open(filename, 'r') as f:
+            lines = f.readlines()[2:]
+            coordinates = []
+            for line in lines:
+                parts = line.split()
+                coordinates.append([float(parts[3]), float(parts[4]), float(parts[5])])
+        return np.array(coordinates)
 
     def measure_crystal_size_xyz(self, coordinates):
         """OBA - (Orthogonal Box Analysis)
@@ -331,7 +273,7 @@ class AspectRatioCalc:
                     if file.suffix == ".XYZ":
                         sim_num = re.findall(r"\d+", file.name)[-1]
                         try:
-                            xyz, _, _ = self.read_XYZ(file)  # Read .XYZ file
+                            xyz = self.read_XYZ(file)  # Read .XYZ file
                             pca_size = self.get_PCA(xyz)  # Collect PCA data
                             crystal_size = self.measure_crystal_size_xyz(xyz)  # Collect OBA data
                             savar_size = self.get_savar(xyz)  # Collect SAVAR data
