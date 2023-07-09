@@ -204,7 +204,7 @@ QProgressBar::chunk{
            </size>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="widget">
            <property name="geometry">
@@ -375,7 +375,7 @@ QProgressBar::chunk{
                      <bool>false</bool>
                     </property>
                     <property name="text">
-                     <string>PCA</string>
+                     <string>Aspect Ratio PCA and OBA</string>
                     </property>
                    </widget>
                   </item>
@@ -385,7 +385,7 @@ QProgressBar::chunk{
                      <bool>false</bool>
                     </property>
                     <property name="text">
-                     <string>CDA</string>
+                     <string>Crystallographic Directional Aspect Ratio</string>
                     </property>
                    </widget>
                   </item>
@@ -1306,8 +1306,8 @@ QProgressBar::chunk{
             <rect>
              <x>-2</x>
              <y>-2</y>
-             <width>1281</width>
-             <height>1131</height>
+             <width>1241</width>
+             <height>1101</height>
             </rect>
            </property>
           </widget>

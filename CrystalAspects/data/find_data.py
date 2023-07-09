@@ -122,7 +122,7 @@ class Find:
 
         return directions
 
-    def summary_compare(self, summary_csv, savefolder, aspect_csv=False, aspect_df=""):
+    def summary_compare(self, summary_csv, aspect_csv=False, aspect_df=""):
 
 
         summary_df = pd.read_csv(summary_csv)
@@ -149,7 +149,7 @@ class Find:
             #print("Compare array shape", compare_array.shape)
 
             for index, row in aspect_df.iterrows():
-                sim_num = int(row["Simulation Number"] - 1 + start_num)
+                sim_num = int(row["Simulation Number"]) - 1 + start_num
                 num_string = f"{search_string}_{sim_num}"
                 #print("num string", num_string)
                 aspect_row = row.values
@@ -184,9 +184,45 @@ class Find:
         compare_df = pd.DataFrame(compare_array, columns=cols)
         #print(compare_df)
         full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
-        aspect_energy_csv = f"{savefolder}/aspectratio_energy.csv"
-        full_df.to_csv(aspect_energy_csv, index=None)
+        #aspect_energy_csv = f"{savefolder}/CrystalAspects.csv"
+        #full_df.to_csv(aspect_energy_csv, index=None)
 
         #print(full_df)
 
         return full_df
+
+    def combine_XYZ_CDA(self, CDA_df, XYZ_df):
+        cda_cols = CDA_df.columns
+        xyz_cols = XYZ_df.columns
+
+        cda_cols = cda_cols[1:]
+
+        combine_array = np.empty((0, len(xyz_cols) + len(cda_cols)))
+        print(XYZ_df)
+
+        for index, row in XYZ_df.iterrows():
+            sim_num = int(row["Simulation Number"]) - 1
+            print("sim_num", sim_num)
+            xyz_row = row.values
+            #print("xyz_row", xyz_row)
+            xyz_row = np.array([xyz_row])
+            #print(xyz_row)
+            collect_row = [CDA_df.iloc[sim_num].values[1:]]
+            print(collect_row)
+            collect_row = np.concatenate([xyz_row, collect_row], axis=1)
+            combine_array = np.append(combine_array, collect_row, axis=0)
+            print(combine_array.shape)
+
+        cols = xyz_cols.append(cda_cols)
+        # print(aspect_cols)
+        # print(f"COLS:::: {cols}")
+        compare_df = pd.DataFrame(combine_array, columns=cols)
+        # print(compare_df)
+        combine_df = compare_df.sort_values(
+            by=["Simulation Number"],
+            ignore_index=True
+        )
+        '''aspect_energy_csv = f"{savefolder}/CrystalAspects.csv"
+        full_df.to_csv(aspect_energy_csv, index=None)'''
+
+        return combine_df

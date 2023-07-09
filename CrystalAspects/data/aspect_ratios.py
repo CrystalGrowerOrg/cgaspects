@@ -144,11 +144,33 @@ class AspectRatio:
                 df[selected[i]] / df[selected[i + 1]]
             )
 
-        df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
+        #df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
 
         print(df)
 
         return df
+
+    def CDA_Shape_Percentage(self, df, savefolder):
+        '''Calculating the percentage shapes for each
+        CDA equation'''
+        # List of shape columns to consider
+        shape_columns = ['OBA Shape', 'PCA Shape']
+
+        # Iterate over each shape column
+        for shape_column in shape_columns:
+            # Group the DataFrame by 'Equation number' and shape column, and calculate the counts
+            grouped = df.groupby(['Equation number', shape_column]).size().reset_index(name='Count')
+
+            # Pivot the table to have shape column as columns and 'Equation number' as rows
+            pivot_table = grouped.pivot(index='Equation number', columns=shape_column, values='Count').fillna(0)
+
+            # Convert the counts to integers
+            pivot_table = pivot_table.astype(int)
+
+            print(f"Total number of shapes for {shape_column}:")
+            print(pivot_table)
+
+        pass
 
     def savar_calc(self, subfolder, savefolder):
         path = Path(subfolder)
@@ -277,7 +299,7 @@ class AspectRatio:
         ar_df.loc[(c <= a) & (a <= b), "CDA_Equation"] = "5"
         ar_df.loc[(c <= b) & (b <= a), "CDA_Equation"] = "6"
 
-        ar_df.to_csv(Path(filepath) / "CDA_DataFrame.csv")
+        #ar_df.to_csv(Path(filepath) / "CDA_DataFrame.csv")
 
         return ar_df
 
@@ -339,14 +361,16 @@ class AspectRatio:
 
         pca_df.sort_values(by=["Simulation Number"], inplace=True)
         pca_cda = [
-            pca_df["S:M"],
-            pca_df["M:L"],
+            pca_df["OBA S:M"],
+            pca_df["OBA M:L"],
+            pca_df["PCA S:M"],
+            pca_df["PCA S:M"],
             cda_df["S/M"],
             cda_df["M/L"],
             cda_df["CDA_Equation"],
         ]
         pca_cda_df = pd.DataFrame(pca_cda).transpose()
-        pca_cda_df.to_csv(Path(folderpath) / "PCA_CDA.csv")
+        #pca_cda_df.to_csv(Path(folderpath) / "PCA_CDA.csv")
 
         cda = set(cda_df["CDA_Equation"])
 

@@ -160,73 +160,15 @@ class AspectRatioCalc:
     ):
         pass
 
-    def read_XYZ(self, filepath, verbose=False, progress=True):
-        """Read in shape data and generates a np arrary.
-        Supported formats:
-            .XYZ
-            .txt (.xyz format)
-            .stl
-        """
-        filepath = Path(filepath)
-        print(filepath)
-        xyz_movie = {}
-
-        try:
-
-            if filepath.suffix == ".XYZ":
-                print("XYZ File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".txt":
-                print("xyz File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".stl":
-                print("stl File read!")
-                xyz = trimesh.load(filepath)
-
-            progress_num = 100
-
-        except ValueError:
-            print("Looking for Video")
-            with open(filepath, "r", encoding="utf-8") as file:
-                lines = file.readlines()
-                num_frames = int(lines[1].split("//")[1])
-                print(num_frames)
-
-            if progress:
-                toolbar_width = num_frames
-                # setup toolbar
-                sys.stdout.write("[%s]" % (" " * toolbar_width))
-                sys.stdout.flush()
-                sys.stdout.write(
-                    "\b" * (toolbar_width + 1)
-                )  # return to start of line, after '['
-
-            particle_num_line = 0
-            frame_line = 2
-            for frame in range(num_frames):
-                num_particles = int(lines[particle_num_line])
-                xyz = np.loadtxt(lines[frame_line : (frame_line + num_particles)])
-                xyz_movie[frame] = xyz
-                particle_num_line = frame_line + num_particles
-                frame_line = particle_num_line + 2
-
-                progress_num = ((frame + 1) / num_frames) * 100
-
-                if progress:
-                    sys.stdout.write("#")
-                    sys.stdout.flush()
-
-                if verbose:
-                    print(f"#####\nFRAME NUMBER: {frame}")
-                    print(f"Particle Number Line: {particle_num_line}")
-                    print(f"Frame Start Line: {frame_line}")
-                    print(f"Frame End Line: {frame_line + num_particles}")
-                    print(f"Number of Particles read: {frame_line}")
-
-                    print(f"Number of Particles in list: {xyz.shape[0]}")
-            sys.stdout.write("]\n")
-
-        return xyz, xyz_movie, progress_num
+    def read_XYZ(self, filename):
+        """Opening and reading the .XYZ file"""
+        with open(filename, 'r') as f:
+            lines = f.readlines()[2:]
+            coordinates = []
+            for line in lines:
+                parts = line.split()
+                coordinates.append([float(parts[3]), float(parts[4]), float(parts[5])])
+        return np.array(coordinates)
 
     def measure_crystal_size_xyz(self, coordinates):
         """OBA - (Orthogonal Box Analysis)
@@ -257,8 +199,6 @@ class AspectRatioCalc:
         aspect2 = middle / longest
 
         shape = self.determine_crystal_shape(aspect1, aspect2)  # Get Zingg definition of crystal
-        print('call shape')
-        print(shape)
 
         size_array = np.array([[length_x, length_y, length_z, aspect1, aspect2, shape]])
 
@@ -277,6 +217,33 @@ class AspectRatioCalc:
             return "Needle"
         else:
             return "unknown"
+
+    def shape_number_percentage(self, df, savefolder):
+        '''This section is calculating the number of times
+        that lath, needle, plate and block and found in
+        the columns OBA Shape Definition and PCA Shape
+        Definition to create csv  that shows the percentage
+        of each shape found'''
+        OBA_shape_counts = df['OBA Shape Definition'].str.lower().value_counts()
+        OBA_total_count = OBA_shape_counts.sum()
+        OBA_shape_percentages = OBA_shape_counts / OBA_total_count * 100
+
+        PCA_shape_counts = df['PCA Shape Definition'].str.lower().value_counts()
+        PCA_total_count = PCA_shape_counts.sum()
+        PCA_shape_percentages = PCA_shape_counts / PCA_total_count * 100
+
+        result_df = pd.DataFrame({
+            'Shape': OBA_shape_counts.index,
+            'OBA Count': OBA_shape_counts,
+            'OBA Percentage': OBA_shape_percentages,
+            'PCA Count': PCA_shape_counts,
+            'PCA Percentage': PCA_shape_percentages
+        })
+        total_shapes_csv = f"{savefolder}/shape_counts.csv"
+        result_df.to_csv(total_shapes_csv, index=False)
+        #result_df.to_csv('shape_counts.csv', index=False)
+
+        return
 
     def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
         """ PCA - (Principal Component analysis)
@@ -317,21 +284,19 @@ class AspectRatioCalc:
         """This collects all the CrystalAspects
         information from each of the relevant functions
         and congregates that into the final DataFrame"""
-        print(folder)
         col_headings = ["Simulation Number",
-                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "Shape Definition",
-                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "Shape Definition",
+                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "OBA Shape Definition",
+                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "PCA Shape Definition",
                         "Surface Area (SA)", "Volume (Vol)", "SA:Vol Ratio (SAVAR)"
                         ]
         shape_df = None
         for files in Path(folder).iterdir():
             if files.is_dir():
                 for file in files.iterdir():
-                    # print(file)
                     if file.suffix == ".XYZ":
                         sim_num = re.findall(r"\d+", file.name)[-1]
                         try:
-                            xyz, _, _ = self.read_XYZ(file)  # Read .XYZ file
+                            xyz = self.read_XYZ(file)  # Read .XYZ file
                             pca_size = self.get_PCA(xyz)  # Collect PCA data
                             crystal_size = self.measure_crystal_size_xyz(xyz)  # Collect OBA data
                             savar_size = self.get_savar(xyz)  # Collect SAVAR data
