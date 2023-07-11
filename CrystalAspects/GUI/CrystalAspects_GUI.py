@@ -916,6 +916,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     savefolder=save_folder
                 )
 
+
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
         worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
