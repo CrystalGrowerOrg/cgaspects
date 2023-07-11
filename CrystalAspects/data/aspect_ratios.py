@@ -155,43 +155,32 @@ class AspectRatio:
         CDA equation'''
         # List of shape columns to consider
         shape_columns = ['OBA Shape', 'PCA Shape']
-        cda_shape_df = pd.DataFrame({
-            'CDA_Equation',
-            'OBA Block',
-            'OBA Lath',
-            'OBA Needle',
-            'OBA Plate',
-            'PCA Block',
-            'PCA Lath',
-            'PCA Needle',
-            'PCA Plate'
-        })
+
+        # Create a new DataFrame to store the results
+        cda_shape_df = pd.DataFrame(columns=['CDA_Equation', 'Shape', 'Count', 'Source'])
 
         # Iterate over each shape column
         for shape_column in shape_columns:
-            # Group the DataFrame by 'Equation number' and shape column, and calculate the counts
+            # Group the DataFrame by 'CDA_Equation' and shape column, and count the occurrences of each shape
             grouped = df.groupby(['CDA_Equation', shape_column]).size().reset_index(name='Count')
 
-            # Pivot the table to have shape column as columns and 'Equation number' as rows
-            pivot_table = grouped.pivot(index='CDA_Equation',
-                                        columns=shape_column,
-                                        values='Count'
-                                        ).fillna(0)
+            # Iterate over each 'CDA_Equation' group
+            for cda_equation, group in grouped.groupby('CDA_Equation'):
+                # Iterate over each shape in the group
+                for shape, count in zip(group[shape_column], group['Count']):
+                    # Determine the source of the shape ('OBA' or 'PCA')
+                    source = 'OBA' if shape_column == 'OBA Shape' else 'PCA'
 
-            # Convert the counts to integers
-            pivot_table = pivot_table.astype(int)
-            print(pivot_table)
-            # Merge the pivot table with the existing cda_shape_df DataFrame
-            cda_shape_df = pd.merge(cda_shape_df,
-                                    pivot_table,
-                                    how='outer',
-                                    left_on='CDA_Equation',
-                                    right_index=True
-                                    )
+                    # Append the shape, count, and source to the cda_shape_df DataFrame
+                    cda_shape_df = cda_shape_df.append(
+                        {'CDA_Equation': cda_equation, 'Shape': shape, 'Count': count, 'Source': source},
+                        ignore_index=True)
 
-        # Sort the DataFrame by 'CDA_Equation' column
+        # Sort the DataFrame by 'CDA_Equation'
         cda_shape_df.sort_values('CDA_Equation', inplace=True)
 
+        # Print and save the cda_shape_df DataFrame
+        print(cda_shape_df)
         cda_shape_df_csv = f"{savefolder}/shapes and equations.csv"
         cda_shape_df.to_csv(cda_shape_df_csv)
 
