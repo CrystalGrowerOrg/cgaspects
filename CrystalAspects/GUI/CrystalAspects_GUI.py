@@ -60,12 +60,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create two menus
         file_menu = QMenu("File", self)
         edit_menu = QMenu("Edit", self)
-        calculate_menu = QMenu("Calculate", self)
+        CrystalAspects_menu = QMenu("CrystalAspects", self)
 
         # Add menus to the menu bar
         menu_bar.addMenu(file_menu)
         menu_bar.addMenu(edit_menu)
-        menu_bar.addMenu(calculate_menu)
+        menu_bar.addMenu(CrystalAspects_menu)
 
         # Create actions for the File menu
         new_action = QAction("New", self)
@@ -93,10 +93,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create actions to the Calculate menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
+        plotting_action = QAction("Plotting", self)
+        calculate_action = QAction("Calculate", self)
 
-        # Add action to Calculate menu
+        # Add actions and Submenu to CrystalAspects menu
+        calculate_menu = CrystalAspects_menu.addMenu("Calculate")
         calculate_menu.addAction(aspect_ratio_action)
         calculate_menu.addAction(growth_rate_action)
+        CrystalAspects_menu.addAction(plotting_action)
 
         # Connect the aspect_ratio_action to a custom slot
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
@@ -232,11 +236,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
             # Get the directions from the information
-            self.checked_directions = information.directions
-            print(self.checked_directions)
+            checked_directions = information.directions
+            print(checked_directions)
 
             # Create the analysis options dialog
-            dialog = AnalysisOptionsDialog(self.checked_directions)
+            dialog = AnalysisOptionsDialog(checked_directions)
             if dialog.exec_() == QDialog.Accepted:
                 # Retrieve the selected options
                 selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio = dialog.get_options()
