@@ -11,11 +11,13 @@ class AnalysisOptionsDialog(QDialog):
 
         aspect_ratio_checkbox = QCheckBox("Aspect Ratio (PCA, OBA, Surface Area and Volume)")
         cda_checkbox = QCheckBox("CDA")
+        plotting_checkbox = QCheckBox("Auto-Generate Plots")
         layout.addWidget(aspect_ratio_checkbox)
         layout.addWidget(cda_checkbox)
 
         self.aspect_ratio_checkbox = aspect_ratio_checkbox
         self.cda_checkbox = cda_checkbox
+        self.plotting_checkbox = plotting_checkbox
         self.checkboxes = []
         self.combo_boxes = []
         self.selected_directions = []
@@ -36,6 +38,7 @@ class AnalysisOptionsDialog(QDialog):
             self.combo_boxes.append(combo_box)
 
         layout.addLayout(direction_layout)
+        layout.addWidget(plotting_checkbox)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
@@ -79,10 +82,11 @@ class AnalysisOptionsDialog(QDialog):
         selected_cda = self.cda_checkbox.isChecked()
         selected_directions = self.get_selected_directions()
         selected_direction_aspect_ratio = []
+        plotting = self.plotting_checkbox.isChecked()
 
         for i in range(3):
             selected_direction = self.combo_boxes[i].currentText()
             if selected_direction != "Select Direction" and selected_direction in selected_directions:
                 selected_direction_aspect_ratio.append(selected_direction)
 
-        return selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio
+        return selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio, plotting

@@ -12,6 +12,34 @@ class Plotting:
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
+    def plot_OBA(self, csv='', df='', folderpath="./outputs"):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+        savefolder = self.create_plots_folder(folderpath)
+        print("This is the dataframe!!!")
+        print(df)
+
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+        x_data = df["OBA S:M"]
+        y_data = df["OBA M:L"]
+        print(x_data)
+
+        # Plot the data
+        plt.scatter(x_data, y_data, s=1.2)
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlabel('S:M')
+        plt.ylabel('M:L')
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        savepath = f'{savefolder}/OBA Zingg'
+        plt.savefig(savepath, dpi=900)
+
     def build_PCAZingg(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
@@ -23,17 +51,18 @@ class Plotting:
             for col in df.columns
             if col.startswith("interaction") or col.startswith("tile")
         ]
-
-        x_data = df["S:M"]
-        y_data = df["M:L"]
+        x_data = df["PCA S:M"]
+        y_data = df["PCA M:L"]
 
         plt.figure()
         plt.scatter(x_data, y_data, s=1.2)
         plt.axhline(y=0.66, color='black', linestyle='--')
         plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlabel('S:M')
-        plt.ylabel('M:L')
-        savepath = f'{folderpath}/PCA Zingg'
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        plt.xlabel('PCA S:M')
+        plt.ylabel('PCA M:L')
+        savepath = f'{savefolder}/PCA Zingg'
         plt.savefig(savepath, dpi=900)
 
         for interaction in interactions:

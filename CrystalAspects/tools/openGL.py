@@ -461,11 +461,11 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         '''if self.point_type == "Spheres":
             self.draw_spheres(self.PointCloud())'''
         #gl.glLoadIdentity()
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        '''gl.glPushMatrix()
+        '''gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glPushMatrix()
         for p in self.PointCloud():
             gl.glTranslatef(p[0], p[1], p[2])
-            #glutSolidSphere(self.point_size, 16, 16)
+            glutSolidSphere(self.point_size, 16, 16)
             gl.glTranslatef(-p[0], -p[1], -p[2])
         gl.glPopMatrix()'''
 
