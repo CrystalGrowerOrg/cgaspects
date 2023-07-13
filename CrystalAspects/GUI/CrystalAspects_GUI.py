@@ -234,7 +234,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Read the information from the selected folder
             information = find.find_info(folder)
 
-
             # Get the directions from the information
             checked_directions = information.directions
             print(checked_directions)
@@ -243,9 +242,79 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             dialog = AnalysisOptionsDialog(checked_directions)
             if dialog.exec_() == QDialog.Accepted:
                 # Retrieve the selected options
-                selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio = dialog.get_options()
+                selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio, auto_plotting = dialog.get_options()
 
-                QMessageBox.information(self, "Selected Directions", f"Selected Directions: {selected_directions}")
+                # Display the information in a QMessageBox
+                QMessageBox.information(self, "Options",
+                                        f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
+                                        f"Selected CDA: {selected_cda}\n"
+                                        f"Selected Directions: {selected_directions}\n"
+                                        f"Selected Direction Aspect Ratio: {selected_direction_aspect_ratio}\n"
+                                        f"Auto Plotting: {auto_plotting}")
+
+                AspectXYZ = AspectRatioCalc()
+                aspect_ratio = AspectRatio()
+                plotting = Plotting()
+                save_folder = find.create_aspects_folder(folder)
+                file_info = find.find_info(folder)
+                summary_file = file_info.summary_file
+                folders = file_info.folders
+
+                if selected_aspect_ratio:
+                    xyz_df = AspectXYZ.collect_all(folder=folder)
+                    xyz_df_final = find.summary_compare(
+                        summary_csv=summary_file,
+                        aspect_df=xyz_df
+                    )
+                    xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
+                    xyz_df_final.to_csv(xyz_df_final_csv, index=None)
+                    AspectXYZ.shape_number_percentage(
+                        df=xyz_df_final,
+                        savefolder=save_folder
+                    )
+                    if auto_plotting is True:
+                        plotting.build_PCAZingg(df=xyz_df_final,
+                                                folderpath=save_folder)
+                        plotting.plot_OBA(df=xyz_df_final,
+                                          folderpath=save_folder)
+                    '''if selected_aspect_ratio is False:
+                        self.ShowData(xyz_df_final)'''
+                if selected_cda:
+                    cda_df = aspect_ratio.build_AR_CDA(
+                        folderpath=folder,
+                        folders=folders,
+                        directions=selected_directions,
+                        selected=selected_direction_aspect_ratio,
+                        savefolder=save_folder,
+                    )
+                    zn_df = aspect_ratio.defining_equation(
+                        directions=selected_direction_aspect_ratio,
+                        ar_df=cda_df,
+                        filepath=save_folder,
+                    )
+                    zn_df_final = find.summary_compare(
+                        summary_csv=summary_file,
+                        aspect_df=zn_df
+                    )
+                    zn_df_final_csv = f"{save_folder}/CDA.csv"
+                    zn_df_final.to_csv(zn_df_final_csv, index=None)
+
+                    if selected_aspect_ratio and selected_cda:
+                        combined_df = find.combine_XYZ_CDA(
+                            CDA_df=zn_df,
+                            XYZ_df=xyz_df
+                        )
+                        final_cda_xyz = find.summary_compare(
+                            summary_csv=summary_file,
+                            aspect_df=combined_df
+                        )
+                        final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
+                        final_cda_xyz.to_csv(final_cda_xyz_csv, index=None)
+                        #self.ShowData(final_cda_xyz)
+                        aspect_ratio.CDA_Shape_Percentage(
+                            df=final_cda_xyz,
+                            savefolder=save_folder
+                        )
 
     def calculate_growth_rates(self):
         # Example function to calculate growth rates
@@ -257,6 +326,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if folder:
             # Perform calculations using the selected folder
             QMessageBox.information(self, "Result", f"Growth rates calculated for the folder: {folder}")
+
 
     def read_summary_vis(self):
         print('Entering Reading Summary file')
