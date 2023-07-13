@@ -324,18 +324,6 @@ QProgressBar::chunk{
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="sa_vol_checkBox">
-                 <property name="font">
-                  <font>
-                   <family>Arial</family>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Surface Area : Volume</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <widget class="QCheckBox" name="aspectRatio_checkBox">
                  <property name="font">
                   <font>
@@ -1306,8 +1294,8 @@ QProgressBar::chunk{
             <rect>
              <x>-2</x>
              <y>-2</y>
-             <width>1241</width>
-             <height>1101</height>
+             <width>831</width>
+             <height>741</height>
             </rect>
            </property>
           </widget>
