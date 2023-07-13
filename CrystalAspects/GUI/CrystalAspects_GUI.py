@@ -1,6 +1,11 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut, QTableWidgetItem, QTableWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
+    QShortcut, QTableWidgetItem, QTableWidget,\
+    QAction, QMenu, QMenuBar, QFileDialog, \
+    QInputDialog, QCheckBox, QComboBox, \
+    QVBoxLayout, QLabel, QDialog, \
+    QDialogButtonBox
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtGui import QKeySequence, QKeyEvent
 from qt_material import apply_stylesheet
@@ -23,6 +28,8 @@ from CrystalAspects.visualisation.replotting import Replotting, PlotWindow
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.data.aspect_ratios import AspectRatio
+from CrystalAspects.visualisation.Tables import TableDialog
+from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
 
 basedir = os.path.dirname(__file__)
 
@@ -44,6 +51,58 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.key_shortcuts()
         self.connect_buttons()
         self.init_parameters()
+        self.MenuBar()
+
+    def MenuBar(self):
+        # Create a menu bar
+        menu_bar = self.menuBar()
+
+        # Create two menus
+        file_menu = QMenu("File", self)
+        edit_menu = QMenu("Edit", self)
+        calculate_menu = QMenu("Calculate", self)
+
+        # Add menus to the menu bar
+        menu_bar.addMenu(file_menu)
+        menu_bar.addMenu(edit_menu)
+        menu_bar.addMenu(calculate_menu)
+
+        # Create actions for the File menu
+        new_action = QAction("New", self)
+        open_action = QAction("Open", self)
+        save_action = QAction("Save", self)
+        exit_action = QAction("Exit", self)
+
+        # Add actions to the File menu
+        file_menu.addAction(new_action)
+        file_menu.addAction(open_action)
+        file_menu.addAction(save_action)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_action)
+
+        # Create actions for the Edit menu
+        cut_action = QAction("Cut", self)
+        copy_action = QAction("Copy", self)
+        paste_action = QAction("Paste", self)
+
+        # Add actions to the Edit menu
+        edit_menu.addAction(cut_action)
+        edit_menu.addAction(copy_action)
+        edit_menu.addAction(paste_action)
+
+        # Create actions to the Calculate menu
+        aspect_ratio_action = QAction("Aspect Ratio", self)
+        growth_rate_action = QAction("Growth Rates", self)
+
+        # Add action to Calculate menu
+        calculate_menu.addAction(aspect_ratio_action)
+        calculate_menu.addAction(growth_rate_action)
+
+        # Connect the aspect_ratio_action to a custom slot
+        aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
+
+        # Connect the growth_rate_action to a custom function
+        growth_rate_action.triggered.connect(self.calculate_growth_rates)
 
     def change_style(self, theme_main, theme_colour, density=-1):
 
@@ -156,6 +215,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Visualisation Buttons
         self.select_summary_slider_button.clicked.connect(lambda: self.read_summary_vis())
+
+    def calculate_aspect_ratio(self):
+        # Example function to calculate aspect ratio
+
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        find = Find()
+        # Check if the user selected a folder
+
+        if folder:
+            # Perform calculations using the selected folder
+
+            # Read the information from the selected folder
+            information = find.find_info(folder)
+
+
+            # Get the directions from the information
+            self.checked_directions = information.directions
+            print(self.checked_directions)
+
+            # Create the analysis options dialog
+            dialog = AnalysisOptionsDialog(self.checked_directions)
+            if dialog.exec_() == QDialog.Accepted:
+                # Retrieve the selected options
+                selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio = dialog.get_options()
+
+                QMessageBox.information(self, "Selected Directions", f"Selected Directions: {selected_directions}")
+
+    def calculate_growth_rates(self):
+        # Example function to calculate growth rates
+
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+
+        # Check if the user selected a folder
+        if folder:
+            # Perform calculations using the selected folder
+            QMessageBox.information(self, "Result", f"Growth rates calculated for the folder: {folder}")
 
     def read_summary_vis(self):
         print('Entering Reading Summary file')
@@ -765,7 +862,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 print(self.selected_directions)
 
         find = Find()
+        AspectXYZ = AspectRatioCalc()
+        aspect_ratio = AspectRatio()
         plotting = Plotting()
+        table = TableDialog()
         save_folder = find.create_aspects_folder(self.folder_path)
 
         '''if self.sa_vol and self.pca is False:
@@ -859,8 +959,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 plotting.PCA_CDA_Plot(df=pca_cda_df, folderpath=save_folder)
                 plotting.build_PCAZingg(df=pca_df, folderpath=save_folder)'''
 
-        AspectXYZ = AspectRatioCalc()
-        aspect_ratio = AspectRatio()
         if self.aspectratio:
             if self.pca:
                 xyz_df = AspectXYZ.collect_all(folder=self.folder_path)
@@ -875,6 +973,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     df=xyz_df_final,
                     savefolder=save_folder
                 )
+
                 if self.cda is False:
                     self.ShowData(xyz_df_final)
             if self.cda:
@@ -897,7 +996,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 zn_df_final_csv = f"{save_folder}/CDA.csv"
                 zn_df_final.to_csv(zn_df_final_csv, index=None)
                 if self.pca is False:
-                    self.ShowData(zn_df_final)
+                    table.DisplayData(zn_df_final)
 
             if self.cda and self.pca:
                 combined_df = find.combine_XYZ_CDA(
