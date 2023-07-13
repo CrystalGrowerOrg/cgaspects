@@ -1,8 +1,5 @@
-from PyQt5.QtWidgets import QVBoxLayout, \
-    QDialogButtonBox, QCheckBox, QDialog, \
-    QHBoxLayout, QComboBox
-
-from CrystalAspects.tools.shape_analysis import AspectRatioCalc
+from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox, QCheckBox, QDialog, QHBoxLayout, QComboBox
+from PyQt5.QtCore import Qt
 
 class AnalysisOptionsDialog(QDialog):
     def __init__(self, directions):
@@ -12,29 +9,29 @@ class AnalysisOptionsDialog(QDialog):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        aspect_ratio_checkbox = QCheckBox("Aspect Ratio")
+        aspect_ratio_checkbox = QCheckBox("Aspect Ratio (PCA, OBA, Surface Area and Volume)")
         cda_checkbox = QCheckBox("CDA")
         layout.addWidget(aspect_ratio_checkbox)
         layout.addWidget(cda_checkbox)
 
-
         self.aspect_ratio_checkbox = aspect_ratio_checkbox
         self.cda_checkbox = cda_checkbox
-        direction_layout = QHBoxLayout()
         self.checkboxes = []
+        self.combo_boxes = []
+        self.selected_directions = []
 
         for direction in directions:
             checkbox = QCheckBox(direction)
+            checkbox.setEnabled(False)  # Initially disable all direction checkboxes
             layout.addWidget(checkbox)
             self.checkboxes.append(checkbox)
 
         direction_layout = QHBoxLayout()
-        self.combo_boxes = []
 
         for i in range(3):
             combo_box = QComboBox()
+            combo_box.setEnabled(False)  # Initially disable all combo boxes
             combo_box.addItem("Select Direction")
-            combo_box.addItems(directions)
             direction_layout.addWidget(combo_box)
             self.combo_boxes.append(combo_box)
 
@@ -45,12 +42,31 @@ class AnalysisOptionsDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def get_selected_directions(self):
-        selected_directions = []
+        cda_checkbox.stateChanged.connect(self.toggle_directions)  # Connect the stateChanged signal
+
         for checkbox in self.checkboxes:
-            if checkbox.isChecked():
-                selected_directions.append(checkbox.text())
-        return selected_directions
+            checkbox.toggled.connect(self.update_selected_directions)
+
+    def toggle_directions(self, state):
+        enabled = state == Qt.Checked
+        for checkbox in self.checkboxes:
+            checkbox.setEnabled(enabled)
+
+        for combo_box in self.combo_boxes:
+            combo_box.setEnabled(enabled)
+
+    def update_selected_directions(self):
+        self.selected_directions = [checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()]
+        self.update_combo_boxes()
+
+    def update_combo_boxes(self):
+        for combo_box in self.combo_boxes:
+            combo_box.clear()
+            combo_box.addItem("Select Direction")
+            combo_box.addItems(self.selected_directions)
+
+    def get_selected_directions(self):
+        return self.selected_directions
 
     def get_selected_combo_values(self):
         selected_combo_values = []
@@ -58,11 +74,15 @@ class AnalysisOptionsDialog(QDialog):
             selected_combo_values.append(combo_box.currentText())
         return selected_combo_values
 
-
     def get_options(self):
         selected_aspect_ratio = self.aspect_ratio_checkbox.isChecked()
         selected_cda = self.cda_checkbox.isChecked()
-        selected_directions = self.directions_checkbox.isChecked()
-        selected_direction_aspect_ratio = self.direction_aspect_ratio_combobox.currentText()
+        selected_directions = self.get_selected_directions()
+        selected_direction_aspect_ratio = []
+
+        for i in range(3):
+            selected_direction = self.combo_boxes[i].currentText()
+            if selected_direction != "Select Direction" and selected_direction in selected_directions:
+                selected_direction_aspect_ratio.append(selected_direction)
 
         return selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio
