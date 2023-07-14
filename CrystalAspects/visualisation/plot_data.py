@@ -1,10 +1,11 @@
 # Miscellaneous imports
 from pathlib import Path
 import pandas as pd
-import plotly.express as px
+#import plotly.express as px
 
 # Matplotlib imports
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 class Plotting:
     def create_plots_folder(self, path):
@@ -12,13 +13,38 @@ class Plotting:
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
+    def plot_OBA1(self, csv='', df='', folderpath="./outputs"):
+        if csv != "":
+            folderpath = Path(csv).parents[0]
+            df = pd.read_csv(csv)
+        savefolder = self.create_plots_folder(folderpath)
+
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction") or col.startswith("tile")
+        ]
+        x_data = df["OBA S:M"]
+        y_data = df["OBA M:L"]
+        print("Min_data", min(x_data))
+        print(x_data)
+        print(y_data)
+        fig, ax = plt.subplots()
+        ax.scatter(x_data, y_data, s=1.2)
+        ax.axhline(y=0.66, color='black', linestyle='--')
+        ax.axvline(x=0.66, color='black', linestyle='--')
+        ax.set_xlim(0, 1)  # Set x-axis limits
+        ax.set_ylim(0, 1)  # Set y-axis limits
+        ax.set_xlabel('OBA S:M')
+        ax.set_ylabel('OBA M:L')
+        savepath = f'{savefolder}/OBA Zingg'
+        plt.savefig(savepath, dpi=900)
+
     def plot_OBA(self, csv='', df='', folderpath="./outputs"):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
         savefolder = self.create_plots_folder(folderpath)
-        print("This is the dataframe!!!")
-        print(df)
 
         interactions = [
             col
@@ -28,15 +54,15 @@ class Plotting:
         x_data = df["OBA S:M"]
         y_data = df["OBA M:L"]
         print(x_data)
-
-        # Plot the data
+        print(y_data)
+        plt.figure()
         plt.scatter(x_data, y_data, s=1.2)
         plt.axhline(y=0.66, color='black', linestyle='--')
         plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlabel('S:M')
-        plt.ylabel('M:L')
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
+        plt.xlim(min(x_data), max(x_data))  # Adjust x-axis limits
+        plt.ylim(min(y_data), max(y_data))  # Adjust y-axis limits
+        plt.xlabel('OBA S:M')
+        plt.ylabel('OBA M:L')
         savepath = f'{savefolder}/OBA Zingg'
         plt.savefig(savepath, dpi=900)
 
