@@ -201,7 +201,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
         self.pca_checkBox.stateChanged.connect(self.pca_checked)
         self.cda_checkBox.stateChanged.connect(self.cda_checked)
-        self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
+        #self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
         self.reset_button.clicked.connect(self.reset_button_function)
         self.plot_checkBox.setEnabled(True)
         self.outFolder_Button.clicked.connect(self.output_folder_button)
@@ -326,6 +326,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if folder:
             # Perform calculations using the selected folder
             QMessageBox.information(self, "Result", f"Growth rates calculated for the folder: {folder}")
+            
+
+
 
 
     def read_summary_vis(self):
@@ -514,7 +517,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aspectRatio_checkBox.setChecked(False)
             self.cda_checkBox.setChecked(False)
             self.pca_checkBox.setChecked(False)
-            self.sa_vol_checkBox.setChecked(False)
             self.plot_checkBox.setChecked(False)
             self.long_facet.setEnabled(False)
             self.medium_facet.setEnabled(False)
