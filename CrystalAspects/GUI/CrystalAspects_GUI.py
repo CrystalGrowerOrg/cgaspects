@@ -9,18 +9,15 @@ from qt_material import apply_stylesheet
 
 # General imports
 import os, sys, subprocess
-import pandas as pd
-from collections import namedtuple
-from pathlib import Path
 
 # Project Module imports
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.tools.shape_analysis import CrystalShape, AspectRatioCalc
+from CrystalAspects.tools.shape_analysis import AspectRatioCalc
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
+from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Movies
 from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
@@ -173,8 +170,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("Created by Nathan de Bruyn & Alvin J. Walisinghe")
 
     def import_XYZ(self):
+        ''' Import XYZ file(s) by first opening the folder
+        and then opening them via an OpenGL widget'''
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        # Check if the user opened a folder
 
-        print("importing XYZ files")
+        if folder:
+            slider = create_slider()
+            folder, self.xyz_list = slider.read_crystals()
+            print(f"Initial XYZ list: {self.xyz_list}")
+            Visualiser.initGUI(self, self.xyz_list)
+            self.select_summary_slider_button.setEnabled(True)
+            print("importing XYZ files")
 
     def close_application(self):
         print("Closing Application")
