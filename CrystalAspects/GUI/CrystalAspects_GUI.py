@@ -30,6 +30,7 @@ from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.visualisation.Tables import TableDialog
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
+from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
 
 basedir = os.path.dirname(__file__)
 
@@ -61,11 +62,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file_menu = QMenu("File", self)
         edit_menu = QMenu("Edit", self)
         CrystalAspects_menu = QMenu("CrystalAspects", self)
+        CrystalClear_menu = QMenu("CrystalClear", self)
 
         # Add menus to the menu bar
         menu_bar.addMenu(file_menu)
         menu_bar.addMenu(edit_menu)
         menu_bar.addMenu(CrystalAspects_menu)
+        menu_bar.addMenu(CrystalClear_menu)
 
         # Create actions for the File menu
         new_action = QAction("New", self)
@@ -90,11 +93,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         edit_menu.addAction(copy_action)
         edit_menu.addAction(paste_action)
 
-        # Create actions to the Calculate menu
+        # Create actions to the CrystalAspects menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
         plotting_action = QAction("Plotting", self)
-        calculate_action = QAction("Calculate", self)
 
         # Add actions and Submenu to CrystalAspects menu
         calculate_menu = CrystalAspects_menu.addMenu("Calculate")
@@ -321,13 +323,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Prompt the user to select the folder
         folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        find = Find()
 
         # Check if the user selected a folder
         if folder:
             # Perform calculations using the selected folder
             QMessageBox.information(self, "Result", f"Growth rates calculated for the folder: {folder}")
-            
 
+            # Read the information from the selected folder
+            information = find.find_info(folder)
+
+            # Get the directions from the information
+            checked_directions = information.directions
+            print(checked_directions)
+
+            file_info = find.find_info(folder)
+
+            growth_rate_dialog = GrowthRateAnalysisDialogue(checked_directions)
+            if growth_rate_dialog.exec_() == QDialog.Accepted:
+                selected_directions = growth_rate_dialog.selected_directions
+                print(selected_directions)
+                auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
+
+                save_folder = find.create_aspects_folder(folder)
+                size_files = file_info.size_files
+                supersats = file_info.supersats
+                directions = selected_directions
+
+                growth_rate = GrowthRate()
+
+                growth_rate_df = growth_rate.calc_growth_rate(
+                    size_file_list=size_files, supersat_list=supersats, directions=directions
+                )
+                growth_rate_df.to_csv(save_folder / "growthrates.csv")
+
+                if auto_plotting:
+                    plot = Plotting()
+                    plot.plot_growth_rates(growth_rate_df, file_info.directions, save_folder)
+
+
+
+            
 
 
 
