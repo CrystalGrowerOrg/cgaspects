@@ -5,10 +5,12 @@ class AnalysisOptionsDialog(QDialog):
     def __init__(self, directions):
         super().__init__()
 
+        # Initialise Window
         self.setWindowTitle("Analysis Options")
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        # Initialise Checkboxes
         aspect_ratio_checkbox = QCheckBox("Aspect Ratio (PCA, OBA, Surface Area and Volume)")
         cda_checkbox = QCheckBox("CDA")
         plotting_checkbox = QCheckBox("Auto-Generate Plots")
