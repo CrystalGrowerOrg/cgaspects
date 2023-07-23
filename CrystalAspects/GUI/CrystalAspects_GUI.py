@@ -3,18 +3,19 @@ from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
     QShortcut, QAction, \
     QMenu, QFileDialog, QDialog
-from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5.QtCore import Qt, QThreadPool, QTimer
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
 
 # General imports
 import os, sys, subprocess
+from natsort import natsorted
 
 # Project Module imports
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.tools.shape_analysis import AspectRatioCalc
+from CrystalAspects.tools.shape_analysis import AspectRatioCalc, CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Movies
@@ -22,6 +23,7 @@ from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
 from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
+from CrystalAspects.CrystalViewer.CrystalViewer import CrystalViewer
 
 basedir = os.path.dirname(__file__)
 
@@ -135,11 +137,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def init_parameters(self):
+        # Initialise CrystalViewer and Widget
+        self.viewer = CrystalViewer()
+        self.gl_vLayout.addWidget(self.viewer)
+
+        # Set up a timer to refresh the OpenGL widget at regular intervals
+        timer = QTimer(self)
+        timer.timeout.connect(self.viewer.update)
+        timer.start(16)  # About 60 FPS
+
         self.xyz = None
         self.xyz_list = []
         self.xyz_result = ()
         self.frame_list = []
         self.progressBar.setValue(0)
+        self.current_crystal_index = 0
+        self.crystals_data = []  # List to store crystal data for multiple files
 
     def key_shortcuts(self):
         # Create a QShortcut with the specified key sequence
@@ -174,15 +187,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         and then opening them via an OpenGL widget'''
         # Prompt the user to select the folder
         folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        print("entered importing XYZ")
         # Check if the user opened a folder
-
+        XYZ_data = CrystalShape()
         if folder:
-            slider = create_slider()
+            xyz_files = [file for file in os.listdir(folder) if file.lower().endswith(".xyz")]
+            print(xyz_files)
+
+            xyz_files = natsorted(xyz_files)
+            print(xyz_files)
+
+            '''for file_name in xyz_files:
+                full_file_path = os.path.join(folder, file_name)
+                atoms = XYZ_data.read_XYZ(full_file_path)
+                self.crystals_data.append(atoms)
+
+            if self.crystals_data:
+                print(self.crystals_data)
+                self.viewer.atoms = self.crystals_data[0]  # Load the first crystal
+                self.viewer.update()'''
+
+            '''slider = create_slider()
             folder, self.xyz_list = slider.read_crystals()
             print(f"Initial XYZ list: {self.xyz_list}")
             Visualiser.initGUI(self, self.xyz_list)
             self.select_summary_slider_button.setEnabled(True)
-            print("importing XYZ files")
+            print("importing XYZ files")'''
 
     def close_application(self):
         print("Closing Application")
@@ -358,25 +388,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('Entering Reading Summary file')
         create_slider.read_summary(self)
 
-    '''def ShowData(self, df):
-         Displaying the dataframe as a QTable 
-        print('Entering Display CSV')
-        print(df)
-        df = df.iloc[:, 0:]
-        self.table = self.DisplayDataFrame
-        self.table.setRowCount(df.shape[0])
-        self.table.setColumnCount(df.shape[1])
-        self.table.setHorizontalHeaderLabels(df.columns)
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        for row in df.iterrows():
-            values = row[1]
-            for col_index, value in enumerate(values):
-                if isinstance(value, (float, int)):
-                    value = QTableWidgetItem('{:,.2f}'.format(value))
-                tableItem = QTableWidgetItem(str(value))
-                self.table.setItem(row[0], col_index, tableItem)
-        #self.table.setItem(QTableWidgetItem(df))'''
-
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
         worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
@@ -496,11 +507,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         print("THREAD COMPLETED!")
-        '''DataFrame = self.folder_path / 'CrystalAspects' / 'aspectratio_energy.csv'
-        print(self.AR_csv)
-        print("Printed CSV")
-        self.AR_csv = DataFrame
-        self.reread_info(csv=self.AR_csv)'''
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)

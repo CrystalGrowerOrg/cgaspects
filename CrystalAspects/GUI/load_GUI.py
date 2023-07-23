@@ -41,7 +41,7 @@ class Ui_MainWindow(object):
 "}")
         self.progressBar.setProperty("value", 24)
         self.progressBar.setObjectName("progressBar")
-        self.gridLayout.addWidget(self.progressBar, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.progressBar, 2, 1, 1, 1)
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.tabWidget.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -75,6 +75,9 @@ class Ui_MainWindow(object):
         self.Plotting_Frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.Plotting_Frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.Plotting_Frame.setObjectName("Plotting_Frame")
+        self.textEdit = QtWidgets.QTextEdit(self.Plotting_Frame)
+        self.textEdit.setGeometry(QtCore.QRect(700, 280, 311, 181))
+        self.textEdit.setObjectName("textEdit")
         self.gridLayout_10.addWidget(self.Plotting_Frame, 0, 1, 2, 1)
         self.tabWidget.addTab(self.tab_normal, "")
         self.tab_3d = QtWidgets.QWidget()
@@ -395,7 +398,7 @@ class Ui_MainWindow(object):
         self.vis_vLayout_4.addWidget(self.vis_scrollArea, 1, 2, 5, 2)
         self.horizontalLayout_8.addLayout(self.vis_vLayout_4)
         self.tabWidget.addTab(self.tab_3d, "")
-        self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
+        self.gridLayout.addWidget(self.tabWidget, 1, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         font = QtGui.QFont()
@@ -530,6 +533,11 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "CrystalAspects"))
+        self.textEdit.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Arial\'; font-size:10pt; font-weight:600; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:18pt;\">CrystalGrower, CrystalAspects, CrystalClear and CrystalViewer will come as a single package soon!!</span></p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_normal), _translate("MainWindow", "CrystalGrower"))
         self.crystal_sa_label.setText(_translate("MainWindow", "Crystal Surface Area (nm^2):"))
         self.spacegroup_label.setText(_translate("MainWindow", "Space group:"))
@@ -562,7 +570,7 @@ class Ui_MainWindow(object):
         self.end_simvis_button.setText(_translate("MainWindow", "End"))
         self.ThreeD_toolBox.setItemText(self.ThreeD_toolBox.indexOf(self.video_options), _translate("MainWindow", "Video Options"))
         self.total_sims_label.setText(_translate("MainWindow", "/ Total"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3d), _translate("MainWindow", "CrystalObserver"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3d), _translate("MainWindow", "CrystalViewer"))
         self.actionOpen_Simulations.setText(_translate("MainWindow", "Open Simulations"))
         self.actionOpen_XYZs.setText(_translate("MainWindow", "Open XYZs"))
         self.actionOpen_Outputs.setText(_translate("MainWindow", "Open Outputs"))

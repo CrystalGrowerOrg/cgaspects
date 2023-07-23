@@ -28,7 +28,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
 
-        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
 
         self.xyz_path_list = []
         self.sim_num = 0
