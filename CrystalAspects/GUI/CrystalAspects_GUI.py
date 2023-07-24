@@ -1,7 +1,7 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
-    QShortcut, QAction, \
+    QShortcut, QAction, QSlider, \
     QMenu, QFileDialog, QDialog
 from PyQt5.QtCore import Qt, QThreadPool, QTimer
 from PyQt5.QtGui import QKeySequence
@@ -151,6 +151,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_result = ()
         self.frame_list = []
         self.progressBar.setValue(0)
+
         self.current_crystal_index = 0
         self.crystals_data = []  # List to store crystal data for multiple files
 
@@ -186,33 +187,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ''' Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget'''
         # Prompt the user to select the folder
-        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
-        print("entered importing XYZ")
+        slider = create_slider()
+        folder, xyz_files = slider.read_crystals()
+        print(f"Initial XYZ list: {xyz_files}")
         # Check if the user opened a folder
         XYZ_data = CrystalShape()
         if folder:
-            xyz_files = [file for file in os.listdir(folder) if file.lower().endswith(".xyz")]
-            print(xyz_files)
+            xyz_files = [os.path.join(folder, file) for file in os.listdir(folder) if file.lower().endswith(".xyz")]
+            xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
 
-            xyz_files = natsorted(xyz_files)
-            print(xyz_files)
+            self.crystals_data = xyz_files  # Store the list of full file paths
 
-            '''for file_name in xyz_files:
-                full_file_path = os.path.join(folder, file_name)
-                atoms = XYZ_data.read_XYZ(full_file_path)
-                self.crystals_data.append(atoms)
+            CrystalViewer.init_GUI(self, self.crystals_data)
+            '''self.xyz, _, _ = XYZ_data.read_XYZ(self.crystals_data)
+            self.run_xyz_movie(self.xyz)
+            #CrystalViewer.init_crystal(self, crystal_results)
+            self.select_summary_slider_button.setEnabled(True)'''
 
-            if self.crystals_data:
-                print(self.crystals_data)
-                self.viewer.atoms = self.crystals_data[0]  # Load the first crystal
-                self.viewer.update()'''
+            print("importing XYZ files")
 
-            '''slider = create_slider()
-            folder, self.xyz_list = slider.read_crystals()
-            print(f"Initial XYZ list: {self.xyz_list}")
-            Visualiser.initGUI(self, self.xyz_list)
-            self.select_summary_slider_button.setEnabled(True)
-            print("importing XYZ files")'''
+    def on_slider_value_changed(self, value):
+        # Check if the selected index is within the range of available XYZ files
+        if 0 <= value < len(self.crystals_data):
+            self.current_crystal_index = value
+            self.viewer.atoms = self.crystals_data[self.current_crystal_index]
+            self.viewer.update()
 
     def close_application(self):
         print("Closing Application")
