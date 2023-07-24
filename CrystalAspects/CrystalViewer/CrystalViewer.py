@@ -6,107 +6,121 @@ import OpenGL.GL as gl
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
+from CrystalAspects.tools.openGL import vis_GLWidget
+
 class CrystalViewer(QOpenGLWidget):
-    def __init__(self, parent=None):
-        self.parent = parent
-        QtOpenGL.QGLWidget.__init__(self, parent)
-        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+    def __init__(self, *args, **kwargs):
+        super(CrystalViewer, self).__init__(*args, **kwargs)
+        self.xyz = None
+        self.movie = None
+        self.colour_list = []
+        self.xyz_file_list = []
+        self.frame_list = []
+        self.glWidget = vis_GLWidget()
         self.atoms = []  # List to store the atoms data from XYZ file
 
-        # XYZ positions for mouse movements
-        self.lastPos = None
-        self.rotX = 0.0
-        self.rotY = 0.0
-        self.rotZ = 0.0
-        # self.object = 0
-        self.zoomFactor = 1.0
+    def init_GUI(self, xyz_files):
+        self.xyz_file_list = [str(path) for path in xyz_files]
+        tot_sims = "Unassigned"
 
-    def initializeGL(self):
-        glClearColor(0.0, 0.0, 0.0, 1.0)
-        glEnable(GL_DEPTH_TEST)
+        self.glWidget = vis_GLWidget()
 
-    def resizeGL(self, w, h):
-        glViewport(0, 0, w, h)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glOrtho(-10, 10, -10, 10, -10, 10)
-        glMatrixMode(GL_MODELVIEW)
+        print(xyz_files)
+        self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
+        self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
+        #self.run_xyz_movie(xyz_file_list[0])
+        # self.gl_vLayout.addWidget(self.glWidget)
 
-    def paintGL(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
+        tot_sims = len(self.xyz_file_list)
+        self.total_sims_label.setText(str(tot_sims))
 
-        glPointSize(3.0)  # Set the size of the points
+        self.colour_list = [
+            "Viridis",
+            "Plasma",
+            "Inferno",
+            "Magma",
+            "Cividis",
+            "Twilight",
+            "Twilight Shifted",
+            "HSV",
+        ]
 
-        glColor3f(1.0, 1.0, 1.0)  # Set the color of the points to white
+        self.colourmode_comboBox.addItems(
+            ["Atom/Molecule Type", "Atom/Molecule Number", "Layer", "Single Colour"]
+        )
+        self.pointtype_comboBox.addItems(["Points", "Spheres"])
+        self.colourmode_comboBox.setCurrentIndex(2)
+        self.colour_comboBox.addItems(self.colour_list)
+        self.bgcolour_comboBox.addItems(["White", "Black", "Transparent"])
+        self.bgcolour_comboBox.setCurrentIndex(1)
 
-        gl.glScale(0.1 * self.zoomFactor, 0.1 * self.zoomFactor, 0.1 * self.zoomFactor)
+        self.colour_comboBox.currentIndexChanged.connect(self.glWidget.get_colour)
+        self.bgcolour_comboBox.currentIndexChanged.connect(self.glWidget.get_bg_colour)
+        self.pointtype_comboBox.currentIndexChanged.connect(
+            self.glWidget.get_point_type
+        )
+        self.colourmode_comboBox.currentIndexChanged.connect(
+            self.glWidget.get_colour_type
+        )
 
-        glBegin(GL_POINTS)
-        '''for atom in self.atoms:
-            glVertex3f(atom[3], atom[4], atom[5])'''
-        glEnd()
+        self.point_slider.setMinimum(1)
+        self.point_slider.setMaximum(50)
+        self.point_slider.setValue(10)
+        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)
+        self.zoom_slider.valueChanged.connect(self.glWidget.zoomGL)
+        self.mainCrystal_slider.setMinimum(0)
+        self.mainCrystal_slider.setMaximum(tot_sims)
+        self.mainCrystal_slider.setTickInterval(1)
+        self.mainCrystal_slider.valueChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.mainCrystal_slider.valueChanged.connect(self.update_vis_sliders)
+        self.vis_simnum_spinBox.setMinimum(0)
+        self.vis_simnum_spinBox.setMaximum(tot_sims)
+        self.vis_simnum_spinBox.valueChanged.connect(self.glWidget.get_XYZ_from_list)
+        self.vis_simnum_spinBox.valueChanged.connect(self.update_vis_sliders)
+        self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
-        glFlush()
+    def init_crystal(self, result):
+        self.xyz, self.movie = result
+        self.glWidget.pass_XYZ(self.xyz)
 
-    def wheelEvent(self, event):
-        scroll = event.angleDelta()
-        if scroll.y() > 0:
-            self.zoomFactor += 0.1
-            self.update()
-        else:
-            self.zoomFactor -= 0.1
-            self.update()
+        if self.movie:
+            self.frame_list = self.movie.keys()
+            print("Frames: ", self.frame_list)
+            self.current_frame_comboBox.addItems(
+                [f"frame_{frame + 1}" for frame in self.frame_list]
+            )
+            self.current_frame_spinBox.setMinimum(0)
+            self.current_frame_spinBox.setMaximum(len(self.frame_list))
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(len(self.frame_list))
+            self.current_frame_comboBox.currentIndexChanged.connect(self.update_movie)
+            self.current_frame_spinBox.valueChanged.connect(self.update_movie)
+            self.frame_slider.valueChanged.connect(self.update_movie)
+            self.play_button.clicked.connect(self.play_movie)
 
-    def update_projection_matrix(self):
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glOrtho(-10 * self.scale_factor, 10 * self.scale_factor,
-                -10 * self.scale_factor, 10 * self.scale_factor,
-                -10, 10)
-        glMatrixMode(GL_MODELVIEW)
+        try:
+            self.glWidget.initGeometry()
+        except AttributeError:
+            print("No Crystal Data Found!")
 
-    def keyPressEvent(self, event):
-        # print(f"Key pressed: {event.key()}")
+    def update_frame(self, frame):
+        self.xyz = self.movie[frame]
+        self.glWidget.pass_XYZ(self.xyz)
 
-        if event.key() == Qt.Key_W:
-            self.rotX += 100
-        if event.key() == Qt.Key_A:
-            self.rotY -= 100
-        if event.key() == Qt.Key_S:
-            self.rotX -= 100
-        if event.key() == Qt.Key_D:
-            self.rotY -= 100
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
+        except AttributeError:
+            print("No Crystal Data Found!")
 
-        if event.key() == Qt.Key_Up and Qt.KeyboardModifiers() & Qt.ShiftModifier:
-            self.rotZ += 100
-        if event.key() == Qt.Key_Down and Qt.KeyboardModifiers() & Qt.ShiftModifier:
-            self.rotZ -= 100
+    def update_XYZ(self, XYZ_filepath):
 
-        if event.key() == Qt.Key_Right:
-            gl.glTranslate(100, 0.0, 0.0)
-        if event.key() == Qt.Key_Left:
-            gl.glTranslate(-100.0, 0.0, 0.0)
-        if event.key() == Qt.Key_Down:
-            gl.glTranslate(0.0, -100.0, 0.0)
-        if event.key() == Qt.Key_Up:
-            gl.glTranslate(0.0, 100.0, 0.0)
+        self.run_xyz_movie(XYZ_filepath)
+        self.glWidget.pass_XYZ(self.xyz)
 
-    def setRotX(self, val):
-        self.rotX = self.rotX + val
-
-    def setRotY(self, val):
-        self.rotY = self.rotY + val
-
-    def setRotZ(self, val):
-        self.rotZ = self.rotZ + val
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.last_mouse_pos = None
-
-    def update_rotation_matrix(self):
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        glRotatef(self.x_angle, 1, 0, 0)
-        glRotatef(self.y_angle, 0, 1, 0)
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
+        except AttributeError:
+            print("No Crystal Data Found!")
