@@ -7,16 +7,18 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 
 from CrystalAspects.tools.openGL import vis_GLWidget
+from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 
 class CrystalViewer(QOpenGLWidget):
     def __init__(self, *args, **kwargs):
         super(CrystalViewer, self).__init__(*args, **kwargs)
-        self.glWidget = vis_GLWidget() # Initialise the OpenGL widget
+        self.glWidget = vis_GLWidget()   # Initialise the OpenGL widget
         self.xyz = None
         self.movie = None
         self.colour_list = []
         self.xyz_file_list = []
         self.frame_list = []
+        self.atoms = []
 
     def init_GUI(self, xyz_files):
         self.xyz_file_list = [str(path) for path in xyz_files]
@@ -100,6 +102,27 @@ class CrystalViewer(QOpenGLWidget):
 
         try:
             self.glWidget.initGeometry()
+        except AttributeError:
+            print("No Crystal Data Found!")
+
+    def update_frame(self, frame):
+        self.xyz = self.movie[frame]
+        self.glWidget.pass_XYZ(self.xyz)
+
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
+        except AttributeError:
+            print("No Crystal Data Found!")
+
+    def update_XYZ(self, XYZ_filepath):
+
+        self.run_xyz_movie(XYZ_filepath)
+        self.glWidget.pass_XYZ(self.xyz)
+
+        try:
+            self.glWidget.initGeometry()
+            self.glWidget.updateGL()
         except AttributeError:
             print("No Crystal Data Found!")
 

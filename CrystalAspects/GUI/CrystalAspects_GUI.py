@@ -194,7 +194,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.folder = folder
         print(f"Initial XYZ list: {xyz_files}")
         # Check if the user opened a folder
-        XYZ_data = CrystalShape()
         if folder:
             xyz_files = [os.path.join(folder, file) for file in os.listdir(folder) if file.lower().endswith(".xyz")]
             self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
@@ -206,12 +205,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.crystals_data = xyz_files  # Store the list of full file paths
             CrystalViewer.init_GUI(self, self.crystals_data) # Load the info into init_GUI
 
+            # Load the first crystal
+            self.load_crystal(0)
+
             # Adjust the slider range based on the number of XYZ files in the list
             self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
             self.mainCrystal_slider.setValue(0)
 
-            # Load the first crystal
-            self.load_crystal(0)
+
             # self.xyz, _, _ = XYZ_data.read_XYZ(folder)
 
             # self.run_xyz_movie(self.xyz)
@@ -228,8 +229,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
             atoms = aspect.read_XYZ(full_file_path)  # Assuming read_XYZ is in MainWindow
+            print(atoms)
             self.viewer.atoms = atoms
             self.viewer.update()
+
 
     def on_slider_value_changed(self, value):
         # Check if the selected index is within the range of available XYZ files
