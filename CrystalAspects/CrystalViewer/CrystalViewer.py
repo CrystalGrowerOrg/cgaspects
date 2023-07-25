@@ -11,13 +11,12 @@ from CrystalAspects.tools.openGL import vis_GLWidget
 class CrystalViewer(QOpenGLWidget):
     def __init__(self, *args, **kwargs):
         super(CrystalViewer, self).__init__(*args, **kwargs)
+        self.glWidget = vis_GLWidget() # Initialise the OpenGL widget
         self.xyz = None
         self.movie = None
         self.colour_list = []
         self.xyz_file_list = []
         self.frame_list = []
-        self.glWidget = vis_GLWidget()
-        self.atoms = []  # List to store the atoms data from XYZ file
 
     def init_GUI(self, xyz_files):
         self.xyz_file_list = [str(path) for path in xyz_files]

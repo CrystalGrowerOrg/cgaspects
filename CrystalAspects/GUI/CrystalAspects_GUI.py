@@ -151,6 +151,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_result = ()
         self.frame_list = []
         self.progressBar.setValue(0)
+        self.xyz_files = []      # List to store the sorted XYZ file names
+        self.folder = ""         # Store the folder path
 
         self.current_crystal_index = 0
         self.crystals_data = []  # List to store crystal data for multiple files
@@ -189,22 +191,45 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Prompt the user to select the folder
         slider = create_slider()
         folder, xyz_files = slider.read_crystals()
+        self.folder = folder
         print(f"Initial XYZ list: {xyz_files}")
         # Check if the user opened a folder
         XYZ_data = CrystalShape()
         if folder:
             xyz_files = [os.path.join(folder, file) for file in os.listdir(folder) if file.lower().endswith(".xyz")]
-            xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
+            self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
+            # Generate a complete list of the number of .xyz files and/or frames in the movie
+            self.xyz_info_list = slider.get_xyz_info_for_all_files(folder, xyz_files)
+            xyz_info_list = self.xyz_info_list
+            print(xyz_info_list)
 
             self.crystals_data = xyz_files  # Store the list of full file paths
+            CrystalViewer.init_GUI(self, self.crystals_data) # Load the info into init_GUI
 
-            CrystalViewer.init_GUI(self, self.crystals_data)
-            '''self.xyz, _, _ = XYZ_data.read_XYZ(self.crystals_data)
-            self.run_xyz_movie(self.xyz)
+            # Adjust the slider range based on the number of XYZ files in the list
+            self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
+            self.mainCrystal_slider.setValue(0)
+
+            # Load the first crystal
+            self.load_crystal(0)
+            # self.xyz, _, _ = XYZ_data.read_XYZ(folder)
+
+            # self.run_xyz_movie(self.xyz)
             #CrystalViewer.init_crystal(self, crystal_results)
-            self.select_summary_slider_button.setEnabled(True)'''
+            self.select_summary_slider_button.setEnabled(True)
 
             print("importing XYZ files")
+
+    def load_crystal(self, index):
+        aspect = AspectRatioCalc()
+        folder = self.folder
+        print(folder)
+        if 0 <= index < len(self.xyz_files):
+            file_name = self.xyz_files[index]
+            full_file_path = os.path.join(folder, file_name)
+            atoms = aspect.read_XYZ(full_file_path)  # Assuming read_XYZ is in MainWindow
+            self.viewer.atoms = atoms
+            self.viewer.update()
 
     def on_slider_value_changed(self, value):
         # Check if the selected index is within the range of available XYZ files
