@@ -92,6 +92,10 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         return arrow_model
 
+    def pass_XYZ(self, xyz):
+        self.xyz = xyz
+        print("XYZ cordinates passed on OpenGL widget(class)")
+
     def pass_XYZ_list(self, xyz_path_list):
         self.xyz_path_list = xyz_path_list
         print("XYZ file paths passed to OpenGL widget")
@@ -203,6 +207,117 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.zoomFactor = val
         self.updateGL()
 
+    def initializeGL(self):
+
+        self.qglClearColor(QtGui.QColor("#000000"))  # initialize the screen to white
+        gl.glEnable(gl.GL_DEPTH_TEST)  # enable depth testing
+
+        self.initGeometry()
+
+    def setRotX(self, val):
+        self.rotX = self.rotX + val
+
+    def setRotY(self, val):
+        self.rotY = self.rotY + val
+
+    def setRotZ(self, val):
+        self.rotZ = self.rotZ + val
+
+    def resizeGL(self, width, height):
+        gl.glViewport(0, 0, width, height)
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        aspect = width / float(height)
+
+        GLU.gluPerspective(45.0, aspect, 1.0, 100.0)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+
+    def wheelEvent(self, event):
+        scroll = event.angleDelta()
+        if scroll.y() > 0:
+            self.zoomFactor += 0.1
+            self.update()
+        else:
+            self.zoomFactor -= 0.1
+            self.update()
+
+    def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
+        # Update the arrow models with the new coordinates
+        glNewList(self.x_arrow_model, GL_COMPILE)
+        glBegin(GL_TRIANGLES)
+        # Arrow base
+        glVertex3f(x1, y1, z1)
+        glVertex3f(x2, y2, z2)
+        glVertex3f(x2, y2, z2)
+        # ...
+        glEnd()
+        glEndList()
+
+        glNewList(self.y_arrow_model, GL_COMPILE)
+        # ...
+
+        glNewList(self.z_arrow_model, GL_COMPILE)
+        # ...
+
+    def mousePressEvent(self, event):
+        self.lastPos = event.pos()
+
+    def keyPressEvent(self, event):
+        # print(f"Key pressed: {event.key()}")
+
+        if event.key() == Qt.Key_W:
+            self.rotX += 100
+        if event.key() == Qt.Key_A:
+            self.rotY -= 100
+        if event.key() == Qt.Key_S:
+            self.rotX -= 100
+        if event.key() == Qt.Key_D:
+            self.rotY -= 100
+
+        if event.key() == Qt.Key_Up and Qt.KeyboardModifiers() & Qt.ShiftModifier:
+            self.rotZ += 100
+        if event.key() == Qt.Key_Down and Qt.KeyboardModifiers() & Qt.ShiftModifier:
+            self.rotZ -= 100
+
+        if event.key() == Qt.Key_Right:
+            gl.glTranslate(100, 0.0, 0.0)
+        if event.key() == Qt.Key_Left:
+            gl.glTranslate(-100.0, 0.0, 0.0)
+        if event.key() == Qt.Key_Down:
+            gl.glTranslate(0.0, -100.0, 0.0)
+        if event.key() == Qt.Key_Up:
+            gl.glTranslate(0.0, 100.0, 0.0)
+
+        self.updateGL()
+
+    def mouseMoveEvent(self, event):
+        # print(f"Button pressed: {event.button()}")
+
+        dx = event.x() - self.lastPos.x()
+        dy = event.y() - self.lastPos.y()
+
+        dz = dx * 0.01  # Scale the rotation amount
+        dz = max(-100, min(dz, 100))  # Clamp the rotation amount to a certain range
+        self.rotZ += dz  # Update the rotZ value
+
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.rotX = self.rotX + 0.5 * dy
+            self.rotY = self.rotY + 0.5 * dx
+            # self.rotZ = self.rotZ + 1 * dz
+
+        if (
+                event.buttons() & QtCore.Qt.LeftButton
+                & QtCore.Qt.RightButton
+        ):
+            self.rotZ = self.rotZ + 0.1 * dz
+
+        if event.buttons() & QtCore.Qt.RightButton:
+            gl.glTranslate(dx * 100, dy * 100, dz * 100)
+
+        self.updateGL()
+
+        self.lastPos = event.pos()
+
     def initGeometry(self):
 
         vArrayv = self.LoadVertices()
@@ -253,8 +368,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         return attributes
 
-        # Create sphere
-
+    # Create sphere
     def create_sphere(self, radius, num_subdiv):
         quad = gluNewQuadric()
         glu.gluQuadricNormals(quad, glu.GLU_SMOOTH)
@@ -267,8 +381,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         return points
 
-        # Drawing spheres
-
+    # Drawing spheres
     def draw_spheres(self, points):
         print('Draw Spheres')
         print(points)
