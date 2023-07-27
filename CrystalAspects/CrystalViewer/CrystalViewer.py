@@ -1,18 +1,12 @@
-import sys
-from PyQt5.QtWidgets import QOpenGLWidget
+# PyQt imports
 from PyQt5 import QtOpenGL, QtCore
-from PyQt5.QtCore import Qt
-import OpenGL.GL as gl
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-
-from CrystalAspects.tools.openGL import vis_GLWidget
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
+from CrystalAspects.tools.openGL import vis_GLWidget
 
-class CrystalViewer(QOpenGLWidget):
+class CrystalViewer(Ui_MainWindow, QtOpenGL.QGLWidget):
     def __init__(self, *args, **kwargs):
         super(CrystalViewer, self).__init__(*args, **kwargs)
-        self.glWidget = vis_GLWidget()   # Initialise the OpenGL widget
+
         self.xyz = None
         self.movie = None
         self.colour_list = []
@@ -20,18 +14,21 @@ class CrystalViewer(QOpenGLWidget):
         self.frame_list = []
         self.atoms = []
 
-    def init_GUI(self, xyz_files):
-        self.xyz_file_list = [str(path) for path in xyz_files]
+    def init_GUI(self, xyz_file_list):
+
+        self.xyz_file_list = [str(path) for path in xyz_file_list]
         tot_sims = "Unassigned"
 
         self.glWidget = vis_GLWidget()
 
-        print(xyz_files)
+        print(xyz_file_list)
+        self.fname_comboBox.addItems(self.xyz_file_list)
+        self.glWidget.pass_XYZ_list(xyz_file_list)
         self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
         self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
         self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
         #self.run_xyz_movie(xyz_file_list[0])
-        # self.gl_vLayout.addWidget(self.glWidget)
+        #self.gl_vLayout.addWidget(self.glWidget)
 
         tot_sims = len(self.xyz_file_list)
         self.total_sims_label.setText(str(tot_sims))
@@ -82,6 +79,7 @@ class CrystalViewer(QOpenGLWidget):
         self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
     def init_crystal(self, result):
+        print('Results', result)
         self.xyz, self.movie = result
         self.glWidget.pass_XYZ(self.xyz)
 
@@ -117,7 +115,7 @@ class CrystalViewer(QOpenGLWidget):
 
     def update_XYZ(self, XYZ_filepath):
 
-        self.run_xyz_movie(XYZ_filepath)
+        #self.run_xyz_movie(XYZ_filepath)
         self.glWidget.pass_XYZ(self.xyz)
 
         try:
@@ -126,23 +124,4 @@ class CrystalViewer(QOpenGLWidget):
         except AttributeError:
             print("No Crystal Data Found!")
 
-    def update_frame(self, frame):
-        self.xyz = self.movie[frame]
-        self.glWidget.pass_XYZ(self.xyz)
 
-        try:
-            self.glWidget.initGeometry()
-            self.glWidget.updateGL()
-        except AttributeError:
-            print("No Crystal Data Found!")
-
-    def update_XYZ(self, XYZ_filepath):
-
-        self.run_xyz_movie(XYZ_filepath)
-        self.glWidget.pass_XYZ(self.xyz)
-
-        try:
-            self.glWidget.initGeometry()
-            self.glWidget.updateGL()
-        except AttributeError:
-            print("No Crystal Data Found!")
