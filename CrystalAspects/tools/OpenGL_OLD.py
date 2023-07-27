@@ -22,7 +22,6 @@ from PIL import Image
 from CrystalAspects.tools.shape_analysis import CrystalShape
 from CrystalAspects.tools.crystal_math import transform_axes
 
-
 class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
         self.parent = parent

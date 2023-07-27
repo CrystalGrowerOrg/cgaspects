@@ -10,6 +10,7 @@ from qt_material import apply_stylesheet
 # General imports
 import os, sys, subprocess
 from natsort import natsorted
+from collections import namedtuple
 
 # Project Module imports
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
@@ -30,6 +31,7 @@ basedir = os.path.dirname(__file__)
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setupUi(self)
 
         apply_stylesheet(app, theme="dark_cyan.xml")
 
@@ -197,41 +199,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if folder:
             xyz_files = [os.path.join(folder, file) for file in os.listdir(folder) if file.lower().endswith(".xyz")]
             self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
+
             # Generate a complete list of the number of .xyz files and/or frames in the movie
             self.xyz_info_list = slider.get_xyz_info_for_all_files(folder, xyz_files)
             xyz_info_list = self.xyz_info_list
-            print(xyz_info_list)
+            print("xyz_info_list", xyz_info_list)
 
             self.crystals_data = xyz_files  # Store the list of full file paths
             CrystalViewer.init_GUI(self, self.crystals_data) # Load the info into init_GUI
 
-            # Load the first crystal
-            self.load_crystal(0)
+            # Shape analysis to determine xyz, or xyz movie
+            result = self.movie_or_single_frame(0)
 
             # Adjust the slider range based on the number of XYZ files in the list
             self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
             self.mainCrystal_slider.setValue(0)
 
+            CrystalViewer.init_crystal(self, result)
 
             # self.xyz, _, _ = XYZ_data.read_XYZ(folder)
 
             # self.run_xyz_movie(self.xyz)
             #CrystalViewer.init_crystal(self, crystal_results)
+            # Enable the slider
             self.select_summary_slider_button.setEnabled(True)
 
             print("importing XYZ files")
 
+    def movie_or_single_frame(self, index):
+        folder = self.folder
+        if 0 <= index < len(self.xyz_files):
+            file_name = self.xyz_files[index]
+            full_file_path = os.path.join(folder, file_name)
+            results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
+            xyz, xyz_movie, progress = CrystalShape.read_XYZ(full_file_path)
+            result = results(xyz=xyz, xyz_movie=xyz_movie)
+
+            return result
+
+
     def load_crystal(self, index):
         aspect = AspectRatioCalc()
+        crystalshape = CrystalShape()
         folder = self.folder
         print(folder)
         if 0 <= index < len(self.xyz_files):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
-            atoms = aspect.read_XYZ(full_file_path)  # Assuming read_XYZ is in MainWindow
+            atoms = crystalshape.read_XYZ(full_file_path)  # Assuming read_XYZ is in MainWindow
             print(atoms)
             self.viewer.atoms = atoms
             self.viewer.update()
+
+            return atoms
 
 
     def on_slider_value_changed(self, value):
@@ -415,7 +435,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('Entering Reading Summary file')
         create_slider.read_summary(self)
 
-    def run_xyz_movie(self, filepath):
+    '''def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
         worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
         worker_xyz_movie.signals.progress.connect(self.update_progress)
@@ -423,7 +443,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_xyz_movie.signals.finished.connect(
             lambda: Visualiser.init_crystal(self, result=self.xyz_result)
         )
-        self.threadpool.start(worker_xyz_movie)
+        self.threadpool.start(worker_xyz_movie)'''
 
     def get_xyz_movie(self, result):
         self.xyz_result = result

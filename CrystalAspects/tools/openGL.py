@@ -92,6 +92,10 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         return arrow_model
 
+    def pass_XYZ(self, xyz):
+        self.xyz = xyz
+        print("XYZ cordinates passed on OpenGL widget(class)")
+
     def pass_XYZ_list(self, xyz_path_list):
         self.xyz_path_list = xyz_path_list
         print("XYZ file paths passed to OpenGL widget")
@@ -219,6 +223,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     ):
         print("Loading Vertices")
         point_cloud = self.xyz
+        print(point_cloud)
         print("Coords: ", point_cloud[:5], f"\n...(Total: {point_cloud.shape[0]})")
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
@@ -325,7 +330,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
+        # gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 
         stride = 6 * 4  # (24 bates) : [x, y, z, r, g, b] * sizeof(float)
 
@@ -344,13 +349,13 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         '''if self.point_type == "Spheres":
             self.draw_spheres(self.PointCloud())'''
         # gl.glLoadIdentity()
-        '''gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glPushMatrix()
         for p in self.PointCloud():
             gl.glTranslatef(p[0], p[1], p[2])
             glutSolidSphere(self.point_size, 16, 16)
             gl.glTranslatef(-p[0], -p[1], -p[2])
-        gl.glPopMatrix()'''
+        gl.glPopMatrix()
 
         glutSwapBuffers()
 
