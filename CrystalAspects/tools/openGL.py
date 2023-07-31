@@ -89,6 +89,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         # End the display list
         gl.glEndList()
         self.updateGL()
+        self.update()
+        #self.paintGL()
 
         return arrow_model
 
@@ -105,6 +107,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
         self.initGeometry()
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def save_render_dialog(self):
         # Create a list of options for the dropdown menu
@@ -172,6 +176,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         print(f" Colour selected: {self.colour_picked}")
         self.initGeometry()
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def get_bg_colour(self, value):
 
@@ -179,6 +185,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         print(f" Background Colour: {self.bg_colour}")
         self.qglClearColor(QtGui.QColor(self.bg_colour))
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def get_colour_type(self, value):
 
@@ -186,6 +194,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         print(f" Colour Mode: {value}")
         self.initGeometry()
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def get_point_type(self, value):
 
@@ -198,14 +208,122 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             self.draw_spheres(pcd_points)
             self.initGeometry()'''
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def change_point_size(self, val):
         self.point_size = val
+        print("point size", val)
         self.updateGL()
+        self.update()
+        self.paintGL()
 
     def zoomGL(self, val):
+        print("zoom Factor", val)
         self.zoomFactor = val
         self.updateGL()
+        self.update()
+        self.paintGL()
+
+    def resizeGL(self, width, height):
+        gl.glViewport(0, 0, width, height)
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        aspect = width / float(height)
+
+        GLU.gluPerspective(45.0, aspect, 1.0, 100.0)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        self.paintGL()
+
+    def wheelEvent(self, event):
+        scroll = event.angleDelta()
+        if scroll.y() > 0:
+            self.zoomFactor += 0.1
+            self.paintGL()
+        else:
+            self.zoomFactor -= 0.1
+            self.paintGL()
+
+    def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
+        # Update the arrow models with the new coordinates
+        glNewList(self.x_arrow_model, GL_COMPILE)
+        glBegin(GL_TRIANGLES)
+        # Arrow base
+        glVertex3f(x1, y1, z1)
+        glVertex3f(x2, y2, z2)
+        glVertex3f(x2, y2, z2)
+        # ...
+        glEnd()
+        glEndList()
+
+        glNewList(self.y_arrow_model, GL_COMPILE)
+        # ...
+
+        glNewList(self.z_arrow_model, GL_COMPILE)
+        # ...
+
+    def mousePressEvent(self, event):
+        self.lastPos = event.pos()
+        self.paintGL()
+
+    def keyPressEvent(self, event):
+        # print(f"Key pressed: {event.key()}")
+
+        if event.key() == Qt.Key_W:
+            self.rotX += 100
+        if event.key() == Qt.Key_A:
+            self.rotY -= 100
+        if event.key() == Qt.Key_S:
+            self.rotX -= 100
+        if event.key() == Qt.Key_D:
+            self.rotY -= 100
+
+        if event.key() == Qt.Key_Up and Qt.KeyboardModifiers() & Qt.ShiftModifier:
+            self.rotZ += 100
+        if event.key() == Qt.Key_Down and Qt.KeyboardModifiers() & Qt.ShiftModifier:
+            self.rotZ -= 100
+
+        if event.key() == Qt.Key_Right:
+            gl.glTranslate(100, 0.0, 0.0)
+        if event.key() == Qt.Key_Left:
+            gl.glTranslate(-100.0, 0.0, 0.0)
+        if event.key() == Qt.Key_Down:
+            gl.glTranslate(0.0, -100.0, 0.0)
+        if event.key() == Qt.Key_Up:
+            gl.glTranslate(0.0, 100.0, 0.0)
+
+        self.updateGL()
+        self.update()
+        self.paintGL()
+
+    def mouseMoveEvent(self, event):
+        # print(f"Button pressed: {event.button()}")
+
+        dx = event.x() - self.lastPos.x()
+        dy = event.y() - self.lastPos.y()
+
+        dz = dx * 0.01  # Scale the rotation amount
+        dz = max(-100, min(dz, 100))  # Clamp the rotation amount to a certain range
+        self.rotZ += dz  # Update the rotZ value
+
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.rotX = self.rotX + 0.5 * dy
+            self.rotY = self.rotY + 0.5 * dx
+            # self.rotZ = self.rotZ + 1 * dz
+
+        if (
+                event.buttons() & QtCore.Qt.LeftButton
+                & QtCore.Qt.RightButton
+        ):
+            self.rotZ = self.rotZ + 0.1 * dz
+
+        if event.buttons() & QtCore.Qt.RightButton:
+            gl.glTranslate(dx * 100, dy * 100, dz * 100)
+
+        self.updateGL()
+        self.update()
+        self.lastPos = event.pos()
+        self.paintGL()
 
     def initGeometry(self):
 
@@ -216,7 +334,19 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         print(vArray)
         # print("No. of Points: %s" % self.noPoints)
         self.vbo = self.CreateBuffer(vArray)
+        self.updateGL()
+        self.update()
+        self.paintGL()
         '''self.draw_spheres(self.LoadVertices())'''
+
+    def setRotX(self, val):
+        self.rotX = self.rotX + val
+
+    def setRotY(self, val):
+        self.rotY = self.rotY + val
+
+    def setRotZ(self, val):
+        self.rotZ = self.rotZ + val
 
     def LoadVertices(
             self,
@@ -258,8 +388,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         return attributes
 
-        # Create sphere
-
     def create_sphere(self, radius, num_subdiv):
         quad = gluNewQuadric()
         glu.gluQuadricNormals(quad, glu.GLU_SMOOTH)
@@ -284,99 +412,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             gl.glTranslatef(-p[0], -p[1], -p[2])
         # gl.glPopMatrix()
         self.updateGL()
-
-    def paintGL(self):
-        # Clear the color and depth buffers
-        '''if self.point_type == "Sphere":'''
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-
-        # Push Matrix
-        '''gl.glPushMatrix()'''
-
-        # Enabling Lighting
-        # gl.glEnable(gl.GL_LIGHTING)
-        # gl.glEnable(gl.GL_LIGHT0)
-        '''gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (1, 1, 1, 0))
-        gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
-        gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)'''
-
-        # set material properties
-        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
-        '''gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, [5.0, 1.0, 1.0, 1.0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 100)'''
-
-        '''for p in self.PointCloud():
-            gl.glTranslatef(p[0], p[1], p[2])
-            #glutSolidSphere(self.point_size, 16, 16)
-            gl.glTranslatef(-p[0], -p[1], -p[2])
-        gl.glPopMatrix()
-        glutSwapBuffers()'''
-
-        # push the current matrix to the current stack
-        gl.glLoadIdentity()
-        gl.glTranslate(0.0, 0.0, -50.0)  # third, translate cube to specified depth. Starting depth
-        gl.glScale(0.1 * self.zoomFactor, 0.1 * self.zoomFactor, 0.1 * self.zoomFactor)
-        # gl.glScale(20.0, 20.0, 20.0)       # second, scale cube
-        gl.glRotate(self.rotX, 1.0, 0.0, 0.0)
-        gl.glRotate(self.rotY, 0.0, 1.0, 0.0)
-        gl.glRotate(self.rotZ, 0.0, 0.0, 1.0)
-        gl.glTranslate(-0.5, -0.5, -0.5)  # first, translate cube center to origin
-
-        # Point size
-        gl.glPointSize(self.point_size)
-        gl.glEnable(gl.GL_POINT_SMOOTH)
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
-        # gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
-
-        stride = 6 * 4  # (24 bates) : [x, y, z, r, g, b] * sizeof(float)
-
-        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
-        gl.glVertexPointer(3, gl.GL_FLOAT, stride, None)
-
-        gl.glEnableClientState(gl.GL_COLOR_ARRAY)
-        # (12 bytes) : the rgb color starts after the 3 coordinates x, y, z
-        offset = 3 * 4
-        gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
-
-        # Drawing points
-        noOfVertices = self.noPoints
-        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
-
-        '''if self.point_type == "Spheres":
-            self.draw_spheres(self.PointCloud())'''
-        # gl.glLoadIdentity()
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glPushMatrix()
-        for p in self.PointCloud():
-            gl.glTranslatef(p[0], p[1], p[2])
-            glutSolidSphere(self.point_size, 16, 16)
-            gl.glTranslatef(-p[0], -p[1], -p[2])
-        gl.glPopMatrix()
-
-        glutSwapBuffers()
-
-        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
-        gl.glDisableClientState(gl.GL_COLOR_ARRAY)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        # gl.glPopMatrix()  # restore the previous modelview matrix
-
-        # Draw Arrows
-        '''gl.glLoadIdentity()
-        self.createArrow()'''
-        # gl.glPopMatrix()
-
-        # glutSwapBuffers()
-        """"
-        #Draw axes
-        gl.glLoadIdentity()
-        gl.glPushMatrix()
-        self.create_arrow(width=1, height=1)
-        gl.glPopMatrix()
-        """
+        self.paintGL()
 
     def CreateBuffer(self, attributes):
         bufferdata = (ctypes.c_float * len(attributes))(*attributes)  # float buffer
@@ -386,4 +422,53 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
         gl.glBufferData(gl.GL_ARRAY_BUFFER, buffersize, bufferdata, gl.GL_STATIC_DRAW)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+
         return vbo
+
+    def paintGL(self):
+        print("painting")
+        # Clear the color and depth buffers
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+        # Set up the transformations
+        gl.glLoadIdentity()
+        gl.glTranslate(0.0, 0.0, -50.0)
+        gl.glScale(0.1 * self.zoomFactor, 0.1 * self.zoomFactor, 0.1 * self.zoomFactor)
+        gl.glRotate(self.rotX, 1.0, 0.0, 0.0)
+        gl.glRotate(self.rotY, 0.0, 1.0, 0.0)
+        gl.glRotate(self.rotZ, 0.0, 0.0, 1.0)
+        gl.glTranslate(-0.5, -0.5, -0.5)
+
+        # Set point size and enable point smoothing
+        gl.glPointSize(self.point_size)
+        gl.glEnable(gl.GL_POINT_SMOOTH)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+        # Bind the VBO with the point cloud data
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
+
+        # Define the stride (size of each vertex in the VBO)
+        stride = 6 * 4  # (24 bytes) : [x, y, z, r, g, b] * sizeof(float)
+
+        # Enable and specify the vertex and color arrays
+        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glVertexPointer(3, gl.GL_FLOAT, stride, None)
+
+        gl.glEnableClientState(gl.GL_COLOR_ARRAY)
+        offset = 3 * 4  # (12 bytes) : the RGB color starts after the 3 coordinates x, y, z
+        gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
+
+        # Draw the points
+        noOfVertices = self.noPoints
+        print(noOfVertices)
+        gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
+
+        # Disable the arrays and unbind the VBO
+        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+
+        # Swap the buffers to display the rendered scene
+        glutSwapBuffers()

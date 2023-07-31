@@ -26,7 +26,7 @@ class Visualiser(Ui_MainWindow):
         self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
         self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
         self.run_xyz_movie(xyz_file_list[0])
-        #self.gl_vLayout.addWidget(self.glWidget)
+        self.gl_vLayout.addWidget(self.glWidget)
 
         tot_sims = len(self.xyz_file_list)
         self.total_sims_label.setText(str(tot_sims))

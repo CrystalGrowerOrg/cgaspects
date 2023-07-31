@@ -1,5 +1,5 @@
 # PyQT5 imports
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets, QtOpenGL
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
     QShortcut, QAction, QSlider, \
     QMenu, QFileDialog, QDialog
@@ -197,16 +197,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print(f"Initial XYZ list: {xyz_files}")
         # Check if the user opened a folder
         if folder:
-            xyz_files = [os.path.join(folder, file) for file in os.listdir(folder) if file.lower().endswith(".xyz")]
-            self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally
+            self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally, this is a list of all paths
 
             # Generate a complete list of the number of .xyz files and/or frames in the movie
             self.xyz_info_list = slider.get_xyz_info_for_all_files(folder, xyz_files)
             xyz_info_list = self.xyz_info_list
             print("xyz_info_list", xyz_info_list)
 
-            self.crystals_data = xyz_files  # Store the list of full file paths
-            CrystalViewer.init_GUI(self, self.crystals_data) # Load the info into init_GUI
+            CrystalViewer.init_GUI(self, self.xyz_files) # Load the info into init_GUI
 
             # Shape analysis to determine xyz, or xyz movie
             result = self.movie_or_single_frame(0)
@@ -560,7 +558,6 @@ def except_hook(cls, exception, traceback):
 
 
 if __name__ == "__main__":
-
     # Override sys excepthook to prevent app abortion upon any error
     sys.excepthook = except_hook
 
@@ -573,6 +570,17 @@ if __name__ == "__main__":
     except:
         pass
 
+    # Set up OpenGL format with the necessary attributes
+    gl_format = QtOpenGL.QGLFormat()
+    gl_format.setVersion(3, 3)  # Use OpenGL 3.3 or higher
+    gl_format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
+    gl_format.setSampleBuffers(True)
+
+    # Create the OpenGL context and make it current
+    gl_context = QtOpenGL.QGLContext(gl_format)
+    gl_context.create()
+    gl_context.makeCurrent()
+
     # ############# Runs the application ############## #
     QApplication.setAttribute(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QtWidgets.QApplication(sys.argv)
@@ -580,3 +588,4 @@ if __name__ == "__main__":
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
+

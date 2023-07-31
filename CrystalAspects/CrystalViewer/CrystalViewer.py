@@ -100,6 +100,7 @@ class CrystalViewer(Ui_MainWindow, QtOpenGL.QGLWidget):
 
         try:
             self.glWidget.initGeometry()
+            self.glWidget.paintGL()
         except AttributeError:
             print("No Crystal Data Found!")
 
@@ -120,7 +121,7 @@ class CrystalViewer(Ui_MainWindow, QtOpenGL.QGLWidget):
 
         try:
             self.glWidget.initGeometry()
-            self.glWidget.updateGL()
+            self.glWidget.paintGL()
         except AttributeError:
             print("No Crystal Data Found!")
 
