@@ -2,7 +2,7 @@
 from PyQt5 import QtGui, QtWidgets, QtOpenGL
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
     QShortcut, QAction, QSlider, \
-    QMenu, QFileDialog, QDialog
+    QMenu, QFileDialog, QDialog, QVBoxLayout
 from PyQt5.QtCore import Qt, QThreadPool, QTimer
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
@@ -140,12 +140,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def init_parameters(self):
         # Initialise CrystalViewer and Widget
-        self.viewer = CrystalViewer()
-        self.gl_vLayout.addWidget(self.viewer)
+        '''self.viewer = Visualiser()
+        self.gl_vLayout.addWidget(self.viewer)'''
 
         # Set up a timer to refresh the OpenGL widget at regular intervals
         timer = QTimer(self)
-        timer.timeout.connect(self.viewer.update)
+        #timer.timeout.connect(self.viewer.update)
         timer.start(16)  # About 60 FPS
 
         self.xyz = None
@@ -190,6 +190,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def import_XYZ(self):
         ''' Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget'''
+        self.folder = None
+        self.xyz_files = []
         # Prompt the user to select the folder
         slider = create_slider()
         folder, xyz_files = slider.read_crystals()
@@ -204,7 +206,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             xyz_info_list = self.xyz_info_list
             print("xyz_info_list", xyz_info_list)
 
-            CrystalViewer.init_GUI(self, self.xyz_files) # Load the info into init_GUI
+            Visualiser.initGUI(self, self.xyz_files) # Load the info into init_GUI
 
             # Shape analysis to determine xyz, or xyz movie
             result = self.movie_or_single_frame(0)
@@ -213,7 +215,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
             self.mainCrystal_slider.setValue(0)
 
-            CrystalViewer.init_crystal(self, result)
+            Visualiser.init_crystal(self, result)
 
             # self.xyz, _, _ = XYZ_data.read_XYZ(folder)
 
@@ -223,6 +225,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.select_summary_slider_button.setEnabled(True)
 
             print("importing XYZ files")
+
+
+    def run_xyz_movie(self, filepath):
+        worker_xyz_movie = Worker_Movies(filepath)
+        worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
+        worker_xyz_movie.signals.progress.connect(self.update_progress)
+        worker_xyz_movie.signals.message.connect(self.update_statusbar)
+        worker_xyz_movie.signals.finished.connect(
+            lambda: Visualiser.init_crystal(self, result=self.xyz_result)
+        )
+        self.threadpool.start(worker_xyz_movie)
+
+    def get_xyz_movie(self, result):
+        self.xyz_result = result
+
+    def update_movie(self, frame):
+        Visualiser.update_frame(self, frame)
+        self.current_frame_comboBox.setCurrentIndex(frame)
+        self.current_frame_spinBox.setValue(frame)
+        self.frame_slider.setValue(frame)
+
+    def play_movie(self, frames):
+        for frame in range(frames):
+            Visualiser.update_frame(self, frame)
+            self.current_frame_comboBox.setCurrentIndex(frame)
+            self.current_frame_spinBox.setValue(frame)
+            self.frame_slider.setValue(frame)
+
+    def update_XYZ_info(self, xyz):
+
+        worker_xyz = Worker_XYZ(xyz)
+        worker_xyz.signals.result.connect(self.insert_info)
+        worker_xyz.signals.progress.connect(self.update_progress)
+        worker_xyz.signals.message.connect(self.update_statusbar)
+        self.threadpool.start(worker_xyz)
 
     def movie_or_single_frame(self, index):
         folder = self.folder

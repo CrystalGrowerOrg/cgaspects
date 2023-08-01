@@ -2,6 +2,7 @@ from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.openGL import vis_GLWidget
 
 
+
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(Visualiser, self).__init__(*args, **kwargs)
@@ -17,7 +18,18 @@ class Visualiser(Ui_MainWindow):
         self.xyz_file_list = [str(path) for path in xyz_file_list]
         tot_sims = "Unassigned"
 
+        # Check if the layout has any widgets
+        if self.gl_vLayout.count() > 0:
+            # Get the item at index 0 (the first and only widget in this case)
+            widget_item = self.gl_vLayout.itemAt(0)
+            # Remove the widget from the layout
+            self.gl_vLayout.removeWidget(widget_item.widget())
+            # Delete the widget
+            widget_item.widget().deleteLater()
+
+        # Now you can add the new widget
         self.glWidget = vis_GLWidget()
+        self.gl_vLayout.addWidget(self.glWidget)
 
         print(xyz_file_list)
         self.fname_comboBox.addItems(self.xyz_file_list)
@@ -120,3 +132,12 @@ class Visualiser(Ui_MainWindow):
             self.glWidget.updateGL()
         except AttributeError:
             print("No Crystal Data Found!")
+
+    def close_opengl_widget(self):
+        if self.current_viewer:
+            # Remove the OpenGL widget from its parent layout
+            self.viewer_container_layout.removeWidget(self.current_viewer)
+
+            # Delete the widget from memory
+            self.current_viewer.deleteLater()
+            self.current_viewer = None  # Reset the active viewer

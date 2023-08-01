@@ -90,7 +90,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glEndList()
         self.updateGL()
         self.update()
-        #self.paintGL()
+
 
         return arrow_model
 
@@ -108,7 +108,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.initGeometry()
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def save_render_dialog(self):
         # Create a list of options for the dropdown menu
@@ -177,7 +176,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.initGeometry()
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def get_bg_colour(self, value):
 
@@ -186,7 +184,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.qglClearColor(QtGui.QColor(self.bg_colour))
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def get_colour_type(self, value):
 
@@ -195,7 +192,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.initGeometry()
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def get_point_type(self, value):
 
@@ -209,21 +205,18 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             self.initGeometry()'''
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def change_point_size(self, val):
         self.point_size = val
         print("point size", val)
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def zoomGL(self, val):
         print("zoom Factor", val)
         self.zoomFactor = val
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def resizeGL(self, width, height):
         gl.glViewport(0, 0, width, height)
@@ -233,16 +226,15 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         GLU.gluPerspective(45.0, aspect, 1.0, 100.0)
         gl.glMatrixMode(gl.GL_MODELVIEW)
-        self.paintGL()
 
     def wheelEvent(self, event):
         scroll = event.angleDelta()
         if scroll.y() > 0:
             self.zoomFactor += 0.1
-            self.paintGL()
+
         else:
             self.zoomFactor -= 0.1
-            self.paintGL()
+
 
     def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
         # Update the arrow models with the new coordinates
@@ -264,7 +256,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
     def mousePressEvent(self, event):
         self.lastPos = event.pos()
-        self.paintGL()
 
     def keyPressEvent(self, event):
         # print(f"Key pressed: {event.key()}")
@@ -294,7 +285,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.updateGL()
         self.update()
-        self.paintGL()
 
     def mouseMoveEvent(self, event):
         # print(f"Button pressed: {event.button()}")
@@ -323,7 +313,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.updateGL()
         self.update()
         self.lastPos = event.pos()
-        self.paintGL()
 
     def initGeometry(self):
 
@@ -336,7 +325,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.vbo = self.CreateBuffer(vArray)
         self.updateGL()
         self.update()
-        self.paintGL()
         '''self.draw_spheres(self.LoadVertices())'''
 
     def setRotX(self, val):
@@ -412,7 +400,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
             gl.glTranslatef(-p[0], -p[1], -p[2])
         # gl.glPopMatrix()
         self.updateGL()
-        self.paintGL()
 
     def CreateBuffer(self, attributes):
         bufferdata = (ctypes.c_float * len(attributes))(*attributes)  # float buffer
@@ -426,7 +413,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         return vbo
 
     def paintGL(self):
-        print("painting")
+        #print("painting")
         # Clear the color and depth buffers
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
@@ -462,7 +449,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         # Draw the points
         noOfVertices = self.noPoints
-        print(noOfVertices)
+        #print(noOfVertices)
         gl.glDrawArrays(gl.GL_POINTS, 0, noOfVertices)
 
         # Disable the arrays and unbind the VBO
