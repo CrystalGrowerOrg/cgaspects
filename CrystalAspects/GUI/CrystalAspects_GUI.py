@@ -343,9 +343,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         savefolder=save_folder
                     )
                     if auto_plotting is True:
-                        plotting.build_PCAZingg(df=xyz_df_final,
+                        plotting.build_PCAZingg(csv=xyz_df_final_csv,
                                                 folderpath=save_folder)
-                        plotting.plot_OBA(df=xyz_df_final,
+                        plotting.plot_OBA(csv=xyz_df_final_csv,
                                           folderpath=save_folder)
                     '''if selected_aspect_ratio is False:
                         self.ShowData(xyz_df_final)'''
@@ -423,7 +423,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 if auto_plotting:
                     plot = Plotting()
-                    plot.plot_growth_rates(growth_rate_df, information.directions, save_folder)
+                    plot.plot_growth_rates(growth_rate_df, directions, save_folder)
 
     def particle_swarm_analysis(self):
         # Create a message box

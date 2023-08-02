@@ -55,14 +55,15 @@ class Plotting:
         y_data = df["OBA M:L"]
         print(x_data)
         print(y_data)
-        plt.figure()
-        plt.scatter(x_data, y_data, s=1.2)
-        plt.axhline(y=0.66, color='black', linestyle='--')
-        plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlim(min(x_data), max(x_data))  # Adjust x-axis limits
-        plt.ylim(min(y_data), max(y_data))  # Adjust y-axis limits
+
+        plt.scatter(x_data, y_data, s=10)
+        plt.axhline(y=0.33, color='black', linestyle='--')
+        plt.axvline(x=0.5, color='black', linestyle='--')
+        plt.xlim(0, 2)  # Adjust x-axis limits
+        plt.ylim(0, 2)  # Adjust y-axis limits
         plt.xlabel('OBA S:M')
         plt.ylabel('OBA M:L')
+        plt.show()
         savepath = f'{savefolder}/OBA Zingg'
         plt.savefig(savepath, dpi=900)
 
@@ -80,7 +81,6 @@ class Plotting:
         x_data = df["PCA S:M"]
         y_data = df["PCA M:L"]
 
-        plt.figure()
         plt.scatter(x_data, y_data, s=1.2)
         plt.axhline(y=0.66, color='black', linestyle='--')
         plt.axvline(x=0.66, color='black', linestyle='--')
