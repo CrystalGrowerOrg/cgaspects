@@ -1,8 +1,6 @@
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.tools.openGL import vis_GLWidget
 
-
-
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(Visualiser, self).__init__(*args, **kwargs)

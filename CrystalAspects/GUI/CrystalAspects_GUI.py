@@ -24,7 +24,6 @@ from CrystalAspects.visualisation.plot_data import Plotting
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
 from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
-from CrystalAspects.CrystalViewer.CrystalViewer import CrystalViewer
 
 basedir = os.path.dirname(__file__)
 
@@ -470,39 +469,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print('Entering Reading Summary file')
         create_slider.read_summary(self)
 
-    '''def run_xyz_movie(self, filepath):
-        worker_xyz_movie = Worker_Movies(filepath)
-        worker_xyz_movie.signals.result.connect(self.get_xyz_movie)
-        worker_xyz_movie.signals.progress.connect(self.update_progress)
-        worker_xyz_movie.signals.message.connect(self.update_statusbar)
-        worker_xyz_movie.signals.finished.connect(
-            lambda: Visualiser.init_crystal(self, result=self.xyz_result)
-        )
-        self.threadpool.start(worker_xyz_movie)'''
-
     def get_xyz_movie(self, result):
         self.xyz_result = result
-
-    def update_movie(self, frame):
-        Visualiser.update_frame(self, frame)
-        self.current_frame_comboBox.setCurrentIndex(frame)
-        self.current_frame_spinBox.setValue(frame)
-        self.frame_slider.setValue(frame)
-
-    def play_movie(self, frames):
-        for frame in range(frames):
-            Visualiser.update_frame(self, frame)
-            self.current_frame_comboBox.setCurrentIndex(frame)
-            self.current_frame_spinBox.setValue(frame)
-            self.frame_slider.setValue(frame)
-
-    def update_XYZ_info(self, xyz):
-
-        worker_xyz = Worker_XYZ(xyz)
-        worker_xyz.signals.result.connect(self.insert_info)
-        worker_xyz.signals.progress.connect(self.update_progress)
-        worker_xyz.signals.message.connect(self.update_statusbar)
-        self.threadpool.start(worker_xyz)
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
