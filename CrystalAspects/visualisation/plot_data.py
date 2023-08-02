@@ -1,44 +1,13 @@
 # Miscellaneous imports
 from pathlib import Path
 import pandas as pd
-#import plotly.express as px
-
-# Matplotlib imports
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 
 class Plotting:
     def create_plots_folder(self, path):
         plots_folder = Path(path) / "CGPlots"
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
-
-    def plot_OBA1(self, csv='', df='', folderpath="./outputs"):
-        if csv != "":
-            folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
-        savefolder = self.create_plots_folder(folderpath)
-
-        interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
-        ]
-        x_data = df["OBA S:M"]
-        y_data = df["OBA M:L"]
-        print("Min_data", min(x_data))
-        print(x_data)
-        print(y_data)
-        fig, ax = plt.subplots()
-        ax.scatter(x_data, y_data, s=1.2)
-        ax.axhline(y=0.66, color='black', linestyle='--')
-        ax.axvline(x=0.66, color='black', linestyle='--')
-        ax.set_xlim(0, 1)  # Set x-axis limits
-        ax.set_ylim(0, 1)  # Set y-axis limits
-        ax.set_xlabel('OBA S:M')
-        ax.set_ylabel('OBA M:L')
-        savepath = f'{savefolder}/OBA Zingg'
-        plt.savefig(savepath, dpi=900)
 
     def plot_OBA(self, csv='', df='', folderpath="./outputs"):
         if csv != "":
@@ -56,16 +25,40 @@ class Plotting:
         print(x_data)
         print(y_data)
 
+        plt.figure()
         plt.scatter(x_data, y_data, s=10)
-        plt.axhline(y=0.33, color='black', linestyle='--')
-        plt.axvline(x=0.5, color='black', linestyle='--')
-        plt.xlim(0, 2)  # Adjust x-axis limits
-        plt.ylim(0, 2)  # Adjust y-axis limits
+        plt.axhline(y=0.66, color='black', linestyle='--')
+        plt.axvline(x=0.66, color='black', linestyle='--')
+        plt.xlim(0, 1)  # Adjust x-axis limits
+        plt.ylim(0, 1)  # Adjust y-axis limits
         plt.xlabel('OBA S:M')
         plt.ylabel('OBA M:L')
-        plt.show()
         savepath = f'{savefolder}/OBA Zingg'
         plt.savefig(savepath, dpi=900)
+        plt.close()
+
+        for interaction in interactions:
+            plt.figure()
+            c_df = df[interaction]
+            colour = list(set(c_df))
+            textstr = interaction
+            props = dict(boxstyle="square", facecolor="white")
+
+            plt.figure()
+            print("FIG")
+            plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
+            plt.axhline(y=0.66, color="black", linestyle="--")
+            plt.axvline(x=0.66, color="black", linestyle="--")
+            plt.title(textstr)
+            plt.xlabel("S: M")
+            plt.ylabel("M: L")
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
+            cbar = plt.colorbar(ticks=colour)
+            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
+            savepath = f"{savefolder}/OBAZingg_{interaction}"
+            plt.savefig(savepath, dpi=300)
+            plt.close()
 
     def build_PCAZingg(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
@@ -92,6 +85,7 @@ class Plotting:
         plt.savefig(savepath, dpi=900)
 
         for interaction in interactions:
+            plt.figure()
             c_df = df[interaction]
             colour = list(set(c_df))
             textstr = interaction
@@ -111,17 +105,7 @@ class Plotting:
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/PCAZingg_{interaction}"
             plt.savefig(savepath, dpi=300)
-
-            if i_plot:
-                fig = px.scatter(
-                    df,
-                    x="S:M",
-                    y="M:L",
-                    color=interaction,
-                    hover_data=["Simulation Number"],
-                )
-                fig.write_html(f"{savefolder}/PCAZingg_{interaction}.html")
-                fig.show()
+            plt.close()
 
     def Aspect_Extended_Plot(
         self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
@@ -134,6 +118,7 @@ class Plotting:
         extended_df = df
 
         i = 0
+        plt.figure()
         x_data = extended_df[f"AspectRatio_{selected[i]}/{selected[i+1]}"]
         y_data = extended_df[f"AspectRatio_{selected[i+1]}/{selected[i+2]}"]
         plt.scatter(x_data, y_data, s=1.2)
@@ -141,6 +126,7 @@ class Plotting:
         plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
         savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
         plt.savefig(savepath, dpi=300)
+        plt.close()
 
         interactions = [
             col
@@ -149,6 +135,7 @@ class Plotting:
         ]
 
         for interaction in interactions:
+            plt.figure()
             c_df = extended_df[interaction]
             print(c_df)
             colour = list(set(c_df))
@@ -168,6 +155,7 @@ class Plotting:
             savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
             print(savepath)
             plt.savefig(savepath, dpi=300)
+            plt.close()
 
     def CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
@@ -180,7 +168,7 @@ class Plotting:
         x_data = zn_df["S/M"]
         y_data = zn_df["M/L"]
 
-        #plt.ion()
+        plt.figure()
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel("S/M")
         plt.ylabel("M/L")
@@ -195,6 +183,7 @@ class Plotting:
         ]
 
         for interaction in interactions:
+            plt.figure()
             c_df = df[interaction]
             colour = list(set(c_df))
             textstr = interaction
@@ -214,17 +203,7 @@ class Plotting:
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = f"{savefolder}/CDAZingg_{interaction}"
             plt.savefig(savepath, dpi=300)
-
-            if i_plot:
-                fig = px.scatter(
-                    df,
-                    x="S/M",
-                    y="M/L",
-                    color=interaction,
-                    hover_data=["Simulation Number"],
-                )
-                fig.write_html(f"{savefolder}/CDAZingg_{interaction}.html")
-                fig.show()
+            plt.close()
 
     def PCA_CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
@@ -237,10 +216,11 @@ class Plotting:
         equations = set(zn_df["CDA_Equation"])
 
         for equation in equations:
+            plt.figure()
             textstr = equation
             equation_df = zn_df[zn_df["CDA_Equation"] == equation]
-            x_data = equation_df["S:M"]
-            y_data = equation_df["M:L"]
+            x_data = equation_df["PCA S:M"]
+            y_data = equation_df["PCA M:L"]
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
@@ -253,18 +233,9 @@ class Plotting:
             plt.ylim(0.0, 1.0)
             savepath = f"{savefolder}/PCA_CDA_eq{equation}"
             plt.savefig(savepath, dpi=300)
+            plt.close()
 
-            if i_plot:
-                fig = px.scatter(
-                    df,
-                    x="S:M",
-                    y="M:L",
-                    hover_data=["Simulation Number"],
-                )
-                fig.write_html(f"{savefolder}/PCA_CDA_eq{equation}.html")
-                fig.show()
-
-    def build_zingg_seperated_i(
+    def build_CDA_OBA(
         self, csv="", df="", folderpath="./outputs", i_plot=False
     ):
         if csv != "":
@@ -276,10 +247,11 @@ class Plotting:
         equations = set(zn_df["CDA_Equation"])
 
         for equation in equations:
+            plt.figure()
             textstr = "CDA Equation" + equation
             equation_df = zn_df[zn_df["CDA_Equation"] == equation]
-            x_data = equation_df["S/M"]
-            y_data = equation_df["M/L"]
+            x_data = equation_df["OBA S:M"]
+            y_data = equation_df["OBA M:L"]
             plt.figure()
             print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
@@ -292,16 +264,7 @@ class Plotting:
             plt.ylim(0.0, 1.0)
             savepath = f"{savefolder}/CDA_Zingg_eq{equation}"
             plt.savefig(savepath, dpi=300)
-
-            if i_plot:
-                fig = px.scatter(
-                    df,
-                    x="S/M",
-                    y="M/L",
-                    hover_data=["Simulation Number"],
-                )
-                fig.write_html(f"{savefolder}/CDA_Zingg_eq{equation}.html")
-                fig.show()
+            plt.close()
 
     ####################################
     # Plotting Surface Area and Volume #
@@ -324,7 +287,7 @@ class Plotting:
         ]
 
         x_data = savar_df["Volume (Vol)"]
-        y_data = savar_df["Surface_Area (SA)"]
+        y_data = savar_df["Surface Area (SA)"]
         plt.figure()
         for interaction in interactions:
             c_df = savar_df[interaction]

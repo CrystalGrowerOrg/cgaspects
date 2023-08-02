@@ -321,7 +321,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                         f"Selected Directions: {selected_directions}\n"
                                         f"Selected Direction Aspect Ratio: {selected_direction_aspect_ratio}\n"
                                         f"Auto Plotting: {auto_plotting}")
-
+                print('selected aspect ratio:', selected_direction_aspect_ratio)
                 AspectXYZ = AspectRatioCalc()
                 aspect_ratio = AspectRatio()
                 plotting = Plotting()
@@ -347,8 +347,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                                 folderpath=save_folder)
                         plotting.plot_OBA(csv=xyz_df_final_csv,
                                           folderpath=save_folder)
-                    '''if selected_aspect_ratio is False:
-                        self.ShowData(xyz_df_final)'''
+                        plotting.SAVAR_plot(csv=xyz_df_final_csv,
+                                            folderpath=save_folder)
+
                 if selected_cda:
                     cda_df = aspect_ratio.build_AR_CDA(
                         folderpath=folder,
@@ -368,6 +369,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     )
                     zn_df_final_csv = f"{save_folder}/CDA.csv"
                     zn_df_final.to_csv(zn_df_final_csv, index=None)
+                    if auto_plotting is True:
+                        plotting.Aspect_Extended_Plot(csv=zn_df_final_csv,
+                                                      folderpath=save_folder,
+                                                      selected=selected_direction_aspect_ratio)
+                        plotting.CDA_Plot(csv=zn_df_final_csv,
+                                          folderpath=save_folder)
 
                     if selected_aspect_ratio and selected_cda:
                         combined_df = find.combine_XYZ_CDA(
@@ -385,6 +392,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             df=final_cda_xyz,
                             savefolder=save_folder
                         )
+                        if auto_plotting is True:
+                            plotting.PCA_CDA_Plot(csv=final_cda_xyz_csv,
+                                                  folderpath=save_folder)
+                            plotting.build_CDA_OBA(csv=final_cda_xyz_csv,
+                                                   folderpath=save_folder)
 
     def calculate_growth_rates(self):
         ''' Activate calculate growth rates from the CrystalAspects
