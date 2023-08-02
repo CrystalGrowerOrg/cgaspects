@@ -104,7 +104,7 @@ class Visualiser(Ui_MainWindow):
             self.current_frame_comboBox.currentIndexChanged.connect(self.update_movie)
             self.current_frame_spinBox.valueChanged.connect(self.update_movie)
             self.frame_slider.valueChanged.connect(self.update_movie)
-            self.play_button.clicked.connect(self.play_movie)
+            self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
 
         try:
             self.glWidget.initGeometry()
