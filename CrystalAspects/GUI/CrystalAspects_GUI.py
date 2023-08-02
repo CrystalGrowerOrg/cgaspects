@@ -1,46 +1,42 @@
 # PyQT5 imports
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QShortcut
-from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5 import QtGui, QtWidgets, QtOpenGL
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
+    QShortcut, QAction, \
+    QMenu, QFileDialog, QDialog
+from PyQt5.QtCore import Qt, QThreadPool, QTimer
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
 
 # General imports
-import os, sys, subprocess
-import pandas as pd
+import os, sys
+from natsort import natsorted
 from collections import namedtuple
-from pathlib import Path
-
-# Testing imports
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 
 # Project Module imports
-
 from CrystalAspects.GUI.load_GUI import Ui_MainWindow
 from CrystalAspects.data.find_data import Find
 from CrystalAspects.data.growth_rates import GrowthRate
-from CrystalAspects.tools.shape_analysis import CrystalShape
+from CrystalAspects.tools.shape_analysis import AspectRatioCalc, CrystalShape
 from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
-from CrystalAspects.visualisation.replotting import Replotting # testing
-from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Calc, Worker_Movies
+from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Movies
+from CrystalAspects.visualisation.plot_data import Plotting
+from CrystalAspects.data.aspect_ratios import AspectRatio
+from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
+from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
 
 basedir = os.path.dirname(__file__)
-
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setupUi(self)
 
         apply_stylesheet(app, theme="dark_cyan.xml")
 
         self.setupUi(self)
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
 
-        self.growth = GrowthRate()
-        self.shape = CrystalShape()
         self.threadpool = QThreadPool()
         self.change_style(theme_main="dark", theme_colour="teal")
 
@@ -48,6 +44,85 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.key_shortcuts()
         self.connect_buttons()
         self.init_parameters()
+        self.MenuBar()
+
+    def MenuBar(self):
+        # Create a menu bar
+        menu_bar = self.menuBar()
+
+        # Create two menus
+        file_menu = QMenu("File", self)
+        edit_menu = QMenu("Edit", self)
+        CrystalAspects_menu = QMenu('CrystalAspects', self)
+        CrystalClear_menu = QMenu("CrystalClear", self)
+        Calculations_menu = QMenu('Calculations', self)
+
+        # Add menus to the menu bar
+        menu_bar.addMenu(file_menu)
+        menu_bar.addMenu(edit_menu)
+        menu_bar.addMenu(CrystalAspects_menu)
+        menu_bar.addMenu(CrystalClear_menu)
+
+        # Create actions for the File menu
+        new_action = QAction("New", self)
+        open_action = QAction("Open", self)
+        save_action = QAction("Save", self)
+        import_action = QAction("Import", self)
+        exit_action = QAction("Exit", self)
+
+        # Add actions to the File menu
+        file_menu.addAction(new_action)
+        file_menu.addAction(open_action)
+        file_menu.addAction(save_action)
+        file_menu.addAction(import_action)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_action)
+
+        # Connect actions from the File menu
+        import_action.triggered.connect(self.import_XYZ)
+
+        # Create actions for the Edit menu
+        cut_action = QAction("Cut", self)
+        copy_action = QAction("Copy", self)
+        paste_action = QAction("Paste", self)
+
+        # Add actions to the Edit menu
+        edit_menu.addAction(cut_action)
+        edit_menu.addAction(copy_action)
+        edit_menu.addAction(paste_action)
+
+        # Create actions to the CrystalAspects menu
+        aspect_ratio_action = QAction("Aspect Ratio", self)
+        growth_rate_action = QAction("Growth Rates", self)
+        plotting_action = QAction("Plotting", self)
+        particle_swarm_action = QAction("Particle Swarm Analysis", self)
+
+        # Add actions and Submenu to CrystalAspects menu
+        calculate_menu = CrystalAspects_menu.addMenu("Calculate")
+        calculate_menu.addAction(aspect_ratio_action)
+        calculate_menu.addAction(growth_rate_action)
+        CrystalAspects_menu.addAction(particle_swarm_action)
+        CrystalAspects_menu.addAction(plotting_action)
+
+        # Connect the CrystalAspects actions
+        aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
+        growth_rate_action.triggered.connect(self.calculate_growth_rates)
+        particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
+
+        # Create the CrystalClear actions
+        generate_structure_action = QAction("Generate Structure", self)
+        generate_net_action = QAction("Generate Net", self)
+        solvent_screen_action = QAction("Solvent Screening", self)
+
+        # Add action and Submenu to CrystalClear menu
+        CrystalClear_menu.addAction(generate_structure_action)
+        CrystalClear_menu.addAction(generate_net_action)
+        CrystalClear_menu.addAction(solvent_screen_action)
+
+        # Connect the CrystalClear actions
+        generate_structure_action.triggered.connect(self.generate_structure_file)
+        generate_net_action.triggered.connect(self.generate_net_file)
+        solvent_screen_action.triggered.connect(self.solvent_screening)
 
     def change_style(self, theme_main, theme_colour, density=-1):
 
@@ -63,598 +138,81 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def init_parameters(self):
+        # Initialise CrystalViewer and Widget
+        '''self.viewer = Visualiser()
+        self.gl_vLayout.addWidget(self.viewer)'''
 
-        self.checked_directions = []
-        self.selected_directions = []
-        self.checkboxnames = []
-        self.checkboxes = []
-        self.growthrates = False
-        self.aspectratio = False
-        self.growthmod = False
-        self.cda = False
-        self.pca = False
-        self.sa_vol = False
-        self.screwdislocations = []
-        self.folder_path = ""
-        self.folders = []
-        self.mode = 1
-        self.plot = False
-        self.vis = False
-        self.xyz = None
-        self.xyz_list = []
-        self.xyz_result = ()
-        self.frame_list = []
-
-        self.summary_csv = None
-        self.replot_info = None
-        self.replot_folder = None
-        self.AR_csv = None
-        self.SAVAR_csv = None
-        self.GrowthRate_csv = None
-
-        self.progressBar.setValue(0)
+        # Set up a timer to refresh the OpenGL widget at regular intervals
+        timer = QTimer(self)
+        #timer.timeout.connect(self.viewer.update)
+        timer.start(16)  # About 60 FPS
 
     def key_shortcuts(self):
-
+        # Create a QShortcut with the specified key sequence
+        close = QShortcut(QKeySequence("Ctrl+Q"), self)
+        # Create a QShortcut with Command+Q as the key sequence (for macOS)
+        close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier + Qt.Key_Q), self)
+        close_shortcut.activated.connect(self.close_application)
+        # Open read folder
         self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
-        self.openKS.activated.connect(self.read_folder)
+        '''try:
+            self.openKS.activated.connect(lambda: self.read_folder(self.mode))
+        except IndexError:
+            pass
+        # Open output folder'''
         self.open_outKS = QShortcut(QKeySequence("Ctrl+Shift+O"), self)
-        # self.open_outKS.activated.connect(self.output_folder_button)
-        self.closeKS = QShortcut(QKeySequence("Ctrl+Q"), self)
-        self.closeKS.activated.connect(QApplication.instance().quit)
-        self.resetKS = QShortcut(QKeySequence("Ctrl+R"), self)
-        self.resetKS.activated.connect(self.reset_button_function)
-        self.applyKS = QShortcut(QKeySequence("Ctrl+A"), self)
-        # self.applyKS.activated.connect(self.apply_clicked)
+        '''try:
+            self.open_outKS.activated.connect(self.output_folder_button)
+        except IndexError:
+            pass'''
+        # Import XYZ file
+        importXYZ = QShortcut(QKeySequence("Ctrl+I"), self)
+        importXYZ.activated.connect(self.import_XYZ)
 
     def welcome_message(self):
         print("############################################")
         print("####        CrystalAspects v1.00        ####")
         print("############################################")
+        print("Created by Nathan de Bruyn & Alvin J. Walisinghe")
 
-    def connect_buttons(self):
+    def import_XYZ(self):
+        ''' Import XYZ file(s) by first opening the folder
+        and then opening them via an OpenGL widget'''
+        self.folder = None
+        self.xyz_files = []
+        # Prompt the user to select the folder
+        slider = create_slider()
+        folder, xyz_files = slider.read_crystals()
+        self.folder = folder
+        print(f"Initial XYZ list: {xyz_files}")
+        # Check if the user opened a folder
+        if folder:
+            self.xyz_files = natsorted(xyz_files)  # Use natsort to sort naturally, this is a list of all paths
 
-        self.tabWidget.currentChanged.connect(self.tabChanged)
+            # Generate a complete list of the number of .xyz files and/or frames in the movie
+            self.xyz_info_list = slider.get_xyz_info_for_all_files(folder, xyz_files)
+            xyz_info_list = self.xyz_info_list
+            print("xyz_info_list", xyz_info_list)
 
-        # Open Folder
-        try:
-            self.simFolder_Button.clicked.connect(lambda: self.read_folder(self.mode))
-        except IndexError:
-            pass
+            Visualiser.initGUI(self, self.xyz_files) # Load the info into init_GUI
 
-        self.growthRate_checkBox.stateChanged.connect(self.growth_rate_check)
-        self.plot_checkBox.stateChanged.connect(self.plot_check)
-        self.run_calc_button.clicked.connect(self.run_calc)
-        self.AR_browse_button.clicked.connect(self.replot_AR_read)
-        #self.summaryfile_browse_button.connect(self.replot_summary_read)
-        self.GrowthRate_browse_button.clicked.connect(self.replot_GrowthRate_read)
+            # Shape analysis to determine xyz, or xyz movie
+            result = self.movie_or_single_frame(0)
 
-        self.plot_AR_button.clicked.connect(lambda: self.call_replot(1))
-        self.plot_GrowthRate_button.clicked.connect(lambda: self.call_replot(2))
-        self.select_summary_slider_button.clicked.connect(self.read_summary_vis)
+            # Adjust the slider range based on the number of XYZ files in the list
+            self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
+            self.mainCrystal_slider.setValue(0)
 
-        # Checkboxes
-        self.aspectRatio_checkBox.stateChanged.connect(self.aspect_ratio_checked)
-        self.pca_checkBox.stateChanged.connect(self.pca_checked)
-        self.cda_checkBox.stateChanged.connect(self.cda_checked)
-        self.sa_vol_checkBox.stateChanged.connect(self.sa_vol_checked)
-        self.reset_button.clicked.connect(self.reset_button_function)
-        self.plot_checkBox.setEnabled(True)
-        self.outFolder_Button.clicked.connect(self.output_folder_button)
-        # self.count_checkBox.stateChanged.connect(self.count_check)
-        # self.aspect_range_checkBox.stateChanged.connect(self.range_check)
+            Visualiser.init_crystal(self, result)
 
-    def read_summary_vis(self):
-        create_slider.read_summary(self)
+            # self.xyz, _, _ = XYZ_data.read_XYZ(folder)
 
-    def read_folder(self, mode):
-        find = Find()
-
-        if self.mode == 2:
-            slider = create_slider()
-            self.folder_path, self.xyz_list = slider.read_crystals()
-            find.create_aspects_folder(self.folder_path)
-            print(f"Initial XYZ list: {self.xyz_list}")
-            Visualiser.initGUI(self, self.xyz_list)
+            # self.run_xyz_movie(self.xyz)
+            #CrystalViewer.init_crystal(self, crystal_results)
+            # Enable the slider
             self.select_summary_slider_button.setEnabled(True)
 
-        if self.mode == 1:
-
-            self.folder_path = Path(
-                QtWidgets.QFileDialog.getExistingDirectory(
-                    None, "Select CrystalGrower Output Folder"
-                )
-            )
-            checkboxes = []
-            check_box_names = []
-
-            file_info = find.find_info(self.folder_path)
-
-            self.summary_file = file_info.summary_file
-
-            self.folders = file_info.folders
-
-            if file_info.size_files:
-                self.growthrates = True
-                self.growthRate_checkBox.setChecked(True)
-
-            if self.growthrates is False:
-                self.growthRate_checkBox.setEnabled(False)
-
-            num_directions = len(file_info.directions)
-            print("Number of Directions:", num_directions)
-
-            # Deletes current directions
-            for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
-                chk_box.deleteLater()
-
-            for i in range(num_directions):
-                chk_box_name = file_info.directions[i]
-                self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
-                check_box_names.append(chk_box_name)
-                checkboxes.append(self.chk_box_direction)
-
-                self.chk_box_direction.setEnabled(True)
-                self.chk_box_direction.stateChanged.connect(self.check_facet)
-                sizePolicy = QtWidgets.QSizePolicy(
-                    QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-                )
-                sizePolicy.setHorizontalStretch(0)
-                sizePolicy.setVerticalStretch(1)
-                sizePolicy.setHeightForWidth(
-                    self.chk_box_direction.sizePolicy().hasHeightForWidth()
-                )
-                self.chk_box_direction.setSizePolicy(sizePolicy)
-                font = QtGui.QFont()
-                font.setFamily("Arial")
-                font.setPointSize(10)
-                self.chk_box_direction.setFont(font)
-                self.chk_box_direction.setText(chk_box_name)
-
-                self.verticalLayout_2.addWidget(self.chk_box_direction)
-
-            self.checkboxnames = check_box_names
-            self.checkboxes = checkboxes
-            print(self.checkboxnames)
-
-    def check_facet(self, state):
-        if state == Qt.Checked:
-            chk_box = self.sender()
-            print(chk_box)
-            for box in self.checkboxes:
-                if chk_box == box:
-                    # print(box)
-                    checked_facet = self.checkboxnames[self.checkboxes.index(box)]
-                    if checked_facet not in self.checked_directions:
-                        self.checked_directions.append(checked_facet)
-
-                    # Turns on and off the second aspect ratio fields
-                    if (
-                        len(self.checked_directions) >= 3
-                        and self.aspectRatio_checkBox.isChecked()
-                    ):
-                        if self.mode == 1:
-                            self.short_facet.setEnabled(True)
-                            if self.aspect_range_checkBox.isChecked():
-                                self.ms_range_input.setEnabled(True)
-                                self.ms_plusminus_label.setEnabled(True)
-                                self.ms_spinBox.setEnabled(True)
-                                self.ms_percent_label.setEnabled(True)
-
-        else:
-            chk_box = self.sender()
-            for box in self.checkboxes:
-                if chk_box == box:
-                    checked_facet = self.checkboxnames[self.checkboxes.index(box)]
-
-                    try:
-                        self.checked_directions.remove(checked_facet)
-                        print(self.checked_directions)
-
-                    except NameError:
-                        print(self.checked_directions)
-
-                    # Turns on and off the second aspect ratio fields
-                    if len(self.checked_directions) < 3:
-                        if self.mode == 1:
-                            self.short_facet.setEnabled(False)
-                            # self.short_facet_label.setEnabled(False)
-                            self.ms_range_input.clear()
-                            self.ms_spinBox.setValue(0)
-                            self.ms_range_input.setEnabled(False)
-                            self.ms_plusminus_label.setEnabled(False)
-                            self.ms_spinBox.setEnabled(False)
-                            self.ms_percent_label.setEnabled(False)
-
-        # Adds directions (updates) to the drop down lists
-        if self.mode == 1:
-            self.long_facet.clear()
-            self.medium_facet.clear()
-            self.short_facet.clear()
-            for item in self.checked_directions:
-                self.long_facet.addItem(item)
-                self.medium_facet.addItem(item)
-                self.short_facet.addItem(item)
-
-    def aspect_ratio_checked(self, state):
-
-        if state == Qt.Checked:
-            self.aspectratio = True
-            self.pca_checkBox.setEnabled(True)
-            self.cda_checkBox.setEnabled(True)
-
-            if self.cda:
-                self.long_facet.setEnabled(True)
-                self.medium_facet.setEnabled(True)
-                self.aspect_range_checkBox.setEnabled(True)
-                # self.count_checkBox.setEnabled(True)
-                self.ratio_label1.setEnabled(True)
-
-                if len(self.checked_directions) >= 3:
-                    self.short_facet.setEnabled(True)
-                    self.ratio_label2.setEnabled(True)
-
-        else:
-            # Clear
-            self.pca_checkBox.setEnabled(False)
-            self.cda_checkBox.setEnabled(False)
-            self.long_facet.setEnabled(False)
-            self.medium_facet.setEnabled(False)
-            self.short_facet.setEnabled(False)
-            self.lm_range_input.clear()
-            self.ms_range_input.clear()
-            self.lm_spinBox.setValue(0)
-            self.ms_spinBox.setValue(0)
-            self.aspect_range_checkBox.setChecked(False)
-            self.aspect_range_checkBox.setEnabled(False)
-            self.ratio_label1.setEnabled(False)
-            self.ratio_label2.setEnabled(False)
-            self.count_checkBox.setChecked(False)
-            self.count_checkBox.setEnabled(False)
-
-    def reset_button_function(self):
-
-        self.init_parameters()
-
-        # Initialise Progressbar
-        self.progressBar.setValue(0)
-
-        if self.mode == 1:
-            # Unchecks selected facets
-            for chkBox in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
-                chkBox.setChecked(False)
-                chkBox.deleteLater()
-            # Unchecks Checkboxes and clears the fields
-            self.growthRate_checkBox.setChecked(False)
-            self.aspectRatio_checkBox.setChecked(False)
-            self.cda_checkBox.setChecked(False)
-            self.pca_checkBox.setChecked(False)
-            self.sa_vol_checkBox.setChecked(False)
-            self.plot_checkBox.setChecked(False)
-            self.long_facet.setEnabled(False)
-            self.medium_facet.setEnabled(False)
-            self.short_facet.setEnabled(False)
-            self.lm_range_input.clear()
-            self.ms_range_input.clear()
-            self.lm_spinBox.setValue(0)
-            self.ms_spinBox.setValue(0)
-            self.lm_range_input.setEnabled(False)
-            self.lm_plusminus_label.setEnabled(False)
-            self.lm_spinBox.setEnabled(False)
-            self.lm_percent_label.setEnabled(False)
-            self.ms_range_input.setEnabled(False)
-            self.ms_plusminus_label.setEnabled(False)
-            self.ms_spinBox.setEnabled(False)
-            self.ms_percent_label.setEnabled(False)
-            self.aspect_range_checkBox.setChecked(False)
-            self.output_textBox.clear()
-
-        self.summary_cs_label.setEnabled(False)
-        self.summaryfile_lineEdit.setEnabled(False)
-        self.summaryfile_browse_button.setEnabled(False)
-        self.plot_AR_button.setEnabled(False)
-        self.plot_GrowthRate_button.setEnabled(False)
-        self.plot_SAVAR_button.setEnabled(False)
-        self.plot_SA_button.setEnabled(False)
-        self.plot_vol_button.setEnabled(False)
-
-    def input_directions(self, directions):
-        check_box_names = []
-        checkboxes = []
-
-        num_directions = len(directions)
-        # Deletes current directions
-        for chk_box in self.facet_gBox.findChildren(QtWidgets.QCheckBox):
-            chk_box.deleteLater()
-
-        for i in range(num_directions):
-            chk_box_name = directions[i]
-            self.chk_box_direction = QtWidgets.QCheckBox(self.facet_gBox)
-            check_box_names.append(chk_box_name)
-            checkboxes.append(self.chk_box_direction)
-
-            self.chk_box_direction.setEnabled(True)
-            self.chk_box_direction.stateChanged.connect(self.check_facet)
-            sizePolicy = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-            )
-            sizePolicy.setHorizontalStretch(0)
-            sizePolicy.setVerticalStretch(1)
-            sizePolicy.setHeightForWidth(
-                self.chk_box_direction.sizePolicy().hasHeightForWidth()
-            )
-            self.chk_box_direction.setSizePolicy(sizePolicy)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            font.setPointSize(10)
-            self.chk_box_direction.setFont(font)
-            self.chk_box_direction.setText(chk_box_name)
-
-            self.verticalLayout_2.addWidget(self.chk_box_direction)
-
-            self.checkboxnames = check_box_names
-            self.checkboxes = checkboxes
-            print(self.checkboxnames)
-
-    def growth_rate_check(self, state):
-        if state == Qt.Checked:
-            self.growthrates = True
-            print(f"Growth Rates: {self.growthrates}")
-        else:
-            self.growthrates = False
-            print(f"Growth Rates: {self.growthrates}")
-
-    def pca_checked(self, state):
-        if state == Qt.Checked:
-            self.pca = True
-            print(f"PCA: {self.pca}")
-        else:
-            self.pca = False
-            print(f"PCA: {self.pca}")
-
-    def sa_vol_checked(self, state):
-        if state == Qt.Checked:
-            self.sa_vol = True
-            print(f"SA:V {self.sa_vol}")
-        else:
-            self.sa_vol = False
-            print(f"SA:V {self.sa_vol}")
-
-    def cda_checked(self, state):
-        if state == Qt.Checked:
-            self.cda = True
-            print(f"CDA: {self.cda}")
-
-            self.long_facet.setEnabled(True)
-            self.medium_facet.setEnabled(True)
-            # self.aspect_range_checkBox.setEnabled(True)
-            # self.count_checkBox.setEnabled(True)
-            self.ratio_label1.setEnabled(True)
-
-            if len(self.checked_directions) >= 3:
-                self.short_facet.setEnabled(True)
-                self.ratio_label2.setEnabled(True)
-        else:
-            self.cda = False
-            print("CDA is not checked")
-            print(f"CDA: {self.cda}")
-
-            self.long_facet.setEnabled(False)
-            self.medium_facet.setEnabled(False)
-            self.aspect_range_checkBox.setEnabled(False)
-            self.count_checkBox.setEnabled(False)
-            self.ratio_label1.setEnabled(False)
-            self.short_facet.setEnabled(False)
-            self.ratio_label2.setEnabled(False)
-
-    def plot_check(self, state):
-        if state == Qt.Checked:
-            self.plot = True
-            print(f"Plot: {self.plot}")
-        else:
-            self.plot = False
-            print(f"Plot: {self.plot}")
-
-    def replot_AR_read(self):
-        input_path = self.ar_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Aspect Ratio .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.AR_csv = input_path
-                self.plot_AR_button.setEnabled(True)
-
-        self.ar_lineEdit.setText(str(input_path))
-
-        self.reread_info(input_path)
-        print(input_path)
-
-    def replot_GrowthRate_read(self):
-        input_path = self.GrowthRate_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Growth Rate .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.GrowthRate_csv = input_path
-                self.plot_GrowthRate_button.setEnabled(True)
-
-        self.GrowthRate_lineEdit.setText(str(input_path))
-
-        self.reread_info(input_path)
-
-    def replot_summary_read(self):
-
-        find = Find()
-
-        input_path = self.summaryfile_lineEdit.text()
-
-        if input_path != "":
-            input_path = Path(input_path)
-
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.summary_csv = input_path
-
-        else:
-            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                None, "Select Growth Rate .csv"
-            )
-            input_path = Path(input_path)
-            if input_path.exists() and input_path.suffix == ".csv":
-                self.summary_csv = input_path
-
-        self.summaryfile_lineEdit.setText(str(input_path))
-
-        find.summary_compare(
-            summary_csv=input_path,
-            savefolder=self.replot_folder,
-            aspect_csv=self.AR_csv,
-        )
-
-        self.AR_csv = f"{self.replot_folder}/aspectratio_energy.csv"
-
-        self.replot_info._replace(Energies=True)
-
-    def reread_info(self, csv):
-
-        find = Find()
-        replot_info = namedtuple(
-            "PresentData", "Directions, PCA, CDA, Equations, Energies, SAVol"
-        )
-
-        self.folder_path = csv.parent
-
-        self.replot_folder = find.create_aspects_folder(self.folder_path)
-        df = pd.read_csv(csv)
-
-        directions = []
-        energies = False
-        pca = False
-        cda = False
-        equations = False
-        savar = False
-
-        for col in df.columns:
-            if col.startswith(" ") or col.startswith("-"):
-                directions.append(col)
-            if col.startswith("interactions") or col.startswith("tile"):
-                energies = True
-            if col.startswith("S:M"):
-                pca = True
-            if col.startswith("S/M"):
-                cda = True
-            if col.startswith("CDA_Equations"):
-                equations = True
-            if col.startswith("SA"):
-                savar = True
-
-        self.input_directions(directions=directions)
-
-        if energies is False:
-            self.summary_cs_label.setEnabled(True)
-            self.summaryfile_lineEdit.setEnabled(True)
-            self.summaryfile_browse_button.setEnabled(True)
-
-        self.replot_info = replot_info(
-            Directions=directions,
-            PCA=pca,
-            CDA=cda,
-            Equations=equations,
-            Energies=energies,
-            SAVol=savar,
-        )
-
-    def call_replot(self, replot_mode):
-
-        '''tested = testing()
-        tested.testplot()'''
-
-        replot = Replotting()
-
-        if replot_mode == 1:
-            replot.replot_AR(
-                csv=self.AR_csv, info=self.replot_info, selected=self.checked_directions
-            )
-
-        if replot_mode == 2:
-            replot.replot_GrowthRate(
-                csv=self.GrowthRate_csv,
-                info=self.replot_info,
-                selected=self.checked_directions,
-                savepath=self.replot_folder,
-            )
-
-    def run_calc(self):
-
-        calc_info_tuple = namedtuple(
-            "Information",
-            [
-                "folder_path",
-                "checked_directions",
-                "selected_directions",
-                "summary_file",
-                "folders",
-                "aspectratio",
-                "cda",
-                "pca",
-                "growthrates",
-                "sa_vol",
-                "plot",
-            ],
-        )
-        print(self.checked_directions)
-        if self.aspectratio:
-            print(self.checked_directions)
-
-            if self.cda:
-
-                long = self.long_facet.currentText()
-                medium = self.medium_facet.currentText()
-                short = self.short_facet.currentText()
-
-                self.selected_directions = [short, medium, long]
-                print(self.selected_directions)
-        print(self.folders)
-
-        calc_info = calc_info_tuple(
-            folder_path=self.folder_path,
-            checked_directions=self.checked_directions,
-            selected_directions=self.selected_directions,
-            summary_file=self.summary_file,
-            folders=self.folders,
-            aspectratio=self.aspectratio,
-            cda=self.cda,
-            pca=self.pca,
-            growthrates=self.growthrates,
-            sa_vol=self.sa_vol,
-            plot=self.plot,
-        )
-
-        worker_calc = Worker_Calc(calc_info)
-        worker_calc.signals.finished.connect(self.thread_finished)
-        worker_calc.signals.progress.connect(self.update_progress)
-        worker_calc.signals.message.connect(self.update_statusbar)
-        self.threadpool.start(worker_calc)
-        print("Calculation Submitted")
+            print("importing XYZ files")
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
@@ -689,6 +247,219 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         worker_xyz.signals.progress.connect(self.update_progress)
         worker_xyz.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_xyz)
+
+    def movie_or_single_frame(self, index):
+        folder = self.folder
+        if 0 <= index < len(self.xyz_files):
+            file_name = self.xyz_files[index]
+            full_file_path = os.path.join(folder, file_name)
+            results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
+            xyz, xyz_movie, progress = CrystalShape.read_XYZ(full_file_path)
+            result = results(xyz=xyz, xyz_movie=xyz_movie)
+
+            return result
+
+
+    def load_crystal(self, index):
+        aspect = AspectRatioCalc()
+        crystalshape = CrystalShape()
+        folder = self.folder
+        print(folder)
+        if 0 <= index < len(self.xyz_files):
+            file_name = self.xyz_files[index]
+            full_file_path = os.path.join(folder, file_name)
+            atoms = crystalshape.read_XYZ(full_file_path)  # Assuming read_XYZ is in MainWindow
+            print(atoms)
+            self.viewer.atoms = atoms
+            self.viewer.update()
+
+            return atoms
+
+
+    def on_slider_value_changed(self, value):
+        # Check if the selected index is within the range of available XYZ files
+        if 0 <= value < len(self.crystals_data):
+            self.current_crystal_index = value
+            self.viewer.atoms = self.crystals_data[self.current_crystal_index]
+            self.viewer.update()
+
+    def close_application(self):
+        print("Closing Application")
+        self.close()
+
+    def connect_buttons(self):
+        # Visualisation Buttons
+        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary_vis())
+        self.play_button.clicked.connect(self.play_movie)
+
+    def calculate_aspect_ratio(self):
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        find = Find()
+        # Check if the user selected a folder
+
+        if folder:
+            # Perform calculations using the selected folder
+
+            # Read the information from the selected folder
+            information = find.find_info(folder)
+
+            # Get the directions from the information
+            checked_directions = information.directions
+            print(checked_directions)
+
+            # Create the analysis options dialog
+            dialog = AnalysisOptionsDialog(checked_directions)
+            if dialog.exec_() == QDialog.Accepted:
+                # Retrieve the selected options
+                selected_aspect_ratio, selected_cda, selected_directions, selected_direction_aspect_ratio, auto_plotting = dialog.get_options()
+
+                # Display the information in a QMessageBox
+                QMessageBox.information(self, "Options",
+                                        f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
+                                        f"Selected CDA: {selected_cda}\n"
+                                        f"Selected Directions: {selected_directions}\n"
+                                        f"Selected Direction Aspect Ratio: {selected_direction_aspect_ratio}\n"
+                                        f"Auto Plotting: {auto_plotting}")
+
+                AspectXYZ = AspectRatioCalc()
+                aspect_ratio = AspectRatio()
+                plotting = Plotting()
+                save_folder = find.create_aspects_folder(folder)
+                file_info = find.find_info(folder)
+                summary_file = file_info.summary_file
+                folders = file_info.folders
+
+                if selected_aspect_ratio:
+                    xyz_df = AspectXYZ.collect_all(folder=folder)
+                    xyz_df_final = find.summary_compare(
+                        summary_csv=summary_file,
+                        aspect_df=xyz_df
+                    )
+                    xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
+                    xyz_df_final.to_csv(xyz_df_final_csv, index=None)
+                    AspectXYZ.shape_number_percentage(
+                        df=xyz_df_final,
+                        savefolder=save_folder
+                    )
+                    if auto_plotting is True:
+                        plotting.build_PCAZingg(df=xyz_df_final,
+                                                folderpath=save_folder)
+                        plotting.plot_OBA(df=xyz_df_final,
+                                          folderpath=save_folder)
+                    '''if selected_aspect_ratio is False:
+                        self.ShowData(xyz_df_final)'''
+                if selected_cda:
+                    cda_df = aspect_ratio.build_AR_CDA(
+                        folderpath=folder,
+                        folders=folders,
+                        directions=selected_directions,
+                        selected=selected_direction_aspect_ratio,
+                        savefolder=save_folder,
+                    )
+                    zn_df = aspect_ratio.defining_equation(
+                        directions=selected_direction_aspect_ratio,
+                        ar_df=cda_df,
+                        filepath=save_folder,
+                    )
+                    zn_df_final = find.summary_compare(
+                        summary_csv=summary_file,
+                        aspect_df=zn_df
+                    )
+                    zn_df_final_csv = f"{save_folder}/CDA.csv"
+                    zn_df_final.to_csv(zn_df_final_csv, index=None)
+
+                    if selected_aspect_ratio and selected_cda:
+                        combined_df = find.combine_XYZ_CDA(
+                            CDA_df=zn_df,
+                            XYZ_df=xyz_df
+                        )
+                        final_cda_xyz = find.summary_compare(
+                            summary_csv=summary_file,
+                            aspect_df=combined_df
+                        )
+                        final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
+                        final_cda_xyz.to_csv(final_cda_xyz_csv, index=None)
+                        #self.ShowData(final_cda_xyz)
+                        aspect_ratio.CDA_Shape_Percentage(
+                            df=final_cda_xyz,
+                            savefolder=save_folder
+                        )
+
+    def calculate_growth_rates(self):
+        ''' Activate calculate growth rates from the CrystalAspects
+        menubar after growth rates has been selected'''
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(self, "Select Folder", "./", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        find = Find()
+
+        # Check if the user selected a folder
+        if folder:
+            # Perform calculations using the selected folder
+            QMessageBox.information(self, "Result", f"Growth rates calculated for the folder: {folder}")
+
+            # Read the information from the selected folder
+            information = find.find_info(folder)
+
+            # Get the directions from the information
+            checked_directions = information.directions
+
+            growth_rate_dialog = GrowthRateAnalysisDialogue(checked_directions)
+            if growth_rate_dialog.exec_() == QDialog.Accepted:
+                selected_directions = growth_rate_dialog.selected_directions
+                auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
+
+                save_folder = find.create_aspects_folder(folder)
+                size_files = information.size_files
+                supersats = information.supersats
+                directions = selected_directions
+
+                growth_rate = GrowthRate()
+
+                growth_rate_df = growth_rate.calc_growth_rate(
+                    size_file_list=size_files, supersat_list=supersats, directions=directions
+                )
+                growth_rate_df.to_csv(save_folder / "growthrates.csv")
+
+                if auto_plotting:
+                    plot = Plotting()
+                    plot.plot_growth_rates(growth_rate_df, information.directions, save_folder)
+
+    def particle_swarm_analysis(self):
+        # Create a message box
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setWindowTitle("Particle Swarm Analysis")
+        msg_box.setText("Particle Swarm Analysis is coming soon!")
+        msg_box.exec_()
+
+    def generate_structure_file(self):
+        # Create a message box
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setText("CrystalClear is coming soon!")
+        msg_box.exec_()
+
+    def generate_net_file(self):
+        # Create a message box
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setText("CrystalClear is coming soon!")
+        msg_box.exec_()
+
+    def solvent_screening(self):
+        # Create a message box
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setText("CrystalClear is coming soon!")
+        msg_box.exec_()
+
+    def read_summary_vis(self):
+        print('Entering Reading Summary file')
+        create_slider.read_summary(self)
+
+    def get_xyz_movie(self, result):
+        self.xyz_result = result
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
         slider = self.sender()
@@ -776,59 +547,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def thread_finished(self):
         print("THREAD COMPLETED!")
 
-    def tabChanged(self):
-        self.mode = self.tabWidget.currentIndex() + 1
-        if self.mode == 1:
-            print("Normal Mode selected")
-            self.simFolder_Button.setText("Open Simulations Folder")
-            self.progressBar.show()
-        if self.mode == 2:
-            print("3D Data mode selected")
-            self.simFolder_Button.setText("XYZ/Simulations Folder")
-            self.output_textBox_3.setText(
-                "Please open the folder containing the XYZ file(s) to start using the Visualiser/Sliders"
-            )
-
-    def output_folder_button(self):
-        try:
-            dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
-            if sys.platform == "win32":
-                os.startfile(dir_path)
-            else:
-                opener = "open" if sys.platform == "darwin" else "xdg-open"
-                subprocess.call([opener, dir_path])
-            self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
-        except NameError:
-            try:
-                dir_path = os.path.realpath(self.folder_path / "CrystalAspects")
-                if sys.platform == "win32":
-                    os.startfile(dir_path)
-                else:
-                    opener = "open" if sys.platform == "darwin" else "xdg-open"
-                    subprocess.call([opener, dir_path])
-                self.statusBar().showMessage("Taking you to the CrystalAspects folder.")
-            except NameError:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setText("Please select CrystalGrower output folder first!")
-                msg.setInformativeText(
-                    "An output folder is created only once you have selected a CrystalGrower output folder."
-                )
-                msg.setWindowTitle("Error: Folder not found!")
-                msg.exec_()
-
-
-# Override sys excepthook to prevent app abortion upon any error
-# (Reverts to old PyQt4 behaviour of
-# simply printing the traceback to stdout/stderr)
-
-
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
 
 if __name__ == "__main__":
-
     # Override sys excepthook to prevent app abortion upon any error
     sys.excepthook = except_hook
 
@@ -841,6 +564,17 @@ if __name__ == "__main__":
     except:
         pass
 
+    # Set up OpenGL format with the necessary attributes
+    gl_format = QtOpenGL.QGLFormat()
+    gl_format.setVersion(3, 3)  # Use OpenGL 3.3 or higher
+    gl_format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
+    gl_format.setSampleBuffers(True)
+
+    # Create the OpenGL context and make it current
+    gl_context = QtOpenGL.QGLContext(gl_format)
+    gl_context.create()
+    gl_context.makeCurrent()
+
     # ############# Runs the application ############## #
     QApplication.setAttribute(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QtWidgets.QApplication(sys.argv)
@@ -848,3 +582,4 @@ if __name__ == "__main__":
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
+

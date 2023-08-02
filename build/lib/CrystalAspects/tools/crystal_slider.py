@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QMainWindow, QMessageBox, QFileDialog
 # ==> Non-GUI imports
 import numpy as np
 import pandas as pd
+import os
 from pathlib import Path
 from collections import defaultdict
 from natsort import natsorted
@@ -19,7 +20,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
- 
+
     # Read Summary file
     def read_summary(self):
 
@@ -161,6 +162,20 @@ class create_slider(QMainWindow, Ui_MainWindow):
         self.statusBar().showMessage("Complete: Image data read in!")
 
         return (xyz_folderpath, self.crystal_xyz_list)
+
+    def get_xyz_info(self, filepath):
+        with open(filepath, 'r') as file:
+            lines = file.readlines()
+            num_frames = int(lines[1].split("//")[1])
+        return num_frames
+
+    def get_xyz_info_for_all_files(self, folder, sorted_xyz_files):
+        xyz_info_list = []
+        for file_name in sorted_xyz_files:
+            full_file_path = os.path.join(folder, file_name)
+            num_frames = self.get_xyz_info(full_file_path)
+            xyz_info_list.append(num_frames)
+        return xyz_info_list
 
     def build_crystaldata(self, xyz_file_list):
         n = len(xyz_file_list)
