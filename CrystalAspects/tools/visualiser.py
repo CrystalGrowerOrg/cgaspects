@@ -87,6 +87,7 @@ class Visualiser(Ui_MainWindow):
         self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
     def init_crystal(self, result):
+        print(result)
         self.xyz, self.movie = result
         self.glWidget.pass_XYZ(self.xyz)
 

@@ -199,8 +199,6 @@ class AspectRatioCalc:
         aspect2 = middle / longest
 
         shape = self.determine_crystal_shape(aspect1, aspect2)  # Get Zingg definition of crystal
-        print('call shape')
-        print(shape)
 
         size_array = np.array([[length_x, length_y, length_z, aspect1, aspect2, shape]])
 
@@ -219,6 +217,30 @@ class AspectRatioCalc:
             return "Needle"
         else:
             return "unknown"
+
+    def shape_number_percentage(self, df, savefolder):
+        '''This section is calculating the number of times
+        that lath, needle, plate and block and found in
+        the columns OBA Shape Definition and PCA Shape
+        Definition to create csv  that shows the percentage
+        of each shape found'''
+        OBA_shape_counts = df['OBA Shape'].str.lower().value_counts()
+        OBA_total_count = OBA_shape_counts.sum()
+        OBA_shape_percentages = OBA_shape_counts / OBA_total_count * 100
+
+        PCA_shape_counts = df['PCA Shape'].str.lower().value_counts()
+        PCA_total_count = PCA_shape_counts.sum()
+        PCA_shape_percentages = PCA_shape_counts / PCA_total_count * 100
+
+        result_df = pd.DataFrame({
+            'Shape': OBA_shape_counts.index,
+            'OBA Count': OBA_shape_counts,
+            'OBA Percentage': OBA_shape_percentages,
+            'PCA Count': PCA_shape_counts,
+            'PCA Percentage': PCA_shape_percentages
+        })
+        total_shapes_csv = f"{savefolder}/shape_counts.csv"
+        result_df.to_csv(total_shapes_csv, index=False)
 
     def get_PCA(self, xyz_vals, filetype=".XYZ", n=3):
         """ PCA - (Principal Component analysis)
@@ -259,17 +281,15 @@ class AspectRatioCalc:
         """This collects all the CrystalAspects
         information from each of the relevant functions
         and congregates that into the final DataFrame"""
-        print(folder)
         col_headings = ["Simulation Number",
-                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "Shape Definition",
-                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "Shape Definition",
+                        "OBA Length X", "OBA Length Y", "OBA Length Z", "OBA S:M", "OBA M:L", "OBA Shape",
+                        "PCA small", "PCA medium", "PCA long", "PCA S:M", "PCA M:L", "PCA Shape",
                         "Surface Area (SA)", "Volume (Vol)", "SA:Vol Ratio (SAVAR)"
                         ]
         shape_df = None
         for files in Path(folder).iterdir():
             if files.is_dir():
                 for file in files.iterdir():
-                    # print(file)
                     if file.suffix == ".XYZ":
                         sim_num = re.findall(r"\d+", file.name)[-1]
                         try:
@@ -289,7 +309,7 @@ class AspectRatioCalc:
                                 shape_df = np.empty((0, col_nums),
                                                     np.float64)
                             shape_df = np.append(shape_df, size_data, axis=0)
-                            print(shape_df)
+                            #print(shape_df)
 
                         except (StopIteration, UnicodeDecodeError):
                             continue

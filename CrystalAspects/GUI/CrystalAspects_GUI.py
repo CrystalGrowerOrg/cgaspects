@@ -1,14 +1,14 @@
 # PyQT5 imports
 from PyQt5 import QtGui, QtWidgets, QtOpenGL
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, \
-    QShortcut, QAction, QSlider, \
-    QMenu, QFileDialog, QDialog, QVBoxLayout
+    QShortcut, QAction, \
+    QMenu, QFileDialog, QDialog
 from PyQt5.QtCore import Qt, QThreadPool, QTimer
 from PyQt5.QtGui import QKeySequence
 from qt_material import apply_stylesheet
 
 # General imports
-import os, sys, subprocess
+import os, sys
 from natsort import natsorted
 from collections import namedtuple
 
@@ -147,17 +147,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #timer.timeout.connect(self.viewer.update)
         timer.start(16)  # About 60 FPS
 
-        self.xyz = None
-        self.xyz_list = []
-        self.xyz_result = ()
-        self.frame_list = []
-        self.progressBar.setValue(0)
-        self.xyz_files = []      # List to store the sorted XYZ file names
-        self.folder = ""         # Store the folder path
-
-        self.current_crystal_index = 0
-        self.crystals_data = []  # List to store crystal data for multiple files
-
     def key_shortcuts(self):
         # Create a QShortcut with the specified key sequence
         close = QShortcut(QKeySequence("Ctrl+Q"), self)
@@ -224,7 +213,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.select_summary_slider_button.setEnabled(True)
 
             print("importing XYZ files")
-
 
     def run_xyz_movie(self, filepath):
         worker_xyz_movie = Worker_Movies(filepath)
@@ -302,6 +290,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def connect_buttons(self):
         # Visualisation Buttons
         self.select_summary_slider_button.clicked.connect(lambda: self.read_summary_vis())
+        self.play_button.clicked.connect(self.play_movie)
 
     def calculate_aspect_ratio(self):
         # Prompt the user to select the folder
