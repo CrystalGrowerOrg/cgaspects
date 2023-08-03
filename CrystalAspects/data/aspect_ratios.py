@@ -195,12 +195,12 @@ class AspectRatio:
                         #    row[i]/row[med_idx]
                         # df.loc[idx, f'S/M {eq[med_idx]}/{eq[-1]}'] = \
                         #    row[med_idx]/row[-1]
-                        df.loc[idx, "Equation"] = eq_num
+                        ddf.loc[idx, "Equation"] = eq_num
                     else:
                         # continue to next window
                         continue
 
         if csv != "":
-            df.to_csv(csv.parents[0] / "CDA_Dataframe.csv")
+            ddf.to_csv(csv.parents[0] / "CDA_Dataframe.csv")
 
-        return df
+        return ddf

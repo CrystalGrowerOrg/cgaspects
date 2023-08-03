@@ -39,12 +39,12 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.rotY = 0.0
         self.rotZ = 0.0
         # self.object = 0
-        self.zoomFactor = 1.0
+        self.zoomFactor = 0.5
 
         self.colour_picked = cm.viridis
         self.colour_type = 2
 
-        self.point_size = 6.0
+        self.point_size = 10.0
         self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
@@ -199,10 +199,10 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         print(f" Point Type: {self.point_types[value]}")
         print(value)
         self.initGeometry()
-        '''if value == 1:
+        if value == 1:
             pcd_points = self.LoadVertices()
             self.draw_spheres(pcd_points)
-            self.initGeometry()'''
+            self.initGeometry()
         self.updateGL()
         self.update()
 

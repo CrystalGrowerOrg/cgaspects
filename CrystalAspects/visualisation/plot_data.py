@@ -248,7 +248,7 @@ class Plotting:
 
         for equation in equations:
             plt.figure()
-            textstr = "CDA Equation" + equation
+            textstr = equation
             equation_df = zn_df[zn_df["CDA_Equation"] == equation]
             x_data = equation_df["OBA S:M"]
             y_data = equation_df["OBA M:L"]
@@ -262,7 +262,7 @@ class Plotting:
             plt.ylabel("M:L")
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
-            savepath = f"{savefolder}/CDA_Zingg_eq{equation}"
+            savepath = f"{savefolder}/OBA_CDA_eq{equation}"
             plt.savefig(savepath, dpi=300)
             plt.close()
 

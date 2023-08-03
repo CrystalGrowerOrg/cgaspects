@@ -95,7 +95,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
                         slider_list=slider_list,
                         dspinbox_list=dspinbox_list,
                         summ_df=summ_df,
-                        crystals=self.xyz_list,
+                        crystals=self.xyz_files,
                     )
                 )
             except NameError:

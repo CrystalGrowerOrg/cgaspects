@@ -24,6 +24,11 @@ class Visualiser(Ui_MainWindow):
             self.gl_vLayout.removeWidget(widget_item.widget())
             # Delete the widget
             widget_item.widget().deleteLater()
+            # Clear all lists
+            self.colour_list = []
+            self.colourmode_comboBox = []
+            self.pointtype_comboBox = []
+            self.bgcolour_comboBox = []
 
         # Now you can add the new widget
         self.glWidget = vis_GLWidget()
