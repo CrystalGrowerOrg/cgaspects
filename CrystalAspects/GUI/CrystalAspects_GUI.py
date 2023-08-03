@@ -96,6 +96,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         growth_rate_action = QAction("Growth Rates", self)
         plotting_action = QAction("Plotting", self)
         particle_swarm_action = QAction("Particle Swarm Analysis", self)
+        docking_calc_action = QAction("Docking Calculation", self)
 
         # Add actions and Submenu to CrystalAspects menu
         calculate_menu = CrystalAspects_menu.addMenu("Calculate")
@@ -103,11 +104,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         calculate_menu.addAction(growth_rate_action)
         CrystalAspects_menu.addAction(particle_swarm_action)
         CrystalAspects_menu.addAction(plotting_action)
+        CrystalAspects_menu.addAction(docking_calc_action)
 
         # Connect the CrystalAspects actions
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
         growth_rate_action.triggered.connect(self.calculate_growth_rates)
         particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
+        docking_calc_action.triggered.connect(self.docking_calc)
 
         # Create the CrystalClear actions
         generate_structure_action = QAction("Generate Structure", self)
@@ -259,7 +262,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             return result
 
-
     def load_crystal(self, index):
         aspect = AspectRatioCalc()
         crystalshape = CrystalShape()
@@ -274,7 +276,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.viewer.update()
 
             return atoms
-
 
     def on_slider_value_changed(self, value):
         # Check if the selected index is within the range of available XYZ files
@@ -464,6 +465,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("CrystalClear is coming soon!")
+        msg_box.exec_()
+
+    def docking_calc(self):
+        # Create a message box
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setText("Docking for growth modifier and impurities is coming soon!")
         msg_box.exec_()
 
     def read_summary_vis(self):
