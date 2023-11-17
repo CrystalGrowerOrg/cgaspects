@@ -10,7 +10,7 @@ from OpenGL.GL import glReadPixels, GL_RGBA, GL_UNSIGNED_BYTE, glGetIntegerv
 from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
 
 from OpenGL.GL import glGenLists, glNewList, glBegin, GL_COMPILE, GL_TRIANGLES, glVertex3f, glEndList, glEnd, glCallList
-from OpenGL.GLUT import glutSwapBuffers, glutSolidSphere
+from OpenGL.GLUT import glutSwapBuffers, glutSolidSphere, glutInit
 from OpenGL.GLU import gluNewQuadric, gluSphere
 import OpenGL.GLU as glu
 
@@ -27,6 +27,8 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent=None):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
+        self.rightMouseButtonPressed = False
+        self.lastMousePosition = QtCore.QPoint()
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         self.xyz_path_list = []
@@ -44,7 +46,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.colour_picked = cm.viridis
         self.colour_type = 2
 
-        self.point_size = 10.0
+        self.point_size = 6.0
         self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
@@ -54,9 +56,9 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
 
         self.lattice_parameters = None
 
-        self.x_arrow_model = self.createArrow()
+        '''self.x_arrow_model = self.createArrow()
         self.y_arrow_model = self.createArrow()
-        self.z_arrow_model = self.createArrow()
+        self.z_arrow_model = self.createArrow()'''
 
         self.cm_colourList = [
             cm.viridis,
@@ -231,10 +233,11 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         scroll = event.angleDelta()
         if scroll.y() > 0:
             self.zoomFactor += 0.1
-
         else:
             self.zoomFactor -= 0.1
 
+        print(f"New zoom factor: {self.zoomFactor}")  # Debugging line
+        self.updateGL()
 
     def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
         # Update the arrow models with the new coordinates
@@ -255,7 +258,9 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         # ...
 
     def mousePressEvent(self, event):
-        self.lastPos = event.pos()
+        self.lastMousePosition = event.pos()
+        if event.button() == QtCore.Qt.RightButton:
+            self.rightMouseButtonPressed = True
 
     def keyPressEvent(self, event):
         # print(f"Key pressed: {event.key()}")
@@ -287,32 +292,31 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.update()
 
     def mouseMoveEvent(self, event):
-        # print(f"Button pressed: {event.button()}")
-
-        dx = event.x() - self.lastPos.x()
-        dy = event.y() - self.lastPos.y()
-
-        dz = dx * 0.01  # Scale the rotation amount
-        dz = max(-100, min(dz, 100))  # Clamp the rotation amount to a certain range
-        self.rotZ += dz  # Update the rotZ value
+        dx = event.x() - self.lastMousePosition.x()
+        dy = event.y() - self.lastMousePosition.y()
 
         if event.buttons() & QtCore.Qt.LeftButton:
-            self.rotX = self.rotX + 0.5 * dy
-            self.rotY = self.rotY + 0.5 * dx
-            # self.rotZ = self.rotZ + 1 * dz
+            # Rotation logic
+            self.rotX += dy * 0.5  # Adjust these factors as needed
+            self.rotY += dx * 0.5
+            self.updateGL()
 
-        if (
-                event.buttons() & QtCore.Qt.LeftButton
-                & QtCore.Qt.RightButton
-        ):
-            self.rotZ = self.rotZ + 0.1 * dz
+        elif self.rightMouseButtonPressed:
+            # Here we define the translation speed
+            translationSpeed = 0.1
+            self.translateScene(dx * translationSpeed, dy * translationSpeed)
 
-        if event.buttons() & QtCore.Qt.RightButton:
-            gl.glTranslate(dx * 100, dy * 100, dz * 100)
+        self.lastMousePosition = event.pos()
 
+    def translateScene(self, dx, dy):
+        print(f"Translating scene by dx: {dx}, dy: {dy}")  # Debugging print
+        # Translation logic
+        gl.glTranslatef(dx, dy, 0.0)
         self.updateGL()
-        self.update()
-        self.lastPos = event.pos()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.RightButton:
+            self.rightMouseButtonPressed = False
 
     def initGeometry(self):
 
@@ -457,5 +461,7 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
-        # Swap the buffers to display the rendered scene
-        glutSwapBuffers()
+        if bool(glutSwapBuffers):
+            glutSwapBuffers()
+        else:
+            print("glutSwapBuffers not available")
