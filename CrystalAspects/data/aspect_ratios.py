@@ -73,38 +73,24 @@ class AspectRatio:
         return df
 
     def CDA_Shape_Percentage(self, df, savefolder):
-        '''Calculating the percentage shapes for each
-        CDA equation'''
-        # List of shape columns to consider
         shape_columns = ['OBA Shape', 'PCA Shape']
+        cda_shape_data = []
 
-        # Create a new DataFrame to store the results
-        cda_shape_df = pd.DataFrame(columns=['CDA_Equation', 'Shape', 'Count', 'Source'])
-
-        # Iterate over each shape column
         for shape_column in shape_columns:
-            # Group the DataFrame by 'CDA_Equation' and shape column, and count the occurrences of each shape
             grouped = df.groupby(['CDA_Equation', shape_column]).size().reset_index(name='Count')
-
-            # Iterate over each 'CDA_Equation' group
             for cda_equation, group in grouped.groupby('CDA_Equation'):
-                # Iterate over each shape in the group
                 for shape, count in zip(group[shape_column], group['Count']):
-                    # Determine the source of the shape ('OBA' or 'PCA')
                     source = 'OBA' if shape_column == 'OBA Shape' else 'PCA'
+                    cda_shape_data.append({
+                        'CDA_Equation': cda_equation,
+                        'Shape': shape,
+                        'Count': count,
+                        'Source': source
+                    })
 
-                    # Append the shape, count, and source to the cda_shape_df DataFrame
-                    cda_shape_df = cda_shape_df.append(
-                        {'CDA_Equation': cda_equation, 'Shape': shape, 'Count': count, 'Source': source},
-                        ignore_index=True)
-
-        # Sort the DataFrame by 'CDA_Equation'
+        cda_shape_df = pd.concat([pd.DataFrame([data]) for data in cda_shape_data], ignore_index=True)
         cda_shape_df.sort_values('CDA_Equation', inplace=True)
-
-        # Print and save the cda_shape_df DataFrame
-        print(cda_shape_df)
-        cda_shape_df_csv = f"{savefolder}/shapes and equations.csv"
-        cda_shape_df.to_csv(cda_shape_df_csv)
+        cda_shape_df.to_csv(f"{savefolder}/shapes and equations.csv")
 
     def defining_equation(self, directions, ar_df="", csv="", filepath="."):
         """Defining CDA aspect ratio equations depending on the selected directions from the gui.

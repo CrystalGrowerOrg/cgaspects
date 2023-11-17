@@ -348,8 +348,6 @@ class Replotting:
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            #pylustrator.start()
-            #plt.show()
 
     def replot_GrowthRate(self, csv, info, selected, savepath):
         plt.close()

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox, QCheckBox, QDialog, QHBoxLayout, QComboBox
+from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox, QCheckBox, QDialog, QHBoxLayout, QComboBox, QScrollArea, QWidget
 from PyQt5.QtCore import Qt
 
 class AnalysisOptionsDialog(QDialog):
@@ -7,8 +7,21 @@ class AnalysisOptionsDialog(QDialog):
 
         # Initialise Window
         self.setWindowTitle("Analysis Options")
+        # Create the main layout for all your widgets
         layout = QVBoxLayout()
-        self.setLayout(layout)
+
+        # Create a widget for the main layout
+        main_widget = QWidget(self)
+        main_widget.setLayout(layout)
+
+        # Create a scroll area and set the main widget as its widget
+        scroll = QScrollArea(self)
+        scroll.setWidget(main_widget)
+        scroll.setWidgetResizable(True)
+
+        # Set the scroll area as the main layout for the dialog
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(scroll)
 
         # Initialise Checkboxes
         aspect_ratio_checkbox = QCheckBox("Aspect Ratio (PCA, OBA, Surface Area and Volume)")
