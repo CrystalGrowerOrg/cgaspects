@@ -21,6 +21,7 @@ from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Movies
 from CrystalAspects.visualisation.plot_data import Plotting
+from CrystalAspects.visualisation.replotting import PlotWindow
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
 from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
@@ -94,23 +95,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create actions to the CrystalAspects menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
-        plotting_action = QAction("Plotting", self)
+        #plotting_action = QAction("Plotting", self)
         particle_swarm_action = QAction("Particle Swarm Analysis", self)
-        docking_calc_action = QAction("Docking Calculation", self)
+        #docking_calc_action = QAction("Docking Calculation", self)
 
         # Add actions and Submenu to CrystalAspects menu
         calculate_menu = CrystalAspects_menu.addMenu("Calculate")
         calculate_menu.addAction(aspect_ratio_action)
         calculate_menu.addAction(growth_rate_action)
         CrystalAspects_menu.addAction(particle_swarm_action)
-        CrystalAspects_menu.addAction(plotting_action)
-        CrystalAspects_menu.addAction(docking_calc_action)
+        #CrystalAspects_menu.addAction(plotting_action)
+        #CrystalAspects_menu.addAction(docking_calc_action)
 
         # Connect the CrystalAspects actions
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
         growth_rate_action.triggered.connect(self.calculate_growth_rates)
         particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
-        docking_calc_action.triggered.connect(self.docking_calc)
+        #docking_calc_action.triggered.connect(self.docking_calc)
 
         # Create the CrystalClear actions
         generate_structure_action = QAction("Generate Structure", self)
