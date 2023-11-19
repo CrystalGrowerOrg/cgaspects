@@ -27,6 +27,7 @@ from CrystalAspects.data.growth_rates import GrowthRate
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.visualisation.plot_data import Plotting
 
+
 class Replotting:
 
     def __init__(self):
