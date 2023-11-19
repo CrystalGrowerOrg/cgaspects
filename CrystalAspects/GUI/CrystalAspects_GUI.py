@@ -21,7 +21,7 @@ from CrystalAspects.tools.visualiser import Visualiser
 from CrystalAspects.tools.crystal_slider import create_slider
 from CrystalAspects.GUI.gui_threads import Worker_XYZ, Worker_Movies
 from CrystalAspects.visualisation.plot_data import Plotting
-from CrystalAspects.visualisation.replotting import PlotWindow
+from CrystalAspects.visualisation.replotting import PlottingDialogue
 from CrystalAspects.data.aspect_ratios import AspectRatio
 from CrystalAspects.data.CalculateAspectRatios import AnalysisOptionsDialog
 from CrystalAspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
@@ -344,6 +344,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         df=xyz_df_final,
                         savefolder=save_folder
                     )
+                    PlottingDialogues = PlottingDialogue(self)
+                    PlottingDialogues.plotting_info(
+                                                   csv=xyz_df_final_csv,
+                                                   plotting='',
+                                                   plot_type='OBA'
+                    )
+                    PlottingDialogues.exec_()
                     if auto_plotting is True:
                         plotting.build_PCAZingg(csv=xyz_df_final_csv,
                                                 folderpath=save_folder)
