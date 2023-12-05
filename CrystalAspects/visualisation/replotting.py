@@ -29,13 +29,40 @@ class PlottingDialogue(QDialog):
         self.setGeometry(100, 100, 800, 600)
         self.create_widgets()
         self.create_layout()
-        self.tooltip = ToolTip(self)
 
-    def plotting_info(self, plot_type, csv, plotting):
+    def plotting_info(self, csv, plotting):
         self.csv = csv
-        self.plot_type = plot_type
         if plotting == 'Growth Rates':
             self.plotting = 'Scatter+Line'
+        df = pd.read_csv(self.csv)
+        # Identify interaction columns
+        interaction_columns = [col for col in df.columns if
+                               col.startswith(('interaction', 'tile', 'temperature', 'starting_delmu', 'excess'))]
+        print('Interaction columns: ')
+        print(interaction_columns)
+        # Define plot types
+        plot_types = ['OBA', 'PCA', 'Surface Area: Volume Ratio']
+        self.plots_list = []
+        for plot_type in plot_types:
+            # Add the basic plot
+            self.plots_list.append(plot_type)
+
+            # Add plots with interaction
+            for interaction_col in interaction_columns:
+                self.plots_list.append(f"{plot_type} vs {interaction_col}")
+
+        print(self.plots_list)
+
+        self.create_dependent_widgets()
+
+    def create_dependent_widgets(self):
+        # Create and add items to plot_list_combo_box here
+        self.plot_list_combo_box = QComboBox()
+        self.plot_list_combo_box.addItems(self.plots_list)
+
+        self.hbox1 = QHBoxLayout()
+        self.hbox1.addWidget(self.plot_list_combo_box)
+
 
     def create_widgets(self):
 
@@ -92,8 +119,11 @@ class PlottingDialogue(QDialog):
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
         hbox1.addWidget(self.checkbox_grid)
-        hbox1.addWidget(self.checkbox_trendline)
+        #hbox1.addWidget(self.checkbox_trendline)
         hbox1.addWidget(self.plot_type_combo_box)
+
+        if hasattr(self, 'hbox1'):
+            layout.addLayout(self.hbox1)
 
         hbox2 = QHBoxLayout()
         hbox2.addWidget(self.button_plot)
@@ -142,156 +172,70 @@ class PlottingDialogue(QDialog):
         df = pd.read_csv(self.csv)
         print(df)
         # Finding interactions in data frame if there are any
-        '''interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
-        ]
-        print(interactions)
-        # Finding extended CDA in data frame if there are any
+
         extended = [col for col in df.columns
                     if col.startswith("AspectRatio")]
-        print(extended)'''
+        '''x_data = df["OBA S:M"]
+        y_data = df["OBA M:L"]
+        print(x_data)
+        print(y_data)
+        # Plot the data
+        self.ax.scatter(x_data, y_data, s=12)
+        self.ax.axhline(y=0.66, color='black', linestyle='--')
+        self.ax.axvline(x=0.66, color='black', linestyle='--')
+        self.ax.set_xlabel('S:M')
+        self.ax.set_ylabel('M:L')
+        self.ax.set_xlim(0, 1.0)
+        self.ax.set_ylim(0, 1.0)
+        self.scatter = self.ax.scatter(x_data, y_data, s=12)'''
+        '''x_data = df["OBA S:M"]
+        y_data = df["OBA M:L"]'''
+        interactions = [
+            col
+            for col in df.columns
+            if col.startswith("interaction")
+               or col.startswith("tile")
+               or col.startswith("starting_delmu")
+               or col.startswith("temperature_celcius")
+               or col.startswith("excess")
+        ]
+        print(interactions)
+        for col in df.columns:
+            if col.startswith("interaction") or col.startswith('tile'):
+                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
+            if col.startswith("starting_delmu"):
+                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
+                plot_title = "Aspect Ratio vs Supersaturation"
+            if col.startswith("temperature_celcius"):
+                cbar_legend = u'Temperature (℃)'
+                plot_title = "Aspect Ratio vs Temperature"
+            if col.startswith("excess"):
+                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
+                plot_title = "Aspect Ratio vs Excess Supersaturation"
 
-        if plot_type == 'OBA':
-            interactions = [
-                col
-                for col in df.columns
-                if col.startswith("interaction") or col.startswith("tile")
-            ]
+        # Plotting each interaction separately
+        for interaction in interactions:
             x_data = df["OBA S:M"]
             y_data = df["OBA M:L"]
-            print(x_data)
-            print(y_data)
+            colour_data = df[interaction]
+            # Check if colour_data is numerical or needs conversion
+            if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                colour_data = pd.factorize(colour_data)[0]
             # Plot the data
-            self.ax.scatter(x_data, y_data, s=1.2)
+            self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
             self.ax.set_ylabel('M:L')
-            self.scatter = self.ax.scatter(x_data, y_data, s=1.2)
-
-        if selected == 'Surface Area vs Volume':
-            print("Entering PCA Morphology Map")
-            x_data = df['Volume (Vol)']
-            y_data = df['Surface_Area (SA)']
-            # Plot the data
-            self.ax.scatter(x_data, y_data, s=1.2)
-            self.ax.set_xlabel(r"Volume ($nm^3$)")
-            self.ax.set_ylabel(r"Surface Area ($nm^2$)")
-            self.scatter = self.ax.scatter(x_data, y_data, s=1.2)
-
-        if selected == "Morphology Map":
-            #self.figure.clear()
-            print("Entering PCA Morphology Map")
-            x_data = df['S:M']
-            y_data = df['M:L']
-            # Plot the data
-            self.ax.scatter(x_data, y_data, s=1.2)
-            self.ax.axhline(y=0.66, color='black', linestyle='--')
-            self.ax.axvline(x=0.66, color='black', linestyle='--')
-            self.ax.set_xlabel('S:M')
-            self.ax.set_ylabel('M:L')
-            self.scatter = self.ax.scatter(x_data, y_data, s=1.2)
-            # self.canvas.draw()
-
-            # Refresh canvas
-            #self.canvas.draw()
-
-        if selected.startswith("CDA Aspect Ratio"):
-            print("CDA Aspect Ratio:  ")
-            x_data = df["S/M"]
-            y_data = df["M/L"]
-            self.ax.scatter(x_data, y_data, s=1.2)
-            self.ax.axhline(y=0.66, color='black', linestyle='--')
-            self.ax.axvline(x=0.66, color='black', linestyle='--')
-            self.ax.set_xlabel('S/ M')
-            self.ax.set_ylabel('M/ L')
             self.ax.set_xlim(0.0, 1.0)
             self.ax.set_ylim(0.0, 1.0)
+            self.ax.set_title(f'OBA {interaction}')
+            #self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # Add colorbar and other customizations as needed
+            cbar = self.figure.colorbar(self.scatter)
+            cbar.set_label(cbar_legend)
 
-        print("printing selected:   ")
-        print(selected)
-
-        for interaction in interactions:
-            if selected.startswith("Morphology Map vs " + interaction) \
-                    or selected.startswith("CDA Aspect Ratio " + interaction)\
-                    or selected.startswith("Extended CDA " + interaction)\
-                    or selected.startswith("Surface Area vs Volume vs Energy" + interaction):
-                self.figure.clear()
-                print(interaction)
-                print("Entering Morphology Map vs " + interaction)
-                self.ax = self.figure.add_subplot(111)
-                c_df = df[interaction]
-                self.c_df = c_df
-                colour = list(set(c_df))
-                if selected.startswith("Morphology Map vs "):
-                    x_data = df['S:M']
-                    y_data = df['M:L']
-                    self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    self.ax.axhline(y=0.66, color='black', linestyle='--')
-                    self.ax.axvline(x=0.66, color='black', linestyle='--')
-                    self.ax.set_xlabel('S: M')
-                    self.ax.set_ylabel('M: L')
-                    self.ax.set_xlim(0.0, 1.0)
-                    self.ax.set_ylim(0.0, 1.0)
-                    self.scatter = self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    #self.axes.show()
-                if selected.startswith("CDA Aspect Ratio "):
-                    x_data = df['S/M']
-                    y_data = df['M/L']
-                    self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    self.ax.axhline(y=0.66, color='black', linestyle='--')
-                    self.ax.axvline(x=0.66, color='black', linestyle='--')
-                    self.ax.set_xlabel('S/ M')
-                    self.ax.set_ylabel('M/ L')
-                    self.ax.set_xlim(0.0, 1.0)
-                    self.ax.set_ylim(0.0, 1.0)
-                    self.scatter = self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                if selected.startswith("Extended CDA "):
-                    print("extended CDA")
-                    x_data = df[extended[0]]
-                    y_data = df[extended[1]]
-                    print(x_data)
-                    self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    '''self.axes.axhline(y=0.66, color='black', linestyle='--')
-                    self.axes.axvline(x=0.66, color='black', linestyle='--')'''
-                    self.ax.set_xlabel(extended[0])
-                    self.ax.set_ylabel(extended[1])
-                    self.scatter = self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                if selected.startswith("Surface Area vs Volume vs Energy" + interaction):
-                    print('Entered Surface Area vs Volume Plotting:  ')
-                    x_data = df["Volume (Vol)"]
-                    y_data = df["Surface_Area (SA)"]
-                    self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    self.ax.set_xlabel(r"Volume ($nm^3$)")
-                    self.ax.set_ylabel(r"Surface Area ($nm^2$)")
-                    self.scatter = self.ax.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-                    # Plot the data
-                if not c_df.empty:
-                    self.figure.colorbar(self.scatter)
-                    self.figure.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-
-
-        if selected.startswith("Morphology Map filtered by "):
-            print("Morphology Map filtered by:   ")
-            equation_integer = ''
-            print(equations_list)
-            for item in equations_list:
-                if selected.endswith(item):
-                    equation_integer = equations_list.index(item)
-                    print(equation_integer)
-            self.ax = self.figure.add_subplot(111)
-            equation_df = df[df["CDA_Equation"] == equation_integer+1]
-            x_data = equation_df["S:M"]
-            y_data = equation_df["M:L"]
-            self.ax.scatter(x_data, y_data, s=1.2)
-            self.ax.axhline(y=0.66, color='black', linestyle='--')
-            self.ax.axvline(x=0.66, color='black', linestyle='--')
-            self.ax.set_xlabel('S: M')
-            self.ax.set_ylabel('M: L')
-            self.ax.set_xlim(0.0, 1.0)
-            self.ax.set_ylim(0.0, 1.0)
+            self.canvas.draw()
 
         if self.colorbar:
             cbar = self.figure.colorbar(self.scatter)
@@ -319,17 +263,24 @@ class PlottingDialogue(QDialog):
         print(text)
 
     def on_hover(self, event):
-        if event.inaxes == self.ax:
-            x, y = event.xdata, event.ydata
-            # Update tooltip text with x and y values
-            self.tooltip.setText(f"x: {x:.2f}, y: {y:.2f}")
-            # Move tooltip to current mouse position
-            self.tooltip.move(event.x, event.y)
-            # Show the tooltip
-            self.tooltip.show()
-        else:
-            # Hide the tooltip if the mouse is not on the plot
-            self.tooltip.hide()
+        vis = self.annot.get_visible()
+        try:
+            if event.inaxes == self.ax:
+                cont, ind = self.scatter.contains(event)
+                if cont:
+                    self.update_annot(ind)
+                    self.annot.set_visible(True)
+                    self.figure.canvas.draw_idle()
+                else:
+                    if vis:
+                        self.annot.set_visible(False)
+                        self.figure.canvas.draw_idle()
+            else:
+                if vis:
+                    self.annot.set_visible(False)
+                self.figure.canvas.draw_idle()
+        except NameError:
+            pass
 
     def add_trendline(self):
         if self.scatter is None:

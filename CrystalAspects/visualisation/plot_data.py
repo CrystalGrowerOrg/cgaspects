@@ -669,7 +669,8 @@ class Plotting(QDialog):
         plt.figure(figsize=(5, 5))
 
         for i in lengths:
-            plt.scatter(growth_data["Supersaturation"], growth_data[i], label=i, s=1.2)
+            plt.scatter(growth_data["Supersaturation"], growth_data[i], s=1.2)
+            plt.plot(growth_data["Supersaturation"], growth_data[i], label=i)
             plt.legend()
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")

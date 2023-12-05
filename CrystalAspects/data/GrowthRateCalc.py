@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox, QCheckBox, QDialog, QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox, \
+    QCheckBox, QDialog, QWidget, \
+    QHBoxLayout, QScrollArea
 
 class GrowthRateAnalysisDialogue(QDialog):
     def __init__(self, directions):
@@ -8,6 +10,17 @@ class GrowthRateAnalysisDialogue(QDialog):
         self.setWindowTitle("Growth Rate Analysis Options")
         layout = QVBoxLayout()
         self.setLayout(layout)
+
+        # Create a widget for the main layout
+        main_widget = QWidget(self)
+        main_widget.setLayout(layout)
+        # Create a scroll area and set the main widget as its widget
+        scroll = QScrollArea(self)
+        scroll.setWidget(main_widget)
+        scroll.setWidgetResizable(True)
+        # Set the scroll area as the main layout for the dialog
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(scroll)
 
         plotting_checkbox = QCheckBox("Auto-Generate Plots")
 
