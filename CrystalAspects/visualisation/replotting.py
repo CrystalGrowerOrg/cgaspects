@@ -38,8 +38,6 @@ class PlottingDialogue(QDialog):
         # Identify interaction columns
         interaction_columns = [col for col in df.columns if
                                col.startswith(('interaction', 'tile', 'temperature', 'starting_delmu', 'excess'))]
-        print('Interaction columns: ')
-        print(interaction_columns)
         # Define plot types
         plot_types = ['OBA', 'PCA', 'Surface Area: Volume Ratio']
         self.plots_list = []
@@ -51,18 +49,9 @@ class PlottingDialogue(QDialog):
             for interaction_col in interaction_columns:
                 self.plots_list.append(f"{plot_type} vs {interaction_col}")
 
-        print(self.plots_list)
+        plots_list = self.plots_list
 
-        self.create_dependent_widgets()
-
-    def create_dependent_widgets(self):
-        # Create and add items to plot_list_combo_box here
-        self.plot_list_combo_box = QComboBox()
-        self.plot_list_combo_box.addItems(self.plots_list)
-
-        self.hbox1 = QHBoxLayout()
-        self.hbox1.addWidget(self.plot_list_combo_box)
-
+        return plots_list
 
     def create_widgets(self):
 
@@ -73,7 +62,7 @@ class PlottingDialogue(QDialog):
 
         self.button_plot = QPushButton("Plot")
         self.button_save = QPushButton("Save")
-        self.button_edit = QPushButton("Edit")
+        self.button_plot_list = QPushButton("Generate Plot List")
         self.label_pointsize = QLabel("Point Size:")
         self.spin_point_size = QSpinBox()
         self.checkbox_colorbar = QCheckBox("Colorbar")
@@ -94,7 +83,7 @@ class PlottingDialogue(QDialog):
         self.checkbox_trendline = QCheckBox("Add Trendline")
         self.button_plot.clicked.connect(self.plot)
         self.button_save.clicked.connect(self.save)
-        self.button_edit.clicked.connect(self.edit)
+        self.button_plot_list.clicked.connect(self.add_plot_list)
         self.checkbox_colorbar.stateChanged.connect(self.toggle_colorbar)    # Connect the add trendline button to its handler
         self.button_add_trendline.clicked.connect(self.add_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
@@ -106,6 +95,9 @@ class PlottingDialogue(QDialog):
         self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
         self.btn_change_plot = QPushButton("Change Plot Type")
         self.btn_change_plot.clicked.connect(self.change_plot_type)
+        # Create and add items to plot_list_combo_box here
+        self.plot_list_combo_box = QComboBox()
+        self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
 
         # Initialize the plot type
         self.plot_type = "scatter"
@@ -119,16 +111,13 @@ class PlottingDialogue(QDialog):
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
         hbox1.addWidget(self.checkbox_grid)
-        #hbox1.addWidget(self.checkbox_trendline)
         hbox1.addWidget(self.plot_type_combo_box)
-
-        if hasattr(self, 'hbox1'):
-            layout.addLayout(self.hbox1)
+        hbox1.addWidget(self.plot_list_combo_box)
 
         hbox2 = QHBoxLayout()
         hbox2.addWidget(self.button_plot)
         hbox2.addWidget(self.button_save)
-        hbox2.addWidget(self.button_edit)
+        hbox2.addWidget(self.button_plot_list)
         hbox2.addWidget(self.button_add_trendline)
 
         layout.addLayout(hbox1)
@@ -161,35 +150,21 @@ class PlottingDialogue(QDialog):
             self.plot_type = 'line'
             self.plot()
 
+    def add_plot_list(self):
+        self.plot_list_combo_box.addItems(self.plots_list)
+
+    def change_plot_from_list(self):
+        self.selected_plot = self.plot_list_combo_box.currentText()
+
     def plot(self):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.clear()  # clear the plot
         self.canvas.draw()  # redraw the canvas
-        plot_type = self.plot_type
         print("entering plotting called")
         # Reading the dataframe
         df = pd.read_csv(self.csv)
-        print(df)
         # Finding interactions in data frame if there are any
-
-        extended = [col for col in df.columns
-                    if col.startswith("AspectRatio")]
-        '''x_data = df["OBA S:M"]
-        y_data = df["OBA M:L"]
-        print(x_data)
-        print(y_data)
-        # Plot the data
-        self.ax.scatter(x_data, y_data, s=12)
-        self.ax.axhline(y=0.66, color='black', linestyle='--')
-        self.ax.axvline(x=0.66, color='black', linestyle='--')
-        self.ax.set_xlabel('S:M')
-        self.ax.set_ylabel('M:L')
-        self.ax.set_xlim(0, 1.0)
-        self.ax.set_ylim(0, 1.0)
-        self.scatter = self.ax.scatter(x_data, y_data, s=12)'''
-        '''x_data = df["OBA S:M"]
-        y_data = df["OBA M:L"]'''
         interactions = [
             col
             for col in df.columns
@@ -199,7 +174,7 @@ class PlottingDialogue(QDialog):
                or col.startswith("temperature_celcius")
                or col.startswith("excess")
         ]
-        print(interactions)
+
         for col in df.columns:
             if col.startswith("interaction") or col.startswith('tile'):
                 cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
@@ -213,29 +188,113 @@ class PlottingDialogue(QDialog):
                 cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
                 plot_title = "Aspect Ratio vs Excess Supersaturation"
 
-        # Plotting each interaction separately
-        for interaction in interactions:
+
+        extended = [col for col in df.columns
+                    if col.startswith("AspectRatio")]
+
+        if self.selected_plot == "OBA":
             x_data = df["OBA S:M"]
             y_data = df["OBA M:L"]
-            colour_data = df[interaction]
-            # Check if colour_data is numerical or needs conversion
-            if colour_data.dtype.kind not in 'biufc':  # Check if not a number
-                colour_data = pd.factorize(colour_data)[0]
+            print(x_data)
+            print(y_data)
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=12)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
             self.ax.set_ylabel('M:L')
-            self.ax.set_xlim(0.0, 1.0)
-            self.ax.set_ylim(0.0, 1.0)
-            self.ax.set_title(f'OBA {interaction}')
-            #self.scatter = self.ax.scatter(x_data, y_data, s=12)
-            # Add colorbar and other customizations as needed
-            cbar = self.figure.colorbar(self.scatter)
-            cbar.set_label(cbar_legend)
+            self.ax.set_xlim(0, 1.0)
+            self.ax.set_ylim(0, 1.0)
+            self.ax.set_title('OBA Zingg Diagram')
 
-            self.canvas.draw()
+        if self.selected_plot == "PCA":
+            x_data = df["PCA S:M"]
+            y_data = df["PCA M:L"]
+            print(x_data)
+            print(y_data)
+            # Plot the data
+            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.ax.axhline(y=0.66, color='black', linestyle='--')
+            self.ax.axvline(x=0.66, color='black', linestyle='--')
+            self.ax.set_xlabel('S:M')
+            self.ax.set_ylabel('M:L')
+            self.ax.set_xlim(0, 1.0)
+            self.ax.set_ylim(0, 1.0)
+            self.ax.set_title('PCA Zingg Diagram')
+
+        if self.selected_plot == "Surface Area: Volume Ratio":
+            x_data = df["Surface Area (SA)"]
+            y_data = df["Volume (Vol)"]
+            print(x_data)
+            print(y_data)
+            # Plot the data
+            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.ax.set_xlabel('Surface Area (nm2)')
+            self.ax.set_ylabel('Volume (nm3)')
+            self.ax.set_title('Surface Area: Volume')
+
+        # Plotting each interaction separately
+        for interaction in interactions:
+            if self.selected_plot.startswith("OBA vs " + interaction):
+                print("interaction:", interaction)
+                x_data = df["OBA S:M"]
+                y_data = df["OBA M:L"]
+                colour_data = df[interaction]
+                # Check if colour_data is numerical or needs conversion
+                if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                    colour_data = pd.factorize(colour_data)[0]
+                # Plot the data
+                self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                self.ax.axhline(y=0.66, color='black', linestyle='--')
+                self.ax.axvline(x=0.66, color='black', linestyle='--')
+                self.ax.set_xlabel('S:M')
+                self.ax.set_ylabel('M:L')
+                self.ax.set_xlim(0.0, 1.0)
+                self.ax.set_ylim(0.0, 1.0)
+                self.ax.set_title(f'OBA {interaction}')
+                # Add colorbar and other customizations as needed
+                cbar = self.figure.colorbar(self.scatter)
+                cbar.set_label(cbar_legend)
+                self.canvas.draw()
+
+            if self.selected_plot.startswith("PCA vs " + interaction):
+                print("interaction:", interaction)
+                x_data = df["PCA S:M"]
+                y_data = df["PCA M:L"]
+                colour_data = df[interaction]
+                # Check if colour_data is numerical or needs conversion
+                if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                    colour_data = pd.factorize(colour_data)[0]
+                # Plot the data
+                self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                self.ax.axhline(y=0.66, color='black', linestyle='--')
+                self.ax.axvline(x=0.66, color='black', linestyle='--')
+                self.ax.set_xlabel('S:M')
+                self.ax.set_ylabel('M:L')
+                self.ax.set_xlim(0.0, 1.0)
+                self.ax.set_ylim(0.0, 1.0)
+                self.ax.set_title(f'PCA {interaction}')
+                # Add colorbar and other customizations as needed
+                cbar = self.figure.colorbar(self.scatter)
+                cbar.set_label(cbar_legend)
+                self.canvas.draw()
+
+            if self.selected_plot.startswith("Surface Area: Volume Ratio vs " + interaction):
+                x_data = df["Surface Area (SA)"]
+                y_data = df["Volume (Vol)"]
+                colour_data = df[interaction]
+                # Check if colour_data is numerical or needs conversion
+                if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                    colour_data = pd.factorize(colour_data)[0]
+                # Plot the data
+                self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                self.ax.set_xlabel('Surface Area (nm2)')
+                self.ax.set_ylabel('Volume (nm3)')
+                self.ax.set_title(f'Surface Area: Volume {interaction}')
+                # Add colorbar and other customizations as needed
+                cbar = self.figure.colorbar(self.scatter)
+                cbar.set_label(cbar_legend)
+                self.canvas.draw()
 
         if self.colorbar:
             cbar = self.figure.colorbar(self.scatter)
@@ -250,6 +309,7 @@ class PlottingDialogue(QDialog):
         self.annot.set_visible(False)
 
         self.canvas.draw()
+
 
     def update_annot(self, ind):
 
@@ -316,8 +376,6 @@ class PlottingDialogue(QDialog):
                 else:
                     self.figure.savefig(file_name, figsize=size, dpi=600)
 
-    def edit(self):
-        pass
 
 
 class Replotting:

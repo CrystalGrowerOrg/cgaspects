@@ -346,7 +346,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         savefolder=save_folder
                     )
                     PlottingDialogues = PlottingDialogue(self)
-                    PlottingDialogues.plotting_info(
+                    plots_list = PlottingDialogues.plotting_info(
                                                    csv=xyz_df_final_csv,
                                                    plotting=''
                     )
