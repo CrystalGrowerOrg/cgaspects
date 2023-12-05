@@ -334,21 +334,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 if selected_aspect_ratio:
                     xyz_df = AspectXYZ.collect_all(folder=folder)
-                    xyz_df_final = find.summary_compare(
-                        summary_csv=summary_file,
-                        aspect_df=xyz_df
-                    )
+                    if summary_file:
+                        xyz_df= find.summary_compare(
+                            summary_csv=summary_file,
+                            aspect_df=xyz_df
+                        )
                     xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
-                    xyz_df_final.to_csv(xyz_df_final_csv, index=None)
+                    xyz_df.to_csv(xyz_df_final_csv, index=None)
                     AspectXYZ.shape_number_percentage(
-                        df=xyz_df_final,
+                        df=xyz_df,
                         savefolder=save_folder
                     )
                     PlottingDialogues = PlottingDialogue(self)
                     PlottingDialogues.plotting_info(
                                                    csv=xyz_df_final_csv,
-                                                   plotting='',
-                                                   plot_type='OBA'
+                                                   plotting=''
                     )
                     PlottingDialogues.exec_()
                     if auto_plotting is True:
@@ -372,12 +372,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         ar_df=cda_df,
                         filepath=save_folder,
                     )
-                    zn_df_final = find.summary_compare(
-                        summary_csv=summary_file,
-                        aspect_df=zn_df
-                    )
+                    if summary_file:
+                        zn_df = find.summary_compare(
+                            summary_csv=summary_file,
+                            aspect_df=zn_df
+                        )
                     zn_df_final_csv = f"{save_folder}/CDA.csv"
-                    zn_df_final.to_csv(zn_df_final_csv, index=None)
+                    zn_df.to_csv(zn_df_final_csv, index=None)
                     if auto_plotting is True:
                         plotting.Aspect_Extended_Plot(csv=zn_df_final_csv,
                                                       folderpath=save_folder,
@@ -390,15 +391,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             CDA_df=zn_df,
                             XYZ_df=xyz_df
                         )
-                        final_cda_xyz = find.summary_compare(
-                            summary_csv=summary_file,
-                            aspect_df=combined_df
-                        )
+                        if summary_file:
+                            combined_df = find.summary_compare(
+                                summary_csv=summary_file,
+                                aspect_df=combined_df
+                            )
                         final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
-                        final_cda_xyz.to_csv(final_cda_xyz_csv, index=None)
+                        combined_df.to_csv(final_cda_xyz_csv, index=None)
                         #self.ShowData(final_cda_xyz)
                         aspect_ratio.CDA_Shape_Percentage(
-                            df=final_cda_xyz,
+                            df=combined_df,
                             savefolder=save_folder
                         )
                         if auto_plotting is True:
