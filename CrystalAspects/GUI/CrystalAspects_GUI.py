@@ -345,12 +345,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         df=xyz_df,
                         savefolder=save_folder
                     )
-                    PlottingDialogues = PlottingDialogue(self)
-                    plots_list = PlottingDialogues.plotting_info(
-                                                   csv=xyz_df_final_csv,
-                                                   plotting=''
-                    )
-                    PlottingDialogues.exec_()
+                    plotting_csv = xyz_df_final_csv
                     if auto_plotting is True:
                         plotting.build_PCAZingg(csv=xyz_df_final_csv,
                                                 folderpath=save_folder)
@@ -379,6 +374,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         )
                     zn_df_final_csv = f"{save_folder}/CDA.csv"
                     zn_df.to_csv(zn_df_final_csv, index=None)
+                    plotting_csv = zn_df_final_csv
                     if auto_plotting is True:
                         plotting.Aspect_Extended_Plot(csv=zn_df_final_csv,
                                                       folderpath=save_folder,
@@ -403,11 +399,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             df=combined_df,
                             savefolder=save_folder
                         )
+                        plotting_csv = final_cda_xyz_csv
                         if auto_plotting is True:
                             plotting.PCA_CDA_Plot(csv=final_cda_xyz_csv,
                                                   folderpath=save_folder)
                             plotting.build_CDA_OBA(csv=final_cda_xyz_csv,
                                                    folderpath=save_folder)
+
+                PlottingDialogues = PlottingDialogue(self)
+                PlottingDialogues.plotting_info(
+                    csv=plotting_csv,
+                    plotting=''
+                )
+                PlottingDialogues.exec_()
 
     def calculate_growth_rates(self):
         ''' Activate calculate growth rates from the CrystalAspects
