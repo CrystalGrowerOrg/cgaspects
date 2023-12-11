@@ -26,153 +26,17 @@ matplotlib.use('QT5Agg')
 class Plotting(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Plot Window")
-        self.setGeometry(100, 100, 800, 600)
-        self.create_widgets()
-        self.create_layout()
-
-    def create_widgets(self):
-
-        self.figure = Figure()
-        self.canvas = FigureCanvas(self.figure)
-        self.ax = self.figure.add_subplot(111)
-        self.toolbar = NavigationToolbar(self.canvas, self)
-
-        self.button_plot = QPushButton("Plot")
-        self.button_save = QPushButton("Save")
-        self.button_edit = QPushButton("Edit")
-        self.label_pointsize = QLabel("Point Size:")
-        self.spin_point_size = QSpinBox()
-        self.checkbox_colorbar = QCheckBox("Colorbar")
-        self.button_add_trendline = QPushButton("Add Trendline")
-        # Set the properties of the widgets
-        self.spin_point_size.setRange(1, 100)
-
-        # Initialize the variables
-        self.point_size = self.spin_point_size.value()
-        self.colorbar = False
-        self.scatter = None
-
-        self.checkbox_colorbar = QCheckBox("Show Colorbar")
-
-        # Connect the signals and slots
-        # Initialize checkboxes
-        self.checkbox_grid = QCheckBox("Show Grid")
-        self.checkbox_trendline = QCheckBox("Add Trendline")
-        self.button_plot.clicked.connect(self.plot)
-        self.button_save.clicked.connect(self.save)
-        self.button_edit.clicked.connect(self.edit)
-        self.checkbox_colorbar.stateChanged.connect(self.toggle_colorbar)    # Connect the add trendline button to its handler
-        self.button_add_trendline.clicked.connect(self.add_trendline)
-        self.spin_point_size.valueChanged.connect(self.set_point_size)
-        self.canvas.mpl_connect("motion_notify_event", lambda event: self.on_hover(event))
-
-        # Create the plot type combo box
-        self.plot_type_combo_box = QComboBox()
-        self.plot_type_combo_box.addItems(['Scatter', 'Line', 'Scatter+Line'])
-        self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
-        self.btn_change_plot = QPushButton("Change Plot Type")
-        self.btn_change_plot.clicked.connect(self.change_plot_type)
-
-        # Initialize the plot type
-        self.plot_type = "scatter"
-
-    def create_layout(self):
-        layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
-        layout.addWidget(self.toolbar)
-
-        hbox1 = QHBoxLayout()
-        hbox1.addWidget(self.label_pointsize)
-        hbox1.addWidget(self.spin_point_size)
-        hbox1.addWidget(self.checkbox_grid)
-        hbox1.addWidget(self.checkbox_trendline)
-        hbox1.addWidget(self.plot_type_combo_box)
-
-        hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.button_plot)
-        hbox2.addWidget(self.button_save)
-        hbox2.addWidget(self.button_edit)
-        hbox2.addWidget(self.button_add_trendline)
-
-        layout.addLayout(hbox1)
-        layout.addLayout(hbox2)
-
-        # Set window properties
-        self.setWindowTitle("Plot Window")
-        self.setGeometry(100, 100, 800, 600)
-        self.setLayout(layout)
-
-    def set_point_size(self, value):
-        self.point_size = self.spin_point_size.value()
-        if self.scatter is not None:
-            self.scatter.set_sizes([self.point_size] * len(self.scatter.get_offsets()))
-        self.canvas.draw()
-
-    def toggle_colorbar(self, state):
-        self.colorbar = state == Qt.Checked
-
-    def change_plot_type(self):
-        plot_type = self.plot_type
-
-        if plot_type == 'Scatter':
-            self.plot_type = 'scatter'
-            self.plot()
-        if plot_type == 'Scatter+Line':
-            self.plot_type = 'scatter_line'
-            self.plot()
-        if plot_type == 'Line':
-            self.plot_type = 'line'
-            self.plot()
 
     def create_plots_folder(self, path):
         plots_folder = Path(path) / "CGPlots"
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def plot(self):
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        self.ax.clear()  # clear the plot
-        self.canvas.draw()  # redraw the canvas
-        plot_type = self.plot_type
-        print("entering plotting called")
-        print(df)
-
-        interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
-        ]
-        x_data = df["OBA S:M"]
-        y_data = df["OBA M:L"]
-        print(x_data)
-        print(y_data)
-
-        plt.figure()
-        plt.scatter(x_data, y_data, s=10)
-        plt.axhline(y=0.66, color='black', linestyle='--')
-        plt.axvline(x=0.66, color='black', linestyle='--')
-        plt.xlim(0, 1)  # Adjust x-axis limits
-        plt.ylim(0, 1)  # Adjust y-axis limits
-        plt.xlabel('OBA S:M')
-        plt.ylabel('OBA M:L')
-        savepath = f'{savefolder}/OBA Zingg'
-        plt.savefig(savepath, dpi=900)
-        plt.close()
-
     def plot_OBA(self, csv='', df='', folderpath="./outputs"):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
         savefolder = self.create_plots_folder(folderpath)
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        self.ax.clear()  # clear the plot
-        self.canvas.draw()  # redraw the canvas
-        plot_type = self.plot_type
-        print("entering plotting called")
-        print(df)
 
         interactions = [
             col

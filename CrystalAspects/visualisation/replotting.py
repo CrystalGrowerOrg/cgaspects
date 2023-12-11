@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, \
     QVBoxLayout, QHBoxLayout, QFileDialog, \
     QGridLayout, QSpinBox, QLabel, \
     QCheckBox, QSizePolicy, QComboBox, \
-    QWidget, QToolTip
+    QWidget
 
 # Matplotlib import
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -19,14 +19,17 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib
-import mplcursors
 matplotlib.use('QT5Agg')
 
 class PlottingDialogue(QDialog):
     def __init__(self, parent=None):
-        super(PlottingDialogue, self).__init__()
+        super(PlottingDialogue, self).__init__(parent)
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
+
+        # Set the dialog to be non-modal
+        self.setWindowModality(QtCore.Qt.NonModal)
+
         self.create_widgets()
         self.create_layout()
 
@@ -37,9 +40,29 @@ class PlottingDialogue(QDialog):
         df = pd.read_csv(self.csv)
         # Identify interaction columns
         interaction_columns = [col for col in df.columns if
-                               col.startswith(('interaction', 'tile', 'temperature', 'starting_delmu', 'excess'))]
-        # Define plot types
-        plot_types = ['OBA', 'PCA', 'Surface Area: Volume Ratio']
+                               col.startswith(('interaction',
+                                               'tile',
+                                               'temperature',
+                                               'starting_delmu',
+                                               'excess',
+                                               'CDA_Equation'))]
+
+        # List to store the results
+        plot_types = []
+
+        # Check each column heading
+        for column in df.columns:
+            if column.startswith('OBA') and 'OBA' not in plot_types:
+                plot_types.append('OBA')
+            elif column.startswith('PCA') and 'PCA' not in plot_types:
+                plot_types.append('PCA')
+            elif column == 'Surface Area: Volume Ratio' and 'Surface Area: Volume Ratio' not in plot_types:
+                plot_types.append('Surface Area: Volume Ratio')
+            elif column.startswith('M/L') and 'CDA' not in plot_types:
+                plot_types.append('CDA')
+            elif column.startswith('AspectRatio') and 'CDA Extended' not in plot_types:
+                plot_types.append('CDA Extended')
+
         self.plots_list = []
         for plot_type in plot_types:
             # Add the basic plot
@@ -48,10 +71,6 @@ class PlottingDialogue(QDialog):
             # Add plots with interaction
             for interaction_col in interaction_columns:
                 self.plots_list.append(f"{plot_type} vs {interaction_col}")
-
-        plots_list = self.plots_list
-
-        return plots_list
 
     def create_widgets(self):
 
@@ -188,7 +207,6 @@ class PlottingDialogue(QDialog):
                 cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
                 plot_title = "Aspect Ratio vs Excess Supersaturation"
 
-
         extended = [col for col in df.columns
                     if col.startswith("AspectRatio")]
 
@@ -232,6 +250,45 @@ class PlottingDialogue(QDialog):
             self.ax.set_xlabel('Surface Area (nm2)')
             self.ax.set_ylabel('Volume (nm3)')
             self.ax.set_title('Surface Area: Volume')
+
+        if self.selected_plot == "CDA":
+            x_data = df["S/M"]
+            y_data = df["M/L"]
+            print(x_data)
+            print(y_data)
+            # Plot the data
+            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.ax.set_xlabel('CDA S/M')
+            self.ax.set_ylabel('CDA M/L')
+            self.ax.set_xlim(0, 1.0)
+            self.ax.set_ylim(0, 1.0)
+            self.ax.set_title('CDA Zingg Diagram')
+
+        if self.selected_plot.startswith("CDA Extended vs "):
+            x_data = None
+            y_data = None
+            x_column_name = None
+            y_column_name = None
+            # Counter for 'AspectRatio' columns
+            aspect_ratio_count = 0
+            for column in df.columns:
+                if column.startswith('AspectRatio'):
+                    aspect_ratio_count += 1
+                    if aspect_ratio_count == 1:
+                        x_data = df[column]
+                        x_column_name = column
+                    elif aspect_ratio_count == 2:
+                        y_data = df[column]
+                        y_column_name = column
+                        break
+            print(x_data)
+            print(y_data)
+            # Plot the data
+            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.ax.set_xlabel(x_column_name)
+            self.ax.set_ylabel(y_column_name)
+            self.ax.set_title('Extended CDA')
+            self.canvas.draw()
 
         # Plotting each interaction separately
         for interaction in interactions:
@@ -296,6 +353,62 @@ class PlottingDialogue(QDialog):
                 cbar.set_label(cbar_legend)
                 self.canvas.draw()
 
+            if self.selected_plot.startswith("CDA vs " + interaction):
+                print("interaction:", interaction)
+                x_data = df["S/M"]
+                y_data = df["M/L"]
+                colour_data = df[interaction]
+                # Check if colour_data is numerical or needs conversion
+                if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                    colour_data = pd.factorize(colour_data)[0]
+                # Plot the data
+                self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                self.ax.axhline(y=0.66, color='black', linestyle='--')
+                self.ax.axvline(x=0.66, color='black', linestyle='--')
+                self.ax.set_xlabel('CDA S/M')
+                self.ax.set_ylabel('CDA M/L')
+                self.ax.set_xlim(0.0, 1.0)
+                self.ax.set_ylim(0.0, 1.0)
+                self.ax.set_title(f'CDA {interaction}')
+                # Add colorbar and other customizations as needed
+                cbar = self.figure.colorbar(self.scatter)
+                cbar.set_label(cbar_legend)
+                self.canvas.draw()
+
+            if self.selected_plot.startswith("CDA Extended vs " + interaction):
+                print("interaction:", interaction)
+                x_data = None
+                y_data = None
+                x_column_name = None
+                y_column_name = None
+                # Counter for 'AspectRatio' columns
+                aspect_ratio_count = 0
+                for column in df.columns:
+                    if column.startswith('AspectRatio'):
+                        aspect_ratio_count += 1
+                        if aspect_ratio_count == 1:
+                            x_data = df[column]
+                            x_column_name = column
+                        elif aspect_ratio_count == 2:
+                            y_data = df[column]
+                            y_column_name = column
+                            break
+                print(x_data)
+                print(y_data)
+                colour_data = df[interaction]
+                # Check if colour_data is numerical or needs conversion
+                if colour_data.dtype.kind not in 'biufc':  # Check if not a number
+                    colour_data = pd.factorize(colour_data)[0]
+                # Plot the data
+                self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                self.ax.set_xlabel(x_column_name)
+                self.ax.set_ylabel(y_column_name)
+                self.ax.set_title(f'Extended CDA {interaction}')
+                # Add colorbar and other customizations as needed
+                cbar = self.figure.colorbar(self.scatter)
+                cbar.set_label(cbar_legend)
+                self.canvas.draw()
+
         if self.colorbar:
             cbar = self.figure.colorbar(self.scatter)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
@@ -310,12 +423,11 @@ class PlottingDialogue(QDialog):
 
         self.canvas.draw()
 
-
     def update_annot(self, ind):
 
         pos = self.scatter.get_offsets()[ind["ind"][0]]
         self.annot.xy = pos
-        text = "Simulation Number: " + "{}".format(" ".join(list(map(str, ind["ind"]))))
+        text = "Simulation Number: " + "{}".format(" ".join(list(map(str, ind["ind"] + 1))))
         self.annot.set_text(text)
         #self.annot.get_bbox_patch().set_facecolor(self.c_df(norm(c[ind["ind"][0]])))
         self.annot.get_bbox_patch().set_alpha(0.4)
@@ -353,6 +465,11 @@ class PlottingDialogue(QDialog):
         p = np.poly1d(z)
         self.ax.plot(x, p(x), "r--")
 
+        # Format the equation text
+        equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
+        # Add the text to the plot. Adjust the position as needed.
+        self.ax.text(0.05, 0.95, equation_text, transform=self.ax.transAxes, fontsize=12, verticalalignment='top')
+
         self.canvas.draw()
 
     def save(self):
@@ -366,8 +483,10 @@ class PlottingDialogue(QDialog):
 
         if file_dialog.exec_() == QDialog.Accepted:
             file_name = file_dialog.selectedFiles()[0]
-            transparent = QMessageBox.question(self, "Transparent Background", "Do you want a transparent background?",
-                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+            transparent = QMessageBox.question(self, "Transparent Background",
+                                               "Do you want a transparent background?",
+                                               QMessageBox.Yes | QMessageBox.No,
+                                               QMessageBox.No) == QMessageBox.Yes
 
             if file_name:
                 size = [6.8, 4.8]
