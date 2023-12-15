@@ -137,6 +137,8 @@ class PlottingDialogue(QDialog):
         # Create and add items to plot_list_combo_box here
         self.plot_list_combo_box = QComboBox()
         self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
+        self.plot_list_combo_box.setMaxVisibleItems(5)
+        self.plot_list_combo_box.show()
 
         # Initialize the plot type
         self.plot_type = "scatter"
@@ -191,7 +193,6 @@ class PlottingDialogue(QDialog):
 
     def add_plot_list(self):
         self.plot_list_combo_box.addItems(self.plots_list)
-        self.plot_list_combo_box.setMaxVisibleItems(5)
 
     def change_plot_from_list(self):
         self.selected_plot = self.plot_list_combo_box.currentText()
@@ -243,7 +244,7 @@ class PlottingDialogue(QDialog):
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
-            self.plot_objects[f''] = (self.scatter, None, None)
+            self.plot_objects[f''] = (None, self.scatter, None, None)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
@@ -260,7 +261,7 @@ class PlottingDialogue(QDialog):
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
-            self.plot_objects[f''] = (self.scatter, None, None)
+            self.plot_objects[f''] = (None, self.scatter, None, None)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
@@ -277,7 +278,7 @@ class PlottingDialogue(QDialog):
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
-            self.plot_objects[f''] = (self.scatter, None, None)
+            self.plot_objects[f''] = (None, self.scatter, None, None)
             self.ax.set_xlabel('Surface Area (nm2)')
             self.ax.set_ylabel('Volume (nm3)')
             self.ax.set_title('Surface Area: Volume')
@@ -290,7 +291,7 @@ class PlottingDialogue(QDialog):
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
-            self.plot_objects[f''] = (self.scatter, None, None)
+            self.plot_objects[f''] = (None, self.scatter, None, None)
             self.ax.set_xlabel('CDA S/M')
             self.ax.set_ylabel('CDA M/L')
             self.ax.set_xlim(0, 1.0)
@@ -319,7 +320,7 @@ class PlottingDialogue(QDialog):
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
-            self.plot_objects[f''] = (self.scatter, None, None)
+            self.plot_objects[f''] = (None, self.scatter, None, None)
             self.ax.set_xlabel(x_column_name)
             self.ax.set_ylabel(y_column_name)
             self.ax.set_title('Extended CDA')
@@ -338,7 +339,7 @@ class PlottingDialogue(QDialog):
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
                 # When creating a scatter plot with colour data
-                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
+                self.plot_objects[f'Plot {interaction}'] = (None, self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('S:M')
@@ -349,6 +350,7 @@ class PlottingDialogue(QDialog):
                 # Add colorbar and other customizations as needed
                 cbar = self.figure.colorbar(self.scatter)
                 cbar.set_label(cbar_legend)
+                cbar.ax.set_zorder(-1)
                 self.canvas.draw()
 
             if self.selected_plot.startswith("PCA vs " + interaction):
@@ -362,7 +364,7 @@ class PlottingDialogue(QDialog):
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
                 # When creating a scatter plot with colour data
-                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
+                self.plot_objects[f'Plot {interaction}'] = (None, self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('S:M')
@@ -373,6 +375,7 @@ class PlottingDialogue(QDialog):
                 # Add colorbar and other customizations as needed
                 cbar = self.figure.colorbar(self.scatter)
                 cbar.set_label(cbar_legend)
+                cbar.ax.set_zorder(-1)
                 self.canvas.draw()
 
             if self.selected_plot.startswith("Surface Area: Volume Ratio vs " + interaction):
@@ -385,13 +388,14 @@ class PlottingDialogue(QDialog):
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
                 # When creating a scatter plot with colour data
-                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
+                self.plot_objects[f'Plot {interaction}'] = (None, self.scatter, colour_data, interaction)
                 self.ax.set_xlabel('Surface Area (nm2)')
                 self.ax.set_ylabel('Volume (nm3)')
                 self.ax.set_title(f'Surface Area: Volume {interaction}')
                 # Add colorbar and other customizations as needed
                 cbar = self.figure.colorbar(self.scatter)
                 cbar.set_label(cbar_legend)
+                cbar.ax.set_zorder(-1)
                 self.canvas.draw()
 
             if self.selected_plot.startswith("CDA vs " + interaction):
@@ -405,7 +409,7 @@ class PlottingDialogue(QDialog):
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
                 # When creating a scatter plot with colour data
-                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
+                self.plot_objects[f'Plot {interaction}'] = (None, self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('CDA S/M')
@@ -416,6 +420,7 @@ class PlottingDialogue(QDialog):
                 # Add colorbar and other customizations as needed
                 cbar = self.figure.colorbar(self.scatter)
                 cbar.set_label(cbar_legend)
+                cbar.ax.set_zorder(-1)
                 self.canvas.draw()
 
             if self.selected_plot.startswith("CDA Extended vs " + interaction):
@@ -445,13 +450,14 @@ class PlottingDialogue(QDialog):
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
                 # When creating a scatter plot with colour data
-                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
+                self.plot_objects[f'Plot {interaction}'] = (None, self.scatter, colour_data, interaction)
                 self.ax.set_xlabel(x_column_name)
                 self.ax.set_ylabel(y_column_name)
                 self.ax.set_title(f'Extended CDA {interaction}')
                 # Add colorbar and other customizations as needed
                 cbar = self.figure.colorbar(self.scatter)
                 cbar.set_label(cbar_legend)
+                cbar.ax.set_zorder(-1)
                 self.canvas.draw()
 
         if equation_plot:
@@ -464,7 +470,7 @@ class PlottingDialogue(QDialog):
                     # Plot the data
                     self.scatter = self.ax.scatter(x_data, y_data, s=12)
                     # When creating a scatter plot without colour data
-                    self.plot_objects[f''] = (self.scatter, None, None)
+                    self.plot_objects[f''] = (None, self.scatter, None, None)
                     self.ax.axhline(y=0.66, color='black', linestyle='--')
                     self.ax.axvline(x=0.66, color='black', linestyle='--')
                     self.ax.set_xlabel('S:M')
@@ -474,6 +480,24 @@ class PlottingDialogue(QDialog):
                     self.ax.set_title(f'OBA vs CDA Equation {equation}')
                     self.canvas.draw()
 
+                if self.selected_plot.startswith(f"PCA vs CDA Equation {equation}"):
+                    df = df[df["CDA_Equation"] == equation]
+                    print("interaction:", equation)
+                    x_data = df["PCA S:M"]
+                    y_data = df["PCA M:L"]
+                    # Plot the data
+                    self.scatter = self.ax.scatter(x_data, y_data, s=12)
+                    # When creating a scatter plot without colour data
+                    self.plot_objects[f''] = (None, self.scatter, None, None)
+                    self.ax.axhline(y=0.66, color='black', linestyle='--')
+                    self.ax.axvline(x=0.66, color='black', linestyle='--')
+                    self.ax.set_xlabel('S:M')
+                    self.ax.set_ylabel('M:L')
+                    self.ax.set_xlim(0.0, 1.0)
+                    self.ax.set_ylim(0.0, 1.0)
+                    self.ax.set_title(f'PCA vs CDA Equation {equation}')
+                    self.canvas.draw()
+
         if self.growth_rate:
             x_data = df["Supersaturation"]
             self.plot_objects = {}  # Store plot objects for reference (both line and scatter)
@@ -481,7 +505,7 @@ class PlottingDialogue(QDialog):
             # Define the on_legend_click function here
             def on_legend_click(event):
                 legline = event.artist
-                origline, origscatter, _ = self.plot_objects[legline.get_label()]
+                origline, origscatter, _, _ = self.plot_objects[legline.get_label()]
                 vis = not origline.get_visible()
                 origline.set_visible(vis)
                 origscatter.set_visible(vis)
@@ -491,7 +515,7 @@ class PlottingDialogue(QDialog):
             for i in self.directions:
                 self.scatter = self.ax.scatter(x_data, df[i], s=6)
                 line, = self.ax.plot(x_data, df[i], label=f' {i}')
-                self.plot_objects[f' {i}'] = (line, self.scatter, None)
+                self.plot_objects[f' {i}'] = (line, self.scatter, None, None)
                 self.ax.set_xlabel('Supersaturation (kcal/mol)')
                 self.ax.set_ylabel('Growth Rate')
                 self.ax.set_title('Growth Rates')
@@ -515,7 +539,8 @@ class PlottingDialogue(QDialog):
                                       textcoords="offset points",
                                       ha='center',
                                       bbox=dict(boxstyle="round", fc="w"),
-                                      arrowprops=dict(arrowstyle="->"))
+                                      arrowprops=dict(arrowstyle="->"),
+                                      zorder=20)
         self.annot.set_visible(False)
 
         self.canvas.draw()
@@ -544,13 +569,20 @@ class PlottingDialogue(QDialog):
         vis = self.annot.get_visible()
         try:
             if event.inaxes == self.ax:
-                for _, (scatter, colour_data, column_name) in self.plot_objects.items():
-                    cont, ind = scatter.contains(event)
-                    if cont:
-                        self.update_annot(scatter, colour_data, column_name, ind)
-                        self.annot.set_visible(True)
-                        self.figure.canvas.draw_idle()
-                        break
+                for _, plot_data in self.plot_objects.items():
+                    # Unpack the plot data
+                    line, scatter, colour_data, column_name = plot_data
+
+                    # Check if scatter plot exists and handle hover event
+                    if scatter is not None:
+                        cont, ind = scatter.contains(event)
+                        if cont:
+                            self.update_annot(scatter, colour_data, column_name, ind)
+                            self.annot.set_visible(True)
+                            self.figure.canvas.draw_idle()
+                            break
+
+                # Hide annotation if no scatter plot contains the event
                 if not cont and vis:
                     self.annot.set_visible(False)
                     self.figure.canvas.draw_idle()
