@@ -412,7 +412,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     csv=plotting_csv,
                     plotting=''
                 )
-                PlottingDialogues.exec_()
+                PlottingDialogues.show()
 
     def calculate_growth_rates(self):
         ''' Activate calculate growth rates from the CrystalAspects
@@ -455,7 +455,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     csv=growth_rate_csv,
                     plotting='Growth Rates'
                 )
-                PlottingDialogues.exec_()
+                PlottingDialogues.show()
                 if auto_plotting:
                     plot = Plotting()
                     plot.plot_growth_rates(growth_rate_df, directions, save_folder)
