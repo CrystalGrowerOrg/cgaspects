@@ -334,8 +334,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 if selected_aspect_ratio:
                     xyz_df = AspectXYZ.collect_all(folder=folder)
+                    xyz_combine = xyz_df
                     if summary_file:
-                        xyz_df= find.summary_compare(
+                        xyz_df = find.summary_compare(
                             summary_csv=summary_file,
                             aspect_df=xyz_df
                         )
@@ -385,13 +386,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     if selected_aspect_ratio and selected_cda:
                         combined_df = find.combine_XYZ_CDA(
                             CDA_df=zn_df,
-                            XYZ_df=xyz_df
+                            XYZ_df=xyz_combine
                         )
-                        if summary_file:
+                        '''if summary_file:
                             combined_df = find.summary_compare(
                                 summary_csv=summary_file,
                                 aspect_df=combined_df
-                            )
+                            )'''
                         final_cda_xyz_csv = f"{save_folder}/CrystalAspects.csv"
                         combined_df.to_csv(final_cda_xyz_csv, index=None)
                         #self.ShowData(final_cda_xyz)
@@ -446,8 +447,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 growth_rate_df = growth_rate.calc_growth_rate(
                     size_file_list=size_files, supersat_list=supersats, directions=directions
                 )
-                growth_rate_df.to_csv(save_folder / "growthrates.csv")
-
+                print(growth_rate_df)
+                growth_rate_csv = f"{save_folder}/GrowthRates.csv"
+                growth_rate_df.to_csv(growth_rate_csv, index=None)
+                PlottingDialogues = PlottingDialogue(self)
+                PlottingDialogues.plotting_info(
+                    csv=growth_rate_csv,
+                    plotting='Growth Rates'
+                )
+                PlottingDialogues.exec_()
                 if auto_plotting:
                     plot = Plotting()
                     plot.plot_growth_rates(growth_rate_df, directions, save_folder)

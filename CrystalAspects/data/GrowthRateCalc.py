@@ -8,7 +8,9 @@ class GrowthRateAnalysisDialogue(QDialog):
 
         # Initialise Window
         self.setWindowTitle("Growth Rate Analysis Options")
+        select_all = QCheckBox("Select All")
         layout = QVBoxLayout()
+        layout.addWidget(select_all)
         self.setLayout(layout)
 
         # Create a widget for the main layout
@@ -26,6 +28,11 @@ class GrowthRateAnalysisDialogue(QDialog):
 
         self.selected_directions = []
         self.plotting_checkbox = plotting_checkbox
+
+        if select_all.isChecked():
+            for direction in directions:
+                checkbox = QCheckBox(direction)
+                checkbox.stateChanged.connect(lambda state, dir=direction: self.checkbox_state_changed(state, dir))
 
         for direction in directions:
             checkbox = QCheckBox(direction)
