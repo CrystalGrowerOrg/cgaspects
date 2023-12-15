@@ -35,17 +35,17 @@ class PlottingDialogue(QDialog):
 
     def plotting_info(self, csv, plotting):
         self.csv = csv
-        if plotting == 'Growth Rates':
-            self.plotting = 'Scatter+Line'
         df = pd.read_csv(self.csv)
+        print(df)
+        self.growth_rate = None
         # Identify interaction columns
         interaction_columns = [col for col in df.columns if
                                col.startswith(('interaction',
                                                'tile',
                                                'temperature',
                                                'starting_delmu',
-                                               'excess',
-                                               'CDA_Equation'))]
+                                               'excess'))]
+        print(interaction_columns)
 
         # List to store the results
         plot_types = []
@@ -63,6 +63,15 @@ class PlottingDialogue(QDialog):
             elif column.startswith('AspectRatio') and 'CDA Extended' not in plot_types:
                 plot_types.append('CDA Extended')
 
+        # Get equations
+        for column in df.columns:
+            if column.startswith("CDA_Equation"):
+                equations = set(df["CDA_Equation"])
+                print(equations)
+                for equation in equations:
+                    plot_types.append(f"OBA vs CDA Equation {equation}")
+                    plot_types.append(f"PCA vs CDA Equation {equation}")
+
         self.plots_list = []
         for plot_type in plot_types:
             # Add the basic plot
@@ -71,6 +80,17 @@ class PlottingDialogue(QDialog):
             # Add plots with interaction
             for interaction_col in interaction_columns:
                 self.plots_list.append(f"{plot_type} vs {interaction_col}")
+
+        if plotting == 'Growth Rates':
+            self.plotting = 'Scatter+Line'
+            self.growth_rate = True
+            directions = []
+            for col in df.columns:
+                if col.startswith(" "):
+                    directions.append(col)
+            self.directions = directions
+            print(directions)
+            self.plots_list = ['Growth Rates']
 
     def create_widgets(self):
 
@@ -171,6 +191,7 @@ class PlottingDialogue(QDialog):
 
     def add_plot_list(self):
         self.plot_list_combo_box.addItems(self.plots_list)
+        self.plot_list_combo_box.setMaxVisibleItems(5)
 
     def change_plot_from_list(self):
         self.selected_plot = self.plot_list_combo_box.currentText()
@@ -183,6 +204,7 @@ class PlottingDialogue(QDialog):
         print("entering plotting called")
         # Reading the dataframe
         df = pd.read_csv(self.csv)
+        self.plot_objects = {}
         # Finding interactions in data frame if there are any
         interactions = [
             col
@@ -193,6 +215,12 @@ class PlottingDialogue(QDialog):
                or col.startswith("temperature_celcius")
                or col.startswith("excess")
         ]
+
+        equation_plot = False
+        for col in df.columns:
+            if col.startswith("CDA_Equation"):
+                equations = set(df["CDA_Equation"])
+                equation_plot = True
 
         for col in df.columns:
             if col.startswith("interaction") or col.startswith('tile'):
@@ -207,9 +235,6 @@ class PlottingDialogue(QDialog):
                 cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
                 plot_title = "Aspect Ratio vs Excess Supersaturation"
 
-        extended = [col for col in df.columns
-                    if col.startswith("AspectRatio")]
-
         if self.selected_plot == "OBA":
             x_data = df["OBA S:M"]
             y_data = df["OBA M:L"]
@@ -217,6 +242,8 @@ class PlottingDialogue(QDialog):
             print(y_data)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # When creating a scatter plot without colour data
+            self.plot_objects[f''] = (self.scatter, None, None)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
@@ -232,6 +259,8 @@ class PlottingDialogue(QDialog):
             print(y_data)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # When creating a scatter plot without colour data
+            self.plot_objects[f''] = (self.scatter, None, None)
             self.ax.axhline(y=0.66, color='black', linestyle='--')
             self.ax.axvline(x=0.66, color='black', linestyle='--')
             self.ax.set_xlabel('S:M')
@@ -247,6 +276,8 @@ class PlottingDialogue(QDialog):
             print(y_data)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # When creating a scatter plot without colour data
+            self.plot_objects[f''] = (self.scatter, None, None)
             self.ax.set_xlabel('Surface Area (nm2)')
             self.ax.set_ylabel('Volume (nm3)')
             self.ax.set_title('Surface Area: Volume')
@@ -258,13 +289,15 @@ class PlottingDialogue(QDialog):
             print(y_data)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # When creating a scatter plot without colour data
+            self.plot_objects[f''] = (self.scatter, None, None)
             self.ax.set_xlabel('CDA S/M')
             self.ax.set_ylabel('CDA M/L')
             self.ax.set_xlim(0, 1.0)
             self.ax.set_ylim(0, 1.0)
             self.ax.set_title('CDA Zingg Diagram')
 
-        if self.selected_plot.startswith("CDA Extended vs "):
+        if self.selected_plot == "CDA Extended":
             x_data = None
             y_data = None
             x_column_name = None
@@ -285,6 +318,8 @@ class PlottingDialogue(QDialog):
             print(y_data)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            # When creating a scatter plot without colour data
+            self.plot_objects[f''] = (self.scatter, None, None)
             self.ax.set_xlabel(x_column_name)
             self.ax.set_ylabel(y_column_name)
             self.ax.set_title('Extended CDA')
@@ -302,6 +337,8 @@ class PlottingDialogue(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                # When creating a scatter plot with colour data
+                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('S:M')
@@ -324,6 +361,8 @@ class PlottingDialogue(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                # When creating a scatter plot with colour data
+                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('S:M')
@@ -345,6 +384,8 @@ class PlottingDialogue(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                # When creating a scatter plot with colour data
+                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
                 self.ax.set_xlabel('Surface Area (nm2)')
                 self.ax.set_ylabel('Volume (nm3)')
                 self.ax.set_title(f'Surface Area: Volume {interaction}')
@@ -363,6 +404,8 @@ class PlottingDialogue(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                # When creating a scatter plot with colour data
+                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
                 self.ax.axhline(y=0.66, color='black', linestyle='--')
                 self.ax.axvline(x=0.66, color='black', linestyle='--')
                 self.ax.set_xlabel('CDA S/M')
@@ -401,6 +444,8 @@ class PlottingDialogue(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(x_data, y_data, c=colour_data, cmap="plasma", s=12)
+                # When creating a scatter plot with colour data
+                self.plot_objects[f'Plot {interaction}'] = (self.scatter, colour_data, interaction)
                 self.ax.set_xlabel(x_column_name)
                 self.ax.set_ylabel(y_column_name)
                 self.ax.set_title(f'Extended CDA {interaction}')
@@ -409,48 +454,106 @@ class PlottingDialogue(QDialog):
                 cbar.set_label(cbar_legend)
                 self.canvas.draw()
 
+        if equation_plot:
+            for equation in equations:
+                if self.selected_plot.startswith(f"OBA vs CDA Equation {equation}"):
+                    df = df[df["CDA_Equation"] == equation]
+                    print("interaction:", equation)
+                    x_data = df["OBA S:M"]
+                    y_data = df["OBA M:L"]
+                    # Plot the data
+                    self.scatter = self.ax.scatter(x_data, y_data, s=12)
+                    # When creating a scatter plot without colour data
+                    self.plot_objects[f''] = (self.scatter, None, None)
+                    self.ax.axhline(y=0.66, color='black', linestyle='--')
+                    self.ax.axvline(x=0.66, color='black', linestyle='--')
+                    self.ax.set_xlabel('S:M')
+                    self.ax.set_ylabel('M:L')
+                    self.ax.set_xlim(0.0, 1.0)
+                    self.ax.set_ylim(0.0, 1.0)
+                    self.ax.set_title(f'OBA vs CDA Equation {equation}')
+                    self.canvas.draw()
+
+        if self.growth_rate:
+            x_data = df["Supersaturation"]
+            self.plot_objects = {}  # Store plot objects for reference (both line and scatter)
+
+            # Define the on_legend_click function here
+            def on_legend_click(event):
+                legline = event.artist
+                origline, origscatter, _ = self.plot_objects[legline.get_label()]
+                vis = not origline.get_visible()
+                origline.set_visible(vis)
+                origscatter.set_visible(vis)
+                legline.set_alpha(1.0 if vis else 0.2)
+                self.canvas.draw()
+
+            for i in self.directions:
+                self.scatter = self.ax.scatter(x_data, df[i], s=6)
+                line, = self.ax.plot(x_data, df[i], label=f' {i}')
+                self.plot_objects[f' {i}'] = (line, self.scatter, None)
+                self.ax.set_xlabel('Supersaturation (kcal/mol)')
+                self.ax.set_ylabel('Growth Rate')
+                self.ax.set_title('Growth Rates')
+
+            # Create a legend
+            legend = self.ax.legend()
+
+            for legline in legend.get_lines():
+                legline.set_picker(5)  # Enable clicking on the legend line
+                legline.figure.canvas.mpl_connect('pick_event', on_legend_click)
+
+            self.canvas.draw()
+
         if self.colorbar:
             cbar = self.figure.colorbar(self.scatter)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
 
         if self.checkbox_grid.isChecked():
             self.ax.grid()
-        self.annot = self.ax.annotate("", xy=(0, 0), xytext=(20, 20),
+        self.annot = self.ax.annotate("", xy=(-1, -1), xytext=(-20, 20),
                                       textcoords="offset points",
+                                      ha='center',
                                       bbox=dict(boxstyle="round", fc="w"),
                                       arrowprops=dict(arrowstyle="->"))
         self.annot.set_visible(False)
 
         self.canvas.draw()
 
-    def update_annot(self, ind):
-
-        pos = self.scatter.get_offsets()[ind["ind"][0]]
+    def update_annot(self, scatter, colour_data, column_name, ind):
+        pos = scatter.get_offsets()[ind["ind"][0]]
         self.annot.xy = pos
-        text = "Simulation Number: " + "{}".format(" ".join(list(map(str, ind["ind"] + 1))))
+        x, y = pos
+
+        # Check if colour_data is available
+        if colour_data is not None:
+            color_val = colour_data[ind["ind"][0]]
+            text = f"Sim Number: {ind['ind'][0] + 1}\n" \
+                   f" x: {x:.2f}'\n" \
+                   f" y: {y:.2f}\n" \
+                   f" {column_name}: {color_val:.2f}"
+        else:
+            text = f"Sim Number: {ind['ind'][0] + 1}\n" \
+                   f" x: {x:.2f}\n" \
+                   f" y: {y:.2f}"
+
         self.annot.set_text(text)
-        #self.annot.get_bbox_patch().set_facecolor(self.c_df(norm(c[ind["ind"][0]])))
         self.annot.get_bbox_patch().set_alpha(0.4)
-        print("Text for Annotation:")
-        print(text)
 
     def on_hover(self, event):
         vis = self.annot.get_visible()
         try:
             if event.inaxes == self.ax:
-                cont, ind = self.scatter.contains(event)
-                if cont:
-                    self.update_annot(ind)
-                    self.annot.set_visible(True)
-                    self.figure.canvas.draw_idle()
-                else:
-                    if vis:
-                        self.annot.set_visible(False)
+                for _, (scatter, colour_data, column_name) in self.plot_objects.items():
+                    cont, ind = scatter.contains(event)
+                    if cont:
+                        self.update_annot(scatter, colour_data, column_name, ind)
+                        self.annot.set_visible(True)
                         self.figure.canvas.draw_idle()
-            else:
-                if vis:
+                        break
+                if not cont and vis:
                     self.annot.set_visible(False)
-                self.figure.canvas.draw_idle()
+                    self.figure.canvas.draw_idle()
         except NameError:
             pass
 
