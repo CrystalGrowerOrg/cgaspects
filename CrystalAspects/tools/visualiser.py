@@ -58,7 +58,12 @@ class Visualiser(Ui_MainWindow):
         ]
 
         self.colourmode_comboBox.addItems(
-            ["Atom/Molecule Type", "Atom/Molecule Number", "Layer", "Single Colour"]
+            ["Atom/Molecule Type",
+             "Atom/Molecule Number",
+             "Layer",
+             "Single Colour",
+             "Site Number",
+             "Particle Energy"]
         )
         self.pointtype_comboBox.addItems(["Points", "Spheres"])
         self.colourmode_comboBox.setCurrentIndex(2)
