@@ -33,10 +33,14 @@ class PlottingDialogue(QDialog):
         self.create_widgets()
         self.create_layout()
 
-    def plotting_info(self, csv, plotting):
+    def plotting_info(self, csv):
         self.csv = csv
         df = pd.read_csv(self.csv)
         print(df)
+        plotting = ''
+        for col in df.columns:
+            if col.startswith("Supersaturation"):
+                plotting = 'Growth Rates'
         self.growth_rate = None
         # Identify interaction columns
         interaction_columns = [col for col in df.columns if

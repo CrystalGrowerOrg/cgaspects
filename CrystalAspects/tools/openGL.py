@@ -93,7 +93,6 @@ class vis_GLWidget(QtOpenGL.QGLWidget):
         self.updateGL()
         self.update()
 
-
         return arrow_model
 
     def pass_XYZ(self, xyz):

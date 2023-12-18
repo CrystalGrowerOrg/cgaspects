@@ -95,7 +95,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create actions to the CrystalAspects menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
-        #plotting_action = QAction("Plotting", self)
+        plotting_action = QAction("Plotting", self)
         particle_swarm_action = QAction("Particle Swarm Analysis", self)
         #docking_calc_action = QAction("Docking Calculation", self)
 
@@ -104,13 +104,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         calculate_menu.addAction(aspect_ratio_action)
         calculate_menu.addAction(growth_rate_action)
         CrystalAspects_menu.addAction(particle_swarm_action)
-        #CrystalAspects_menu.addAction(plotting_action)
+        CrystalAspects_menu.addAction(plotting_action)
         #CrystalAspects_menu.addAction(docking_calc_action)
 
         # Connect the CrystalAspects actions
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
         growth_rate_action.triggered.connect(self.calculate_growth_rates)
         particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
+        plotting_action.triggered.connect(self.replotting_called)
         #docking_calc_action.triggered.connect(self.docking_calc)
 
         # Create the CrystalClear actions
@@ -409,8 +410,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 PlottingDialogues = PlottingDialogue(self)
                 PlottingDialogues.plotting_info(
-                    csv=plotting_csv,
-                    plotting=''
+                    csv=plotting_csv
                 )
                 PlottingDialogues.show()
 
@@ -452,13 +452,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 growth_rate_df.to_csv(growth_rate_csv, index=None)
                 PlottingDialogues = PlottingDialogue(self)
                 PlottingDialogues.plotting_info(
-                    csv=growth_rate_csv,
-                    plotting='Growth Rates'
+                    csv=growth_rate_csv
                 )
                 PlottingDialogues.show()
                 if auto_plotting:
                     plot = Plotting()
                     plot.plot_growth_rates(growth_rate_df, directions, save_folder)
+
+    def replotting_called(self):
+        csv_file, _ = QFileDialog.getOpenFileName(self, "Select CSV File", "./",
+                                                  "CSV Files (*.csv);;All Files (*)")
+        if csv_file:
+            # Handle the selected CSV file
+            print("Selected file:", csv_file)
+            # You can now load or process the CSV file as needed
+
+        PlottingDialogues = PlottingDialogue()
+        PlottingDialogues.plotting_info(
+            csv=csv_file
+        )
+        PlottingDialogues.show()
 
     def particle_swarm_analysis(self):
         # Create a message box
