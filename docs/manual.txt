@@ -1,0 +1,18 @@
+################################################################################################
+############################# CrystalGrower Data Processor Manual ##############################
+################################################################################################
+                                                       - by Nathan de Bruyn & Alvin J Walisinghe
+                                                       
+###########################
+    Key Board Shortcuts
+###########################
+
+*For MacOS devices - Ctrl is replaced by Cmd
+
+Action                                  Shortcut
+~~~~~~~~~~~~~~~~~~~~~~~~~               ~~~~~~~~~~~~~
+Open Simulations Folder                 Ctrl + O
+Open Output (CrystalAspects) Folder     Ctrl + Shift + Open
+Apply Options (Run)                     Ctrl + A
+Reset                                   Ctrl + R
+Quit Data Processor                     Ctrl + Q
