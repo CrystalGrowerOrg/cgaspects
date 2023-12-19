@@ -1,23 +1,4 @@
-# CG-DataProcessing
+# CrystalAspects
 
-## To Install the CrystalAspects program
-
-Clone the repository:
-
-
-```
-git clone https://github.com/AJen01/CG-DataProcessing.git --depth=1
-```
-
-Once the repository is cloned, and once you are in the directory.
-
-In your command line:
-```
-pip install .
-```
-
-To open the GUI, run the python file:
-
-```
-python /CrystalAspects/GUI/CrystalAspects_GUI.py
-```
+A simulated crystal shape data analysis GUI tool. Part of the CrystalGrower suite of softwares.
+ 
