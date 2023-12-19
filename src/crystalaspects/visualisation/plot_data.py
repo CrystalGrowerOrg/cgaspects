@@ -1,20 +1,12 @@
-# Miscellaneous imports
-import ast
+# Standard library imports
 from pathlib import Path
 
+# Third-party library imports
 import matplotlib
 import matplotlib.pyplot as plt
-import mplcursors
 import numpy as np
 import pandas as pd
-# Matplotlib import
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import \
-    NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-from PySide6 import QtCore, QtWidgets
-# PyQt imports
+# PySide6 imports
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
                                QFileDialog, QGridLayout, QHBoxLayout,
