@@ -1,8 +1,8 @@
-# PyQT5 imports
+# PySide6 imports
 from PySide6 import QtGui, QtWidgets, QtOpenGL
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, \
-    QShortcut, QAction, \
     QMenu, QFileDialog, QDialog
+from PySide6.QtGui import QShortcut, QAction
 from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtGui import QKeySequence
 from qt_material import apply_stylesheet
@@ -13,18 +13,18 @@ from natsort import natsorted
 from collections import namedtuple
 
 # Project Module imports
-from crystalaspects.gui.load_UI import Ui_MainWindow
-from crystalaspects.data.find_data import Find
-from crystalaspects.data.growth_rates import GrowthRate
-from crystalaspects.tools.shape_analysis import AspectRatioCalc, CrystalShape
-from crystalaspects.tools.visualiser import Visualiser
-from crystalaspects.tools.crystal_slider import create_slider
-from crystalaspects.gui.gui_threads import Worker_XYZ, Worker_Movies
-from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.replotting import PlottingDialogue
-from crystalaspects.data.aspect_ratios import AspectRatio
-from crystalaspects.data.CalculateAspectRatios import AnalysisOptionsDialog
-from crystalaspects.data.GrowthRateCalc import GrowthRateAnalysisDialogue
+from gui.load_ui import Ui_MainWindow
+from fileio.find_data import Find
+from analysis.growth_rates import GrowthRate
+from utils.shape_analysis import AspectRatioCalc, CrystalShape
+from gui.visualiser import Visualiser
+from gui.crystal_slider import create_slider
+from gui.gui_threads import Worker_XYZ, Worker_Movies
+from visualisation.plot_data import Plotting
+from visualisation.replotting import PlottingDialogue
+from analysis.aspect_ratios import AspectRatio
+from gui.aspectratio_dialog import AnalysisOptionsDialog
+from gui.growthrate_dialog import GrowthRateAnalysisDialogue
 
 basedir = os.path.dirname(__file__)
 
@@ -33,7 +33,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        apply_stylesheet(app, theme="dark_cyan.xml")
+        apply_stylesheet(app=self, theme="dark_cyan.xml")
 
         self.setupUi(self)
         self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
@@ -139,7 +139,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         }
 
         apply_stylesheet(
-            app, f"{theme_main}_{theme_colour}.xml", invert_secondary=False, extra=extra
+            self, f"{theme_main}_{theme_colour}.xml", invert_secondary=False, extra=extra
         )
 
     def init_parameters(self):
@@ -602,14 +602,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def thread_finished(self):
         print("THREAD COMPLETED!")
 
-def except_hook(cls, exception, traceback):
-    sys.__excepthook__(cls, exception, traceback)
-
-
-if __name__ == "__main__":
-    # Override sys excepthook to prevent app abortion upon any error
-    sys.excepthook = except_hook
-
+def main():
     # Setting taskbar icon permissions - windows
     try:
         import ctypes
@@ -638,3 +631,5 @@ if __name__ == "__main__":
     mainwindow.show()
     sys.exit(app.exec_())
 
+if __name__ == "__main__":
+    main()

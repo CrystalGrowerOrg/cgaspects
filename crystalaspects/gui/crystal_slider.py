@@ -12,8 +12,8 @@ from collections import defaultdict
 from natsort import natsorted
 
 # ==> Local imports
-from crystalaspects.GUI.load_GUI import Ui_MainWindow
-from crystalaspects.tools.shape_analysis import CrystalShape
+from gui.load_ui import Ui_MainWindow
+from utils.shape_analysis import CrystalShape
 
 
 class create_slider(QMainWindow, Ui_MainWindow):
