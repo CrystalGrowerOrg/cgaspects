@@ -10,7 +10,6 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -21,7 +20,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         MainWindow.setFont(font)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("../../res/icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -29,16 +28,16 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName("gridLayout")
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setStyleSheet("QProgressBar {\n"
-"    background-color: rgb(213, 215, 255);\n"
-"    color: rgb(0, 0, 127);\n"
-"    border-style: none;\n"
-"    border-radius: 10px;\n"
-"    text-align: center;\n"
-"}\n"
-"QProgressBar::chunk{\n"
-"    border-radius: 10px;\n"
-"    background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));\n"
-"}")
+        "    background-color: rgb(213, 215, 255);\n"
+        "    color: rgb(0, 0, 127);\n"
+        "    border-style: none;\n"
+        "    border-radius: 10px;\n"
+        "    text-align: center;\n"
+        "}\n"
+        "QProgressBar::chunk{\n"
+        "    border-radius: 10px;\n"
+        "    background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));\n"
+        "}")
         self.progressBar.setProperty("value", 24)
         self.progressBar.setObjectName("progressBar")
         self.gridLayout.addWidget(self.progressBar, 2, 1, 1, 1)

@@ -1,5 +1,5 @@
-from crystalaspects.GUI.load_GUI import Ui_MainWindow
-from crystalaspects.tools.openGL import vis_GLWidget
+from gui.load_ui import Ui_MainWindow
+from gui.openGL import vis_GLWidget
 
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):

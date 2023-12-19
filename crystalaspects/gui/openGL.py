@@ -19,8 +19,8 @@ import ctypes
 from matplotlib import cm
 from PIL import Image
 
-from crystalaspects.tools.shape_analysis import CrystalShape
-from crystalaspects.tools.crystal_math import transform_axes
+from utils.shape_analysis import CrystalShape
+
 
 
 class vis_GLWidget(QtOpenGL.QGLWidget):

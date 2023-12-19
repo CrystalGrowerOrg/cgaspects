@@ -1,0 +1,58 @@
+[project]
+name = "crystalaspects"
+version = "0.7.0"
+requires-python = ">=3.8"
+description = "A CrsytalGrower Data Processing tool with PySide6 GUI"
+
+authors = [
+    { name = "Alvin Jenner Walisinghe", email = "jennerwalisinghe@gmail.com" },
+    { name = "Nathan de Bruyn", email = "jennerwalisinghe@gmail.com" },
+    { name = "Peter R. Spackman", email = "peterspackman@fastmail.com" },
+]
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+keywords = [
+    "crystal growth",
+    "crystal shape",
+    "data analysis",
+    "data visualisation",
+    "computational chemistry"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+]
+dependencies = [
+    "pyside6>=6.6.0",
+    "pyqtgraph",
+    "pyopengl",
+    "numpy>=1.12",
+    "pandas>=1.4",
+    "scipy>=1.8.1",
+    "scikit-learn",
+    "trimesh>=3.12.9",
+    "matplotlib>=3.5.2",
+    "qt-material",
+    "natsort>=8.2",
+]
+
+[project.urls]
+homepage = "https://github.com/AJen01/crystalaspects"
+repository = "https://github.com/AJen01/crystalaspects"
+
+[project.scripts]
+crystalaspects = "gui.mainwindow:main"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["crystalaspects"]
