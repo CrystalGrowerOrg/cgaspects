@@ -130,3 +130,6 @@ cython_debug/
 # MacOS
 .DS_Store
 *.sh
+
+# Large test files
+simulations/
