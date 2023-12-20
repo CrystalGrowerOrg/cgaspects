@@ -1,18 +1,16 @@
-# ==> GUI Engine imports
 import os
 from collections import defaultdict
 from pathlib import Path
 from re import L
 
-# ==> Non-GUI imports
 import numpy as np
 import pandas as pd
-# ==> Local imports
-from gui.load_ui import Ui_MainWindow
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
-from utils.shape_analysis import CrystalShape
+
+from crystalaspects.gui.load_ui import Ui_MainWindow
+from crystalaspects.utils.shape_analysis import CrystalShape
 
 
 class create_slider(QMainWindow, Ui_MainWindow):

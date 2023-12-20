@@ -6,10 +6,10 @@ from collections import namedtuple
 
 from natsort import natsorted
 from PySide6 import QtGui, QtOpenGL, QtWidgets
-from PySide6.QtCore import Qt, QThreadPool, QTimer
+from PySide6.QtCore import QCoreApplication, Qt, QThreadPool, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QMainWindow,
-                               QMenu, QMessageBox)
+from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMenu,
+                               QMessageBox)
 from qt_material import apply_stylesheet
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
@@ -635,19 +635,19 @@ def main():
     except:
         pass
 
-    # Set up OpenGL format with the necessary attributes
-    gl_format = QtOpenGL.QGLFormat()
-    gl_format.setVersion(3, 3)  # Use OpenGL 3.3 or higher
-    gl_format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
-    gl_format.setSampleBuffers(True)
+    # # Set up OpenGL format with the necessary attributes
+    # gl_format = QtOpenGL.QGLFormat()
+    # gl_format.setVersion(3, 3)  # Use OpenGL 3.3 or higher
+    # gl_format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
+    # gl_format.setSampleBuffers(True)
 
-    # Create the OpenGL context and make it current
-    gl_context = QtOpenGL.QGLContext(gl_format)
-    gl_context.create()
-    gl_context.makeCurrent()
+    # # Create the OpenGL context and make it current
+    # gl_context = QtOpenGL.QGLContext(gl_format)
+    # gl_context.create()
+    # gl_context.makeCurrent()
 
     # ############# Runs the application ############## #
-    QApplication.setAttribute(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QCoreApplication.setAttribute(PySide6.QtCore.Qt.ApplicationAttribute, bool=True)
     app = QtWidgets.QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icon.png")))
     mainwindow = MainWindow()

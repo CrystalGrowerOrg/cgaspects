@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from PySide6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 
@@ -24,11 +24,11 @@ class WorkerSignals(QObject):
         int indicating % progress
     """
 
-    finished = pyqtSignal()
-    error = pyqtSignal(tuple)
-    result = pyqtSignal(object)
-    progress = pyqtSignal(int)
-    message = pyqtSignal(str)
+    finished = Signal()
+    error = Signal(tuple)
+    result = Signal(object)
+    progress = Signal(int)
+    message = Signal(str)
 
 
 class Worker_XYZ(QRunnable):
@@ -38,7 +38,7 @@ class Worker_XYZ(QRunnable):
         self.xyz = xyz[:, 3:]
         self.signals = WorkerSignals()
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         """centered = self.xyz - np.mean(self.xyz, axis=0)
         norm = np.linalg.norm(centered, axis=1).max()
