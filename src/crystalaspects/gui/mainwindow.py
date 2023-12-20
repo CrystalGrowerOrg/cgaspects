@@ -159,7 +159,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create a QShortcut with the specified key sequence
         close = QShortcut(QKeySequence("Ctrl+Q"), self)
         # Create a QShortcut with Command+Q as the key sequence (for macOS)
-        close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier + Qt.Key_Q), self)
+        close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier | Qt.Key_Q), self)
         close_shortcut.activated.connect(self.close_application)
         # Open read folder
         self.openKS = QShortcut(QKeySequence("Ctrl+O"), self)
@@ -647,7 +647,7 @@ def main():
     # gl_context.makeCurrent()
 
     # ############# Runs the application ############## #
-    QCoreApplication.setAttribute(PySide6.QtCore.Qt.ApplicationAttribute, bool=True)
+    # QCoreApplication.setAttribute(PySide6.QtCore.Qt.ApplicationAttribute, bool=True)
     app = QtWidgets.QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icon.png")))
     mainwindow = MainWindow()

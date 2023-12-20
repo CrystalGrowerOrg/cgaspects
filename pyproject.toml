@@ -45,7 +45,7 @@ homepage = "https://github.com/AJen01/crystalaspects"
 repository = "https://github.com/AJen01/crystalaspects"
 
 [project.scripts]
-crystalaspects = "gui.mainwindow:main"
+crystalaspects = "crystalaspects.gui.mainwindow:main"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]

@@ -87,7 +87,7 @@ class vis_GLWidget(QOpenGLWidget):
 
         # End the display list
         gl.glEndList()
-        self.updateGL()
+
         self.update()
 
         return arrow_model
@@ -104,7 +104,7 @@ class vis_GLWidget(QOpenGLWidget):
         self.sim_num = value
         self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
         self.initGeometry()
-        self.updateGL()
+
         self.update()
 
     def save_render_dialog(self):
@@ -171,21 +171,21 @@ class vis_GLWidget(QOpenGLWidget):
         self.colour_picked = self.cm_colourList[value]
         print(f" Colour selected: {self.colour_picked}")
         self.initGeometry()
-        self.updateGL()
+
         self.update()
 
     def get_bg_colour(self, value):
         self.bg_colour = self.bg_colours[value]
         print(f" Background Colour: {self.bg_colour}")
         self.qglClearColor(QtGui.QColor(self.bg_colour))
-        self.updateGL()
+
         self.update()
 
     def get_colour_type(self, value):
         self.colour_type = value
         print(f" Colour Mode: {value}")
         self.initGeometry()
-        self.updateGL()
+
         self.update()
 
     def get_point_type(self, value):
@@ -197,19 +197,19 @@ class vis_GLWidget(QOpenGLWidget):
             pcd_points = self.LoadVertices()
             self.draw_spheres(pcd_points)
             self.initGeometry()
-        self.updateGL()
+
         self.update()
 
     def change_point_size(self, val):
         self.point_size = val
         print("point size", val)
-        self.updateGL()
+
         self.update()
 
     def zoomGL(self, val):
         print("zoom Factor", val)
         self.zoomFactor = val
-        self.updateGL()
+
         self.update()
 
     def resizeGL(self, width, height):
@@ -229,7 +229,6 @@ class vis_GLWidget(QOpenGLWidget):
             self.zoomFactor -= 0.1
 
         print(f"New zoom factor: {self.zoomFactor}")  # Debugging line
-        self.updateGL()
 
     def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
         # Update the arrow models with the new coordinates
@@ -280,7 +279,6 @@ class vis_GLWidget(QOpenGLWidget):
         if event.key() == Qt.Key_Up:
             gl.glTranslate(0.0, 100.0, 0.0)
 
-        self.updateGL()
         self.update()
 
     def mouseMoveEvent(self, event):
@@ -291,7 +289,6 @@ class vis_GLWidget(QOpenGLWidget):
             # Rotation logic
             self.rotX += dy * 0.5  # Adjust these factors as needed
             self.rotY += dx * 0.5
-            self.updateGL()
 
         elif self.rightMouseButtonPressed:
             # Here we define the translation speed
@@ -304,7 +301,6 @@ class vis_GLWidget(QOpenGLWidget):
         print(f"Translating scene by dx: {dx}, dy: {dy}")  # Debugging print
         # Translation logic
         gl.glTranslatef(dx, dy, 0.0)
-        self.updateGL()
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
@@ -318,7 +314,7 @@ class vis_GLWidget(QOpenGLWidget):
         print(vArray)
         # print("No. of Points: %s" % self.noPoints)
         self.vbo = self.CreateBuffer(vArray)
-        self.updateGL()
+
         self.update()
         """self.draw_spheres(self.LoadVertices())"""
 
@@ -394,7 +390,6 @@ class vis_GLWidget(QOpenGLWidget):
             glutSolidSphere(radius, 16, 16)
             gl.glTranslatef(-p[0], -p[1], -p[2])
         # gl.glPopMatrix()
-        self.updateGL()
 
     def CreateBuffer(self, attributes):
         bufferdata = (ctypes.c_float * len(attributes))(*attributes)  # float buffer
