@@ -16,3 +16,4 @@ Open Output (CrystalAspects) Folder     Ctrl + Shift + Open
 Apply Options (Run)                     Ctrl + A
 Reset                                   Ctrl + R
 Quit Data Processor                     Ctrl + Q
+Import XYZ                              Ctrl + I
