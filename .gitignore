@@ -135,5 +135,8 @@ cython_debug/
 # Except below. Used to convert Qt ui and rc files to python
 !convert.sh
 
+# (Python) Log files
+*.log
+
 # Large test files
 simulations/
