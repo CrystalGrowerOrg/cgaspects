@@ -678,7 +678,7 @@ class PlottingDialogue(QDialog):
         file_dialog.setDirectory(".")
         file_dialog.setWindowTitle("Save Plot")
 
-        if file_dialog.exec_() == QDialog.Accepted:
+        if file_dialog.exec() == QDialog.Accepted:
             file_name = file_dialog.selectedFiles()[0]
             transparent = (
                 QMessageBox.question(

@@ -1,11 +1,12 @@
+from PySide6.QtWidgets import QWidget, QVBoxLayout
+
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.openGL import vis_GLWidget
 
 
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
-        super(Visualiser, self).__init__(*args, **kwargs)
-
+        super().__init__(*args, **kwargs)
         self.xyz = None
         self.movie = None
         self.colour_list = []
@@ -13,6 +14,7 @@ class Visualiser(Ui_MainWindow):
         self.frame_list = []
 
     def initGUI(self, xyz_file_list):
+        self.openglwidget = vis_GLWidget()
         self.xyz_file_list = [str(path) for path in xyz_file_list]
         tot_sims = "Unassigned"
 
@@ -30,18 +32,14 @@ class Visualiser(Ui_MainWindow):
             self.pointtype_comboBox = []
             self.bgcolour_comboBox = []
 
-        # Now you can add the new widget
-        self.glWidget = vis_GLWidget()
-        self.gl_vLayout.addWidget(self.glWidget)
-
         print(xyz_file_list)
         self.fname_comboBox.addItems(self.xyz_file_list)
-        self.glWidget.pass_XYZ_list(xyz_file_list)
-        self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
-        self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
+        self.openglwidget.pass_XYZ_list(xyz_file_list)
+        self.fname_comboBox.currentIndexChanged.connect(self.openglwidget.get_XYZ_from_list)
+        self.saveFrame_button.clicked.connect(self.openglwidget.save_render_dialog)
 
-        self.run_xyz_movie(xyz_file_list[0])
-        self.gl_vLayout.addWidget(self.glWidget)
+        # self.run_xyz_movie(xyz_file_list[0])
+        self.gl_vLayout.addWidget(self.openglwidget)
 
         tot_sims = len(self.xyz_file_list)
 
@@ -72,35 +70,35 @@ class Visualiser(Ui_MainWindow):
         self.bgcolour_comboBox.addItems(["White", "Black", "Transparent"])
         self.bgcolour_comboBox.setCurrentIndex(1)
 
-        self.colour_comboBox.currentIndexChanged.connect(self.glWidget.get_colour)
-        self.bgcolour_comboBox.currentIndexChanged.connect(self.glWidget.get_bg_colour)
+        self.colour_comboBox.currentIndexChanged.connect(self.openglwidget.get_colour)
+        self.bgcolour_comboBox.currentIndexChanged.connect(self.openglwidget.get_bg_colour)
         self.pointtype_comboBox.currentIndexChanged.connect(
-            self.glWidget.get_point_type
+            self.openglwidget.get_point_type
         )
         self.colourmode_comboBox.currentIndexChanged.connect(
-            self.glWidget.get_colour_type
+            self.openglwidget.get_colour_type
         )
 
         self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
         self.point_slider.setValue(10)
-        self.point_slider.valueChanged.connect(self.glWidget.change_point_size)
-        self.zoom_slider.valueChanged.connect(self.glWidget.zoomGL)
-        self.mainCrystal_slider.setMinimum(0)
-        self.mainCrystal_slider.setMaximum(tot_sims)
-        self.mainCrystal_slider.setTickInterval(1)
-        self.mainCrystal_slider.valueChanged.connect(self.glWidget.get_XYZ_from_list)
-        self.mainCrystal_slider.valueChanged.connect(self.update_vis_sliders)
-        self.vis_simnum_spinBox.setMinimum(0)
-        self.vis_simnum_spinBox.setMaximum(tot_sims)
-        self.vis_simnum_spinBox.valueChanged.connect(self.glWidget.get_XYZ_from_list)
-        self.vis_simnum_spinBox.valueChanged.connect(self.update_vis_sliders)
+        self.point_slider.valueChanged.connect(self.openglwidget.change_point_size)
+        self.zoom_slider.valueChanged.connect(self.openglwidget.zoomGL)
+        self.xyz_horizontalSlider.setMinimum(0)
+        self.xyz_horizontalSlider.setMaximum(tot_sims)
+        self.xyz_horizontalSlider.setTickInterval(1)
+        self.xyz_horizontalSlider.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
+        self.xyz_horizontalSlider.valueChanged.connect(self.update_vis_sliders)
+        self.xyz_spinBox.setMinimum(0)
+        self.xyz_spinBox.setMaximum(tot_sims)
+        self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
+        self.xyz_spinBox.valueChanged.connect(self.update_vis_sliders)
         self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
 
     def init_crystal(self, result):
-        print(result)
+        print("INIT CRYSTAL", result)
         self.xyz, self.movie = result
-        self.glWidget.pass_XYZ(self.xyz)
+        self.openglwidget.pass_XYZ(self.xyz)
 
         if self.movie:
             self.frame_list = self.movie.keys()
@@ -118,26 +116,26 @@ class Visualiser(Ui_MainWindow):
             self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
 
         try:
-            self.glWidget.initGeometry()
+            self.openglwidget.initGeometry()
         except AttributeError:
             print("No Crystal Data Found!")
 
     def update_frame(self, frame):
         self.xyz = self.movie[frame]
-        self.glWidget.pass_XYZ(self.xyz)
+        self.openglwidget.pass_XYZ(self.xyz)
 
         try:
-            self.glWidget.initGeometry()
-            self.glWidget.updateGL()
+            self.openglwidget.initGeometry()
+            self.openglwidget.updateGL()
         except AttributeError:
             print("No Crystal Data Found!")
 
     def update_XYZ(self, XYZ_filepath):
         self.run_xyz_movie(XYZ_filepath)
-        self.glWidget.pass_XYZ(self.xyz)
+        self.openglwidget.pass_XYZ(self.xyz)
 
         try:
-            self.glWidget.initGeometry()
+            self.openglwidget.initGeometry()
         except AttributeError:
             print("No Crystal Data Found!")
 

@@ -6,7 +6,8 @@ from sklearn.decomposition import PCA
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
-from crystalaspects.fileio.find_data import Find
+from crystalaspects.visualisation.plot_data import Plotting
+from crystalaspects.fileio.find_data import *
 from crystalaspects.utils.shape_analysis import CrystalShape
 
 
@@ -100,10 +101,9 @@ class Worker_Calc(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        find = Find()
-        # plotting = Plotting()
+        plotting = Plotting()
 
-        save_folder = find.create_aspects_folder(self.folder_path)
+        save_folder = create_aspects_folder(self.folder_path)
 
         """Creating crystalaspects folder"""
 
@@ -122,17 +122,17 @@ class Worker_Calc(QRunnable):
 
         if self.sa_vol and self.pca is False:
             aspect_ratio = AspectRatio()
-            savar_df = aspect_ratio.savar_calc(
+            sa_vol_ratio_df = aspect_ratio.sa_vol_ratio_calc(
                 subfolder=self.folder_path, savefolder=save_folder
             )
-            savar_df_final = find.summary_compare(
+            sa_vol_ratio_df_final = summary_compare(
                 summary_csv=self.summary_file,
-                aspect_df=savar_df,
+                aspect_df=sa_vol_ratio_df,
                 savefolder=save_folder,
             )
             self.signals.message.emit("SA:Vol Calculations complete!")
             """if self.plot:
-                plotting.SAVAR_plot(df=savar_df_final, folderpath=save_folder)
+                plotting.SAVAR_plot(df=sa_vol_ratio_df_final, folderpath=save_folder)
                 self.signals.message.emit("Plotting SA:Vol Results!")"""
 
         if self.pca and self.sa_vol:
@@ -140,7 +140,7 @@ class Worker_Calc(QRunnable):
             pca_df = aspect_ratio.shape_all(
                 subfolder=self.folder_path, savefolder=save_folder
             )
-            plot_df = find.summary_compare(
+            plot_df = summary_compare(
                 summary_csv=self.summary_file, aspect_df=pca_df, savefolder=save_folder
             )
             final_df = plot_df
@@ -169,7 +169,7 @@ class Worker_Calc(QRunnable):
                     ar_df=cda_df,
                     filepath=save_folder,
                 )
-                zn_df_final = find.summary_compare(
+                zn_df_final = summary_compare(
                     summary_csv=self.summary_file,
                     aspect_df=zn_df,
                     savefolder=save_folder,
