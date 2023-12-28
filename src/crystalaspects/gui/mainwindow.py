@@ -37,7 +37,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         apply_stylesheet(app=self, theme="dark_cyan.xml")
 
         self.setupUi(self)
-        self.statusBar().showMessage("CrystalGrower Data Processor v1.0")
+        self.statusBar().showMessage("CrystalAspects v1.0")
 
         self.threadpool = QThreadPool()
         self.change_style(theme_main="dark", theme_colour="teal")
@@ -55,7 +55,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Create two menus
         file_menu = QMenu("File", self)
         edit_menu = QMenu("Edit", self)
-        crystalaspects_menu = QMenu("crystalaspects", self)
+        crystalaspects_menu = QMenu("CrystalAspects", self)
         CrystalClear_menu = QMenu("CrystalClear", self)
         Calculations_menu = QMenu("Calculations", self)
 
@@ -179,7 +179,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def welcome_message(self):
         print("############################################")
-        print("####        crystalaspects v1.00        ####")
+        print("####        CrystalAspects v1.00        ####")
         print("############################################")
         print("Created by Nathan de Bruyn & Alvin J. Walisinghe")
 
@@ -581,8 +581,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_vis_sliders(self, value):
         print(value)
         self.fname_comboBox.setCurrentIndex(value)
-        self.mainCrystal_slider.setValue(value)
-        self.vis_simnum_spinBox.setValue(value)
         self.frame_slider.setValue(value)
 
     def insert_info(self, result):
@@ -630,7 +628,7 @@ def main():
     try:
         import ctypes
 
-        appid = "CNM.CrystalGrower.DataProcessor.v1.0"  # arbitrary string
+        appid = "CNM.CrystalGrower.CrystalAspects.v1.0"
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appid)
     except:
         pass
@@ -647,9 +645,8 @@ def main():
     # gl_context.makeCurrent()
 
     # ############# Runs the application ############## #
-    # QCoreApplication.setAttribute(PySide6.QtCore.Qt.ApplicationAttribute, bool=True)
+
     app = QtWidgets.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icon.png")))
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())

@@ -296,6 +296,7 @@ class vis_GLWidget(QOpenGLWidget):
             self.translateScene(dx * translationSpeed, dy * translationSpeed)
 
         self.lastMousePosition = event.pos()
+        self.update()
 
     def translateScene(self, dx, dy):
         print(f"Translating scene by dx: {dx}, dy: {dy}")  # Debugging print

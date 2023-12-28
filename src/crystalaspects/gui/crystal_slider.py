@@ -151,7 +151,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
         self.crystal_xyz_list = natsorted(self.crystal_xyz_list)
         print(self.crystal_xyz_list)
-        self.output_textBox.append(
+        self.output_textbox.append(
             f"Number of Images found: {str(len(self.crystal_xyz_list))}"
         )
         self.statusBar().showMessage("Complete: Image data read in!")

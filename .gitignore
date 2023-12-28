@@ -129,7 +129,11 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# Bash script
 *.sh
+# Except below. Used to convert Qt ui and rc files to python
+!convert.sh
 
 # Large test files
 simulations/

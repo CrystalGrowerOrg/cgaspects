@@ -1,0 +1,22 @@
+<RCC>
+  <qresource prefix="material_icons">
+    <file>material_icons/png/calculator-variant.png</file>
+    <file>material_icons/png/chart-scatter-plot.png</file>
+    <file>material_icons/png/cog.png</file>
+    <file>material_icons/png/content-save-alert.png</file>
+    <file>material_icons/png/content-save-all.png</file>
+    <file>material_icons/png/content-save-check.png</file>
+    <file>material_icons/png/content-save.png</file>
+    <file>material_icons/png/folder-arrow-down.png</file>
+    <file>material_icons/png/folder-arrow-right.png</file>
+    <file>material_icons/png/folder-image.png</file>
+    <file>material_icons/png/folder-open.png</file>
+    <file>material_icons/png/folder-sync.png</file>
+    <file>material_icons/png/pause-box.png</file>
+    <file>material_icons/png/play-box.png</file>
+    <file>material_icons/png/step-backward-2.png</file>
+    <file>material_icons/png/step-backward.png</file>
+    <file>material_icons/png/step-forward-2.png</file>
+    <file>material_icons/png/step-forward.png</file>
+  </qresource>
+</RCC>
