@@ -3,6 +3,7 @@
 import os
 import sys
 from collections import namedtuple
+import logging
 
 from natsort import natsorted
 from PySide6 import QtGui, QtOpenGL, QtWidgets
@@ -14,7 +15,7 @@ from qt_material import apply_stylesheet
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
-from crystalaspects.fileio.find_data import Find
+from crystalaspects.fileio.find_data import *
 from crystalaspects.gui.aspectratio_dialog import AnalysisOptionsDialog
 from crystalaspects.gui.crystal_slider import create_slider
 from crystalaspects.gui.growthrate_dialog import GrowthRateAnalysisDialogue
@@ -22,11 +23,23 @@ from crystalaspects.gui.gui_threads import Worker_Movies, Worker_XYZ
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.visualiser import Visualiser
-from crystalaspects.utils.shape_analysis import AspectRatioCalc, CrystalShape
+from crystalaspects.utils.shape_analysis import CrystalShape
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.visualisation.replotting import PlottingDialogue
 
 basedir = os.path.dirname(__file__)
+
+log_level = "DEBUG"
+
+logging.basicConfig(
+        level=log_level,
+        filename="report.log",
+        filemode="w",
+        format="%(asctime)s-%(name)s-%(levelname)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+logger = logging.getLogger("CA:GUI")
+logger.critical("LOGGING AT %s LEVEL", logging.getLevelName(log_level))
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -34,19 +47,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        apply_stylesheet(app=self, theme="dark_cyan.xml")
+        self.apply_style(theme_main="dark", theme_colour="teal")
 
         self.setupUi(self)
         self.statusBar().showMessage("CrystalAspects v1.0")
 
         self.threadpool = QThreadPool()
-        self.change_style(theme_main="dark", theme_colour="teal")
 
         self.welcome_message()
         self.key_shortcuts()
         self.connect_buttons()
         self.init_parameters()
         self.MenuBar()
+
+        self.visualiser = Visualiser
 
     def MenuBar(self):
         # Create a menu bar
@@ -81,7 +95,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file_menu.addAction(exit_action)
 
         # Connect actions from the File menu
-        import_action.triggered.connect(self.import_XYZ)
+        import_action.triggered.connect(self.import_xyz)
 
         # Create actions for the Edit menu
         cut_action = QAction("Cut", self)
@@ -130,7 +144,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         generate_net_action.triggered.connect(self.generate_net_file)
         solvent_screen_action.triggered.connect(self.solvent_screening)
 
-    def change_style(self, theme_main, theme_colour, density=-1):
+    def apply_style(self, theme_main, theme_colour, density=-1):
         extra = {
             # Font
             "font_family": "Roboto",
@@ -175,7 +189,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pass"""
         # Import XYZ file
         importXYZ = QShortcut(QKeySequence("Ctrl+I"), self)
-        importXYZ.activated.connect(self.import_XYZ)
+        importXYZ.activated.connect(self.import_xyz)
 
     def welcome_message(self):
         print("############################################")
@@ -183,35 +197,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("############################################")
         print("Created by Nathan de Bruyn & Alvin J. Walisinghe")
 
-    def import_XYZ(self):
+    def import_xyz(self):
         """Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget"""
         self.folder = None
         self.xyz_files = []
         # Prompt the user to select the folder
         slider = create_slider()
-        folder, xyz_files = slider.read_crystals()
+        self.statusBar().showMessage("Reading Images...")
+        folder, xyz_files = read_crystals()
+        self.output_textbox.append(
+            f"Number of Images found: {str(len(xyz_files))}\n"
+        )
+        self.statusBar().showMessage("Complete: Image data read in!")
+
         self.folder = folder
         print(f"Initial XYZ list: {xyz_files}")
         # Check if the user opened a folder
         if folder:
             self.xyz_files = natsorted(
                 xyz_files
-            )  # Use natsort to sort naturally, this is a list of all paths
+            )
 
-            # Generate a complete list of the number of .xyz files and/or frames in the movie
-            self.xyz_info_list = slider.get_xyz_info_for_all_files(folder, xyz_files)
-            xyz_info_list = self.xyz_info_list
-            print("xyz_info_list", xyz_info_list)
-
-            Visualiser.initGUI(self, self.xyz_files)  # Load the info into init_GUI
+            Visualiser.initGUI(self, self.xyz_files)
 
             # Shape analysis to determine xyz, or xyz movie
             result = self.movie_or_single_frame(0)
 
             # Adjust the slider range based on the number of XYZ files in the list
-            self.mainCrystal_slider.setRange(0, len(xyz_files) - 1)
-            self.mainCrystal_slider.setValue(0)
+            self.xyz_horizontalSlider.setRange(0, len(xyz_files) - 1)
+            self.xyz_horizontalSlider.setValue(0)
+            self.xyz_spinBox.setRange(0, len(xyz_files) - 1)
+            self.xyz_spinBox.setValue(0)
 
             Visualiser.init_crystal(self, result)
 
@@ -269,7 +286,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return result
 
     def load_crystal(self, index):
-        aspect = AspectRatioCalc()
         crystalshape = CrystalShape()
         folder = self.folder
         print(folder)
@@ -302,6 +318,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.read_summary_vis()
         )
         self.play_button.clicked.connect(self.play_movie)
+        self.import_pushButton.clicked.connect(self.import_xyz)
 
     def calculate_aspect_ratio(self):
         # Prompt the user to select the folder
@@ -311,14 +328,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "./",
             QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
         )
-        find = Find()
+        
         # Check if the user selected a folder
 
         if folder:
             # Perform calculations using the selected folder
 
             # Read the information from the selected folder
-            information = find.find_info(folder)
+            information = find_info(folder)
 
             # Get the directions from the information
             checked_directions = information.directions
@@ -326,7 +343,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             # Create the analysis options dialog
             dialog = AnalysisOptionsDialog(checked_directions)
-            if dialog.exec_() == QDialog.Accepted:
+            if dialog.exec() == QDialog.Accepted:
                 # Retrieve the selected options
                 (
                     selected_aspect_ratio,
@@ -347,24 +364,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     f"Auto Plotting: {auto_plotting}",
                 )
                 print("selected aspect ratio:", selected_direction_aspect_ratio)
-                AspectXYZ = AspectRatioCalc()
                 aspect_ratio = AspectRatio()
                 plotting = Plotting()
-                save_folder = find.create_aspects_folder(folder)
-                file_info = find.find_info(folder)
+                save_folder = create_aspects_folder(folder)
+                file_info = find_info(folder)
                 summary_file = file_info.summary_file
                 folders = file_info.folders
 
                 if selected_aspect_ratio:
-                    xyz_df = AspectXYZ.collect_all(folder=folder)
+                    xyz_df = aspect_ratio.collect_all(folder=folder)
                     xyz_combine = xyz_df
                     if summary_file:
-                        xyz_df = find.summary_compare(
+                        xyz_df = summary_compare(
                             summary_csv=summary_file, aspect_df=xyz_df
                         )
                     xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
                     xyz_df.to_csv(xyz_df_final_csv, index=None)
-                    AspectXYZ.shape_number_percentage(df=xyz_df, savefolder=save_folder)
+                    aspect_ratio.shape_number_percentage(df=xyz_df, savefolder=save_folder)
                     plotting_csv = xyz_df_final_csv
                     if auto_plotting is True:
                         plotting.build_PCAZingg(
@@ -389,7 +405,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         filepath=save_folder,
                     )
                     if summary_file:
-                        zn_df = find.summary_compare(
+                        zn_df = summary_compare(
                             summary_csv=summary_file, aspect_df=zn_df
                         )
                     zn_df_final_csv = f"{save_folder}/CDA.csv"
@@ -404,14 +420,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         plotting.CDA_Plot(csv=zn_df_final_csv, folderpath=save_folder)
 
                     if selected_aspect_ratio and selected_cda:
-                        combined_df = find.combine_XYZ_CDA(
+                        combined_df = combine_XYZ_CDA(
                             CDA_df=zn_df, XYZ_df=xyz_combine
                         )
-                        """if summary_file:
-                            combined_df = find.summary_compare(
-                                summary_csv=summary_file,
-                                aspect_df=combined_df
-                            )"""
                         final_cda_xyz_csv = f"{save_folder}/crystalaspects.csv"
                         combined_df.to_csv(final_cda_xyz_csv, index=None)
                         # self.ShowData(final_cda_xyz)
@@ -441,7 +452,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "./",
             QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
         )
-        find = Find()
+
 
         # Check if the user selected a folder
         if folder:
@@ -451,17 +462,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
             # Read the information from the selected folder
-            information = find.find_info(folder)
+            information = find_info(folder)
 
             # Get the directions from the information
             checked_directions = information.directions
 
             growth_rate_dialog = GrowthRateAnalysisDialogue(checked_directions)
-            if growth_rate_dialog.exec_() == QDialog.Accepted:
+            if growth_rate_dialog.exec() == QDialog.Accepted:
                 selected_directions = growth_rate_dialog.selected_directions
                 auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
 
-                save_folder = find.create_aspects_folder(folder)
+                save_folder = create_aspects_folder(folder)
                 size_files = information.size_files
                 supersats = information.supersats
                 directions = selected_directions
@@ -502,35 +513,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setWindowTitle("Particle Swarm Analysis")
         msg_box.setText("Particle Swarm Analysis is coming soon!")
-        msg_box.exec_()
+        msg_box.exec()
 
     def generate_structure_file(self):
         # Create a message box
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("CrystalClear is coming soon!")
-        msg_box.exec_()
+        msg_box.exec()
 
     def generate_net_file(self):
         # Create a message box
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("CrystalClear is coming soon!")
-        msg_box.exec_()
+        msg_box.exec()
 
     def solvent_screening(self):
         # Create a message box
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("CrystalClear is coming soon!")
-        msg_box.exec_()
+        msg_box.exec()
 
     def docking_calc(self):
         # Create a message box
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("Docking for growth modifier and impurities is coming soon!")
-        msg_box.exec_()
+        msg_box.exec()
 
     def read_summary_vis(self):
         print("Entering Reading Summary file")
@@ -649,7 +660,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     mainwindow = MainWindow()
     mainwindow.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

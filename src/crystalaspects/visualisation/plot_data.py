@@ -289,22 +289,22 @@ class Plotting(QDialog):
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
 
-        savar_df = df
+        sa_vol_ratio_df = df
 
         savefolder = self.create_plots_folder(folderpath)
         interactions = [
             col
-            for col in savar_df.columns
+            for col in sa_vol_ratio_df.columns
             if col.startswith("interaction")
             or col.startswith("tile")
             or col.startswith("temperature")
         ]
 
-        x_data = savar_df["Volume (Vol)"]
-        y_data = savar_df["Surface Area (SA)"]
+        x_data = sa_vol_ratio_df["Volume (Vol)"]
+        y_data = sa_vol_ratio_df["Surface Area (SA)"]
         plt.figure()
         for interaction in interactions:
-            c_df = savar_df[interaction]
+            c_df = sa_vol_ratio_df[interaction]
             colour = list(set(c_df))
             textstr = interaction
             props = dict(boxstyle="square", facecolor="white")
@@ -403,7 +403,7 @@ class Plotting(QDialog):
 
         points, _, _ = shape.read_XYZ(xyz)
 
-        eig_sval, eig_val, eig_vec = shape.get_PCA_nn(points)
+        eig_sval, eig_val, eig_vec = shape.get_pca_nn(points)
 
         # Center = origin
         mean_x = 0
@@ -623,7 +623,7 @@ class Plotting(QDialog):
         file_dialog.setDirectory(".")
         file_dialog.setWindowTitle("Save Plot")
 
-        if file_dialog.exec_() == QDialog.Accepted:
+        if file_dialog.exec() == QDialog.Accepted:
             file_name = file_dialog.selectedFiles()[0]
             transparent = (
                 QMessageBox.question(

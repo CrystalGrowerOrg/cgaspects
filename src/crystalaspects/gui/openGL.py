@@ -21,9 +21,9 @@ from crystalaspects.utils.shape_analysis import CrystalShape
 
 
 class vis_GLWidget(QOpenGLWidget):
-    def __init__(self, parent=None):
-        self.parent = parent
-        QOpenGLWidget.__init__(self, parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.rightMouseButtonPressed = False
         self.lastMousePosition = QtCore.QPoint()
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -227,6 +227,7 @@ class vis_GLWidget(QOpenGLWidget):
             self.zoomFactor += 0.1
         else:
             self.zoomFactor -= 0.1
+        self.update()
 
         print(f"New zoom factor: {self.zoomFactor}")  # Debugging line
 

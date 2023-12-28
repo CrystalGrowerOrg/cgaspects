@@ -30,9 +30,15 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="QPushButton" name="import_pushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimumSize">
        <size>
-        <width>0</width>
+        <width>150</width>
         <height>45</height>
        </size>
       </property>
@@ -57,10 +63,10 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="11">
+    <item row="0" column="9">
      <widget class="QToolButton" name="settings_toolButton">
       <property name="text">
-       <string>...</string>
+       <string>Settings</string>
       </property>
       <property name="icon">
        <iconset resource="../../../res/qticons.qrc">
@@ -74,7 +80,53 @@
       </property>
      </widget>
     </item>
-    <item row="8" column="0" colspan="3">
+    <item row="3" column="7" rowspan="3" colspan="3">
+     <widget class="QScrollArea" name="vis_scrollArea">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>30</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents_4">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>951</width>
+         <height>754</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_4">
+        <item row="0" column="1" colspan="2">
+         <widget class="QFrame" name="main_frame">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>5</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QGridLayout" name="gl_vLayout" rowstretch="0"/>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QSlider" name="xyz_horizontalSlider">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QSpinBox" name="xyz_spinBox"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="3">
      <widget class="QTextEdit" name="output_textbox">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -97,7 +149,7 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="0" colspan="3">
+    <item row="4" column="0" colspan="3">
      <widget class="QLabel" name="console_label">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -110,71 +162,6 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Console</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="6" rowspan="6" colspan="6">
-     <widget class="QScrollArea" name="vis_scrollArea">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>5</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="widgetResizable">
-       <bool>true</bool>
-      </property>
-      <widget class="QWidget" name="scrollAreaWidgetContents_3">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>870</width>
-         <height>754</height>
-        </rect>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_4">
-        <item row="1" column="1" colspan="2">
-         <widget class="QFrame" name="main_frame">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>5</verstretch>
-           </sizepolicy>
-          </property>
-          <layout class="QGridLayout" name="gl_vLayout" rowstretch="0"/>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-    <item row="0" column="10">
-     <widget class="QPushButton" name="open_saved_pushButton">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>45</height>
-       </size>
-      </property>
-      <property name="baseSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>   View Results</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../../../res/qticons.qrc">
-        <normaloff>:/material_icons/material_icons/png/folder-arrow-right.png</normaloff>:/material_icons/material_icons/png/folder-arrow-right.png</iconset>
-      </property>
-      <property name="iconSize">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
       </property>
      </widget>
     </item>
@@ -194,8 +181,8 @@ color: rgb(255, 255, 255);</string>
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>492</width>
-         <height>550</height>
+         <width>411</width>
+         <height>574</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_12">
@@ -214,15 +201,15 @@ color: rgb(255, 255, 255);</string>
            </size>
           </property>
           <property name="currentIndex">
-           <number>5</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="batch_analysis_tab">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>468</width>
-             <height>346</height>
+             <width>429</width>
+             <height>370</height>
             </rect>
            </property>
            <attribute name="label">
@@ -269,8 +256,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>468</width>
-             <height>346</height>
+             <width>429</width>
+             <height>370</height>
             </rect>
            </property>
            <attribute name="label">
@@ -282,8 +269,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>468</width>
-             <height>346</height>
+             <width>387</width>
+             <height>370</height>
             </rect>
            </property>
            <attribute name="label">
@@ -408,8 +395,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>468</width>
-             <height>346</height>
+             <width>429</width>
+             <height>370</height>
             </rect>
            </property>
            <attribute name="label">
@@ -490,7 +477,7 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>453</width>
+             <width>414</width>
              <height>404</height>
             </rect>
            </property>
@@ -705,8 +692,8 @@ QProgressBar::chunk{
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>468</width>
-             <height>346</height>
+             <width>429</width>
+             <height>370</height>
             </rect>
            </property>
            <attribute name="label">
@@ -868,6 +855,41 @@ QProgressBar::chunk{
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item row="0" column="8">
+     <widget class="QPushButton" name="open_saved_pushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>150</width>
+        <height>45</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>   View Results</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../../../res/qticons.qrc">
+        <normaloff>:/material_icons/material_icons/png/folder-arrow-right.png</normaloff>:/material_icons/material_icons/png/folder-arrow-right.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
      </widget>
     </item>
    </layout>
