@@ -94,18 +94,19 @@ class vis_GLWidget(QOpenGLWidget):
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
-        print("XYZ cordinates passed on OpenGL widget(class)")
+        print("XYZ cordinates passed on OpenGL widget")
 
     def pass_XYZ_list(self, xyz_path_list):
         self.xyz_path_list = xyz_path_list
-        print("XYZ file paths passed to OpenGL widget")
+        print("XYZ file paths (list) passed to OpenGL widget")
 
     def get_XYZ_from_list(self, value):
-        self.sim_num = value
-        self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
-        self.initGeometry()
+        if self.sim_num != value:
+            self.sim_num = value
+            self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
+            self.initGeometry()
 
-        self.update()
+            self.update()
 
     def save_render_dialog(self):
         # Create a list of options for the dropdown menu
@@ -189,16 +190,17 @@ class vis_GLWidget(QOpenGLWidget):
         self.update()
 
     def get_point_type(self, value):
-        self.point_type = self.point_types[value]
-        print(f" Point Type: {self.point_types[value]}")
-        print(value)
-        self.initGeometry()
-        if value == 1:
-            pcd_points = self.LoadVertices()
-            self.draw_spheres(pcd_points)
-            self.initGeometry()
+        pass
+        # self.point_type = self.point_types[value]
+        # print(f" Point Type: {self.point_types[value]}")
+        # print(value)
+        # self.initGeometry()
+        # if value == 1:
+        #     pcd_points = self.LoadVertices()
+        #     self.draw_spheres(pcd_points)
+        #     self.initGeometry()
 
-        self.update()
+        # self.update()
 
     def change_point_size(self, val):
         self.point_size = val
@@ -228,8 +230,6 @@ class vis_GLWidget(QOpenGLWidget):
         else:
             self.zoomFactor -= 0.1
         self.update()
-
-        print(f"New zoom factor: {self.zoomFactor}")  # Debugging line
 
     def updateArrowModels(self, x1, y1, z1, x2, y2, z2):
         # Update the arrow models with the new coordinates
@@ -312,13 +312,9 @@ class vis_GLWidget(QOpenGLWidget):
         vArrayv = self.LoadVertices()
         vArray = vArrayv.flatten()
         self.noPoints = len(vArray) // 6
-        print("v array is: ")
-        print(vArray)
-        # print("No. of Points: %s" % self.noPoints)
         self.vbo = self.CreateBuffer(vArray)
 
         self.update()
-        """self.draw_spheres(self.LoadVertices())"""
 
     def setRotX(self, val):
         self.rotX = self.rotX + val
@@ -334,14 +330,13 @@ class vis_GLWidget(QOpenGLWidget):
     ):
         print("Loading Vertices")
         point_cloud = self.xyz
-        print(point_cloud)
-        print("Coords: ", point_cloud[:5], f"\n...(Total: {point_cloud.shape[0]})")
+        print(".XYZ shape: ", point_cloud.shape[0])
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
 
         # Loading the point cloud from file
         def vis_pc(xyz, color_axis=-1, C_Choice=self.colour_picked):
-            pcd_points = xyz[:, 3:]
+            pcd_points = xyz[:, 3:6]
             pcd_colors = None
 
             if color_axis >= 0:
@@ -362,10 +357,6 @@ class vis_GLWidget(QOpenGLWidget):
         colors = np.asarray(colors).astype("float32")
 
         attributes = np.concatenate((points, colors), axis=1)
-        print("attributes")
-        print(attributes)
-        print("attributes.flatten")
-        print(attributes.flatten())
 
         return attributes
 

@@ -141,7 +141,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
             print(xyz)
             self.xyz_list.append(xyz)
-            print(len(self.xyz_list))
+            print("LEN XYZ LIST: ", len(self.xyz_list))
             self.progressBar.setValue(int(i / n) * 100)
 
         print(f"Number of Crystals Read: {len(xyz_list)}")

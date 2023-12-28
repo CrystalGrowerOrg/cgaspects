@@ -590,9 +590,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print(value_list)
 
     def update_vis_sliders(self, value):
-        print(value)
+        print("SLIDER VALUE: ", value)
         self.fname_comboBox.setCurrentIndex(value)
-        self.frame_slider.setValue(value)
+        self.xyz_spinBox.setValue(value)
+        self.xyz_horizontalSlider.setValue(value)
 
     def insert_info(self, result):
         print("Inserting data to GUI!")
