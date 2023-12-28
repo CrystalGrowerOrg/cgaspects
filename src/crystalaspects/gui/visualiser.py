@@ -39,12 +39,11 @@ class Visualiser(Ui_MainWindow):
         self.glWidget.pass_XYZ_list(xyz_file_list)
         self.fname_comboBox.currentIndexChanged.connect(self.glWidget.get_XYZ_from_list)
         self.saveFrame_button.clicked.connect(self.glWidget.save_render_dialog)
-        self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
+
         self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.glWidget)
 
         tot_sims = len(self.xyz_file_list)
-        self.total_sims_label.setText(str(tot_sims))
 
         self.colour_list = [
             "Viridis",
@@ -139,7 +138,6 @@ class Visualiser(Ui_MainWindow):
 
         try:
             self.glWidget.initGeometry()
-            self.glWidget.updateGL()
         except AttributeError:
             print("No Crystal Data Found!")
 
