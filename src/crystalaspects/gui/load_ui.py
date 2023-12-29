@@ -35,7 +35,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         MainWindow.setFont(font)
         icon = QIcon()
-        icon.addFile(u"../../../res/icon.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/program_icon/icon.ico", QSize(), QIcon.Normal, QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.actionOpen_Simulations = QAction(MainWindow)
         self.actionOpen_Simulations.setObjectName(u"actionOpen_Simulations")
@@ -648,19 +648,19 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.scrollArea_options, 3, 0, 1, 3)
 
-        self.open_saved_pushButton = QPushButton(self.centralwidget)
-        self.open_saved_pushButton.setObjectName(u"open_saved_pushButton")
-        self.open_saved_pushButton.setEnabled(False)
-        sizePolicy.setHeightForWidth(self.open_saved_pushButton.sizePolicy().hasHeightForWidth())
-        self.open_saved_pushButton.setSizePolicy(sizePolicy)
-        self.open_saved_pushButton.setMinimumSize(QSize(150, 45))
-        self.open_saved_pushButton.setBaseSize(QSize(0, 0))
+        self.view_results_pushButton = QPushButton(self.centralwidget)
+        self.view_results_pushButton.setObjectName(u"view_results_pushButton")
+        self.view_results_pushButton.setEnabled(False)
+        sizePolicy.setHeightForWidth(self.view_results_pushButton.sizePolicy().hasHeightForWidth())
+        self.view_results_pushButton.setSizePolicy(sizePolicy)
+        self.view_results_pushButton.setMinimumSize(QSize(150, 45))
+        self.view_results_pushButton.setBaseSize(QSize(0, 0))
         icon10 = QIcon()
         icon10.addFile(u":/material_icons/material_icons/png/folder-arrow-right.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.open_saved_pushButton.setIcon(icon10)
-        self.open_saved_pushButton.setIconSize(QSize(20, 20))
+        self.view_results_pushButton.setIcon(icon10)
+        self.view_results_pushButton.setIconSize(QSize(20, 20))
 
-        self.gridLayout.addWidget(self.open_saved_pushButton, 0, 8, 1, 1)
+        self.gridLayout.addWidget(self.view_results_pushButton, 0, 8, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
@@ -778,6 +778,6 @@ class Ui_MainWindow(object):
         self.previous_button.setText(QCoreApplication.translate("MainWindow", u"   Previous", None))
         self.next_button.setText(QCoreApplication.translate("MainWindow", u"   Next", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.video_options_tab), QCoreApplication.translate("MainWindow", u"Video Options", None))
-        self.open_saved_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
+        self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
     # retranslateUi
 

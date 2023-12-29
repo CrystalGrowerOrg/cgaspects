@@ -5,18 +5,144 @@ from pathlib import Path
 from statistics import median
 import re
 
-
 import numpy as np
 import pandas as pd
 
-from crystalaspects.utils.shape_analysis import CrystalShape
+from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtCore import QObject, Signal, Slot
+
+from crystalaspects.analysis.shape_analysis import CrystalShape
+from crystalaspects.fileio.find_data  import *
+from crystalaspects.gui.aspectratio_dialog import AnalysisOptionsDialog
+from crystalaspects.visualisation.plot_data import Plotting
+from crystalaspects.visualisation.replotting import PlottingDialogue
 
 logger = logging.getLogger("crystalaspects_Logger")
 
 
 class AspectRatio:
     def __init__(self):
-        pass
+        self.output_folder = None
+
+    def calculate_aspect_ratio(self):
+        # Prompt the user to select the folder
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select Folder",
+            "./",
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+
+        # Check if the user selected a folder
+        if folder:
+            # Read the information from the selected folder
+            information = find_info(folder)
+
+            # Get the directions from the information
+            checked_directions = information.directions
+            print(checked_directions)
+
+            # Create the analysis options dialog
+            dialog = AnalysisOptionsDialog(checked_directions)
+            if dialog.exec() == QDialog.Accepted:
+                # Retrieve the selected options
+                (
+                    selected_aspect_ratio,
+                    selected_cda,
+                    selected_directions,
+                    selected_direction_aspect_ratio,
+                    auto_plotting,
+                ) = dialog.get_options()
+
+                # Display the information in a QMessageBox
+                QMessageBox.information(
+                    self,
+                    "Options",
+                    f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
+                    f"Selected CDA: {selected_cda}\n"
+                    f"Selected Directions: {selected_directions}\n"
+                    f"Selected Direction Aspect Ratio: {selected_direction_aspect_ratio}\n"
+                    f"Auto Plotting: {auto_plotting}",
+                )
+                print("selected aspect ratio:", selected_direction_aspect_ratio)
+
+                plotting = Plotting()
+                save_folder = create_aspects_folder(folder)
+                self.output_folder = save_folder
+                file_info = find_info(folder)
+                summary_file = file_info.summary_file
+                folders = file_info.folders
+
+                if selected_aspect_ratio:
+                    xyz_df = self.collect_all(folder=folder)
+                    xyz_combine = xyz_df
+                    if summary_file:
+                        xyz_df = summary_compare(
+                            summary_csv=summary_file, aspect_df=xyz_df
+                        )
+                    xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
+                    xyz_df.to_csv(xyz_df_final_csv, index=None)
+                    self.shape_number_percentage(
+                        df=xyz_df, savefolder=save_folder
+                    )
+                    plotting_csv = xyz_df_final_csv
+                    if auto_plotting is True:
+                        plotting.build_PCAZingg(
+                            csv=xyz_df_final_csv, folderpath=save_folder
+                        )
+                        plotting.plot_OBA(csv=xyz_df_final_csv, folderpath=save_folder)
+                        plotting.SAVAR_plot(
+                            csv=xyz_df_final_csv, folderpath=save_folder
+                        )
+
+                if selected_cda:
+                    cda_df = self.build_AR_CDA(
+                        folderpath=folder,
+                        folders=folders,
+                        directions=selected_directions,
+                        selected=selected_direction_aspect_ratio,
+                        savefolder=save_folder,
+                    )
+                    zn_df = self.defining_equation(
+                        directions=selected_direction_aspect_ratio,
+                        ar_df=cda_df,
+                        filepath=save_folder,
+                    )
+                    if summary_file:
+                        zn_df = summary_compare(
+                            summary_csv=summary_file, aspect_df=zn_df
+                        )
+                    zn_df_final_csv = f"{save_folder}/CDA.csv"
+                    zn_df.to_csv(zn_df_final_csv, index=None)
+                    plotting_csv = zn_df_final_csv
+                    if auto_plotting is True:
+                        plotting.Aspect_Extended_Plot(
+                            csv=zn_df_final_csv,
+                            folderpath=save_folder,
+                            selected=selected_direction_aspect_ratio,
+                        )
+                        plotting.CDA_Plot(csv=zn_df_final_csv, folderpath=save_folder)
+
+                    if selected_aspect_ratio and selected_cda:
+                        combined_df = combine_XYZ_CDA(CDA_df=zn_df, XYZ_df=xyz_combine)
+                        final_cda_xyz_csv = f"{save_folder}/crystalaspects.csv"
+                        combined_df.to_csv(final_cda_xyz_csv, index=None)
+                        # self.ShowData(final_cda_xyz)
+                        self.CDA_Shape_Percentage(
+                            df=combined_df, savefolder=save_folder
+                        )
+                        plotting_csv = final_cda_xyz_csv
+                        if auto_plotting is True:
+                            plotting.PCA_CDA_Plot(
+                                csv=final_cda_xyz_csv, folderpath=save_folder
+                            )
+                            plotting.build_CDA_OBA(
+                                csv=final_cda_xyz_csv, folderpath=save_folder
+                            )
+
+                PlottingDialogues = PlottingDialogue(self)
+                PlottingDialogues.plotting_info(csv=plotting_csv)
+                PlottingDialogues.show()
 
     def build_AR_CDA(self, folders, folderpath, savefolder, directions, selected):
         path = Path(folderpath)
@@ -254,41 +380,29 @@ class AspectRatio:
             "Volume (Vol)",
             "SA:Vol Ratio (SAVAR)",
         ]
-        shape_df = None
-        for files in Path(folder).iterdir():
-            if files.is_dir():
-                for file in files.iterdir():
-                    if file.suffix == ".XYZ":
-                        sim_num = re.findall(r"\d+", file.name)[-1]
-                        try:
-                            xyz = shape.read_XYZ(file)
-                            pca_size = shape.get_pca(xyz)  
-                            crystal_size = shape.get_oba(
-                                xyz
-                            )
-                            # Collect SAVAR data
-                            sa_vol_ratio_size = shape.get_sa_vol_ratio(xyz)
-                            sim_num_value = np.array(
-                                [[sim_num]]
-                            )  # Generate simulation number
-                            size_data = np.concatenate(
-                                (sim_num_value, crystal_size, pca_size, sa_vol_ratio_size),
-                                axis=1,
-                            )
-                            col_nums = size_data.shape[1]
-                            if shape_df is None:
-                                shape_df = np.empty((0, col_nums), np.float64)
-                            shape_df = np.append(shape_df, size_data, axis=0)
-                            # print(shape_df)
+        
+        # List for collecting data
+        data_list = []
+        # Iterate through each .XYZ file in the subdirectories of the given folder
+        for file in Path(folder).rglob("*.XYZ"):
+            sim_num = re.findall(r"\d+", file.name)[-1]
+            try:
+                shape.set_xyz(filepath=file)
+                
+                pca_size = shape.get_pca()  
+                crystal_size = shape.get_oba()
+                sa_vol_ratio_size = shape.get_sa_vol_ratio()
+                sim_num_value = np.array([[sim_num]])
+                size_data = np.concatenate((sim_num_value, crystal_size, pca_size, sa_vol_ratio_size), axis=1)
+                data_list.append(size_data)
+            except (StopIteration, UnicodeDecodeError):
+                continue
 
-                        except (StopIteration, UnicodeDecodeError):
-                            continue
-
-        if len(shape_df) > 0:
+        # Convert data to a DataFrame if not empty
+        if data_list:
+            shape_df = np.concatenate(data_list, axis=0)
             df = pd.DataFrame(shape_df, columns=col_headings)
-
-            print(df)
-            # df.to_csv(savefolder + "crystalaspects.csv", index=False)
-
-        return df
+            return df
+        else:
+            raise ValueError("Couldn't create Aspect Ratio Dataframe. Please check the XYZ files provided.")
 

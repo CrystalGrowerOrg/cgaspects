@@ -5,9 +5,21 @@ import OpenGL.GL as gl  # python wrapping of OpenGL
 import OpenGL.GLU as glu
 from matplotlib import cm
 from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
-from OpenGL.GL import (GL_COMPILE, GL_RGBA, GL_TRIANGLES, GL_UNSIGNED_BYTE,
-                       glBegin, glCallList, glEnd, glEndList, glGenLists,
-                       glGetIntegerv, glNewList, glReadPixels, glVertex3f)
+from OpenGL.GL import (
+    GL_COMPILE,
+    GL_RGBA,
+    GL_TRIANGLES,
+    GL_UNSIGNED_BYTE,
+    glBegin,
+    glCallList,
+    glEnd,
+    glEndList,
+    glGenLists,
+    glGetIntegerv,
+    glNewList,
+    glReadPixels,
+    glVertex3f,
+)
 from OpenGL.GLU import gluNewQuadric, gluSphere
 from OpenGL.GLUT import glutInit, glutSolidSphere, glutSwapBuffers
 from PIL import Image
@@ -17,7 +29,7 @@ from PySide6.QtGui import QImage
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
-from crystalaspects.utils.shape_analysis import CrystalShape
+from crystalaspects.analysis.shape_analysis import CrystalShape
 
 
 class vis_GLWidget(QOpenGLWidget):
@@ -288,7 +300,7 @@ class vis_GLWidget(QOpenGLWidget):
 
         if event.buttons() & QtCore.Qt.LeftButton:
             # Rotation logic
-            self.rotX += dy * 0.5  # Adjust these factors as needed
+            self.rotX += dy * 0.5
             self.rotY += dx * 0.5
 
         elif self.rightMouseButtonPressed:

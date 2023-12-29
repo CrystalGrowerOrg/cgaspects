@@ -1,5 +1,3 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.openGL import vis_GLWidget
 
@@ -33,7 +31,6 @@ class Visualiser(Ui_MainWindow):
             self.bgcolour_comboBox = []
 
         print(xyz_file_list)
-        
 
         # self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.openglwidget)
@@ -68,7 +65,9 @@ class Visualiser(Ui_MainWindow):
         self.bgcolour_comboBox.setCurrentIndex(1)
 
         self.colour_comboBox.currentIndexChanged.connect(self.openglwidget.get_colour)
-        self.bgcolour_comboBox.currentIndexChanged.connect(self.openglwidget.get_bg_colour)
+        self.bgcolour_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_bg_colour
+        )
         self.pointtype_comboBox.currentIndexChanged.connect(
             self.openglwidget.get_point_type
         )
@@ -78,8 +77,10 @@ class Visualiser(Ui_MainWindow):
 
         self.fname_comboBox.addItems(self.xyz_file_list)
         self.openglwidget.pass_XYZ_list(xyz_file_list)
-        self.fname_comboBox.currentIndexChanged.connect(self.openglwidget.get_XYZ_from_list)
-        self.fname_comboBox.currentIndexChanged.connect(self.update_vis_sliders)
+        self.fname_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_XYZ_from_list
+        )
+        self.fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
         self.saveFrame_button.clicked.connect(self.openglwidget.save_render_dialog)
         self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
@@ -89,13 +90,15 @@ class Visualiser(Ui_MainWindow):
         self.xyz_horizontalSlider.setMinimum(0)
         self.xyz_horizontalSlider.setMaximum(tot_sims - 1)
         self.xyz_horizontalSlider.setTickInterval(1)
-        self.xyz_horizontalSlider.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
-        self.xyz_horizontalSlider.valueChanged.connect(self.update_vis_sliders)
+        self.xyz_horizontalSlider.valueChanged.connect(
+            self.openglwidget.get_XYZ_from_list
+        )
+        self.xyz_horizontalSlider.valueChanged.connect(self.update_xyz_slider)
         self.xyz_spinBox.setMinimum(0)
         self.xyz_spinBox.setMaximum(tot_sims - 1)
         self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
-        self.xyz_spinBox.valueChanged.connect(self.update_vis_sliders)
-        self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.xyz))
+        self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
+        self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.openglwidget.xyz))
 
     def init_crystal(self, result):
         print("INIT CRYSTAL", result)
@@ -128,12 +131,11 @@ class Visualiser(Ui_MainWindow):
 
         try:
             self.openglwidget.initGeometry()
-            self.openglwidget.updateGL()
+            self.openglwidget.update()
         except AttributeError:
             print("No Crystal Data Found!")
 
-    def update_XYZ(self, XYZ_filepath):
-        self.run_xyz_movie(XYZ_filepath)
+    def update_XYZ(self):
         self.openglwidget.pass_XYZ(self.xyz)
 
         try:

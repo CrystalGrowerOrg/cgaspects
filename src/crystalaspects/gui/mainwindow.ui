@@ -23,8 +23,8 @@
    <string>CrystalAspects</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>../../../res/icon.png</normaloff>../../../res/icon.png</iconset>
+   <iconset resource="../../../res/qticons.qrc">
+    <normaloff>:/program_icon/icon.ico</normaloff>:/program_icon/icon.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -861,7 +861,7 @@ QProgressBar::chunk{
      </widget>
     </item>
     <item row="0" column="8">
-     <widget class="QPushButton" name="open_saved_pushButton">
+     <widget class="QPushButton" name="view_results_pushButton">
       <property name="enabled">
        <bool>false</bool>
       </property>
