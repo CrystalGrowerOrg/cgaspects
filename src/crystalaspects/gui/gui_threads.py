@@ -8,7 +8,7 @@ from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.fileio.find_data import *
-from crystalaspects.utils.shape_analysis import CrystalShape
+from crystalaspects.analysis.shape_analysis import CrystalShape
 
 
 class WorkerSignals(QObject):
@@ -36,46 +36,14 @@ class Worker_XYZ(QRunnable):
     def __init__(self, xyz):
         super(Worker_XYZ, self).__init__()
         # Store constructor arguments (re-used for processing)
-        self.xyz = xyz[:, 3:]
+        self.xyz = xyz
         self.signals = WorkerSignals()
+        self.shape = CrystalShape()
 
     @Slot()
     def run(self):
-        """centered = self.xyz - np.mean(self.xyz, axis=0)
-        norm = np.linalg.norm(centered, axis=1).max()
-        centered /= norm"""
-
-        pca = PCA(n_components=3)
-        pca.fit(self.xyz)
-        pca_svalues = pca.singular_values_
-
-        self.signals.progress.emit(15)
-        self.signals.message.emit("PCA Calulcated! Please wait..")
-
-        hull = ConvexHull(self.xyz)
-        vol_hull = hull.volume
-        SA_hull = hull.area
-        sa_vol = SA_hull / vol_hull
-
-        self.signals.progress.emit(50)
-        self.signals.message.emit("Surface Area and Volume done!")
-
-        small, medium, long = sorted(pca_svalues)
-
-        aspect1 = small / medium
-        aspect2 = medium / long
-
-        shape_info_tuple = namedtuple(
-            "Shape_info", "aspect1, aspect2, surface_area, volume, sa_vol"
-        )
-
-        shape_info = shape_info_tuple(
-            aspect1=aspect1,
-            aspect2=aspect2,
-            surface_area=SA_hull,
-            volume=vol_hull,
-            sa_vol=sa_vol,
-        )
+        self.shape.set_xyz(xyz_array=self.xyz)
+        shape_info = self.shape.get_all()
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit("Calculations Complete!")

@@ -10,7 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.utils.shape_analysis import CrystalShape
+from crystalaspects.analysis.shape_analysis import CrystalShape
 
 
 class create_slider(QMainWindow, Ui_MainWindow):
@@ -121,7 +121,6 @@ class create_slider(QMainWindow, Ui_MainWindow):
 
         self.progressBar.setValue(100)
         self.statusBar().showMessage("Complete: Summary file read in!")
-
 
     def get_xyz_info(self, filepath):
         with open(filepath, "r") as file:

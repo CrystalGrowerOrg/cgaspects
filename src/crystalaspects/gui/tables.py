@@ -2,10 +2,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
 # PyQt imports
-from PySide6.QtWidgets import (QAction, QApplication, QDialog, QMainWindow,
-                               QScrollArea, QTableWidget, QTableWidgetItem,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QAction,
+    QApplication,
+    QDialog,
+    QMainWindow,
+    QScrollArea,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class TableDialog(QDialog):

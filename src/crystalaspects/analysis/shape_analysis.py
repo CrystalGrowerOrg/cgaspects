@@ -16,21 +16,29 @@ class CrystalShape:
     def __init__(
         self,
     ):
-        pass
+        self.xyz = None
 
-    def get_shape_class(self, aspect1, aspect2):
-        """Creating the definition of the shape according
-        to the Zingg diagram, used by both PCA and OBA"""
-        if aspect1 <= 0.667 and aspect2 <= 0.667:
-            return "Lath"
-        elif aspect1 <= 0.667 and aspect2 >= 0.667:
-            return "Plate"
-        elif aspect1 >= 0.667 and aspect2 >= 0.667:
-            return "Block"
-        elif aspect1 >= 0.667 and aspect2 <= 0.667:
-            return "Needle"
-        else:
-            return "unknown"
+    def set_xyz(self, xyz_array=None, filepath=None):
+        
+        # Check if the xyz_array is provided and is not None
+        if xyz_array is not None:
+            xyz_vals = np.array(xyz_array)
+
+        # If a filepath is provided, read the XYZ from the file
+        if filepath:
+            xyz_vals, _, _ = self.read_XYZ(filepath=filepath)
+
+        # Error handling for no valid input
+        if xyz_vals is None:
+            raise ValueError("Provide XYZ as either an array or a filepath.")
+
+
+        if xyz_vals.shape[1] == 3:
+            xyz_vals = xyz_vals
+        if xyz_vals.shape[1] > 3:
+            xyz_vals = xyz_vals[0:, 3:6]
+
+        self.xyz = xyz_vals
 
     def _normalise_verts(self, verts):
         """Normalises xyz crystal shape output through a
@@ -96,16 +104,15 @@ class CrystalShape:
 
         return (xyz, xyz_movie, progress_num)
 
-    def get_pca(self, xyz_vals, filetype=".XYZ", n=3):
+
+    def get_pca(self, n=3):
         """Looks to obtain information on a crystal
         shape as the largest pricipal component is
         used as the longest length, second component
         the medium and the third the shortest"""
 
         pca = PCA(n_components=n)
-
-        if filetype == ".XYZ" or ".xyz":
-            pca.fit(self._normalise_verts(xyz_vals))
+        pca.fit(self._normalise_verts(self.xyz))
 
         # pca_vectors = pca.components_
         # pca_values = pca.explained_variance_ratio_
@@ -113,12 +120,12 @@ class CrystalShape:
 
         return pca_svalues
 
-    def get_sa_vol_ratio(self, xyz_vals):
+    def get_sa_vol_ratio(self):
         """Returns 3D data of a crystal shape,
         Volume:
         Surface Area:
         SA:Vol."""
-        hull = ConvexHull(xyz_vals)
+        hull = ConvexHull(self.xyz)
         vol_hull = hull.volume
         sa_hull = hull.area
         sa_vol = sa_hull / vol_hull
@@ -127,7 +134,7 @@ class CrystalShape:
 
         return sa_vol_ratio_array
 
-    def get_oba(self, coords):
+    def get_oba(self):
         """OBA - (Orthogonal Box Analysis)
         Measuring the size of the crystal from
         the coordinates collected in read_xyz_file.
@@ -135,12 +142,9 @@ class CrystalShape:
         based on the x, y and z directions
         """
 
-        # Define namedtuple for dimensions
-        result_tuple = namedtuple('Dimension', "x, y, z, aspect1, aspect2, shape")
-
         # Calculate min, max, and lengths for x, y, z coordinates
-        mins = np.min(coords, axis=0)
-        maxs = np.max(coords, axis=0)
+        mins = np.min(self.xyz, axis=0)
+        maxs = np.max(self.xyz, axis=0)
         lengths = maxs - mins
 
         # Calculate aspect ratios
@@ -151,31 +155,41 @@ class CrystalShape:
         # Determine crystal shape
         shape = self.get_shape_class(aspect1, aspect2)
 
-        
         oba_array = np.array(
             [
                 lengths[0],
                 lengths[0],
                 lengths[0],
                 aspect1,
-                aspect2
+                aspect2,
+                shape,
             ]
         )
         return oba_array
+
+    def get_shape_class(self, aspect1, aspect2):
+        """Creating the definition of the shape according
+        to the Zingg diagram, used by both PCA and OBA"""
+        if aspect1 <= 0.667 and aspect2 <= 0.667:
+            return "Lath"
+        elif aspect1 <= 0.667 and aspect2 >= 0.667:
+            return "Plate"
+        elif aspect1 >= 0.667 and aspect2 >= 0.667:
+            return "Block"
+        elif aspect1 >= 0.667 and aspect2 <= 0.667:
+            return "Needle"
+        else:
+            return "unknown"
     
-    def get_all(self, xyz_vals, n=3):
+    def get_all(self, n=3):
         """Returns both Aspect Ratio through PCA
         and Surface Area/Volume information on a
         crystal shape."""
         shape_tuple = namedtuple("shape_info", "aspect1, aspect2, sa, vol, sa_vol")
-        
-        if xyz_vals.shape[1] == 3:
-            xyz_vals = xyz_vals
-        if xyz_vals.shape[1] > 3:
-            xyz_vals = xyz_vals[0:, 3:6]
 
-        pca_svalues = self.get_pca(xyz_vals, n=n)
-        sa_hull, vol_hull, sa_vol = self.get_sa_vol_ratio(xyz_vals)
+        pca_svalues = self.get_pca(n=n)
+        sa_vol_r = self.get_sa_vol_ratio()
+        sa_hull, vol_hull, sa_vol = sa_vol_r[0][0], sa_vol_r[0][1], sa_vol_r[0][2]
         small, medium, long = sorted(pca_svalues)
 
         aspect1 = small / medium
