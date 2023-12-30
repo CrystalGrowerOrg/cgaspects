@@ -58,13 +58,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect_buttons()
         self.MenuBar()
 
-        # Other self variables
-        self.sim_num: int = None
-        self.input_folder = None
-        self.output_folder = None
-
         self.aspectratio = AspectRatio()
         self.growthrate = GrowthRate()
+
+        # Other self variables
+        self.sim_num = None
+        self.input_folder = None
+        self.output_folder = None
+        self.xyz_files = None
 
     def MenuBar(self):
         # Create a menu bar
@@ -74,14 +75,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file_menu = QMenu("File", self)
         edit_menu = QMenu("Edit", self)
         crystalaspects_menu = QMenu("CrystalAspects", self)
-        CrystalClear_menu = QMenu("CrystalClear", self)
+        crystalclear_menu = QMenu("CrystalClear", self)
         Calculations_menu = QMenu("Calculations", self)
 
         # Add menus to the menu bar
         menu_bar.addMenu(file_menu)
         menu_bar.addMenu(edit_menu)
         menu_bar.addMenu(crystalaspects_menu)
-        menu_bar.addMenu(CrystalClear_menu)
+        menu_bar.addMenu(crystalclear_menu)
 
         # Create actions for the File menu
         new_action = QAction("New", self)
@@ -139,9 +140,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         solvent_screen_action = QAction("Solvent Screening", self)
 
         # Add action and Submenu to CrystalClear menu
-        CrystalClear_menu.addAction(generate_structure_action)
-        CrystalClear_menu.addAction(generate_net_action)
-        CrystalClear_menu.addAction(solvent_screen_action)
+        crystalclear_menu.addAction(generate_structure_action)
+        crystalclear_menu.addAction(generate_net_action)
+        crystalclear_menu.addAction(solvent_screen_action)
 
         # Connect the CrystalClear actions
         generate_structure_action.triggered.connect(self.generate_structure_file)
@@ -169,8 +170,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.read_summary_vis()
         )
         self.play_button.clicked.connect(self.play_movie)
-        self.import_pushButton.clicked.connect(self.import_xyz)
+        self.import_pushButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=None))
         self.view_results_pushButton.clicked.connect(lambda: open_directory(path=self.output_folder))
+        
+        self.batch_browse_toolButton.clicked.connect(self.browse)
+        self.batch_set_pushButton.clicked.connect(self.set_batch_type)
+        self.batch_visualise_toolButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=self.input_folder))
 
     def key_shortcuts(self):
         # Close Application with Ctrl+Q or Command+Q
@@ -197,7 +202,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         message = str(message)
         log_level_method = getattr(logger, log_level.lower(), logger.debug)
         
-        if log_level_method in ["info", "warning", "error"]:
+        if log_level_method in ["info", "warning"]:
             # Update the status bar with the message
             self.statusBar().showMessage(message)
             # Update the output textbox
@@ -206,38 +211,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Log the message with given level
         log_level_method(message)
 
-    def import_xyz(self):
+    def import_and_visualise_xyz(self, folder=None):
+        imported = self.import_xyz(folder=folder)
+        if imported:
+            self.set_visualiser()
+
+    def set_visualiser(self):
+        Visualiser.initGUI(self, self.xyz_files)
+
+        # Shape analysis to determine xyz, or xyz movie
+        result = self.movie_or_single_frame(0)
+
+        # Adjust the slider range based on the number of XYZ files in the list
+        self.xyz_horizontalSlider.setRange(0, len(self.xyz_files) - 1)
+        self.xyz_horizontalSlider.setValue(0)
+        self.xyz_spinBox.setRange(0, len(self.xyz_files) - 1)
+        self.xyz_spinBox.setValue(0)
+
+        Visualiser.init_crystal(self, result)
+
+        self.select_summary_slider_button.setEnabled(True)
+
+        self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
+    
+    def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget"""
 
-        self.xyz_files = []
         self.log_message("Reading Images...", "info")
-        folder, xyz_files = read_crystals()
-        self.output_textbox.append(f"Number of Images found: {str(len(xyz_files))}\n")
-        self.log_message("Complete: Image data read in!", "info")
+        # Initialize or clear the list of XYZ files
+        self.xyz_files = []
+        # Read the .XYZ files from the selected folder
+        folder, xyz_files = read_crystals(folder)
 
-        self.folder = folder
+        # Check for valid data
+        if (folder, xyz_files) == (None, None):
+            self.log_message("Error: No valid XYZ files found in the directory.", "error")
+            return False
+
+        self.xyz_files = xyz_files  # Assuming you want to update self.xyz_files with the new list
+        self.input_folder = folder
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
-        # Check if the user opened a folder
+
         if folder:
             self.xyz_files = natsorted(xyz_files)
-
-            Visualiser.initGUI(self, self.xyz_files)
-
-            # Shape analysis to determine xyz, or xyz movie
-            result = self.movie_or_single_frame(0)
-
-            # Adjust the slider range based on the number of XYZ files in the list
-            self.xyz_horizontalSlider.setRange(0, len(xyz_files) - 1)
-            self.xyz_horizontalSlider.setValue(0)
-            self.xyz_spinBox.setRange(0, len(xyz_files) - 1)
-            self.xyz_spinBox.setValue(0)
-
-            Visualiser.init_crystal(self, result)
-
-            self.select_summary_slider_button.setEnabled(True)
-
-            self.log_message(f"{len(xyz_files)} XYZ Files Imported!", "info")
+        
+        return True
 
     def movie_or_single_frame(self, index):
         folder = self.folder
@@ -274,17 +293,62 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.log_message("Closing Application", "info")
         self.close()
 
+    def browse(self):
+        
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select Folder",
+            "./",
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+        self.batch_lineEdit.clear()
+        self.batch_lineEdit.setText(str(folder))
+
+    def set_batch_type(self):
+        folder = Path(self.batch_lineEdit.text())
+        try:
+            if folder.is_dir():
+                self.folder = folder
+                information = find_info(folder)
+                if information.directions or information.size_files:
+                    self.growth_rate_pushButton.setEnabled(True)
+                if information.directions:
+                    self.aspect_ratio_button.setEnabled(True)
+                    self.aspectratio.set_folder(folder=folder)
+                    self.aspectratio.set_information(information=information)
+                if not (information.directions or information.size_files):
+                    self.log_message(information, "error")
+                    raise FileNotFoundError("No suitable CG output file found in the selected directory.")
+                self.input_folder = Path(folder)
+
+            else:
+                raise NotADirectoryError(f"{folder} is not a valid directory.")
+
+        except (FileNotFoundError, NotADirectoryError) as e:
+
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText(
+                f"An error occurred: {e}\nPlease make sure the folder you have selected "
+                "contains CrystalGrower output from the simulation(s)."
+            )
+            msg.setWindowTitle("Error! No CrystalGrower files detected.")
+            msg.exec()
+            return (None, None)
+
     def calculate_aspect_ratio(self):
         self.aspectratio.calculate_aspect_ratio()
         if self.aspectratio.output_folder:
             self.output_folder = self.aspectratio.output_folder
-            self.view_results_pushButton.setEnabled()
+            self.view_results_pushButton.setEnabled(True)
+        if self.aspectratio.checked_directions:
+            pass
     
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
         if self.growthrate.output_folder:
             self.output_folder = self.growthrate.output_folder
-            self.view_results_pushButton.setEnabled()
+            self.view_results_pushButton.setEnabled(True)
 
     def replotting_called(self):
         csv_file, _ = QFileDialog.getOpenFileName(

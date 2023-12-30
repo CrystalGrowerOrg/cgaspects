@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="material_icons">
+    <file>material_icons/png/cube-scan.png</file>
     <file>material_icons/png/calculator-variant.png</file>
     <file>material_icons/png/chart-scatter-plot.png</file>
     <file>material_icons/png/cog.png</file>
