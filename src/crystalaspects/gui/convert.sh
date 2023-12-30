@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define file names
-UI_FILE="mainwindow.ui"
+UI_FILE="window.ui"
 RC_FILE="../../../res/qticons.qrc"
 PY_FILE="load_ui.py"
 RC_PY_FILE="qticons_rc.py"

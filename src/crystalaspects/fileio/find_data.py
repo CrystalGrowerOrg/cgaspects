@@ -1,8 +1,8 @@
 import logging
-import os
 import time
 from collections import namedtuple
 from pathlib import Path
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -12,35 +12,44 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 logger = logging.getLogger("CA:FileIO")
 
-def read_crystals():
 
+def read_crystals(xyz_folderpath=None):
+    if xyz_folderpath is None:
         xyz_folderpath = QFileDialog.getExistingDirectory(
             None, "Select Folder that contains the Crystal Outputs (.XYZ)"
         )
-        xyz_folderpath = Path(xyz_folderpath)
+    xyz_folderpath = Path(xyz_folderpath)
 
-        try:
+    crystal_xyz_list = []
+
+    try:
+        if xyz_folderpath.is_dir():
             crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
-        except Exception as exc:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText(
-                f"Please make sure the folder you have selected \
-                contains XYZ files that are from the simulation(s)\
-                \n Python Error: {repr(exc)}"
-            )
-            msg.setWindowTitle("Error! No XYZ files detected.")
-            msg.exec()
-
-        for item in crystal_xyz_list:
-            if Path(item).name.startswith("._"):
-                crystal_xyz_list.remove(item)
-
+            # Check if the list is empty
+            if not crystal_xyz_list:
+                raise FileNotFoundError("No .XYZ files found in the selected directory.")
+        else:
+            raise NotADirectoryError(f"{xyz_folderpath} is not a valid directory.")
+        
+        # Remove files that are not desired (e.g., ._DStore)
+        crystal_xyz_list = [item for item in crystal_xyz_list if not Path(item).name.startswith("._")]
+        
         crystal_xyz_list = natsorted(crystal_xyz_list)
-        print(crystal_xyz_list)
 
-        return (xyz_folderpath, crystal_xyz_list)
+    except (FileNotFoundError, NotADirectoryError) as e:
 
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(
+            f"An error occurred: {e}\nPlease make sure the folder you have selected "
+            "contains .XYZ files from the simulation(s)."
+        )
+        msg.setWindowTitle("Error! No XYZ files detected.")
+        msg.exec()
+        return (None, None)
+
+    logger.debug("%s .XYZ Files Found", len(crystal_xyz_list))
+    return (xyz_folderpath, crystal_xyz_list)
 
 def create_aspects_folder(path):
     """Creates crystalaspects folder"""
@@ -55,27 +64,21 @@ def find_info(path):
     supersations, and the size_file paths from a CG simulation folder"""
     print(path)
     path = Path(path)
-    files = os.listdir(path)
-    contents = natsorted(files)
-    folders = []
+    contents = natsorted(path.iterdir())  # Directly sort the Path objects
+    folders: List[Path] = []
     summary_file = None
     growth_mod = None
-    for item in contents:
-        item_name = item
-        item_path = path / item
-        if item.startswith("._"):
+
+    for item_path in contents:
+        if item_path.name.startswith("._"):
             continue
-        if item.endswith("summary.csv"):
+        if item_path.name.endswith("summary.csv"):
             summary_file = item_path
-        if os.path.isdir(item_path):
-            if (
-                item_name.endswith("XYZ_files")
-                or item_name.endswith("crystalaspects")
-                or item_name.endswith("CrystalMaps")
-            ):
-                continue
-            else:
-                folders.append(item_path)
+        if item_path.is_dir() and not any(
+            item_path.name.endswith(suffix) for suffix in ["XYZ_files", "CrystalAspects", "CrystalMaps"]
+        ):
+            folders.append(item_path)
+
     size_files = []
     supersats = []
     directions = []
@@ -86,18 +89,15 @@ def find_info(path):
 
     i = 0
     for folder in folders:
-        files = os.listdir(folder)
-        for f in files:
-            f_path = path / folder / f
-            f_name = f
-
+        for f_path in folder.iterdir():
+            f_name = f_path.name
+            print(f_name) if i == 0 else None
             if f_name.startswith("._"):
                 continue
             if f_name.endswith("size.csv"):
-                if os.stat(f_path).st_size == 0:
-                    growth_rates = False
-                else:
+                if f_path.stat().st_size != 0:
                     size_files.append(f_path)
+                    # Assuming growth_rates is used later
                     growth_rates = True
 
                 # directions = find_growth_directions(f_path)

@@ -1,10 +1,10 @@
 import ctypes
 
 import numpy as np
-import OpenGL.GL as gl  # python wrapping of OpenGL
+import OpenGL.GL as gl
 import OpenGL.GLU as glu
 from matplotlib import cm
-from OpenGL import GLU  # OpenGL Utility Library, extends OpenGL functionality
+from OpenGL import GLU
 from OpenGL.GL import (
     GL_COMPILE,
     GL_RGBA,
@@ -25,7 +25,7 @@ from OpenGL.GLUT import glutInit, glutSolidSphere, glutSwapBuffers
 from PIL import Image
 from PySide6 import QtCore, QtGui, QtOpenGL
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage
+from PySide6.QtGui import QImage, QColor
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
@@ -56,7 +56,7 @@ class vis_GLWidget(QOpenGLWidget):
         self.colour_type = 2
 
         self.point_size = 6.0
-        self.bg_colours = ["#FFFFFF", "#000000", "#00000000"]
+        self.bg_colours = ["#FFFFFF", "#000000", "#000000"]
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
         self.texture = None
@@ -64,10 +64,6 @@ class vis_GLWidget(QOpenGLWidget):
         self.num_vertices = 8
 
         self.lattice_parameters = None
-
-        """self.x_arrow_model = self.createArrow()
-        self.y_arrow_model = self.createArrow()
-        self.z_arrow_model = self.createArrow()"""
 
         self.cm_colourList = [
             cm.viridis,
@@ -189,9 +185,16 @@ class vis_GLWidget(QOpenGLWidget):
 
     def get_bg_colour(self, value):
         self.bg_colour = self.bg_colours[value]
-        print(f" Background Colour: {self.bg_colour}")
-        self.qglClearColor(QtGui.QColor(self.bg_colour))
+        print(f"Background Colour: {self.bg_colour}")
+        # Set alpha based on value
+        a = 1.0 if value == 2 else 0.0
 
+        # Ensure that the color is a valid color
+        color = QColor(self.bg_colour)
+        if not color.isValid():
+            print("Error: Invalid color code")
+            return
+        gl.glClearColor(color.redF(), color.greenF(), color.blueF(), a)
         self.update()
 
     def get_colour_type(self, value):
@@ -221,7 +224,6 @@ class vis_GLWidget(QOpenGLWidget):
         self.update()
 
     def zoomGL(self, val):
-        print("zoom Factor", val)
         self.zoomFactor = val
 
         self.update()
@@ -377,14 +379,6 @@ class vis_GLWidget(QOpenGLWidget):
         glu.gluQuadricNormals(quad, glu.GLU_SMOOTH)
         glu.gluQuadricTexture(quad, gl.GL_TRUE)
         glu.gluSphere(quad, radius, num_subdiv, num_subdiv)
-
-    def PointCloud(self):
-        point_cloud = self.xyz
-        points = point_cloud[:, 3:]
-
-        return points
-
-        # Drawing spheres
 
     def draw_spheres(self, points):
         print("Draw Spheres")

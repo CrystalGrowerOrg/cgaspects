@@ -22,28 +22,42 @@ logger = logging.getLogger("crystalaspects_Logger")
 
 class AspectRatio:
     def __init__(self):
+        self.input_folder = None
         self.output_folder = None
+        self.checked_directions = None
+        self.information = None
+
+    def set_folder(self, folder):
+        self.input_folder = Path(folder)
+        logger.info("Folder set for aspect ratio calculations")
+    
+    def set_information(self, information):
+        self.information = information
+        logger.info("Information set for aspect ratio calculations")
 
     def calculate_aspect_ratio(self):
-        # Prompt the user to select the folder
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Select Folder",
-            "./",
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
-        )
-
+        logger.debug(
+            "Attempting to calculate aspect rations from directory: %s",
+            self.input_folder        
+            )
         # Check if the user selected a folder
-        if folder:
-            # Read the information from the selected folder
-            information = find_info(folder)
+        if self.input_folder:
+            if self.information is None:
+                logger.warning("Method called without information, looking for information now.")
+                # Read the information from the selected folder
+                self.information = find_info(self.input_folder)
+            logger.info("Calculationg Aspect Ratios...")
+
+            """Future Note: The follwing renders the 
+            dataprocessor unable to process just XYZ files
+            in the envent no *simulation_parameters.txt files are not present"""
 
             # Get the directions from the information
-            checked_directions = information.directions
-            print(checked_directions)
+            self.checked_directions = self.information.directions
+            print(self.checked_directions)
 
             # Create the analysis options dialog
-            dialog = AnalysisOptionsDialog(checked_directions)
+            dialog = AnalysisOptionsDialog(self.checked_directions)
             if dialog.exec() == QDialog.Accepted:
                 # Retrieve the selected options
                 (
@@ -67,14 +81,14 @@ class AspectRatio:
                 print("selected aspect ratio:", selected_direction_aspect_ratio)
 
                 plotting = Plotting()
-                save_folder = create_aspects_folder(folder)
+                save_folder = create_aspects_folder(self.input_folder)
                 self.output_folder = save_folder
-                file_info = find_info(folder)
+                file_info = find_info(self.input_folder)
                 summary_file = file_info.summary_file
                 folders = file_info.folders
 
                 if selected_aspect_ratio:
-                    xyz_df = self.collect_all(folder=folder)
+                    xyz_df = self.collect_all(folder=self.input_folder)
                     xyz_combine = xyz_df
                     if summary_file:
                         xyz_df = summary_compare(
@@ -97,7 +111,7 @@ class AspectRatio:
 
                 if selected_cda:
                     cda_df = self.build_AR_CDA(
-                        folderpath=folder,
+                        folderpath=self.input_folder,
                         folders=folders,
                         directions=selected_directions,
                         selected=selected_direction_aspect_ratio,

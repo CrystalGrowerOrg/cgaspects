@@ -20,21 +20,26 @@ class Visualiser(Ui_MainWindow):
         if self.gl_vLayout.count() > 0:
             # Get the item at index 0 (the first and only widget in this case)
             widget_item = self.gl_vLayout.itemAt(0)
-            # Remove the widget from the layout
-            self.gl_vLayout.removeWidget(widget_item.widget())
-            # Delete the widget
-            widget_item.widget().deleteLater()
-            # Clear all lists
-            self.colour_list = []
-            self.colourmode_comboBox = []
-            self.pointtype_comboBox = []
-            self.bgcolour_comboBox = []
+            # Check if the widget_item is valid
+            if widget_item:
+                widget = widget_item.widget()
+                # Check if the widget is valid
+                if widget:
+                    # Remove the widget from the layout
+                    self.gl_vLayout.removeWidget(widget)
+                    # Delete the widget
+                    widget.deleteLater()
+
+        # Clear all lists
+        self.colour_list = []
+        self.colourmode_comboBox.clear()
+        self.pointtype_comboBox.clear()
+        self.bgcolour_comboBox.clear()
 
         print(xyz_file_list)
 
         # self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.openglwidget)
-
         tot_sims = len(self.xyz_file_list)
 
         self.colour_list = [

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'mainwindow.ui'
+## Form generated from reading UI file 'window.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.6.1
 ##
@@ -17,11 +17,11 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QLayout, QMainWindow,
-    QProgressBar, QPushButton, QScrollArea, QSizePolicy,
-    QSlider, QSpacerItem, QSpinBox, QStatusBar,
-    QTextEdit, QToolBox, QToolButton, QVBoxLayout,
-    QWidget)
+    QHBoxLayout, QLabel, QLayout, QLineEdit,
+    QMainWindow, QProgressBar, QPushButton, QScrollArea,
+    QSizePolicy, QSlider, QSpacerItem, QSpinBox,
+    QStatusBar, QTextEdit, QToolBox, QToolButton,
+    QVBoxLayout, QWidget)
 from crystalaspects.gui import qticons_rc
 
 class Ui_MainWindow(object):
@@ -172,12 +172,26 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.import_pushButton, 0, 0, 1, 1)
 
+        self.view_results_pushButton = QPushButton(self.centralwidget)
+        self.view_results_pushButton.setObjectName(u"view_results_pushButton")
+        self.view_results_pushButton.setEnabled(False)
+        sizePolicy.setHeightForWidth(self.view_results_pushButton.sizePolicy().hasHeightForWidth())
+        self.view_results_pushButton.setSizePolicy(sizePolicy)
+        self.view_results_pushButton.setMinimumSize(QSize(150, 45))
+        self.view_results_pushButton.setBaseSize(QSize(0, 0))
+        icon2 = QIcon()
+        icon2.addFile(u":/material_icons/material_icons/png/folder-arrow-right.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.view_results_pushButton.setIcon(icon2)
+        self.view_results_pushButton.setIconSize(QSize(20, 20))
+
+        self.gridLayout.addWidget(self.view_results_pushButton, 0, 8, 1, 1)
+
         self.settings_toolButton = QToolButton(self.centralwidget)
         self.settings_toolButton.setObjectName(u"settings_toolButton")
         self.settings_toolButton.setEnabled(False)
-        icon2 = QIcon()
-        icon2.addFile(u":/material_icons/material_icons/png/cog.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.settings_toolButton.setIcon(icon2)
+        icon3 = QIcon()
+        icon3.addFile(u":/material_icons/material_icons/png/cog.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.settings_toolButton.setIcon(icon3)
         self.settings_toolButton.setIconSize(QSize(20, 20))
 
         self.gridLayout.addWidget(self.settings_toolButton, 0, 9, 1, 1)
@@ -273,9 +287,69 @@ class Ui_MainWindow(object):
         self.batch_analysis_tab.setGeometry(QRect(0, 0, 387, 370))
         self.gridLayout_6 = QGridLayout(self.batch_analysis_tab)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.gridLayout_8 = QGridLayout()
+        self.gridLayout_8.setObjectName(u"gridLayout_8")
+        self.batch_browse_toolButton = QToolButton(self.batch_analysis_tab)
+        self.batch_browse_toolButton.setObjectName(u"batch_browse_toolButton")
+        self.batch_browse_toolButton.setMinimumSize(QSize(30, 30))
+        icon4 = QIcon()
+        icon4.addFile(u":/material_icons/material_icons/png/folder-open.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.batch_browse_toolButton.setIcon(icon4)
 
-        self.gridLayout_6.addItem(self.verticalSpacer_3, 1, 0, 1, 1)
+        self.gridLayout_8.addWidget(self.batch_browse_toolButton, 0, 2, 1, 1)
+
+        self.batch_lineEdit = QLineEdit(self.batch_analysis_tab)
+        self.batch_lineEdit.setObjectName(u"batch_lineEdit")
+        sizePolicy7 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy7.setHorizontalStretch(5)
+        sizePolicy7.setVerticalStretch(0)
+        sizePolicy7.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
+        self.batch_lineEdit.setSizePolicy(sizePolicy7)
+        self.batch_lineEdit.setMinimumSize(QSize(0, 30))
+
+        self.gridLayout_8.addWidget(self.batch_lineEdit, 0, 1, 1, 1)
+
+        self.batch_label = QLabel(self.batch_analysis_tab)
+        self.batch_label.setObjectName(u"batch_label")
+
+        self.gridLayout_8.addWidget(self.batch_label, 0, 0, 1, 1)
+
+        self.batch_set_pushButton = QPushButton(self.batch_analysis_tab)
+        self.batch_set_pushButton.setObjectName(u"batch_set_pushButton")
+        self.batch_set_pushButton.setMinimumSize(QSize(0, 42))
+
+        self.gridLayout_8.addWidget(self.batch_set_pushButton, 1, 1, 1, 1)
+
+        self.batch_visualise_toolButton = QToolButton(self.batch_analysis_tab)
+        self.batch_visualise_toolButton.setObjectName(u"batch_visualise_toolButton")
+        self.batch_visualise_toolButton.setMinimumSize(QSize(30, 30))
+        icon5 = QIcon()
+        icon5.addFile(u":/material_icons/material_icons/png/cube-scan.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.batch_visualise_toolButton.setIcon(icon5)
+
+        self.gridLayout_8.addWidget(self.batch_visualise_toolButton, 1, 2, 1, 1)
+
+
+        self.gridLayout_6.addLayout(self.gridLayout_8, 0, 0, 1, 1)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.aspect_ratio_button = QPushButton(self.batch_analysis_tab)
+        self.aspect_ratio_button.setObjectName(u"aspect_ratio_button")
+        self.aspect_ratio_button.setEnabled(False)
+        self.aspect_ratio_button.setMinimumSize(QSize(180, 110))
+
+        self.horizontalLayout_2.addWidget(self.aspect_ratio_button)
+
+        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
+        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
+        self.growth_rate_pushButton.setEnabled(False)
+        self.growth_rate_pushButton.setMinimumSize(QSize(180, 110))
+
+        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
+
+
+        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
 
         self.progressBar = QProgressBar(self.batch_analysis_tab)
         self.progressBar.setObjectName(u"progressBar")
@@ -292,7 +366,7 @@ class Ui_MainWindow(object):
 "}")
         self.progressBar.setValue(0)
 
-        self.gridLayout_6.addWidget(self.progressBar, 2, 0, 1, 3)
+        self.gridLayout_6.addWidget(self.progressBar, 13, 0, 1, 1)
 
         self.main_toolBox.addItem(self.batch_analysis_tab, u"Batch Analysis")
         self.plotting_tab = QWidget()
@@ -327,11 +401,11 @@ class Ui_MainWindow(object):
 
         self.show_info_button = QPushButton(self.crystal_info_tab)
         self.show_info_button.setObjectName(u"show_info_button")
-        sizePolicy7 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy7.setHorizontalStretch(1)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.show_info_button.sizePolicy().hasHeightForWidth())
-        self.show_info_button.setSizePolicy(sizePolicy7)
+        sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy8.setHorizontalStretch(1)
+        sizePolicy8.setVerticalStretch(0)
+        sizePolicy8.setHeightForWidth(self.show_info_button.sizePolicy().hasHeightForWidth())
+        self.show_info_button.setSizePolicy(sizePolicy8)
         self.show_info_button.setMinimumSize(QSize(200, 0))
 
         self.gridLayout_2.addWidget(self.show_info_button, 1, 0, 1, 1)
@@ -350,21 +424,21 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.fname_label = QLabel(self.crystal_info_tab)
         self.fname_label.setObjectName(u"fname_label")
-        sizePolicy8 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy8.setHorizontalStretch(1)
-        sizePolicy8.setVerticalStretch(0)
-        sizePolicy8.setHeightForWidth(self.fname_label.sizePolicy().hasHeightForWidth())
-        self.fname_label.setSizePolicy(sizePolicy8)
+        sizePolicy9 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy9.setHorizontalStretch(1)
+        sizePolicy9.setVerticalStretch(0)
+        sizePolicy9.setHeightForWidth(self.fname_label.sizePolicy().hasHeightForWidth())
+        self.fname_label.setSizePolicy(sizePolicy9)
 
         self.horizontalLayout.addWidget(self.fname_label)
 
         self.fname_comboBox = QComboBox(self.crystal_info_tab)
         self.fname_comboBox.setObjectName(u"fname_comboBox")
-        sizePolicy9 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy9.setHorizontalStretch(3)
-        sizePolicy9.setVerticalStretch(1)
-        sizePolicy9.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
-        self.fname_comboBox.setSizePolicy(sizePolicy9)
+        sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy10.setHorizontalStretch(3)
+        sizePolicy10.setVerticalStretch(1)
+        sizePolicy10.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
+        self.fname_comboBox.setSizePolicy(sizePolicy10)
         self.fname_comboBox.setMinimumSize(QSize(200, 0))
 
         self.horizontalLayout.addWidget(self.fname_comboBox)
@@ -402,11 +476,11 @@ class Ui_MainWindow(object):
         self.select_summary_slider_button = QPushButton(self.variables_tab)
         self.select_summary_slider_button.setObjectName(u"select_summary_slider_button")
         self.select_summary_slider_button.setEnabled(False)
-        sizePolicy10 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy10.setHorizontalStretch(0)
-        sizePolicy10.setVerticalStretch(1)
-        sizePolicy10.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
-        self.select_summary_slider_button.setSizePolicy(sizePolicy10)
+        sizePolicy11 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy11.setHorizontalStretch(0)
+        sizePolicy11.setVerticalStretch(1)
+        sizePolicy11.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
+        self.select_summary_slider_button.setSizePolicy(sizePolicy11)
         self.select_summary_slider_button.setMinimumSize(QSize(200, 0))
         self.select_summary_slider_button.setFont(font1)
 
@@ -430,9 +504,9 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.saveFrame_button = QPushButton(self.vis_options_tab)
         self.saveFrame_button.setObjectName(u"saveFrame_button")
-        icon3 = QIcon()
-        icon3.addFile(u":/material_icons/material_icons/png/content-save.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.saveFrame_button.setIcon(icon3)
+        icon6 = QIcon()
+        icon6.addFile(u":/material_icons/material_icons/png/content-save.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.saveFrame_button.setIcon(icon6)
 
         self.verticalLayout.addWidget(self.saveFrame_button)
 
@@ -451,11 +525,11 @@ class Ui_MainWindow(object):
 
         self.zoom_slider = QSlider(self.vis_options_tab)
         self.zoom_slider.setObjectName(u"zoom_slider")
-        sizePolicy11 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy11.setHorizontalStretch(0)
-        sizePolicy11.setVerticalStretch(0)
-        sizePolicy11.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
-        self.zoom_slider.setSizePolicy(sizePolicy11)
+        sizePolicy12 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy12.setHorizontalStretch(0)
+        sizePolicy12.setVerticalStretch(0)
+        sizePolicy12.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
+        self.zoom_slider.setSizePolicy(sizePolicy12)
         font2 = QFont()
         font2.setFamilies([u"Arial"])
         font2.setPointSize(8)
@@ -562,27 +636,27 @@ class Ui_MainWindow(object):
         self.pause_button = QPushButton(self.video_options_tab)
         self.pause_button.setObjectName(u"pause_button")
         self.pause_button.setMinimumSize(QSize(0, 45))
-        icon4 = QIcon()
-        icon4.addFile(u":/material_icons/material_icons/png/pause-box.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.pause_button.setIcon(icon4)
+        icon7 = QIcon()
+        icon7.addFile(u":/material_icons/material_icons/png/pause-box.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.pause_button.setIcon(icon7)
 
         self.gridLayout_11.addWidget(self.pause_button, 2, 1, 1, 1)
 
         self.end_simvis_button = QPushButton(self.video_options_tab)
         self.end_simvis_button.setObjectName(u"end_simvis_button")
         self.end_simvis_button.setMinimumSize(QSize(0, 45))
-        icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/step-forward-2.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.end_simvis_button.setIcon(icon5)
+        icon8 = QIcon()
+        icon8.addFile(u":/material_icons/material_icons/png/step-forward-2.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.end_simvis_button.setIcon(icon8)
 
         self.gridLayout_11.addWidget(self.end_simvis_button, 13, 1, 1, 1)
 
         self.play_button = QPushButton(self.video_options_tab)
         self.play_button.setObjectName(u"play_button")
         self.play_button.setMinimumSize(QSize(0, 45))
-        icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/play-box.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.play_button.setIcon(icon6)
+        icon9 = QIcon()
+        icon9.addFile(u":/material_icons/material_icons/png/play-box.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.play_button.setIcon(icon9)
 
         self.gridLayout_11.addWidget(self.play_button, 2, 0, 1, 1)
 
@@ -611,9 +685,9 @@ class Ui_MainWindow(object):
         self.start_simvis_button = QPushButton(self.video_options_tab)
         self.start_simvis_button.setObjectName(u"start_simvis_button")
         self.start_simvis_button.setMinimumSize(QSize(0, 45))
-        icon7 = QIcon()
-        icon7.addFile(u":/material_icons/material_icons/png/step-backward-2.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.start_simvis_button.setIcon(icon7)
+        icon10 = QIcon()
+        icon10.addFile(u":/material_icons/material_icons/png/step-backward-2.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.start_simvis_button.setIcon(icon10)
 
         self.gridLayout_11.addWidget(self.start_simvis_button, 13, 0, 1, 1)
 
@@ -625,42 +699,28 @@ class Ui_MainWindow(object):
         self.previous_button = QPushButton(self.video_options_tab)
         self.previous_button.setObjectName(u"previous_button")
         self.previous_button.setMinimumSize(QSize(0, 40))
-        icon8 = QIcon()
-        icon8.addFile(u":/material_icons/material_icons/png/step-backward.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.previous_button.setIcon(icon8)
+        icon11 = QIcon()
+        icon11.addFile(u":/material_icons/material_icons/png/step-backward.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.previous_button.setIcon(icon11)
 
         self.gridLayout_11.addWidget(self.previous_button, 4, 0, 1, 1)
 
         self.next_button = QPushButton(self.video_options_tab)
         self.next_button.setObjectName(u"next_button")
         self.next_button.setMinimumSize(QSize(0, 45))
-        icon9 = QIcon()
-        icon9.addFile(u":/material_icons/material_icons/png/step-forward.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.next_button.setIcon(icon9)
+        icon12 = QIcon()
+        icon12.addFile(u":/material_icons/material_icons/png/step-forward.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.next_button.setIcon(icon12)
 
         self.gridLayout_11.addWidget(self.next_button, 4, 1, 1, 1)
 
         self.main_toolBox.addItem(self.video_options_tab, u"Video Options")
 
-        self.gridLayout_12.addWidget(self.main_toolBox, 1, 0, 1, 1)
+        self.gridLayout_12.addWidget(self.main_toolBox, 0, 1, 1, 1)
 
         self.scrollArea_options.setWidget(self.scrollAreaWidgetContents_5)
 
         self.gridLayout.addWidget(self.scrollArea_options, 3, 0, 1, 3)
-
-        self.view_results_pushButton = QPushButton(self.centralwidget)
-        self.view_results_pushButton.setObjectName(u"view_results_pushButton")
-        self.view_results_pushButton.setEnabled(False)
-        sizePolicy.setHeightForWidth(self.view_results_pushButton.sizePolicy().hasHeightForWidth())
-        self.view_results_pushButton.setSizePolicy(sizePolicy)
-        self.view_results_pushButton.setMinimumSize(QSize(150, 45))
-        self.view_results_pushButton.setBaseSize(QSize(0, 0))
-        icon10 = QIcon()
-        icon10.addFile(u":/material_icons/material_icons/png/folder-arrow-right.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.view_results_pushButton.setIcon(icon10)
-        self.view_results_pushButton.setIconSize(QSize(20, 20))
-
-        self.gridLayout.addWidget(self.view_results_pushButton, 0, 8, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
@@ -675,7 +735,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.main_toolBox.setCurrentIndex(2)
+        self.main_toolBox.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -741,8 +801,15 @@ class Ui_MainWindow(object):
         self.action2_3.setText(QCoreApplication.translate("MainWindow", u"2", None))
         self.action3_3.setText(QCoreApplication.translate("MainWindow", u"3", None))
         self.import_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Import", None))
+        self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
         self.settings_toolButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.console_label.setText(QCoreApplication.translate("MainWindow", u"Console", None))
+        self.batch_browse_toolButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
+        self.batch_label.setText(QCoreApplication.translate("MainWindow", u"Folder: ", None))
+        self.batch_set_pushButton.setText(QCoreApplication.translate("MainWindow", u"Set", None))
+        self.batch_visualise_toolButton.setText(QCoreApplication.translate("MainWindow", u"View", None))
+        self.aspect_ratio_button.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
+        self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.batch_analysis_tab), QCoreApplication.translate("MainWindow", u"Batch Analysis", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.plotting_tab), QCoreApplication.translate("MainWindow", u"Plotting", None))
         self.ml_label.setText(QCoreApplication.translate("MainWindow", u"Medium/Long:", None))
@@ -778,6 +845,5 @@ class Ui_MainWindow(object):
         self.previous_button.setText(QCoreApplication.translate("MainWindow", u"   Previous", None))
         self.next_button.setText(QCoreApplication.translate("MainWindow", u"   Next", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.video_options_tab), QCoreApplication.translate("MainWindow", u"Video Options", None))
-        self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
     # retranslateUi
 
