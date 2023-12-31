@@ -1,7 +1,7 @@
 [project]
 name = "crystalaspects"
 version = "0.7.0"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 description = "A CrsytalGrower Data Processing tool with PySide6 GUI"
 
 authors = [
@@ -56,3 +56,22 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra --doctest-modules --doctest-ignore-import-errors"
+testpaths = [
+    "src/crystalaspects/tests/pytests"
+]
+python_files = "test*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+log_level = "DEBUG"
+norecursedirs = [
+    "docs",
+    "res",
+    "*.egg-info",
+    ".git",
+    ".tox"
+]
+filterwarnings = "ignore::DeprecationWarning"

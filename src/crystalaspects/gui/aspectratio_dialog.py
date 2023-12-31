@@ -51,7 +51,8 @@ class AnalysisOptionsDialog(QDialog):
 
         for direction in directions:
             checkbox = QCheckBox(direction)
-            checkbox.setEnabled(False)  # Initially disable all direction checkboxes
+            # Initially disable all direction checkboxes
+            checkbox.setEnabled(False)
             layout.addWidget(checkbox)
             self.checkboxes.append(checkbox)
 
@@ -59,7 +60,8 @@ class AnalysisOptionsDialog(QDialog):
 
         for i in range(3):
             combo_box = QComboBox()
-            combo_box.setEnabled(False)  # Initially disable all combo boxes
+            combo_box.setEnabled(False)
+            # Initially disable all comboboxes
             combo_box.addItem("Select Direction")
             direction_layout.addWidget(combo_box)
             self.combo_boxes.append(combo_box)

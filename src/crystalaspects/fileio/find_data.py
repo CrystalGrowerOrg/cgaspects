@@ -91,7 +91,6 @@ def find_info(path):
     for folder in folders:
         for f_path in folder.iterdir():
             f_name = f_path.name
-            print(f_name) if i == 0 else None
             if f_name.startswith("._"):
                 continue
             if f_name.endswith("size.csv"):

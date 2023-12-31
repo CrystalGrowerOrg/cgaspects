@@ -176,6 +176,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.batch_browse_toolButton.clicked.connect(self.browse)
         self.batch_set_pushButton.clicked.connect(self.set_batch_type)
         self.batch_visualise_toolButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=self.input_folder))
+        self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
+        self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
     def key_shortcuts(self):
         # Close Application with Ctrl+Q or Command+Q
@@ -187,7 +189,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Import XYZ file with Ctrl+I
         import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
-        import_xyz_shortcut.activated.connect(self.import_xyz)
+        import_xyz_shortcut.activated.connect(lambda: self.import_and_visualise_xyz(folder=None))
         # Open results folder with Ctrl+O
         self.view_results = QShortcut(QKeySequence("Ctrl+O"), self)
         self.view_results.activated.connect(lambda: open_directory(path=self.output_folder) if self.output_folder else None)
@@ -251,6 +253,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.xyz_files = xyz_files  # Assuming you want to update self.xyz_files with the new list
         self.input_folder = folder
+        self.batch_lineEdit.setText(str(self.input_folder))
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
         if folder:
@@ -259,7 +262,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     def movie_or_single_frame(self, index):
-        folder = self.folder
+        folder = self.input_folder
         if 0 <= index < len(self.xyz_files):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
@@ -294,26 +297,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close()
 
     def browse(self):
-        
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Select Folder",
-            "./",
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
-        )
-        self.batch_lineEdit.clear()
-        self.batch_lineEdit.setText(str(folder))
+        try:
+            # Attempt to get the directory from the file dialog
+            folder = QFileDialog.getExistingDirectory(
+                self,
+                "Select Folder",
+                "./",
+                QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+            )
+            
+            # Check if the folder selection was canceled or empty and handle appropriately
+            if folder:
+                self.batch_lineEdit.clear()
+                self.batch_lineEdit.setText(str(folder))
+            else:
+                # Handle the case where no folder was selected
+                self.log_message("Folder selection was canceled or no folder was selected.", "error")
+
+        # Note: Bare Exception
+        except Exception as e:
+            self.log_message(f"An error occurred: {e}", "error")
 
     def set_batch_type(self):
         folder = Path(self.batch_lineEdit.text())
         try:
             if folder.is_dir():
-                self.folder = folder
+                self.input_folder = folder
                 information = find_info(folder)
                 if information.directions or information.size_files:
                     self.growth_rate_pushButton.setEnabled(True)
                 if information.directions:
-                    self.aspect_ratio_button.setEnabled(True)
+                    self.aspect_ratio_pushButton.setEnabled(True)
                     self.aspectratio.set_folder(folder=folder)
                     self.aspectratio.set_information(information=information)
                 if not (information.directions or information.size_files):

@@ -287,6 +287,33 @@ class Ui_MainWindow(object):
         self.batch_analysis_tab.setGeometry(QRect(0, 0, 387, 370))
         self.gridLayout_6 = QGridLayout(self.batch_analysis_tab)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.aspect_ratio_pushButton = QPushButton(self.batch_analysis_tab)
+        self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
+        self.aspect_ratio_pushButton.setEnabled(False)
+        sizePolicy7 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy7.setHorizontalStretch(0)
+        sizePolicy7.setVerticalStretch(0)
+        sizePolicy7.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
+        self.aspect_ratio_pushButton.setSizePolicy(sizePolicy7)
+        self.aspect_ratio_pushButton.setMinimumSize(QSize(162, 100))
+
+        self.horizontalLayout_2.addWidget(self.aspect_ratio_pushButton)
+
+        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
+        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
+        self.growth_rate_pushButton.setEnabled(False)
+        sizePolicy7.setHeightForWidth(self.growth_rate_pushButton.sizePolicy().hasHeightForWidth())
+        self.growth_rate_pushButton.setSizePolicy(sizePolicy7)
+        self.growth_rate_pushButton.setMinimumSize(QSize(162, 100))
+        self.growth_rate_pushButton.setIconSize(QSize(16, 16))
+
+        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
+
+
+        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
+
         self.gridLayout_8 = QGridLayout()
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.batch_browse_toolButton = QToolButton(self.batch_analysis_tab)
@@ -295,16 +322,17 @@ class Ui_MainWindow(object):
         icon4 = QIcon()
         icon4.addFile(u":/material_icons/material_icons/png/folder-open.png", QSize(), QIcon.Normal, QIcon.Off)
         self.batch_browse_toolButton.setIcon(icon4)
+        self.batch_browse_toolButton.setIconSize(QSize(20, 20))
 
-        self.gridLayout_8.addWidget(self.batch_browse_toolButton, 0, 2, 1, 1)
+        self.gridLayout_8.addWidget(self.batch_browse_toolButton, 0, 2, 1, 1, Qt.AlignHCenter)
 
         self.batch_lineEdit = QLineEdit(self.batch_analysis_tab)
         self.batch_lineEdit.setObjectName(u"batch_lineEdit")
-        sizePolicy7 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy7.setHorizontalStretch(5)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
-        self.batch_lineEdit.setSizePolicy(sizePolicy7)
+        sizePolicy8 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy8.setHorizontalStretch(5)
+        sizePolicy8.setVerticalStretch(0)
+        sizePolicy8.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
+        self.batch_lineEdit.setSizePolicy(sizePolicy8)
         self.batch_lineEdit.setMinimumSize(QSize(0, 30))
 
         self.gridLayout_8.addWidget(self.batch_lineEdit, 0, 1, 1, 1)
@@ -314,42 +342,24 @@ class Ui_MainWindow(object):
 
         self.gridLayout_8.addWidget(self.batch_label, 0, 0, 1, 1)
 
-        self.batch_set_pushButton = QPushButton(self.batch_analysis_tab)
-        self.batch_set_pushButton.setObjectName(u"batch_set_pushButton")
-        self.batch_set_pushButton.setMinimumSize(QSize(0, 42))
-
-        self.gridLayout_8.addWidget(self.batch_set_pushButton, 1, 1, 1, 1)
-
         self.batch_visualise_toolButton = QToolButton(self.batch_analysis_tab)
         self.batch_visualise_toolButton.setObjectName(u"batch_visualise_toolButton")
         self.batch_visualise_toolButton.setMinimumSize(QSize(30, 30))
         icon5 = QIcon()
         icon5.addFile(u":/material_icons/material_icons/png/cube-scan.png", QSize(), QIcon.Normal, QIcon.Off)
         self.batch_visualise_toolButton.setIcon(icon5)
+        self.batch_visualise_toolButton.setIconSize(QSize(30, 30))
 
-        self.gridLayout_8.addWidget(self.batch_visualise_toolButton, 1, 2, 1, 1)
+        self.gridLayout_8.addWidget(self.batch_visualise_toolButton, 1, 2, 1, 1, Qt.AlignHCenter)
+
+        self.batch_set_pushButton = QPushButton(self.batch_analysis_tab)
+        self.batch_set_pushButton.setObjectName(u"batch_set_pushButton")
+        self.batch_set_pushButton.setMinimumSize(QSize(0, 42))
+
+        self.gridLayout_8.addWidget(self.batch_set_pushButton, 1, 1, 1, 1)
 
 
         self.gridLayout_6.addLayout(self.gridLayout_8, 0, 0, 1, 1)
-
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.aspect_ratio_button = QPushButton(self.batch_analysis_tab)
-        self.aspect_ratio_button.setObjectName(u"aspect_ratio_button")
-        self.aspect_ratio_button.setEnabled(False)
-        self.aspect_ratio_button.setMinimumSize(QSize(180, 110))
-
-        self.horizontalLayout_2.addWidget(self.aspect_ratio_button)
-
-        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
-        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
-        self.growth_rate_pushButton.setEnabled(False)
-        self.growth_rate_pushButton.setMinimumSize(QSize(180, 110))
-
-        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
-
-
-        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
 
         self.progressBar = QProgressBar(self.batch_analysis_tab)
         self.progressBar.setObjectName(u"progressBar")
@@ -401,11 +411,11 @@ class Ui_MainWindow(object):
 
         self.show_info_button = QPushButton(self.crystal_info_tab)
         self.show_info_button.setObjectName(u"show_info_button")
-        sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy8.setHorizontalStretch(1)
-        sizePolicy8.setVerticalStretch(0)
-        sizePolicy8.setHeightForWidth(self.show_info_button.sizePolicy().hasHeightForWidth())
-        self.show_info_button.setSizePolicy(sizePolicy8)
+        sizePolicy9 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy9.setHorizontalStretch(1)
+        sizePolicy9.setVerticalStretch(0)
+        sizePolicy9.setHeightForWidth(self.show_info_button.sizePolicy().hasHeightForWidth())
+        self.show_info_button.setSizePolicy(sizePolicy9)
         self.show_info_button.setMinimumSize(QSize(200, 0))
 
         self.gridLayout_2.addWidget(self.show_info_button, 1, 0, 1, 1)
@@ -424,21 +434,21 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.fname_label = QLabel(self.crystal_info_tab)
         self.fname_label.setObjectName(u"fname_label")
-        sizePolicy9 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy9.setHorizontalStretch(1)
-        sizePolicy9.setVerticalStretch(0)
-        sizePolicy9.setHeightForWidth(self.fname_label.sizePolicy().hasHeightForWidth())
-        self.fname_label.setSizePolicy(sizePolicy9)
+        sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy10.setHorizontalStretch(1)
+        sizePolicy10.setVerticalStretch(0)
+        sizePolicy10.setHeightForWidth(self.fname_label.sizePolicy().hasHeightForWidth())
+        self.fname_label.setSizePolicy(sizePolicy10)
 
         self.horizontalLayout.addWidget(self.fname_label)
 
         self.fname_comboBox = QComboBox(self.crystal_info_tab)
         self.fname_comboBox.setObjectName(u"fname_comboBox")
-        sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy10.setHorizontalStretch(3)
-        sizePolicy10.setVerticalStretch(1)
-        sizePolicy10.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
-        self.fname_comboBox.setSizePolicy(sizePolicy10)
+        sizePolicy11 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy11.setHorizontalStretch(3)
+        sizePolicy11.setVerticalStretch(1)
+        sizePolicy11.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
+        self.fname_comboBox.setSizePolicy(sizePolicy11)
         self.fname_comboBox.setMinimumSize(QSize(200, 0))
 
         self.horizontalLayout.addWidget(self.fname_comboBox)
@@ -476,11 +486,11 @@ class Ui_MainWindow(object):
         self.select_summary_slider_button = QPushButton(self.variables_tab)
         self.select_summary_slider_button.setObjectName(u"select_summary_slider_button")
         self.select_summary_slider_button.setEnabled(False)
-        sizePolicy11 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy11.setHorizontalStretch(0)
-        sizePolicy11.setVerticalStretch(1)
-        sizePolicy11.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
-        self.select_summary_slider_button.setSizePolicy(sizePolicy11)
+        sizePolicy12 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy12.setHorizontalStretch(0)
+        sizePolicy12.setVerticalStretch(1)
+        sizePolicy12.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
+        self.select_summary_slider_button.setSizePolicy(sizePolicy12)
         self.select_summary_slider_button.setMinimumSize(QSize(200, 0))
         self.select_summary_slider_button.setFont(font1)
 
@@ -525,11 +535,11 @@ class Ui_MainWindow(object):
 
         self.zoom_slider = QSlider(self.vis_options_tab)
         self.zoom_slider.setObjectName(u"zoom_slider")
-        sizePolicy12 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy12.setHorizontalStretch(0)
-        sizePolicy12.setVerticalStretch(0)
-        sizePolicy12.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
-        self.zoom_slider.setSizePolicy(sizePolicy12)
+        sizePolicy13 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy13.setHorizontalStretch(0)
+        sizePolicy13.setVerticalStretch(0)
+        sizePolicy13.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
+        self.zoom_slider.setSizePolicy(sizePolicy13)
         font2 = QFont()
         font2.setFamilies([u"Arial"])
         font2.setPointSize(8)
@@ -716,7 +726,7 @@ class Ui_MainWindow(object):
 
         self.main_toolBox.addItem(self.video_options_tab, u"Video Options")
 
-        self.gridLayout_12.addWidget(self.main_toolBox, 0, 1, 1, 1)
+        self.gridLayout_12.addWidget(self.main_toolBox, 1, 1, 1, 1)
 
         self.scrollArea_options.setWidget(self.scrollAreaWidgetContents_5)
 
@@ -804,12 +814,12 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
         self.settings_toolButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.console_label.setText(QCoreApplication.translate("MainWindow", u"Console", None))
+        self.aspect_ratio_pushButton.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
+        self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.batch_browse_toolButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
         self.batch_label.setText(QCoreApplication.translate("MainWindow", u"Folder: ", None))
-        self.batch_set_pushButton.setText(QCoreApplication.translate("MainWindow", u"Set", None))
         self.batch_visualise_toolButton.setText(QCoreApplication.translate("MainWindow", u"View", None))
-        self.aspect_ratio_button.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
-        self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
+        self.batch_set_pushButton.setText(QCoreApplication.translate("MainWindow", u"Set", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.batch_analysis_tab), QCoreApplication.translate("MainWindow", u"Batch Analysis", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.plotting_tab), QCoreApplication.translate("MainWindow", u"Plotting", None))
         self.ml_label.setText(QCoreApplication.translate("MainWindow", u"Medium/Long:", None))
