@@ -8,7 +8,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 from PySide6.QtCore import QObject, Signal, Slot
 
 from crystalaspects.analysis.shape_analysis import CrystalShape
@@ -20,7 +20,7 @@ from crystalaspects.visualisation.replotting import PlottingDialogue
 logger = logging.getLogger("crystalaspects_Logger")
 
 
-class AspectRatio:
+class AspectRatio(QWidget):
     def __init__(self):
         self.input_folder = None
         self.output_folder = None
@@ -37,7 +37,7 @@ class AspectRatio:
 
     def calculate_aspect_ratio(self):
         logger.debug(
-            "Attempting to calculate aspect rations from directory: %s",
+            "Called aspect ratio method at directory: %s",
             self.input_folder        
             )
         # Check if the user selected a folder
@@ -46,7 +46,7 @@ class AspectRatio:
                 logger.warning("Method called without information, looking for information now.")
                 # Read the information from the selected folder
                 self.information = find_info(self.input_folder)
-            logger.info("Calculationg Aspect Ratios...")
+            logger.info("Attempting to calculate Aspect Ratios...")
 
             """Future Note: The follwing renders the 
             dataprocessor unable to process just XYZ files
@@ -70,7 +70,7 @@ class AspectRatio:
 
                 # Display the information in a QMessageBox
                 QMessageBox.information(
-                    self,
+                    None,
                     "Options",
                     f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
                     f"Selected CDA: {selected_cda}\n"
