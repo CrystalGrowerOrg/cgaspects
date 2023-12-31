@@ -30,7 +30,9 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from crystalaspects.analysis.shape_analysis import CrystalShape
+import logging
 
+logger = logging.getLogger("CA:OpenGL")
 
 class vis_GLWidget(QOpenGLWidget):
     def __init__(self, *args, **kwargs):
@@ -102,11 +104,11 @@ class vis_GLWidget(QOpenGLWidget):
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
-        print("XYZ cordinates passed on OpenGL widget")
+        logger.info("XYZ cordinates passed on OpenGL widget")
 
     def pass_XYZ_list(self, xyz_path_list):
         self.xyz_path_list = xyz_path_list
-        print("XYZ file paths (list) passed to OpenGL widget")
+        logger.info("XYZ file paths (list) passed to OpenGL widget")
 
     def get_XYZ_from_list(self, value):
         if self.sim_num != value:
@@ -178,48 +180,38 @@ class vis_GLWidget(QOpenGLWidget):
 
     def get_colour(self, value):
         self.colour_picked = self.cm_colourList[value]
-        print(f" Colour selected: {self.colour_picked}")
+        logger.debug(f" Colour selected: {self.colour_picked}")
         self.initGeometry()
 
         self.update()
 
     def get_bg_colour(self, value):
         self.bg_colour = self.bg_colours[value]
-        print(f"Background Colour: {self.bg_colour}")
+        logger.debug(f"Background Colour: {self.bg_colour}")
         # Set alpha based on value
         a = 1.0 if value == 2 else 0.0
 
         # Ensure that the color is a valid color
         color = QColor(self.bg_colour)
         if not color.isValid():
-            print("Error: Invalid color code")
+            logger.warning("Error: Invalid color code")
             return
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), a)
         self.update()
 
     def get_colour_type(self, value):
         self.colour_type = value
-        print(f" Colour Mode: {value}")
+        logger.debug(f" Colour Mode: {value}")
         self.initGeometry()
 
         self.update()
 
     def get_point_type(self, value):
         pass
-        # self.point_type = self.point_types[value]
-        # print(f" Point Type: {self.point_types[value]}")
-        # print(value)
-        # self.initGeometry()
-        # if value == 1:
-        #     pcd_points = self.LoadVertices()
-        #     self.draw_spheres(pcd_points)
-        #     self.initGeometry()
-
-        # self.update()
 
     def change_point_size(self, val):
         self.point_size = val
-        print("point size", val)
+        logger.debug("point size", val)
 
         self.update()
 
@@ -306,16 +298,15 @@ class vis_GLWidget(QOpenGLWidget):
             self.rotY += dx * 0.5
 
         elif self.rightMouseButtonPressed:
-            # Here we define the translation speed
-            translationSpeed = 0.1
+            translationSpeed = 1
             self.translateScene(dx * translationSpeed, dy * translationSpeed)
 
         self.lastMousePosition = event.pos()
         self.update()
 
     def translateScene(self, dx, dy):
-        print(f"Translating scene by dx: {dx}, dy: {dy}")  # Debugging print
         # Translation logic
+        logger.debug("Translating by: %s %s", dx, dy)
         gl.glTranslatef(dx, dy, 0.0)
 
     def mouseReleaseEvent(self, event):
@@ -342,9 +333,9 @@ class vis_GLWidget(QOpenGLWidget):
     def LoadVertices(
         self,
     ):
-        print("Loading Vertices")
+        logger.debug("Loading Vertices")
         point_cloud = self.xyz
-        print(".XYZ shape: ", point_cloud.shape[0])
+        logger.debug(".XYZ shape: %s", point_cloud.shape[0])
         layers = point_cloud[:, 2]
         l_max = int(np.nanmax(layers[layers < 99]))
 
@@ -379,16 +370,6 @@ class vis_GLWidget(QOpenGLWidget):
         glu.gluQuadricNormals(quad, glu.GLU_SMOOTH)
         glu.gluQuadricTexture(quad, gl.GL_TRUE)
         glu.gluSphere(quad, radius, num_subdiv, num_subdiv)
-
-    def draw_spheres(self, points):
-        print("Draw Spheres")
-        print(points)
-        radius = 0.1  # Sphere radius
-        for p in points:
-            gl.glTranslatef(p[0], p[1], p[2])
-            glutSolidSphere(radius, 16, 16)
-            gl.glTranslatef(-p[0], -p[1], -p[2])
-        # gl.glPopMatrix()
 
     def CreateBuffer(self, attributes):
         bufferdata = (ctypes.c_float * len(attributes))(*attributes)  # float buffer
@@ -432,10 +413,11 @@ class vis_GLWidget(QOpenGLWidget):
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glVertexPointer(3, gl.GL_FLOAT, stride, None)
 
+        # (12 bytes) : the RGB color starts after the 3 coordinates x, y, z
         gl.glEnableClientState(gl.GL_COLOR_ARRAY)
         offset = (
             3 * 4
-        )  # (12 bytes) : the RGB color starts after the 3 coordinates x, y, z
+        )  
         gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
 
         # Draw the points
@@ -451,4 +433,4 @@ class vis_GLWidget(QOpenGLWidget):
         if bool(glutSwapBuffers):
             glutSwapBuffers()
         else:
-            print("glutSwapBuffers not available")
+            logger.warning("glutSwapBuffers not available")

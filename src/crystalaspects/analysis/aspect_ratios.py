@@ -15,16 +15,16 @@ from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.fileio.find_data  import *
 from crystalaspects.gui.aspectratio_dialog import AnalysisOptionsDialog
 from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.replotting import PlottingDialogue
+from crystalaspects.visualisation.replotting import PlottingDialog
 
-logger = logging.getLogger("crystalaspects_Logger")
+logger = logging.getLogger("CA:AspectRatios")
 
 
 class AspectRatio(QWidget):
     def __init__(self):
         self.input_folder = None
         self.output_folder = None
-        self.checked_directions = None
+        self.directions = None
         self.information = None
 
     def set_folder(self, folder):
@@ -53,32 +53,38 @@ class AspectRatio(QWidget):
             in the envent no *simulation_parameters.txt files are not present"""
 
             # Get the directions from the information
-            self.checked_directions = self.information.directions
-            print(self.checked_directions)
+            self.directions = self.information.directions
+            print("Directions: ", self.directions)
 
             # Create the analysis options dialog
-            dialog = AnalysisOptionsDialog(self.checked_directions)
+            dialog = AnalysisOptionsDialog(self.directions)
             if dialog.exec() == QDialog.Accepted:
                 # Retrieve the selected options
                 (
                     selected_aspect_ratio,
                     selected_cda,
+                    checked_directions,
                     selected_directions,
-                    selected_direction_aspect_ratio,
                     auto_plotting,
                 ) = dialog.get_options()
-
+                print("Options: ",
+                    selected_aspect_ratio,
+                    selected_cda,
+                    checked_directions,
+                    selected_directions,
+                    auto_plotting
+                )
                 # Display the information in a QMessageBox
                 QMessageBox.information(
                     None,
                     "Options",
                     f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
-                    f"Selected CDA: {selected_cda}\n"
-                    f"Selected Directions: {selected_directions}\n"
-                    f"Selected Direction Aspect Ratio: {selected_direction_aspect_ratio}\n"
-                    f"Auto Plotting: {auto_plotting}",
+                    f"Selected CDA         : {selected_cda}\n"
+                    f"Checked Directions   : {checked_directions}\n"
+                    f"Selected Directions (for Aspect Ratio): {selected_directions}\n"
+                    f"Auto Plotting        : {auto_plotting}",
                 )
-                print("selected aspect ratio:", selected_direction_aspect_ratio)
+                print("Directions selected for aspect ratio : ", selected_directions)
 
                 plotting = Plotting()
                 save_folder = create_aspects_folder(self.input_folder)
@@ -94,7 +100,7 @@ class AspectRatio(QWidget):
                         xyz_df = summary_compare(
                             summary_csv=summary_file, aspect_df=xyz_df
                         )
-                    xyz_df_final_csv = f"{save_folder}/AspectRatio.csv"
+                    xyz_df_final_csv = f"{save_folder} / AspectRatio.csv"
                     xyz_df.to_csv(xyz_df_final_csv, index=None)
                     self.shape_number_percentage(
                         df=xyz_df, savefolder=save_folder
@@ -113,12 +119,12 @@ class AspectRatio(QWidget):
                     cda_df = self.build_AR_CDA(
                         folderpath=self.input_folder,
                         folders=folders,
-                        directions=selected_directions,
-                        selected=selected_direction_aspect_ratio,
+                        directions=checked_directions,
+                        selected=selected_directions,
                         savefolder=save_folder,
                     )
                     zn_df = self.defining_equation(
-                        directions=selected_direction_aspect_ratio,
+                        directions=selected_directions,
                         ar_df=cda_df,
                         filepath=save_folder,
                     )
@@ -133,7 +139,7 @@ class AspectRatio(QWidget):
                         plotting.Aspect_Extended_Plot(
                             csv=zn_df_final_csv,
                             folderpath=save_folder,
-                            selected=selected_direction_aspect_ratio,
+                            selected=selected_directions,
                         )
                         plotting.CDA_Plot(csv=zn_df_final_csv, folderpath=save_folder)
 
@@ -154,9 +160,9 @@ class AspectRatio(QWidget):
                                 csv=final_cda_xyz_csv, folderpath=save_folder
                             )
 
-                PlottingDialogues = PlottingDialogue(self)
-                PlottingDialogues.plotting_info(csv=plotting_csv)
-                PlottingDialogues.show()
+                PlottingDialogs = PlottingDialog(self)
+                PlottingDialogs.plotting_info(csv=plotting_csv)
+                PlottingDialogs.show()
 
     def build_AR_CDA(self, folders, folderpath, savefolder, directions, selected):
         path = Path(folderpath)
@@ -403,11 +409,17 @@ class AspectRatio(QWidget):
             try:
                 shape.set_xyz(filepath=file)
                 
-                pca_size = shape.get_pca()  
+                pca_size = shape.get_pca()
+                small, medium, long = sorted(pca_size)
+                aspect1 = small / medium
+                aspect2 = medium / long
+                pca_shape = shape.get_shape_class(aspect1=aspect1, aspect2=aspect2)
+                pca_vals = np.asarray([[small, medium, long, aspect1, aspect2, pca_shape]])
+
                 crystal_size = shape.get_oba()
                 sa_vol_ratio_size = shape.get_sa_vol_ratio()
                 sim_num_value = np.array([[sim_num]])
-                size_data = np.concatenate((sim_num_value, crystal_size, pca_size, sa_vol_ratio_size), axis=1)
+                size_data = np.concatenate((sim_num_value, crystal_size, pca_vals, sa_vol_ratio_size), axis=1)
                 data_list.append(size_data)
             except (StopIteration, UnicodeDecodeError):
                 continue

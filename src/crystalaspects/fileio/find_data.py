@@ -62,7 +62,7 @@ def create_aspects_folder(path):
 def find_info(path):
     """The method returns the crystallographic directions,
     supersations, and the size_file paths from a CG simulation folder"""
-    print(path)
+    logger.debug("find_info called at: %s", path)
     path = Path(path)
     contents = natsorted(path.iterdir())  # Directly sort the Path objects
     folders: List[Path] = []
@@ -96,13 +96,10 @@ def find_info(path):
             if f_name.endswith("size.csv"):
                 if f_path.stat().st_size != 0:
                     size_files.append(f_path)
-                    # Assuming growth_rates is used later
                     growth_rates = True
 
-                # directions = find_growth_directions(f_path)
 
             if f_name.endswith("simulation_parameters.txt"):
-                # print(f_path)
                 with open(f_path, "r", encoding="utf-8") as sim_file:
                     lines = sim_file.readlines()
 
@@ -169,24 +166,18 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
         search_string = "_".join(search[:-1])
 
         int_cols = summary_cols[1:]
-        # print("Int cols", int_cols)
         summary_df = summary_df.set_index(summary_cols[0])
         compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
-        # print("Compare array shape", compare_array.shape)
 
         for index, row in aspect_df.iterrows():
             sim_num = int(row["Simulation Number"]) - 1 + start_num
             num_string = f"{search_string}_{sim_num}"
-            # print("num string", num_string)
             aspect_row = row.values
             aspect_row = np.array([aspect_row])
             collect_row = summary_df.filter(items=[num_string], axis=0).values
-            """print(
-                f"Row from aspect file: {aspect_row}\nRow from summuary: {collect_row}"
-            )"""
+            
             collect_row = np.concatenate([aspect_row, collect_row], axis=1)
             compare_array = np.append(compare_array, collect_row, axis=0)
-            # print(compare_array.shape)
 
     except AttributeError:
         int_cols = summary_cols[1:]
@@ -196,25 +187,14 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
             sim_num = int(row["Simulation Number"] - 1)
             aspect_row = row.values
             aspect_row = np.array([aspect_row])
-            # print(aspect_row)
             collect_row = [summary_df.iloc[sim_num].values[1:]]
-            # print(collect_row)
             collect_row = np.concatenate([aspect_row, collect_row], axis=1)
             compare_array = np.append(compare_array, collect_row, axis=0)
-            # print(compare_array.shape)
 
-    # print(aspect_cols, int_cols)
+
     cols = aspect_cols.append(int_cols)
-    # print(aspect_cols)
-    # print(f"COLS:::: {cols}")
     compare_df = pd.DataFrame(compare_array, columns=cols)
-    # print(compare_df)
     full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
-    # aspect_energy_csv = f"{savefolder}/crystalaspects.csv"
-    # full_df.to_csv(aspect_energy_csv, index=None)
-
-    # print(full_df)
-
     return full_df
 
 def combine_XYZ_CDA(CDA_df, XYZ_df):
@@ -240,12 +220,7 @@ def combine_XYZ_CDA(CDA_df, XYZ_df):
         print(combine_array.shape)
 
     cols = xyz_cols.append(cda_cols)
-    # print(aspect_cols)
-    # print(f"COLS:::: {cols}")
     compare_df = pd.DataFrame(combine_array, columns=cols)
-    # print(compare_df)
     combine_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
-    """aspect_energy_csv = f"{savefolder}/crystalaspects.csv"
-    full_df.to_csv(aspect_energy_csv, index=None)"""
 
     return combine_df

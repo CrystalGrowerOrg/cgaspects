@@ -59,28 +59,30 @@ class CrystalShape:
             .stl
         """
         filepath = Path(filepath)
-        print(filepath)
+        logger.debug(filepath)
         xyz_movie = {}
 
         try:
             if filepath.suffix == ".XYZ":
-                print("XYZ File read!")
+                logger.debug("XYZ: File read!")
                 xyz = np.loadtxt(filepath, skiprows=2)
             if filepath.suffix == ".txt":
-                print("xyz File read!")
+                logger.debug("xyz: File read!")
                 xyz = np.loadtxt(filepath, skiprows=2)
             if filepath.suffix == ".stl":
-                print("stl File read!")
+                logger.debug("stl: File read!")
                 xyz = trimesh.load(filepath)
 
             progress_num = 100
 
         except ValueError:
-            print("Looking for Video")
+            # Set to warning currently since behavious was not tested
+            # TO DO: Test and lower logging level
+            logger.warning("Looking for Video")
             with open(filepath, "r", encoding="utf-8") as file:
                 lines = file.readlines()
                 num_frames = int(lines[1].split("//")[1])
-                print(num_frames)
+                logger.info("Number of Frames: %s", num_frames)
 
             particle_num_line = 0
             frame_line = 2
@@ -156,14 +158,14 @@ class CrystalShape:
         shape = self.get_shape_class(aspect1, aspect2)
 
         oba_array = np.array(
-            [
+            [[
                 lengths[0],
                 lengths[0],
                 lengths[0],
                 aspect1,
                 aspect2,
                 shape,
-            ]
+            ]]
         )
         return oba_array
 

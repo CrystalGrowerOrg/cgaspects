@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
 from crystalaspects.fileio.find_data import *
 from crystalaspects.gui.growthrate_dialog import GrowthRateAnalysisDialogue
 from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.replotting import PlottingDialogue
+from crystalaspects.visualisation.replotting import PlottingDialog
 
 
 class GrowthRate:
@@ -57,9 +57,9 @@ class GrowthRate:
                 print(growth_rate_df)
                 growth_rate_csv = f"{save_folder}/GrowthRates.csv"
                 growth_rate_df.to_csv(growth_rate_csv, index=None)
-                PlottingDialogues = PlottingDialogue(self)
-                PlottingDialogues.plotting_info(csv=growth_rate_csv)
-                PlottingDialogues.show()
+                PlottingDialogs = PlottingDialog(self)
+                PlottingDialogs.plotting_info(csv=growth_rate_csv)
+                PlottingDialogs.show()
                 if auto_plotting:
                     plot = Plotting()
                     plot.plot_growth_rates(growth_rate_df, directions, save_folder)
