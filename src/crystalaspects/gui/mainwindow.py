@@ -352,7 +352,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.aspectratio.output_folder:
             self.output_folder = self.aspectratio.output_folder
             self.view_results_pushButton.setEnabled(True)
-        if self.aspectratio.checked_directions:
+        if self.aspectratio.directions:
             pass
     
     def calculate_growth_rates(self):

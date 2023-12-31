@@ -24,7 +24,7 @@ matplotlib.use("QT5Agg")
 
 class PlottingDialog(QDialog):
     def __init__(self, parent=None):
-        super(PlottingDialog, self).__init__(parent)
+        super().__init__()
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
 
@@ -33,6 +33,7 @@ class PlottingDialog(QDialog):
 
         self.create_widgets()
         self.create_layout()
+        self.annot = None
 
     def plotting_info(self, csv):
         self.csv = csv
@@ -204,6 +205,7 @@ class PlottingDialog(QDialog):
             self.plot()
 
     def add_plot_list(self):
+        self.plot_list_combo_box.clear()
         self.plot_list_combo_box.addItems(self.plots_list)
 
     def change_plot_from_list(self):
@@ -621,7 +623,8 @@ class PlottingDialog(QDialog):
         self.annot.get_bbox_patch().set_alpha(0.4)
 
     def on_hover(self, event):
-        vis = self.annot.get_visible()
+        if self.annot:
+            vis = self.annot.get_visible()
         try:
             if event.inaxes == self.ax:
                 for _, plot_data in self.plot_objects.items():
@@ -695,7 +698,7 @@ class PlottingDialog(QDialog):
                 size = [6.8, 4.8]
                 if transparent:
                     self.figure.savefig(
-                        file_name, figsize=size, transparent=True, dpi=600
+                        file_name, transparent=True, dpi=600
                     )
                 else:
-                    self.figure.savefig(file_name, figsize=size, dpi=600)
+                    self.figure.savefig(file_name, dpi=600)

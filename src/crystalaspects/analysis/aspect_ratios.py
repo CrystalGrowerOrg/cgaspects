@@ -26,6 +26,8 @@ class AspectRatio(QWidget):
         self.output_folder = None
         self.directions = None
         self.information = None
+        self.directions = None
+        self.selected_direction = None
 
     def set_folder(self, folder):
         self.input_folder = Path(folder)
@@ -100,7 +102,7 @@ class AspectRatio(QWidget):
                         xyz_df = summary_compare(
                             summary_csv=summary_file, aspect_df=xyz_df
                         )
-                    xyz_df_final_csv = f"{save_folder} / AspectRatio.csv"
+                    xyz_df_final_csv = save_folder / "AspectRatio.csv"
                     xyz_df.to_csv(xyz_df_final_csv, index=None)
                     self.shape_number_percentage(
                         df=xyz_df, savefolder=save_folder
