@@ -22,9 +22,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
 matplotlib.use("QT5Agg")
 
 
-class PlottingDialogue(QDialog):
+class PlottingDialog(QDialog):
     def __init__(self, parent=None):
-        super(PlottingDialogue, self).__init__(parent)
+        super(PlottingDialog, self).__init__(parent)
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
 

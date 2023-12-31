@@ -169,6 +169,9 @@
     </item>
     <item row="5" column="0" colspan="3">
      <widget class="QTextEdit" name="output_textbox">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>5</horstretch>
@@ -186,7 +189,7 @@
 color: rgb(255, 255, 255);</string>
       </property>
       <property name="readOnly">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
     </item>

@@ -19,26 +19,23 @@ from crystalaspects.fileio.find_data import *
 from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.gui.crystal_slider import create_slider
 from crystalaspects.gui.gui_threads import Worker_Movies, Worker_XYZ
+from crystalaspects.fileio.logging import setup_logging
 
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.visualiser import Visualiser
 from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.visualisation.replotting import PlottingDialogue
+from crystalaspects.visualisation.replotting import PlottingDialog
 
 basedir = os.path.dirname(__file__)
 
-log_level = "DEBUG"
-
-logging.basicConfig(
-    level=log_level,
-    filename="report.log",
-    filemode="w",
-    format="%(asctime)s-%(name)s-%(levelname)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
+log_dict = {
+    "basic" : "DEBUG",
+    "console" : "INFO"
+}
+setup_logging(**log_dict)
 logger = logging.getLogger("CA:GUI")
-logger.critical("LOGGING AT %s LEVEL", logging.getLevelName(log_level))
+logger.critical("LOGGING AT %s", log_dict)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -208,7 +205,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Update the status bar with the message
             self.statusBar().showMessage(message)
             # Update the output textbox
-            self.outputTextbox.append(message)
+            self.output_textbox.append(message)
         
         # Log the message with given level
         log_level_method(message)
@@ -373,9 +370,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message(f"Selected file: {csv_file}", "info")
             # You can now load or process the CSV file as needed
 
-        PlottingDialogues = PlottingDialogue()
-        PlottingDialogues.plotting_info(csv=csv_file)
-        PlottingDialogues.show()
+        PlottingDialogs = PlottingDialog()
+        PlottingDialogs.plotting_info(csv=csv_file)
+        PlottingDialogs.show()
 
     def particle_swarm_analysis(self):
         # Create a message box

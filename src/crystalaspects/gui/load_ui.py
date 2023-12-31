@@ -238,6 +238,7 @@ class Ui_MainWindow(object):
 
         self.output_textbox = QTextEdit(self.centralwidget)
         self.output_textbox.setObjectName(u"output_textbox")
+        self.output_textbox.setEnabled(False)
         sizePolicy3 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sizePolicy3.setHorizontalStretch(5)
         sizePolicy3.setVerticalStretch(1)
@@ -246,7 +247,7 @@ class Ui_MainWindow(object):
         self.output_textbox.setMinimumSize(QSize(0, 75))
         self.output_textbox.setStyleSheet(u"background-color: rgb(58, 64, 85);\n"
 "color: rgb(255, 255, 255);")
-        self.output_textbox.setReadOnly(True)
+        self.output_textbox.setReadOnly(False)
 
         self.gridLayout.addWidget(self.output_textbox, 5, 0, 1, 3)
 

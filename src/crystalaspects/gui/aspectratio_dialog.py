@@ -9,7 +9,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+import logging
 
+logger = logging.getLogger("CA:AspectDaliog")
 
 class AnalysisOptionsDialog(QDialog):
     def __init__(self, directions):
@@ -47,7 +49,7 @@ class AnalysisOptionsDialog(QDialog):
         self.plotting_checkbox = plotting_checkbox
         self.checkboxes = []
         self.combo_boxes = []
-        self.selected_directions = []
+        self.checked_directions = []
 
         for direction in directions:
             checkbox = QCheckBox(direction)
@@ -76,21 +78,21 @@ class AnalysisOptionsDialog(QDialog):
 
         cda_checkbox.stateChanged.connect(
             self.toggle_directions
-        )  # Connect the stateChanged signal
+        )
 
         for checkbox in self.checkboxes:
-            checkbox.toggled.connect(self.update_selected_directions)
+            checkbox.toggled.connect(self.update_checked_directions)
 
     def toggle_directions(self, state):
         enabled = state == Qt.Checked
         for checkbox in self.checkboxes:
-            checkbox.setEnabled(enabled)
+            checkbox.setEnabled(True)
 
         for combo_box in self.combo_boxes:
-            combo_box.setEnabled(enabled)
+            combo_box.setEnabled(True)
 
-    def update_selected_directions(self):
-        self.selected_directions = [
+    def update_checked_directions(self):
+        self.checked_directions = [
             checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()
         ]
         self.update_combo_boxes()
@@ -99,10 +101,7 @@ class AnalysisOptionsDialog(QDialog):
         for combo_box in self.combo_boxes:
             combo_box.clear()
             combo_box.addItem("Select Direction")
-            combo_box.addItems(self.selected_directions)
-
-    def get_selected_directions(self):
-        return self.selected_directions
+            combo_box.addItems(self.checked_directions)
 
     def get_selected_combo_values(self):
         selected_combo_values = []
@@ -113,22 +112,22 @@ class AnalysisOptionsDialog(QDialog):
     def get_options(self):
         selected_aspect_ratio = self.aspect_ratio_checkbox.isChecked()
         selected_cda = self.cda_checkbox.isChecked()
-        selected_directions = self.get_selected_directions()
-        selected_direction_aspect_ratio = []
+        checked_directions = self.checked_directions
+        selected_directions = []
         plotting = self.plotting_checkbox.isChecked()
 
         for i in range(3):
             selected_direction = self.combo_boxes[i].currentText()
             if (
                 selected_direction != "Select Direction"
-                and selected_direction in selected_directions
+                and selected_direction in checked_directions
             ):
-                selected_direction_aspect_ratio.append(selected_direction)
+                selected_directions.append(selected_direction)
 
         return (
             selected_aspect_ratio,
             selected_cda,
+            checked_directions,
             selected_directions,
-            selected_direction_aspect_ratio,
             plotting,
         )

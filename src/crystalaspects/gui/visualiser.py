@@ -1,6 +1,8 @@
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.openGL import vis_GLWidget
+import logging
 
+logger = logging.getLogger("CA:Visualiser")
 
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -35,8 +37,6 @@ class Visualiser(Ui_MainWindow):
         self.colourmode_comboBox.clear()
         self.pointtype_comboBox.clear()
         self.bgcolour_comboBox.clear()
-
-        print(xyz_file_list)
 
         # self.run_xyz_movie(xyz_file_list[0])
         self.gl_vLayout.addWidget(self.openglwidget)
@@ -106,13 +106,13 @@ class Visualiser(Ui_MainWindow):
         self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.openglwidget.xyz))
 
     def init_crystal(self, result):
-        print("INIT CRYSTAL", result)
+        logger.debug("INIT CRYSTAL %s", result)
         self.xyz, self.movie = result
         self.openglwidget.pass_XYZ(self.xyz)
 
         if self.movie:
             self.frame_list = self.movie.keys()
-            print("Frames: ", self.frame_list)
+            logger.debug("Frames: %s", self.frame_list)
             self.current_frame_comboBox.addItems(
                 [f"frame_{frame + 1}" for frame in self.frame_list]
             )
@@ -128,7 +128,7 @@ class Visualiser(Ui_MainWindow):
         try:
             self.openglwidget.initGeometry()
         except AttributeError:
-            print("No Crystal Data Found!")
+            logger.warning("Initialising XYZ: No Crystal Data Found!")
 
     def update_frame(self, frame):
         self.xyz = self.movie[frame]
@@ -138,7 +138,7 @@ class Visualiser(Ui_MainWindow):
             self.openglwidget.initGeometry()
             self.openglwidget.update()
         except AttributeError:
-            print("No Crystal Data Found!")
+            logger.warning("Updating Frame: No Crystal Data Found!")
 
     def update_XYZ(self):
         self.openglwidget.pass_XYZ(self.xyz)
@@ -146,7 +146,7 @@ class Visualiser(Ui_MainWindow):
         try:
             self.openglwidget.initGeometry()
         except AttributeError:
-            print("No Crystal Data Found!")
+            logger.warning("Updating XYZ: No Crystal Data Found!")
 
     def close_opengl_widget(self):
         if self.current_viewer:
