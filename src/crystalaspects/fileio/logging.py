@@ -4,6 +4,8 @@ def setup_logging(basic="DEBUG", console="INFO"):
     # Get the root logger
     logger = logging.getLogger()
     logger.setLevel(level=basic)
+    # Setting matplotlib logger to warning
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
     if logger.hasHandlers():
         logger.handlers.clear()

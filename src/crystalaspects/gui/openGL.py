@@ -180,14 +180,14 @@ class vis_GLWidget(QOpenGLWidget):
 
     def get_colour(self, value):
         self.colour_picked = self.cm_colourList[value]
-        logger.debug(f" Colour selected: {self.colour_picked}")
+        logger.debug("Colour selected: %s", self.colour_picked)
         self.initGeometry()
 
         self.update()
 
     def get_bg_colour(self, value):
         self.bg_colour = self.bg_colours[value]
-        logger.debug(f"Background Colour: {self.bg_colour}")
+        logger.debug("Background Colour: %s", self.bg_colour)
         # Set alpha based on value
         a = 1.0 if value == 2 else 0.0
 
@@ -201,7 +201,7 @@ class vis_GLWidget(QOpenGLWidget):
 
     def get_colour_type(self, value):
         self.colour_type = value
-        logger.debug(f" Colour Mode: {value}")
+        logger.debug("Colour Mode: %s", value)
         self.initGeometry()
 
         self.update()
@@ -211,8 +211,7 @@ class vis_GLWidget(QOpenGLWidget):
 
     def change_point_size(self, val):
         self.point_size = val
-        logger.debug("point size", val)
-
+        logger.debug("point size, %s", val)
         self.update()
 
     def zoomGL(self, val):

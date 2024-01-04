@@ -25,7 +25,7 @@ from crystalaspects.fileio.logging import setup_logging
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.visualiser import Visualiser
 from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.visualisation.replotting import PlottingDialog
+from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
 basedir = os.path.dirname(__file__)
 
@@ -62,7 +62,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.sim_num = None
         self.input_folder = None
         self.output_folder = None
-        self.xyz_files = None
+        self.xyz_files: List[Path] = []
 
     def MenuBar(self):
         # Create a menu bar
@@ -187,23 +187,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Import XYZ file with Ctrl+I
         import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
         import_xyz_shortcut.activated.connect(lambda: self.import_and_visualise_xyz(folder=None))
+        # Import XYZ file with Ctrl+F
+        browse_for_batch = QShortcut(QKeySequence("Ctrl+F"), self)
+        browse_for_batch.activated.connect(self.browse)
+        # Import XYZ file with Ctrl+D
+        set_xyz = QShortcut(QKeySequence("Ctrl+D"), self)
+        set_xyz.activated.connect(self.set_visualiser)
         # Open results folder with Ctrl+O
         self.view_results = QShortcut(QKeySequence("Ctrl+O"), self)
         self.view_results.activated.connect(lambda: open_directory(path=self.output_folder) if self.output_folder else None)
 
     def welcome_message(self):
-        self.log_message("############################################", log_level="info")
-        self.log_message("####        CrystalAspects v1.00        ####", log_level="info")
-        self.log_message("############################################", log_level="info")
-        self.log_message("Created by Nathan de Bruyn & Alvin J. Walisinghe", log_level="info")
+        self.log_message("############################################", log_level="info", gui=False)
+        self.log_message("####        CrystalAspects v1.00        ####", log_level="info", gui=False)
+        self.log_message("############################################", log_level="info", gui=False)
+        self.log_message("Created by Nathan de Bruyn & Alvin J. Walisinghe", log_level="info", gui=False)
 
-    def log_message(self, message, log_level):
+    def log_message(self, message, log_level, gui=True):
         message = str(message)
         log_level_method = getattr(logger, log_level.lower(), logger.debug)
         
-        if log_level_method in ["info", "warning"]:
+        if gui and log_level in ["info", "warning"]:
             # Update the status bar with the message
-            self.statusBar().showMessage(message)
+            # self.statusBar().showMessage(message)
             # Update the output textbox
             self.output_textbox.append(message)
         
@@ -216,23 +222,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.set_visualiser()
 
     def set_visualiser(self):
-        Visualiser.initGUI(self, self.xyz_files)
+        n_xyz = len(self.xyz_files)
+        if n_xyz == 0:
+            self.log_message(f"{n_xyz} XYZ files found to set to visualiser!", "warning")
+        if n_xyz > 0:
+            Visualiser.initGUI(self, self.xyz_files)
 
-        # Shape analysis to determine xyz, or xyz movie
-        result = self.movie_or_single_frame(0)
+            # Shape analysis to determine xyz, or xyz movie
+            result = self.movie_or_single_frame(0)
 
-        # Adjust the slider range based on the number of XYZ files in the list
-        self.xyz_horizontalSlider.setRange(0, len(self.xyz_files) - 1)
-        self.xyz_horizontalSlider.setValue(0)
-        self.xyz_spinBox.setRange(0, len(self.xyz_files) - 1)
-        self.xyz_spinBox.setValue(0)
+            # Adjust the slider range based on the number of XYZ files in the list
+            self.xyz_horizontalSlider.setRange(0, len(self.xyz_files) - 1)
+            self.xyz_horizontalSlider.setValue(0)
+            self.xyz_spinBox.setRange(0, len(self.xyz_files) - 1)
+            self.xyz_spinBox.setValue(0)
 
-        Visualiser.init_crystal(self, result)
+            Visualiser.init_crystal(self, result)
 
-        self.select_summary_slider_button.setEnabled(True)
+            self.select_summary_slider_button.setEnabled(True)
+            self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
 
-        self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
-    
     def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget"""
@@ -321,8 +330,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if folder.is_dir():
                 self.input_folder = folder
                 information = find_info(folder)
-                if information.directions or information.size_files:
+                if information.directions and information.size_files:
                     self.growth_rate_pushButton.setEnabled(True)
+                    self.growthrate.set_folder(folder=folder)
+                    self.growthrate.set_information(information=information)
                 if information.directions:
                     self.aspect_ratio_pushButton.setEnabled(True)
                     self.aspectratio.set_folder(folder=folder)

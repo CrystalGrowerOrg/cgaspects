@@ -15,9 +15,9 @@ from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.fileio.find_data  import *
 from crystalaspects.gui.aspectratio_dialog import AnalysisOptionsDialog
 from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.replotting import PlottingDialog
+from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
-logger = logging.getLogger("CA:AspectRatios")
+logger = logging.getLogger("CA:A-Ratios")
 
 
 class AspectRatio(QWidget):
@@ -54,129 +54,131 @@ class AspectRatio(QWidget):
             dataprocessor unable to process just XYZ files
             in the envent no *simulation_parameters.txt files are not present"""
 
-            # Get the directions from the information
-            self.directions = self.information.directions
-            print("Directions: ", self.directions)
+        if not self.input_folder and self.information:
+            logger.warning("Input folder and Information not set properly")
+            return
 
-            # Create the analysis options dialog
-            dialog = AnalysisOptionsDialog(self.directions)
-            if dialog.exec() == QDialog.Accepted:
-                # Retrieve the selected options
-                (
-                    selected_aspect_ratio,
-                    selected_cda,
-                    checked_directions,
-                    selected_directions,
-                    auto_plotting,
-                ) = dialog.get_options()
-                print("Options: ",
-                    selected_aspect_ratio,
-                    selected_cda,
-                    checked_directions,
-                    selected_directions,
-                    auto_plotting
+        # Get the directions from the information
+        self.directions = self.information.directions
+        logger.debug("All Directions: %s", self.directions)
+
+        # Create the analysis options dialog
+        dialog = AnalysisOptionsDialog(self.directions)
+
+        if dialog.exec() != QDialog.Accepted:
+            logger.warning("Selecting aspect ratio options cancelled")
+            return
+        
+        # if dialog.exec() == QDialog.Accepted:
+        # Retrieve the selected options
+        (
+            selected_aspect_ratio,
+            selected_cda,
+            checked_directions,
+            selected_directions,
+            auto_plotting,
+        ) = dialog.get_options()
+        logger.info("Options:: AR: %s  CDA: %s  Checked: %s   Selected: %s   Auto Plot: %s",
+            selected_aspect_ratio,
+            selected_cda,
+            checked_directions,
+            selected_directions,
+            auto_plotting
+        )
+        # Display the information in a QMessageBox
+        QMessageBox.information(
+            None,
+            "Options",
+            f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
+            f"Selected CDA         : {selected_cda}\n"
+            f"Checked Directions   : {checked_directions}\n"
+            f"Selected Directions (for Aspect Ratio): {selected_directions}\n"
+            f"Auto Plotting        : {auto_plotting}",
+        )
+
+        plotting = Plotting()
+        self.output_folder = create_aspects_folder(self.input_folder)
+
+        summary_file = self.information.summary_file
+        folders = self.information.folders
+
+        if selected_aspect_ratio:
+            xyz_df = self.collect_all(folder=self.input_folder)
+            xyz_combine = xyz_df
+            if summary_file:
+                xyz_df = summary_compare(
+                    summary_csv=summary_file, aspect_df=xyz_df
                 )
-                # Display the information in a QMessageBox
-                QMessageBox.information(
-                    None,
-                    "Options",
-                    f"Selected Aspect Ratio: {selected_aspect_ratio}\n"
-                    f"Selected CDA         : {selected_cda}\n"
-                    f"Checked Directions   : {checked_directions}\n"
-                    f"Selected Directions (for Aspect Ratio): {selected_directions}\n"
-                    f"Auto Plotting        : {auto_plotting}",
+            xyz_df_final_csv = self.output_folder / "AspectRatio.csv"
+            xyz_df.to_csv(xyz_df_final_csv, index=None)
+            self.shape_number_percentage(
+                df=xyz_df, savefolder=self.output_folder
+            )
+            plotting_csv = xyz_df_final_csv
+            if auto_plotting is True:
+                plotting.build_PCAZingg(
+                    csv=xyz_df_final_csv, folderpath=self.output_folder
                 )
-                print("Directions selected for aspect ratio : ", selected_directions)
+                plotting.plot_OBA(csv=xyz_df_final_csv, folderpath=self.output_folder)
+                plotting.SAVAR_plot(
+                    csv=xyz_df_final_csv, folderpath=self.output_folder
+                )
 
-                plotting = Plotting()
-                save_folder = create_aspects_folder(self.input_folder)
-                self.output_folder = save_folder
-                file_info = find_info(self.input_folder)
-                summary_file = file_info.summary_file
-                folders = file_info.folders
+        if selected_cda:
+            cda_df = self.build_AR_CDA(
+                folderpath=self.input_folder,
+                folders=folders,
+                directions=checked_directions,
+                selected=selected_directions,
+                savefolder=self.output_folder,
+            )
+            zn_df = self.defining_equation(
+                directions=selected_directions,
+                ar_df=cda_df,
+                filepath=self.output_folder,
+            )
+            if summary_file:
+                zn_df = summary_compare(
+                    summary_csv=summary_file, aspect_df=zn_df
+                )
+            zn_df_final_csv = self.output_folder / "CDA.csv"
+            zn_df.to_csv(zn_df_final_csv, index=None)
+            plotting_csv = zn_df_final_csv
+            if auto_plotting is True:
+                plotting.Aspect_Extended_Plot(
+                    csv=zn_df_final_csv,
+                    folderpath=self.output_folder,
+                    selected=selected_directions,
+                )
+                plotting.CDA_Plot(csv=zn_df_final_csv, folderpath=self.output_folder)
 
-                if selected_aspect_ratio:
-                    xyz_df = self.collect_all(folder=self.input_folder)
-                    xyz_combine = xyz_df
-                    if summary_file:
-                        xyz_df = summary_compare(
-                            summary_csv=summary_file, aspect_df=xyz_df
-                        )
-                    xyz_df_final_csv = save_folder / "AspectRatio.csv"
-                    xyz_df.to_csv(xyz_df_final_csv, index=None)
-                    self.shape_number_percentage(
-                        df=xyz_df, savefolder=save_folder
+            if selected_aspect_ratio and selected_cda:
+                combined_df = combine_XYZ_CDA(CDA_df=zn_df, XYZ_df=xyz_combine)
+                final_cda_xyz_csv = self.output_folder / "crystalaspects.csv"
+                combined_df.to_csv(final_cda_xyz_csv, index=None)
+                # self.ShowData(final_cda_xyz)
+                self.CDA_Shape_Percentage(
+                    df=combined_df, savefolder=self.output_folder
+                )
+                plotting_csv = final_cda_xyz_csv
+                if auto_plotting is True:
+                    plotting.PCA_CDA_Plot(
+                        csv=final_cda_xyz_csv, folderpath=self.output_folder
                     )
-                    plotting_csv = xyz_df_final_csv
-                    if auto_plotting is True:
-                        plotting.build_PCAZingg(
-                            csv=xyz_df_final_csv, folderpath=save_folder
-                        )
-                        plotting.plot_OBA(csv=xyz_df_final_csv, folderpath=save_folder)
-                        plotting.SAVAR_plot(
-                            csv=xyz_df_final_csv, folderpath=save_folder
-                        )
-
-                if selected_cda:
-                    cda_df = self.build_AR_CDA(
-                        folderpath=self.input_folder,
-                        folders=folders,
-                        directions=checked_directions,
-                        selected=selected_directions,
-                        savefolder=save_folder,
+                    plotting.build_CDA_OBA(
+                        csv=final_cda_xyz_csv, folderpath=self.output_folder
                     )
-                    zn_df = self.defining_equation(
-                        directions=selected_directions,
-                        ar_df=cda_df,
-                        filepath=save_folder,
-                    )
-                    if summary_file:
-                        zn_df = summary_compare(
-                            summary_csv=summary_file, aspect_df=zn_df
-                        )
-                    zn_df_final_csv = f"{save_folder}/CDA.csv"
-                    zn_df.to_csv(zn_df_final_csv, index=None)
-                    plotting_csv = zn_df_final_csv
-                    if auto_plotting is True:
-                        plotting.Aspect_Extended_Plot(
-                            csv=zn_df_final_csv,
-                            folderpath=save_folder,
-                            selected=selected_directions,
-                        )
-                        plotting.CDA_Plot(csv=zn_df_final_csv, folderpath=save_folder)
 
-                    if selected_aspect_ratio and selected_cda:
-                        combined_df = combine_XYZ_CDA(CDA_df=zn_df, XYZ_df=xyz_combine)
-                        final_cda_xyz_csv = f"{save_folder}/crystalaspects.csv"
-                        combined_df.to_csv(final_cda_xyz_csv, index=None)
-                        # self.ShowData(final_cda_xyz)
-                        self.CDA_Shape_Percentage(
-                            df=combined_df, savefolder=save_folder
-                        )
-                        plotting_csv = final_cda_xyz_csv
-                        if auto_plotting is True:
-                            plotting.PCA_CDA_Plot(
-                                csv=final_cda_xyz_csv, folderpath=save_folder
-                            )
-                            plotting.build_CDA_OBA(
-                                csv=final_cda_xyz_csv, folderpath=save_folder
-                            )
-
-                PlottingDialogs = PlottingDialog(self)
-                PlottingDialogs.plotting_info(csv=plotting_csv)
-                PlottingDialogs.show()
+        PlottingDialogs = PlottingDialog(self)
+        PlottingDialogs.plotting_info(csv=plotting_csv)
+        PlottingDialogs.show()
 
     def build_AR_CDA(self, folders, folderpath, savefolder, directions, selected):
         path = Path(folderpath)
-        print(directions)
-        print("selected directions:")
-        print(selected)
 
-        # ar_array = np.empty((0, len(directions) + 1))
         ar_keys = ["Simulation Number"] + directions
-        print("AR_keys", ar_keys)
+        logger.debug("AR_keys %s", ar_keys)
         ar_dict = {k: [] for k in ar_keys}
-        print("ar_dict", ar_dict)
         sim_num = 1
         for folder in folders:
             files = os.listdir(folder)
@@ -207,23 +209,16 @@ class AspectRatio(QWidget):
                                 # print(ar_dict)
 
             sim_num += 1
-        print("sim_num = ", sim_num)
-        print("Order of Directions in Columns =", *directions)
-        print("ar_dict", ar_dict)
 
         df = pd.DataFrame.from_dict(ar_dict)
-        print("df", ar_dict)
 
-        # aspect ratio calculation
         for i in range(len(selected) - 1):
-            print(selected[i], selected[i + 1])
+            logger.debug("Aspect Ratio [%s] : [%s] / [%s]", i, selected[i], selected[i + 1])
             df[f"AspectRatio_{selected[i]}/{selected[i+1]}"] = (
                 df[selected[i]] / df[selected[i + 1]]
             )
 
-        # df.to_csv(savefolder / "CDA_AspectRatio.csv", index=False)
-
-        print(df)
+        logger.debug("CDA Dataframe:\n%s", ar_dict)
 
         return df
 
