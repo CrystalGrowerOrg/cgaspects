@@ -1,7 +1,9 @@
 import os
 import sys
 import subprocess
+import logging
 
+logger = logging.getLogger("CA:OpenDIR")
 
 def open_directory(path):
     # Ensure the path is absolute
@@ -9,7 +11,7 @@ def open_directory(path):
 
     # Check if the path is a directory
     if not os.path.isdir(path):
-        print(f"The path {path} is not a valid directory.")
+        logger.warning("The path %s is not a valid directory.", path)
         return
 
     # Platform-specific commands

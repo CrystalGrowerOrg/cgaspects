@@ -31,7 +31,7 @@ class create_slider(QMainWindow, Ui_MainWindow):
         else:
             summ_df = summ_df.iloc[:, 1:]
         print(summ_df)
-        self.output_textBox_3.append(summ_df.to_string())
+        self.output_texbox.append(summ_df.to_string())
 
         column_names = list(summ_df)
         print("columns", column_names)
@@ -44,9 +44,6 @@ class create_slider(QMainWindow, Ui_MainWindow):
             for index, row in summ_df.iterrows():
                 if row[str(column)] not in var_dict[column]:
                     var_dict[column].append(row[str(column)])
-
-        print(var_dict)
-        self.output_textBox_3.append(str(var_dict))
 
         var = len(column_names)
         iteration_list = []

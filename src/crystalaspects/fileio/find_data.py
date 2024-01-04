@@ -198,29 +198,36 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     return full_df
 
 def combine_XYZ_CDA(CDA_df, XYZ_df):
-    cda_cols = CDA_df.columns
+    cda_cols = CDA_df.columns[1:]
     xyz_cols = XYZ_df.columns
 
-    cda_cols = cda_cols[1:]
-
+    logger.debug(
+        "Attempting to combine CDA [%s] and XYZ [%s] dataframes",
+        CDA_df.shape,
+        XYZ_df.shape
+    )
+    # Initialize a list to collect rows
+    collected_rows = []
     combine_array = np.empty((0, len(xyz_cols) + len(cda_cols)))
-    print(XYZ_df)
 
     for index, row in XYZ_df.iterrows():
         sim_num = int(row["Simulation Number"]) - 1
-        print("sim_num", sim_num)
         xyz_row = row.values
-        # print("xyz_row", xyz_row)
         xyz_row = np.array([xyz_row])
-        # print(xyz_row)
-        collect_row = [CDA_df.iloc[sim_num].values[1:]]
-        print(collect_row)
-        collect_row = np.concatenate([xyz_row, collect_row], axis=1)
-        combine_array = np.append(combine_array, collect_row, axis=0)
-        print(combine_array.shape)
+        cda_row = CDA_df.iloc[sim_num, 1:].values.reshape(1, -1)
 
-    cols = xyz_cols.append(cda_cols)
-    compare_df = pd.DataFrame(combine_array, columns=cols)
+        # Concatenate xyz_row with cda_row along axis 1 to form a combined row
+        combined_row = np.concatenate([xyz_row, cda_row], axis=1)
+        collected_rows.append(combined_row[0]) 
+
+    # Convert the collected rows into a DataFrame
+    combined_array = np.asarray(collected_rows)
+    logger.debug("Combined array shape: %s", combined_array.shape)
+    cols = xyz_cols.tolist() + cda_cols.tolist()
+    logger.debug("Combined column titles: %s", cols)
+    compare_df = pd.DataFrame(combined_array, columns=cols)
     combine_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
+
+    logger.debug("Combined df:\n%s", combine_df)
 
     return combine_df

@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-
+import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
 
 matplotlib.use("QT5Agg")
 
+logger = logging.getLogger("CA: PlotDialog")
 
 class PlottingDialog(QDialog):
     def __init__(self, parent=None):
@@ -34,11 +35,14 @@ class PlottingDialog(QDialog):
         self.create_widgets()
         self.create_layout()
         self.annot = None
+        
+        self.selected_plot = None
+        self.plot_objects = {}
 
     def plotting_info(self, csv):
         self.csv = csv
         df = pd.read_csv(self.csv)
-        print(df)
+        logger.debug("Dataframe read:\n%s", df)
         plotting = ""
         for col in df.columns:
             if col.startswith("Supersaturation"):
@@ -52,7 +56,10 @@ class PlottingDialog(QDialog):
                 ("interaction", "tile", "temperature", "starting_delmu", "excess")
             )
         ]
-        print(interaction_columns)
+        logger.debug(
+            "Interaction energy columns: %s",
+            interaction_columns
+        )
 
         # List to store the results
         plot_types = []
@@ -77,7 +84,6 @@ class PlottingDialog(QDialog):
         for column in df.columns:
             if column.startswith("CDA_Equation"):
                 equations = set(df["CDA_Equation"])
-                print(equations)
                 for equation in equations:
                     plot_types.append(f"OBA vs CDA Equation {equation}")
                     plot_types.append(f"PCA vs CDA Equation {equation}")
@@ -99,7 +105,6 @@ class PlottingDialog(QDialog):
                 if col.startswith(" "):
                     directions.append(col)
             self.directions = directions
-            print(directions)
             self.plots_list = ["Growth Rates"]
 
     def create_widgets(self):
@@ -132,9 +137,10 @@ class PlottingDialog(QDialog):
         self.button_plot.clicked.connect(self.plot)
         self.button_save.clicked.connect(self.save)
         self.button_plot_list.clicked.connect(self.add_plot_list)
+        # Connect the add trendline button to its handler
         self.checkbox_colorbar.stateChanged.connect(
             self.toggle_colorbar
-        )  # Connect the add trendline button to its handler
+        )
         self.button_add_trendline.clicked.connect(self.add_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.canvas.mpl_connect(
@@ -214,9 +220,9 @@ class PlottingDialog(QDialog):
     def plot(self):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
-        self.ax.clear()  # clear the plot
-        self.canvas.draw()  # redraw the canvas
-        print("entering plotting called")
+        self.ax.clear()
+        self.canvas.draw()
+        logger.info("Plotting called for: %s", self.selected_plot)
         # Reading the dataframe
         df = pd.read_csv(self.csv)
         self.plot_objects = {}
@@ -253,8 +259,8 @@ class PlottingDialog(QDialog):
         if self.selected_plot == "OBA":
             x_data = df["OBA S:M"]
             y_data = df["OBA M:L"]
-            print(x_data)
-            print(y_data)
+            
+            logger.info("Plotting x[ OBA S:M %s], y[ OBA M:L %s]", x_data.shape, y_data.shape)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
@@ -270,8 +276,8 @@ class PlottingDialog(QDialog):
         if self.selected_plot == "PCA":
             x_data = df["PCA S:M"]
             y_data = df["PCA M:L"]
-            print(x_data)
-            print(y_data)
+            
+            logger.info("Plotting x[ PCA S:M %s], y[ PCA M:L %s]", x_data.shape, y_data.shape)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
@@ -287,8 +293,8 @@ class PlottingDialog(QDialog):
         if self.selected_plot == "Surface Area: Volume Ratio":
             x_data = df["Surface Area (SA)"]
             y_data = df["Volume (Vol)"]
-            print(x_data)
-            print(y_data)
+            
+            logger.info("Plotting x[ Surface Area (SA) %s], y[ Volume (Vol) %s]", x_data.shape, y_data.shape)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
@@ -300,8 +306,8 @@ class PlottingDialog(QDialog):
         if self.selected_plot == "CDA":
             x_data = df["S/M"]
             y_data = df["M/L"]
-            print(x_data)
-            print(y_data)
+            
+            logger.info("Plotting x[ S/M %s], y[ M/L %s]", x_data.shape, y_data.shape)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
@@ -323,14 +329,16 @@ class PlottingDialog(QDialog):
                 if column.startswith("AspectRatio"):
                     aspect_ratio_count += 1
                     if aspect_ratio_count == 1:
+                        x_name = column
                         x_data = df[column]
                         x_column_name = column
                     elif aspect_ratio_count == 2:
+                        y_name = column
                         y_data = df[column]
                         y_column_name = column
                         break
-            print(x_data)
-            print(y_data)
+            
+            logger.info("Plotting x[ %s %s], y[ %s %s]", x_name, x_data.shape, y_name, y_data.shape)
             # Plot the data
             self.scatter = self.ax.scatter(x_data, y_data, s=12)
             # When creating a scatter plot without colour data
@@ -343,9 +351,9 @@ class PlottingDialog(QDialog):
         # Plotting each interaction separately
         for interaction in interactions:
             if self.selected_plot.startswith("OBA vs " + interaction):
-                print("interaction:", interaction)
                 x_data = df["OBA S:M"]
                 y_data = df["OBA M:L"]
+                logger.info("Plotting x[ OBA S:M %s], y[ OBA M:L %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                 colour_data = df[interaction]
                 # Check if colour_data is numerical or needs conversion
                 if colour_data.dtype.kind not in "biufc":  # Check if not a number
@@ -375,10 +383,10 @@ class PlottingDialog(QDialog):
                 self.canvas.draw()
 
             if self.selected_plot.startswith("PCA vs " + interaction):
-                print("interaction:", interaction)
                 x_data = df["PCA S:M"]
                 y_data = df["PCA M:L"]
                 colour_data = df[interaction]
+                logger.info("Plotting x[ PCA S:M %s], y[ PCA M:L %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                 # Check if colour_data is numerical or needs conversion
                 if colour_data.dtype.kind not in "biufc":  # Check if not a number
                     colour_data = pd.factorize(colour_data)[0]
@@ -412,6 +420,7 @@ class PlottingDialog(QDialog):
                 x_data = df["Surface Area (SA)"]
                 y_data = df["Volume (Vol)"]
                 colour_data = df[interaction]
+                logger.info("Plotting x[ Surface Area (SA) %s], y[ Volume (Vol) %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                 # Check if colour_data is numerical or needs conversion
                 if colour_data.dtype.kind not in "biufc":  # Check if not a number
                     colour_data = pd.factorize(colour_data)[0]
@@ -436,10 +445,10 @@ class PlottingDialog(QDialog):
                 self.canvas.draw()
 
             if self.selected_plot.startswith("CDA vs " + interaction):
-                print("interaction:", interaction)
                 x_data = df["S/M"]
                 y_data = df["M/L"]
                 colour_data = df[interaction]
+                logger.info("Plotting x[ CDA S/M %s], y[ CDA M/L %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                 # Check if colour_data is numerical or needs conversion
                 if colour_data.dtype.kind not in "biufc":  # Check if not a number
                     colour_data = pd.factorize(colour_data)[0]
@@ -468,7 +477,6 @@ class PlottingDialog(QDialog):
                 self.canvas.draw()
 
             if self.selected_plot.startswith("CDA Extended vs " + interaction):
-                print("interaction:", interaction)
                 x_data = None
                 y_data = None
                 x_column_name = None
@@ -479,14 +487,16 @@ class PlottingDialog(QDialog):
                     if column.startswith("AspectRatio"):
                         aspect_ratio_count += 1
                         if aspect_ratio_count == 1:
+                            x_name = column
                             x_data = df[column]
                             x_column_name = column
                         elif aspect_ratio_count == 2:
+                            y_name = column
                             y_data = df[column]
                             y_column_name = column
                             break
-                print(x_data)
-                print(y_data)
+                
+                logger.info("Plotting x[ %s %s], y[ %s %s] c[ Interaction %s]", x_name, x_data.shape, y_name, y_data.shape, interaction)
                 colour_data = df[interaction]
                 # Check if colour_data is numerical or needs conversion
                 if colour_data.dtype.kind not in "biufc":  # Check if not a number
@@ -515,9 +525,9 @@ class PlottingDialog(QDialog):
             for equation in equations:
                 if self.selected_plot.startswith(f"OBA vs CDA Equation {equation}"):
                     df = df[df["CDA_Equation"] == equation]
-                    print("interaction:", equation)
                     x_data = df["OBA S:M"]
                     y_data = df["OBA M:L"]
+                    logger.info("Plotting x[ OBA S:M %s], y[ OBA M:L %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                     # Plot the data
                     self.scatter = self.ax.scatter(x_data, y_data, s=12)
                     # When creating a scatter plot without colour data
@@ -533,9 +543,9 @@ class PlottingDialog(QDialog):
 
                 if self.selected_plot.startswith(f"PCA vs CDA Equation {equation}"):
                     df = df[df["CDA_Equation"] == equation]
-                    print("interaction:", equation)
                     x_data = df["PCA S:M"]
                     y_data = df["PCA M:L"]
+                    logger.info("Plotting x[ PCA S:M %s], y[ PCA M:L %s] c[ Interaction %s ]", x_data.shape, y_data.shape, interaction)
                     # Plot the data
                     self.scatter = self.ax.scatter(x_data, y_data, s=12)
                     # When creating a scatter plot without colour data
@@ -551,9 +561,10 @@ class PlottingDialog(QDialog):
 
         if self.growth_rate:
             x_data = df["Supersaturation"]
+            # Store plot objects for reference (both line and scatter)
             self.plot_objects = (
                 {}
-            )  # Store plot objects for reference (both line and scatter)
+            )
 
             # Define the on_legend_click function here
             def on_legend_click(event):
@@ -695,7 +706,7 @@ class PlottingDialog(QDialog):
             )
 
             if file_name:
-                size = [6.8, 4.8]
+                # size = [6.8, 4.8]
                 if transparent:
                     self.figure.savefig(
                         file_name, transparent=True, dpi=600

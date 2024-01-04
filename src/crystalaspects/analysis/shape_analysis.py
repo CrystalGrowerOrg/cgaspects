@@ -95,7 +95,6 @@ class CrystalShape:
 
                 progress_num = ((frame + 1) / num_frames) * 100
 
-                
                 print(f"#####\nFRAME NUMBER: {frame}")
                 print(f"Particle Number Line: {particle_num_line}")
                 print(f"Frame Start Line: {frame_line}")
@@ -105,7 +104,6 @@ class CrystalShape:
                 print(f"Number of Particles in list: {xyz.shape[0]}")
 
         return (xyz, xyz_movie, progress_num)
-
 
     def get_pca(self, n=3):
         """Looks to obtain information on a crystal
