@@ -1,17 +1,19 @@
-import os
-from pathlib import Path
 import logging
-from itertools import permutations
-from collections import namedtuple
+import os
 import re
+from collections import namedtuple
+from itertools import permutations
+from pathlib import Path
+
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
-import crystalaspects.fileio.find_data  as fd
 import crystalaspects.analysis.ar_dataframes as ar
 import crystalaspects.analysis.gr_dataframes as gr
+import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.shape_analysis import CrystalShape
 
 logger = logging.getLogger("CA:Threads")
+
 
 class WorkerSignals(QObject):
     """
@@ -74,16 +76,12 @@ class WorkerAspectRatios(QRunnable):
             xyz_df = ar.collect_all(folder=self.input_folder, signals=self.signals)
             xyz_combine = xyz_df
             if summary_file:
-                xyz_df = fd.summary_compare(
-                    summary_csv=summary_file, aspect_df=xyz_df
-                )
+                xyz_df = fd.summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
             xyz_df_final_csv = self.output_folder / "aspectratio.csv"
             xyz_df.to_csv(xyz_df_final_csv, index=None)
-            ar.get_xyz_shape_percentage(
-                df=xyz_df, savefolder=self.output_folder
-            )
+            ar.get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
             self.plotting_csv = xyz_df_final_csv
-        
+
         if self.options.selected_cda and not self.options.checked_directions:
             logger.warning(
                 "You have selected CDA option but have not checked any directions used to collect length information."
@@ -101,23 +99,21 @@ class WorkerAspectRatios(QRunnable):
             cda_df = ar.build_cda(
                 folderpath=self.input_folder,
                 folders=folders,
-                directions= self.options.checked_directions,
-                selected= self.options.selected_directions,
+                directions=self.options.checked_directions,
+                selected=self.options.selected_directions,
                 savefolder=self.output_folder,
             )
             zn_df = ar.build_ratio_equations(
-                directions= self.options.selected_directions,
+                directions=self.options.selected_directions,
                 ar_df=cda_df,
                 filepath=self.output_folder,
             )
             if summary_file:
-                zn_df = fd.summary_compare(
-                    summary_csv=summary_file, aspect_df=zn_df
-                )
+                zn_df = fd.summary_compare(summary_csv=summary_file, aspect_df=zn_df)
             zn_df_final_csv = self.output_folder / "cda.csv"
             zn_df.to_csv(zn_df_final_csv, index=None)
             self.plotting_csv = zn_df_final_csv
-            
+
             if self.options.selected_ar and self.options.selected_cda:
                 combined_df = fd.combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
                 final_cda_xyz_csv = self.output_folder / "crystalaspects.csv"
@@ -129,6 +125,7 @@ class WorkerAspectRatios(QRunnable):
 
         self.signals.result.emit(self.plotting_csv)
 
+
 class WorkerGrowthRates(QRunnable):
     def __init__(self, information, selected_directions):
         super(WorkerGrowthRates, self).__init__()
@@ -138,15 +135,15 @@ class WorkerGrowthRates(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-
         growth_rate_df = gr.build_growthrates(
             size_file_list=self.information.size_files,
             supersat_list=self.information.supersats,
             directions=self.selected_directions,
-            signals=self.signals
+            signals=self.signals,
         )
 
         self.signals.result.emit(growth_rate_df)
+
 
 class WorkerMovies(QRunnable):
     def __init__(self, filepath):

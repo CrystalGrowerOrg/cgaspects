@@ -7,7 +7,6 @@ from typing import List
 import numpy as np
 import pandas as pd
 from natsort import natsorted
-
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 logger = logging.getLogger("CA:FileIO")
@@ -27,17 +26,20 @@ def read_crystals(xyz_folderpath=None):
             crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
             # Check if the list is empty
             if not crystal_xyz_list:
-                raise FileNotFoundError("No .XYZ files found in the selected directory.")
+                raise FileNotFoundError(
+                    "No .XYZ files found in the selected directory."
+                )
         else:
             raise NotADirectoryError(f"{xyz_folderpath} is not a valid directory.")
-        
+
         # Remove files that are not desired (e.g., ._DStore)
-        crystal_xyz_list = [item for item in crystal_xyz_list if not Path(item).name.startswith("._")]
-        
+        crystal_xyz_list = [
+            item for item in crystal_xyz_list if not Path(item).name.startswith("._")
+        ]
+
         crystal_xyz_list = natsorted(crystal_xyz_list)
 
     except (FileNotFoundError, NotADirectoryError) as e:
-
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText(
@@ -51,6 +53,7 @@ def read_crystals(xyz_folderpath=None):
     logger.debug("%s .XYZ Files Found", len(crystal_xyz_list))
     return (xyz_folderpath, crystal_xyz_list)
 
+
 def create_aspects_folder(path):
     """Creates crystalaspects folder"""
     time_string = time.strftime("%Y%m%d-%H%M%S")
@@ -58,6 +61,7 @@ def create_aspects_folder(path):
     savefolder.mkdir(parents=True, exist_ok=True)
 
     return savefolder
+
 
 def find_info(path):
     """The method returns the crystallographic directions,
@@ -75,7 +79,8 @@ def find_info(path):
         if item_path.name.endswith("summary.csv"):
             summary_file = item_path
         if item_path.is_dir() and not any(
-            item_path.name.endswith(suffix) for suffix in ["XYZ_files", "CrystalAspects", "CrystalMaps"]
+            item_path.name.endswith(suffix)
+            for suffix in ["XYZ_files", "CrystalAspects", "CrystalMaps"]
         ):
             folders.append(item_path)
 
@@ -98,7 +103,6 @@ def find_info(path):
                     size_files.append(f_path)
                     growth_rates = True
 
-
             if f_name.endswith("simulation_parameters.txt"):
                 with open(f_path, "r", encoding="utf-8") as sim_file:
                     lines = sim_file.readlines()
@@ -114,10 +118,7 @@ def find_info(path):
                         else:
                             growth_mod = False
 
-                    if (
-                        line.startswith("Size of crystal at frame output")
-                        and i == 0
-                    ):
+                    if line.startswith("Size of crystal at frame output") and i == 0:
                         frame = lines.index(line) + 1
                         # From starting point - read facet information
                         for n in range(frame, len(lines)):
@@ -136,6 +137,7 @@ def find_info(path):
 
     return infomation
 
+
 def find_growth_directions(csv):
     """Returns the lenghts from a size_file"""
     lt_df = pd.read_csv(csv)
@@ -146,6 +148,7 @@ def find_growth_directions(csv):
             directions.append(col)
 
     return directions
+
 
 def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     summary_df = pd.read_csv(summary_csv)
@@ -175,7 +178,7 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
             aspect_row = row.values
             aspect_row = np.array([aspect_row])
             collect_row = summary_df.filter(items=[num_string], axis=0).values
-            
+
             collect_row = np.concatenate([aspect_row, collect_row], axis=1)
             compare_array = np.append(compare_array, collect_row, axis=0)
 
@@ -191,11 +194,11 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
             collect_row = np.concatenate([aspect_row, collect_row], axis=1)
             compare_array = np.append(compare_array, collect_row, axis=0)
 
-
     cols = aspect_cols.append(int_cols)
     compare_df = pd.DataFrame(compare_array, columns=cols)
     full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
     return full_df
+
 
 def combine_xyz_cda(CDA_df, XYZ_df):
     cda_cols = CDA_df.columns[1:]
@@ -204,7 +207,7 @@ def combine_xyz_cda(CDA_df, XYZ_df):
     logger.debug(
         "Attempting to combine CDA [%s] and XYZ [%s] dataframes",
         CDA_df.shape,
-        XYZ_df.shape
+        XYZ_df.shape,
     )
     # Initialize a list to collect rows
     collected_rows = []
@@ -218,7 +221,7 @@ def combine_xyz_cda(CDA_df, XYZ_df):
 
         # Concatenate xyz_row with cda_row along axis 1 to form a combined row
         combined_row = np.concatenate([xyz_row, cda_row], axis=1)
-        collected_rows.append(combined_row[0]) 
+        collected_rows.append(combined_row[0])
 
     # Convert the collected rows into a DataFrame
     combined_array = np.asarray(collected_rows)

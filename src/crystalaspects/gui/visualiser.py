@@ -1,8 +1,10 @@
-from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.gui.openGL import vis_GLWidget
 import logging
 
+from crystalaspects.gui.load_ui import Ui_MainWindow
+from crystalaspects.gui.openGL import vis_GLWidget
+
 logger = logging.getLogger("CA:Visualiser")
+
 
 class Visualiser(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -103,7 +105,9 @@ class Visualiser(Ui_MainWindow):
         self.xyz_spinBox.setMaximum(tot_sims - 1)
         self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
         self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
-        self.show_info_button.clicked.connect(lambda: self.update_XYZ_info(self.openglwidget.xyz))
+        self.show_info_button.clicked.connect(
+            lambda: self.update_XYZ_info(self.openglwidget.xyz)
+        )
 
     def init_crystal(self, result):
         logger.debug("INIT CRYSTAL %s", result)

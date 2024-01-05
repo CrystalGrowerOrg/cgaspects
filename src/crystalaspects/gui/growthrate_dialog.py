@@ -1,12 +1,5 @@
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QDialog,
-    QDialogButtonBox,
-    QHBoxLayout,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox,
+                               QHBoxLayout, QScrollArea, QVBoxLayout, QWidget)
 
 
 class GrowthRateAnalysisDialogue(QDialog):

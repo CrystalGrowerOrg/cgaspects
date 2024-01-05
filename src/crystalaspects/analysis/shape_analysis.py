@@ -1,8 +1,8 @@
+import logging
 import re
 import sys
-from pathlib import Path
-import logging
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 
 logger = logging.getLogger("CA:ShapeAnalysis")
 
+
 class CrystalShape:
     def __init__(
         self,
@@ -19,7 +20,6 @@ class CrystalShape:
         self.xyz = None
 
     def set_xyz(self, xyz_array=None, filepath=None):
-        
         # Check if the xyz_array is provided and is not None
         if xyz_array is not None:
             xyz_vals = np.array(xyz_array)
@@ -31,7 +31,6 @@ class CrystalShape:
         # Error handling for no valid input
         if xyz_vals is None:
             raise ValueError("Provide XYZ as either an array or a filepath.")
-
 
         if xyz_vals.shape[1] == 3:
             xyz_vals = xyz_vals
@@ -156,14 +155,16 @@ class CrystalShape:
         shape = self.get_shape_class(aspect1, aspect2)
 
         oba_array = np.array(
-            [[
-                lengths[0],
-                lengths[0],
-                lengths[0],
-                aspect1,
-                aspect2,
-                shape,
-            ]]
+            [
+                [
+                    lengths[0],
+                    lengths[0],
+                    lengths[0],
+                    aspect1,
+                    aspect2,
+                    shape,
+                ]
+            ]
         )
         return oba_array
 
@@ -180,7 +181,7 @@ class CrystalShape:
             return "Needle"
         else:
             return "unknown"
-    
+
     def get_all(self, n=3):
         """Returns both Aspect Ratio through PCA
         and Surface Area/Volume information on a
@@ -195,10 +196,6 @@ class CrystalShape:
         aspect1 = small / medium
         aspect2 = medium / long
         shape_info = shape_tuple(
-            aspect1=aspect1,
-            aspect2=aspect2,
-            sa=sa_hull,
-            vol=vol_hull,
-            sa_vol=sa_vol
+            aspect1=aspect1, aspect2=aspect2, sa=sa_hull, vol=vol_hull, sa_vol=sa_vol
         )
         return shape_info

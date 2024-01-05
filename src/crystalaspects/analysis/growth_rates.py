@@ -1,19 +1,18 @@
+import logging
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import logging
-
+from PySide6.QtCore import QThreadPool, Signal
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
-from PySide6.QtCore import QThreadPool, Signal, QThreadPool
 
-
-import crystalaspects.fileio.find_data as fd
 import crystalaspects.analysis.gr_dataframes as gr
+import crystalaspects.fileio.find_data as fd
+from crystalaspects.analysis.gui_threads import WorkerGrowthRates
 from crystalaspects.gui.growthrate_dialog import GrowthRateAnalysisDialogue
+from crystalaspects.gui.progress_dialog import CircularProgress
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
-from crystalaspects.analysis.gui_threads import WorkerGrowthRates
-from crystalaspects.gui.progress_dialog import CircularProgress
 
 logger = logging.getLogger("CA:G-Rates")
 

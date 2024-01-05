@@ -1,19 +1,12 @@
+import logging
 from collections import namedtuple
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QHBoxLayout,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
-import logging
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+                               QHBoxLayout, QScrollArea, QVBoxLayout, QWidget)
 
 logger = logging.getLogger("CA:AspectDaliog")
+
 
 class AnalysisOptionsDialog(QDialog):
     def __init__(self, directions):
@@ -78,9 +71,7 @@ class AnalysisOptionsDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-        cda_checkbox.stateChanged.connect(
-            self.toggle_directions
-        )
+        cda_checkbox.stateChanged.connect(self.toggle_directions)
 
         for checkbox in self.checkboxes:
             checkbox.toggled.connect(self.update_checked_directions)
@@ -118,7 +109,16 @@ class AnalysisOptionsDialog(QDialog):
         selected_directions = []
         plotting = self.plotting_checkbox.isChecked()
 
-        options = namedtuple("Options", ["selected_ar", "selected_cda", "checked_directions", "selected_directions", "plotting"])
+        options = namedtuple(
+            "Options",
+            [
+                "selected_ar",
+                "selected_cda",
+                "checked_directions",
+                "selected_directions",
+                "plotting",
+            ],
+        )
 
         for i in range(3):
             selected_direction = self.combo_boxes[i].currentText()

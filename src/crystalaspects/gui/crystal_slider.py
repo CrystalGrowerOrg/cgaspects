@@ -9,8 +9,8 @@ from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
-from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.analysis.shape_analysis import CrystalShape
+from crystalaspects.gui.load_ui import Ui_MainWindow
 
 
 class create_slider(QMainWindow, Ui_MainWindow):

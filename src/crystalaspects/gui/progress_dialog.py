@@ -1,17 +1,12 @@
 from collections import namedtuple
+
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QLabel,
-    QDialog,
-    QDialogButtonBox,
-    QHBoxLayout,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+                               QHBoxLayout, QLabel, QScrollArea, QVBoxLayout,
+                               QWidget)
+
 from crystalaspects.gui.circular_progress import PyCircularProgress
+
 
 class CircularProgress(QDialog):
     def __init__(self, calc_type="Aspect Ratio"):
@@ -41,13 +36,19 @@ class CircularProgress(QDialog):
     def set_value(self, value):
         self.circular_progress.set_value(value)
 
-    def update_options(self, options:namedtuple):
+    def update_options(self, options: namedtuple):
         # Format the options into a bullet-point style string
         options_text = "Calculating...\n With Selected Options:\n"
         options_text += f"• Aspect Ratios\n"
-        options_text += f"  PCA/OBA: {'Enabled' if options.selected_ar else 'Disabled'}\n"
-        options_text += f"  CDA:     {'Enabled' if options.selected_cda else 'Disabled'}\n"
-        options_text += f"• Checked Directions: {', '.join(options.checked_directions) or 'None'}\n"
+        options_text += (
+            f"  PCA/OBA: {'Enabled' if options.selected_ar else 'Disabled'}\n"
+        )
+        options_text += (
+            f"  CDA:     {'Enabled' if options.selected_cda else 'Disabled'}\n"
+        )
+        options_text += (
+            f"• Checked Directions: {', '.join(options.checked_directions) or 'None'}\n"
+        )
         options_text += f"• Selected Directions: {', '.join(options.selected_directions) or 'None'}\n"
         options_text += f"• Plotting: {'Enabled' if options.plotting else 'Disabled'}"
 
