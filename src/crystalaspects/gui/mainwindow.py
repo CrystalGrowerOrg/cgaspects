@@ -7,7 +7,7 @@ import logging
 
 from natsort import natsorted
 from PySide6 import QtGui, QtOpenGL, QtWidgets
-from PySide6.QtCore import QCoreApplication, Qt, QThreadPool, QTimer
+from PySide6.QtCore import QCoreApplication, Qt, QThreadPool, QTimer, QObject, Signal, Slot, QThreadPool
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
 from qt_material import apply_stylesheet
@@ -37,6 +37,27 @@ setup_logging(**log_dict)
 logger = logging.getLogger("CA:GUI")
 logger.critical("LOGGING AT %s", log_dict)
 
+class WorkerSignals(QObject):
+    """
+    Defines the signals available from a running worker thread.
+    Supported signals:
+    finished
+        No data
+    error
+        tuple (exctype, value, traceback.format_exc() )
+    result
+        object data returned from processing, anything
+    progress
+        int indicating % progress
+    """
+
+    finished = Signal()
+    error = Signal(tuple)
+    result = Signal(object)
+    location = Signal(object)
+    progress = Signal(int)
+    message = Signal(str)
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
@@ -53,10 +74,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.welcome_message()
         self.key_shortcuts()
         self.connect_buttons()
-        self.MenuBar()
+        self.menubar()
 
-        self.aspectratio = AspectRatio()
-        self.growthrate = GrowthRate()
+        self.signals = WorkerSignals()
+        self.aspectratio = AspectRatio(signals=self.signals)
+        self.growthrate = GrowthRate(signals=self.signals)
+        self.signals.location.connect(self.set_output_folder)
 
         # Other self variables
         self.sim_num = None
@@ -64,7 +87,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.output_folder = None
         self.xyz_files: List[Path] = []
 
-    def MenuBar(self):
+    def menubar(self):
         # Create a menu bar
         menu_bar = self.menuBar()
 
@@ -216,6 +239,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Log the message with given level
         log_level_method(message)
 
+    def set_output_folder(self, value):
+        self.output_folder = Path(value)
+        self.view_results_pushButton.setEnabled(True)
+
     def import_and_visualise_xyz(self, folder=None):
         imported = self.import_xyz(folder=folder)
         if imported:
@@ -363,8 +390,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def calculate_aspect_ratio(self):
         self.aspectratio.calculate_aspect_ratio()
         if self.aspectratio.output_folder:
-            self.output_folder = self.aspectratio.output_folder
-            self.view_results_pushButton.setEnabled(True)
+            pass
         if self.aspectratio.directions:
             pass
     

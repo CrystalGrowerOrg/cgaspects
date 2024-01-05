@@ -88,7 +88,7 @@ def get_cda_shape_percentage(df, savefolder):
         [pd.DataFrame([data]) for data in cda_shape_data], ignore_index=True
     )
     cda_shape_df.sort_values("CDA_Equation", inplace=True)
-    cda_shape_df.to_csv(f"{savefolder}/shapes and equations.csv")
+    cda_shape_df.to_csv(savefolder / "shapes_equations.csv")
 
 def build_ratio_equations(directions, ar_df="", csv="", filepath="."):
     """Defining CDA aspect ratio equations depending on the selected directions from the gui.
@@ -116,7 +116,7 @@ def build_ratio_equations(directions, ar_df="", csv="", filepath="."):
     b = ar_df[b_name]
     c = ar_df[c_name]
 
-    with open(Path(filepath) / "CDA_equations.txt", "w") as outfile:
+    with open(Path(filepath) / "cda_equations.txt", "w") as outfile:
         for i, line in enumerate(equations):
             outfile.writelines(f"Equation Number{i+1}: {line}\n")
 

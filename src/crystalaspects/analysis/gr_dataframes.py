@@ -4,7 +4,7 @@ import numpy as np
 
 logger = logging.getLogger("CA:GR-Dataframes")
 
-def build_growthrates(size_file_list, supersat_list, directions=[]):
+def build_growthrates(size_file_list, supersat_list, directions=[], signals=None):
     """generate the growth rate dataframe from the
     size.csv files"""
     growth_list = []
@@ -35,6 +35,8 @@ def build_growthrates(size_file_list, supersat_list, directions=[]):
             gr_list.append(model[0])
             # growth_array = np.append(growth_array, gr_list)
         growth_list.append(gr_list)
+        if signals:
+            signals.progress.emit(int((i / n_size_files) * 100))
         i += 1
     growth_array = np.array(growth_list)
     gr_df = pd.DataFrame(growth_array, columns=lengths)

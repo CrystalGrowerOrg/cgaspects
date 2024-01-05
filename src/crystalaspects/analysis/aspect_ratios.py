@@ -3,7 +3,8 @@ from pathlib import Path
 from collections import namedtuple
 
 from PySide6.QtWidgets import QDialog, QWidget
-from PySide6.QtCore import QObject, Signal, Slot, QThreadPool
+from PySide6.QtCore import QThreadPool, Signal, QThreadPool
+
 
 import crystalaspects.fileio.find_data  as fd
 import crystalaspects.analysis.ar_dataframes as ar
@@ -15,29 +16,9 @@ from crystalaspects.analysis.gui_threads import WorkerAspectRatios
 
 logger = logging.getLogger("CA:A-Ratios")
 
-class WorkerSignals(QObject):
-    """
-    Defines the signals available from a running worker thread.
-    Supported signals:
-    finished
-        No data
-    error
-        tuple (exctype, value, traceback.format_exc() )
-    result
-        object data returned from processing, anything
-    progress
-        int indicating % progress
-    """
-
-    finished = Signal()
-    error = Signal(tuple)
-    result = Signal(object)
-    progress = Signal(int)
-    message = Signal(str)
-
 
 class AspectRatio(QWidget):
-    def __init__(self):
+    def __init__(self, signals):
         self.input_folder = None
         self.output_folder = None
         self.directions = None
@@ -50,7 +31,7 @@ class AspectRatio(QWidget):
 
         self.progress_updated = Signal(int)
         self.circular_progress = None
-        self.signals = WorkerSignals()
+        self.signals = signals
         self.signals.progress.connect(self.update_progress)
     
     def update_progress(self, value):
@@ -122,12 +103,13 @@ class AspectRatio(QWidget):
             )
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.plot)
+            worker.signals.location.connect(self.get_location)
             self.threadpool.start(worker)
         
         else:
             logger.warning("Running Calculation on the same (GUI) thread!")
             self.run_on_same_thread()
-            self.plot(plotting_csv=self.plotting_csv)        
+            self.plot(plotting_csv=self.plotting_csv)   
     
     def plot(self, plotting_csv):
         self.circular_progress.hide()
@@ -160,6 +142,10 @@ class AspectRatio(QWidget):
             plotting.plot_cda_pca(csv=csv_file, folderpath=folderpath)
             plotting.plot_cda_oba(csv=csv_file, folderpath=folderpath)
     
+    def get_location(self, location):
+        self.output_folder = location
+        self.signals.location.emit(location)
+
     def run_on_same_thread(self):
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)

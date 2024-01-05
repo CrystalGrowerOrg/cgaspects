@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtCore import QThreadPool, Signal, QThreadPool
 
 
 import crystalaspects.fileio.find_data as fd
@@ -11,18 +12,32 @@ import crystalaspects.analysis.gr_dataframes as gr
 from crystalaspects.gui.growthrate_dialog import GrowthRateAnalysisDialogue
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
+from crystalaspects.analysis.gui_threads import WorkerGrowthRates
+from crystalaspects.gui.progress_dialog import CircularProgress
 
 logger = logging.getLogger("CA:G-Rates")
 
 
 class GrowthRate:
-    def __init__(self):
+    def __init__(self, signals):
         self.input_folder = None
         self.output_folder = None
         self.directions = None
         self.information = None
         self.directions = None
         self.selected_direction = None
+        self.signals = signals
+        self.threadpool = None
+        self.threadpool = QThreadPool()
+        self.growth_rate_df = None
+
+        self.progress_updated = Signal(int)
+        self.circular_progress = None
+        self.signals = signals
+        self.signals.progress.connect(self.update_progress)
+    
+    def update_progress(self, value):
+        self.circular_progress.set_value(value)
 
     def set_folder(self, folder):
         self.input_folder = Path(folder)
@@ -36,7 +51,7 @@ class GrowthRate:
         logger.debug(
             "Called growth rate method at directory: %s",
             self.input_folder        
-            )
+        )
         # Check if the user selected a folder
         if self.input_folder:
             if self.information is None:
@@ -63,28 +78,44 @@ class GrowthRate:
         auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
+        self.signals.location.emit(self.output_folder)
+        self.circular_progress = CircularProgress(calc_type="Growth Rates")
+        self.circular_progress.show()
+        self.circular_progress.raise_()
+        self.circular_progress.update_text(f"Calculating...\nFor Directions: {"\n".join(selected_directions)}")
 
-        size_files = self.information.size_files
-        supersats = self.information.supersats
+        if not self.threadpool:
+            self.growth_rate_df = gr.build_growthrates(
+                size_file_list=self.information.size_files,
+                supersat_list=self.information.supersats,
+                directions=selected_directions,
+            )
+        if self.threadpool:
+            worker = WorkerGrowthRates(
+                information=self.information,
+                selected_directions=selected_directions    
+            )
+            worker.signals.progress.connect(self.update_progress)
+            worker.signals.result.connect(self.collect_df)
+            self.threadpool.start(worker)
+            
 
-        growth_rate_df = gr.build_growthrates(
-            size_file_list=size_files,
-            supersat_list=supersats,
-            directions=selected_directions,
-        )
-
-        if growth_rate_df is None:
+        if self.growth_rate_df is None:
             logger.warning("No Size Files (*size.csv) found to calculate growth rates")
         else:
-            if not growth_rate_df.empty:  # Properly checks if DataFrame is not empty
-                logger.debug("Growth Rates Dataframe:\n%s", growth_rate_df)
-                growth_rate_csv = self.output_folder / "GrowthRates.csv"
-                growth_rate_df.to_csv(growth_rate_csv, index=None)
+            if not self.growth_rate_df.empty:  # Properly checks if DataFrame is not empty
+                logger.debug("Growth Rates Dataframe:\n%s", self.growth_rate_df)
+                growth_rate_csv = self.output_folder / "growthrates.csv"
+                self.growth_rate_df.to_csv(growth_rate_csv, index=None)
                 PlottingDialogs = PlottingDialog(self)
                 PlottingDialogs.plotting_info(csv=growth_rate_csv)
                 PlottingDialogs.show()
                 if auto_plotting:
                     plot = Plotting()
-                    plot.plot_growth_rates(growth_rate_df, selected_directions, self.output_folder)
+                    plot.plot_growth_rates(self.growth_rate_df, selected_directions, self.output_folder)
             else:
                 logger.warning("The DataFrame is empty. No calculated growth rates.")
+
+    def collect_df(self, value):
+        logger.debug("Growth rates dataframe [%s] calculated.", value.shape)
+        self.growth_rate_df = value

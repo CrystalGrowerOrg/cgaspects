@@ -26,7 +26,7 @@ class CircularProgress(QDialog):
 
         # Create a widget for the main layout
         self.circular_progress = PyCircularProgress(value=0)
-        self.circular_progress.setFixedSize(400, 400)
+        self.circular_progress.setFixedSize(250, 250)
 
         # # Create a label for displaying the options
         self.options_label = QLabel("Calculating...\nWith Selected Options: ")
@@ -52,3 +52,6 @@ class CircularProgress(QDialog):
         options_text += f"• Plotting: {'Enabled' if options.plotting else 'Disabled'}"
 
         self.options_label.setText(options_text)
+
+    def update_text(self, text):
+        self.options_label.setText(text)

@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
 import crystalaspects.fileio.find_data  as fd
 import crystalaspects.analysis.ar_dataframes as ar
+import crystalaspects.analysis.gr_dataframes as gr
 from crystalaspects.analysis.shape_analysis import CrystalShape
 
 logger = logging.getLogger("CA:Threads")
@@ -29,6 +30,7 @@ class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(tuple)
     result = Signal(object)
+    location = Signal(object)
     progress = Signal(int)
     message = Signal(str)
 
@@ -64,7 +66,7 @@ class WorkerAspectRatios(QRunnable):
 
     def run(self):
         self.output_folder = fd.create_aspects_folder(self.input_folder)
-
+        self.signals.location.emit(self.output_folder)
         summary_file = self.information.summary_file
         folders = self.information.folders
 
@@ -126,6 +128,25 @@ class WorkerAspectRatios(QRunnable):
                 self.plotting_csv = final_cda_xyz_csv
 
         self.signals.result.emit(self.plotting_csv)
+
+class WorkerGrowthRates(QRunnable):
+    def __init__(self, information, selected_directions):
+        super(WorkerGrowthRates, self).__init__()
+        self.information = information
+        self.selected_directions = selected_directions
+
+        self.signals = WorkerSignals()
+
+    def run(self):
+
+        growth_rate_df = gr.build_growthrates(
+            size_file_list=self.information.size_files,
+            supersat_list=self.information.supersats,
+            directions=self.selected_directions,
+            signals=self.signals
+        )
+
+        self.signals.result.emit(growth_rate_df)
 
 class WorkerMovies(QRunnable):
     def __init__(self, filepath):
