@@ -1,41 +1,39 @@
 # PySide6 imports
 # General imports
+import logging
 import os
 import sys
 from collections import namedtuple
-import logging
 
 from natsort import natsorted
 from PySide6 import QtGui, QtOpenGL, QtWidgets
-from PySide6.QtCore import QCoreApplication, Qt, QThreadPool, QTimer, QObject, Signal, Slot, QThreadPool
+from PySide6.QtCore import (QCoreApplication, QObject, Qt, QThreadPool, QTimer,
+                            Signal, Slot)
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
+from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMenu,
+                               QMessageBox)
 from qt_material import apply_stylesheet
-
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
+from crystalaspects.analysis.gui_threads import WorkerMovies, WorkerXYZ
+from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.fileio.find_data import *
+from crystalaspects.fileio.logging import setup_logging
 from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.gui.crystal_slider import create_slider
-from crystalaspects.analysis.gui_threads import WorkerMovies, WorkerXYZ
-from crystalaspects.fileio.logging import setup_logging
-
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.visualiser import Visualiser
-from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
 basedir = os.path.dirname(__file__)
 
-log_dict = {
-    "basic" : "DEBUG",
-    "console" : "INFO"
-}
+log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
 logger = logging.getLogger("CA:GUI")
 logger.critical("LOGGING AT %s", log_dict)
+
 
 class GUISignals(QObject):
     """
@@ -190,12 +188,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.read_summary_vis()
         )
         self.play_button.clicked.connect(self.play_movie)
-        self.import_pushButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=None))
-        self.view_results_pushButton.clicked.connect(lambda: open_directory(path=self.output_folder))
-        
+        self.import_pushButton.clicked.connect(
+            lambda: self.import_and_visualise_xyz(folder=None)
+        )
+        self.view_results_pushButton.clicked.connect(
+            lambda: open_directory(path=self.output_folder)
+        )
+
         self.batch_browse_toolButton.clicked.connect(self.browse)
         self.batch_set_pushButton.clicked.connect(self.set_batch_type)
-        self.batch_visualise_toolButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=self.input_folder))
+        self.batch_visualise_toolButton.clicked.connect(
+            lambda: self.import_and_visualise_xyz(folder=self.input_folder)
+        )
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
@@ -206,10 +210,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         mac_close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier | Qt.Key_Q), self)
         mac_close_shortcut.activated.connect(self.close_application)
 
-
         # Import XYZ file with Ctrl+I
         import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
-        import_xyz_shortcut.activated.connect(lambda: self.import_and_visualise_xyz(folder=None))
+        import_xyz_shortcut.activated.connect(
+            lambda: self.import_and_visualise_xyz(folder=None)
+        )
         # Import XYZ file with Ctrl+F
         browse_for_batch = QShortcut(QKeySequence("Ctrl+F"), self)
         browse_for_batch.activated.connect(self.browse)
@@ -218,24 +223,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         set_xyz.activated.connect(self.set_visualiser)
         # Open results folder with Ctrl+O
         self.view_results = QShortcut(QKeySequence("Ctrl+O"), self)
-        self.view_results.activated.connect(lambda: open_directory(path=self.output_folder) if self.output_folder else None)
+        self.view_results.activated.connect(
+            lambda: open_directory(path=self.output_folder)
+            if self.output_folder
+            else None
+        )
 
     def welcome_message(self):
-        self.log_message("############################################", log_level="info", gui=False)
-        self.log_message("####        CrystalAspects v1.00        ####", log_level="info", gui=False)
-        self.log_message("############################################", log_level="info", gui=False)
-        self.log_message("Created by Nathan de Bruyn & Alvin J. Walisinghe", log_level="info", gui=False)
+        self.log_message(
+            "############################################", log_level="info", gui=False
+        )
+        self.log_message(
+            "####        CrystalAspects v1.00        ####", log_level="info", gui=False
+        )
+        self.log_message(
+            "############################################", log_level="info", gui=False
+        )
+        self.log_message(
+            "Created by Nathan de Bruyn & Alvin J. Walisinghe",
+            log_level="info",
+            gui=False,
+        )
 
     def log_message(self, message, log_level, gui=True):
         message = str(message)
         log_level_method = getattr(logger, log_level.lower(), logger.debug)
-        
+
         if gui and log_level in ["info", "warning"]:
             # Update the status bar with the message
             # self.statusBar().showMessage(message)
             # Update the output textbox
             self.output_textbox.append(message)
-        
+
         # Log the message with given level
         log_level_method(message)
 
@@ -251,7 +270,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_visualiser(self):
         n_xyz = len(self.xyz_files)
         if n_xyz == 0:
-            self.log_message(f"{n_xyz} XYZ files found to set to visualiser!", "warning")
+            self.log_message(
+                f"{n_xyz} XYZ files found to set to visualiser!", "warning"
+            )
         if n_xyz > 0:
             Visualiser.initGUI(self, self.xyz_files)
 
@@ -267,7 +288,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             Visualiser.init_crystal(self, result)
 
             self.select_summary_slider_button.setEnabled(True)
-            self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
+            self.log_message(
+                f"{len(self.xyz_files)} XYZ files set to visualiser!", "info"
+            )
 
     def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
@@ -281,17 +304,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Check for valid data
         if (folder, xyz_files) == (None, None):
-            self.log_message("Error: No valid XYZ files found in the directory.", "error")
+            self.log_message(
+                "Error: No valid XYZ files found in the directory.", "error"
+            )
             return False
 
-        self.xyz_files = xyz_files  # Assuming you want to update self.xyz_files with the new list
+        self.xyz_files = (
+            xyz_files  # Assuming you want to update self.xyz_files with the new list
+        )
         self.input_folder = folder
         self.batch_lineEdit.setText(str(self.input_folder))
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
         if folder:
             self.xyz_files = natsorted(xyz_files)
-        
+
         return True
 
     def movie_or_single_frame(self, index):
@@ -337,14 +364,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 "./",
                 QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
             )
-            
+
             # Check if the folder selection was canceled or empty and handle appropriately
             if folder:
                 self.batch_lineEdit.clear()
                 self.batch_lineEdit.setText(str(folder))
             else:
                 # Handle the case where no folder was selected
-                self.log_message("Folder selection was canceled or no folder was selected.", "error")
+                self.log_message(
+                    "Folder selection was canceled or no folder was selected.", "error"
+                )
 
         # Note: Bare Exception
         except Exception as e:
@@ -368,14 +397,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.aspectratio.set_information(information=information)
                 if not (information.directions or information.size_files):
                     self.log_message(information, "error")
-                    raise FileNotFoundError("No suitable CG output file found in the selected directory.")
+                    raise FileNotFoundError(
+                        "No suitable CG output file found in the selected directory."
+                    )
                 self.input_folder = Path(folder)
 
             else:
                 raise NotADirectoryError(f"{folder} is not a valid directory.")
 
         except (FileNotFoundError, NotADirectoryError) as e:
-
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
@@ -392,7 +422,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             pass
         if self.aspectratio.directions:
             pass
-    
+
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
         if self.growthrate.output_folder:

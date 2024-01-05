@@ -1,9 +1,10 @@
-import os
-import sys
-import subprocess
 import logging
+import os
+import subprocess
+import sys
 
 logger = logging.getLogger("CA:OpenDIR")
+
 
 def open_directory(path):
     # Ensure the path is absolute
@@ -17,7 +18,7 @@ def open_directory(path):
     # Platform-specific commands
     if sys.platform == "win32":
         os.startfile(path)
-    if sys.platform == 'darwin':
-        subprocess.run(['open', path])
+    if sys.platform == "darwin":
+        subprocess.run(["open", path])
     else:
-        subprocess.run(['xdg-open', path])
+        subprocess.run(["xdg-open", path])

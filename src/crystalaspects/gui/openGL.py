@@ -1,38 +1,27 @@
 import ctypes
+import logging
 
 import numpy as np
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
 from matplotlib import cm
 from OpenGL import GLU
-from OpenGL.GL import (
-    GL_COMPILE,
-    GL_RGBA,
-    GL_TRIANGLES,
-    GL_UNSIGNED_BYTE,
-    glBegin,
-    glCallList,
-    glEnd,
-    glEndList,
-    glGenLists,
-    glGetIntegerv,
-    glNewList,
-    glReadPixels,
-    glVertex3f,
-)
+from OpenGL.GL import (GL_COMPILE, GL_RGBA, GL_TRIANGLES, GL_UNSIGNED_BYTE,
+                       glBegin, glCallList, glEnd, glEndList, glGenLists,
+                       glGetIntegerv, glNewList, glReadPixels, glVertex3f)
 from OpenGL.GLU import gluNewQuadric, gluSphere
 from OpenGL.GLUT import glutInit, glutSolidSphere, glutSwapBuffers
 from PIL import Image
 from PySide6 import QtCore, QtGui, QtOpenGL
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage, QColor
+from PySide6.QtGui import QColor, QImage
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from crystalaspects.analysis.shape_analysis import CrystalShape
-import logging
 
 logger = logging.getLogger("CA:OpenGL")
+
 
 class vis_GLWidget(QOpenGLWidget):
     def __init__(self, *args, **kwargs):
@@ -411,9 +400,7 @@ class vis_GLWidget(QOpenGLWidget):
 
         # (12 bytes) : the RGB color starts after the 3 coordinates x, y, z
         gl.glEnableClientState(gl.GL_COLOR_ARRAY)
-        offset = (
-            3 * 4
-        )  
+        offset = 3 * 4
         gl.glColorPointer(3, gl.GL_FLOAT, stride, ctypes.c_void_p(offset))
 
         # Draw the points

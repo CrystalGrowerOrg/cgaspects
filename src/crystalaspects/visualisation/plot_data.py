@@ -1,6 +1,7 @@
 # Standard library imports
-from pathlib import Path
 import logging
+from pathlib import Path
+
 # Third-party library imports
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,16 +9,15 @@ import numpy as np
 import pandas as pd
 # PySide6 imports
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QComboBox, QDialog,
-    QFileDialog, QGridLayout, QHBoxLayout,
-    QInputDialog, QLabel, QMessageBox, QPushButton,
-    QSizePolicy, QSpinBox, QVBoxLayout, QWidget
-)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
+                               QFileDialog, QGridLayout, QHBoxLayout,
+                               QInputDialog, QLabel, QMessageBox, QPushButton,
+                               QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
 
 matplotlib.use("QT5Agg")
 
 logger = logging.getLogger("CA:Plotting")
+
 
 class Plotting(QDialog):
     def __init__(self, parent=None):
@@ -170,7 +170,10 @@ class Plotting(QDialog):
             plt.ylim(0.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            savepath = savefolder / f"aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
+            savepath = (
+                savefolder
+                / f"aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
+            )
             logger.info("Plotting CDA (extended) FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()

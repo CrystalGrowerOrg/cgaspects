@@ -1,8 +1,10 @@
 import logging
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger("CA:GR-Dataframes")
+
 
 def build_growthrates(size_file_list, supersat_list, directions=[], signals=None):
     """generate the growth rate dataframe from the
@@ -14,7 +16,7 @@ def build_growthrates(size_file_list, supersat_list, directions=[], signals=None
     if n_size_files == 0:
         return None
     logger.info("%s size files used to calculate growth rate data", n_size_files)
-    
+
     for f in size_file_list:
         lt_df = pd.read_csv(f)
         x_data = lt_df["time"]
