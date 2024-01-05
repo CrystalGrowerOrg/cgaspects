@@ -18,10 +18,10 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
     QHBoxLayout, QLabel, QLayout, QLineEdit,
-    QMainWindow, QProgressBar, QPushButton, QScrollArea,
-    QSizePolicy, QSlider, QSpacerItem, QSpinBox,
-    QStatusBar, QTextEdit, QToolBox, QToolButton,
-    QVBoxLayout, QWidget)
+    QMainWindow, QPushButton, QScrollArea, QSizePolicy,
+    QSlider, QSpacerItem, QSpinBox, QStatusBar,
+    QTextEdit, QToolBox, QToolButton, QVBoxLayout,
+    QWidget)
 from crystalaspects.gui import qticons_rc
 
 class Ui_MainWindow(object):
@@ -288,33 +288,6 @@ class Ui_MainWindow(object):
         self.batch_analysis_tab.setGeometry(QRect(0, 0, 387, 370))
         self.gridLayout_6 = QGridLayout(self.batch_analysis_tab)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.aspect_ratio_pushButton = QPushButton(self.batch_analysis_tab)
-        self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
-        self.aspect_ratio_pushButton.setEnabled(False)
-        sizePolicy7 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy7.setHorizontalStretch(0)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
-        self.aspect_ratio_pushButton.setSizePolicy(sizePolicy7)
-        self.aspect_ratio_pushButton.setMinimumSize(QSize(162, 100))
-
-        self.horizontalLayout_2.addWidget(self.aspect_ratio_pushButton)
-
-        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
-        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
-        self.growth_rate_pushButton.setEnabled(False)
-        sizePolicy7.setHeightForWidth(self.growth_rate_pushButton.sizePolicy().hasHeightForWidth())
-        self.growth_rate_pushButton.setSizePolicy(sizePolicy7)
-        self.growth_rate_pushButton.setMinimumSize(QSize(162, 100))
-        self.growth_rate_pushButton.setIconSize(QSize(16, 16))
-
-        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
-
-
-        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
-
         self.gridLayout_8 = QGridLayout()
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.batch_browse_toolButton = QToolButton(self.batch_analysis_tab)
@@ -329,11 +302,11 @@ class Ui_MainWindow(object):
 
         self.batch_lineEdit = QLineEdit(self.batch_analysis_tab)
         self.batch_lineEdit.setObjectName(u"batch_lineEdit")
-        sizePolicy8 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy8.setHorizontalStretch(5)
-        sizePolicy8.setVerticalStretch(0)
-        sizePolicy8.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
-        self.batch_lineEdit.setSizePolicy(sizePolicy8)
+        sizePolicy7 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy7.setHorizontalStretch(5)
+        sizePolicy7.setVerticalStretch(0)
+        sizePolicy7.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
+        self.batch_lineEdit.setSizePolicy(sizePolicy7)
         self.batch_lineEdit.setMinimumSize(QSize(0, 30))
 
         self.gridLayout_8.addWidget(self.batch_lineEdit, 0, 1, 1, 1)
@@ -362,22 +335,32 @@ class Ui_MainWindow(object):
 
         self.gridLayout_6.addLayout(self.gridLayout_8, 0, 0, 1, 1)
 
-        self.progressBar = QProgressBar(self.batch_analysis_tab)
-        self.progressBar.setObjectName(u"progressBar")
-        self.progressBar.setStyleSheet(u"QProgressBar {\n"
-"	background-color: rgb(213, 215, 255);\n"
-"	color: rgb(0, 0, 127);\n"
-"	border-style: none;\n"
-"	border-radius: 10px;\n"
-"	text-align: center;\n"
-"}\n"
-"QProgressBar::chunk{\n"
-"	border-radius: 10px;\n"
-"	background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));\n"
-"}")
-        self.progressBar.setValue(0)
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.aspect_ratio_pushButton = QPushButton(self.batch_analysis_tab)
+        self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
+        self.aspect_ratio_pushButton.setEnabled(False)
+        sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy8.setHorizontalStretch(0)
+        sizePolicy8.setVerticalStretch(0)
+        sizePolicy8.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
+        self.aspect_ratio_pushButton.setSizePolicy(sizePolicy8)
+        self.aspect_ratio_pushButton.setMinimumSize(QSize(162, 100))
 
-        self.gridLayout_6.addWidget(self.progressBar, 13, 0, 1, 1)
+        self.horizontalLayout_2.addWidget(self.aspect_ratio_pushButton)
+
+        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
+        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
+        self.growth_rate_pushButton.setEnabled(False)
+        sizePolicy8.setHeightForWidth(self.growth_rate_pushButton.sizePolicy().hasHeightForWidth())
+        self.growth_rate_pushButton.setSizePolicy(sizePolicy8)
+        self.growth_rate_pushButton.setMinimumSize(QSize(162, 100))
+        self.growth_rate_pushButton.setIconSize(QSize(16, 16))
+
+        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
+
+
+        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
 
         self.main_toolBox.addItem(self.batch_analysis_tab, u"Batch Analysis")
         self.plotting_tab = QWidget()
@@ -815,12 +798,12 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
         self.settings_toolButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.console_label.setText(QCoreApplication.translate("MainWindow", u"Console", None))
-        self.aspect_ratio_pushButton.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
-        self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.batch_browse_toolButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
         self.batch_label.setText(QCoreApplication.translate("MainWindow", u"Folder: ", None))
         self.batch_visualise_toolButton.setText(QCoreApplication.translate("MainWindow", u"View", None))
         self.batch_set_pushButton.setText(QCoreApplication.translate("MainWindow", u"Set", None))
+        self.aspect_ratio_pushButton.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
+        self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.batch_analysis_tab), QCoreApplication.translate("MainWindow", u"Batch Analysis", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.plotting_tab), QCoreApplication.translate("MainWindow", u"Plotting", None))
         self.ml_label.setText(QCoreApplication.translate("MainWindow", u"Medium/Long:", None))
