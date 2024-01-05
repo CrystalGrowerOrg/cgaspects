@@ -29,7 +29,6 @@ class GrowthRate:
         self.signals = signals
         self.threadpool = None
         self.threadpool = QThreadPool()
-        self.growth_rate_df = None
 
         self.progress_updated = Signal(int)
         self.circular_progress = None
@@ -74,48 +73,46 @@ class GrowthRate:
             return
         
         # if growth_rate_dialog.exec() == QDialog.Accepted:
-        selected_directions = growth_rate_dialog.selected_directions
-        auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
+        self.selected_directions = growth_rate_dialog.selected_directions
+        self.auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
         self.circular_progress = CircularProgress(calc_type="Growth Rates")
         self.circular_progress.show()
         self.circular_progress.raise_()
-        self.circular_progress.update_text(f"Calculating...\nFor Directions: {"\n".join(selected_directions)}")
+        self.circular_progress.update_text(f"Calculating...\nFor Directions:\n{"\n".join(self.selected_directions)}")
 
         if not self.threadpool:
-            self.growth_rate_df = gr.build_growthrates(
+            growth_rate_df = gr.build_growthrates(
                 size_file_list=self.information.size_files,
                 supersat_list=self.information.supersats,
-                directions=selected_directions,
+                directions=self.selected_directions,
             )
+            self.plot(plotting_csv=growth_rate_df)
         if self.threadpool:
             worker = WorkerGrowthRates(
                 information=self.information,
-                selected_directions=selected_directions    
+                selected_directions=self.selected_directions    
             )
             worker.signals.progress.connect(self.update_progress)
-            worker.signals.result.connect(self.collect_df)
+            worker.signals.result.connect(self.plot)
             self.threadpool.start(worker)
-            
-
-        if self.growth_rate_df is None:
+    
+    def plot(self, plotting_csv):
+        self.circular_progress.hide()
+        if plotting_csv is None:
             logger.warning("No Size Files (*size.csv) found to calculate growth rates")
         else:
-            if not self.growth_rate_df.empty:  # Properly checks if DataFrame is not empty
-                logger.debug("Growth Rates Dataframe:\n%s", self.growth_rate_df)
+            if not plotting_csv.empty:  # Properly checks if DataFrame is not empty
+                logger.debug("Growth Rates Dataframe:\n%s", plotting_csv)
                 growth_rate_csv = self.output_folder / "growthrates.csv"
-                self.growth_rate_df.to_csv(growth_rate_csv, index=None)
+                plotting_csv.to_csv(growth_rate_csv, index=None)
                 PlottingDialogs = PlottingDialog(self)
                 PlottingDialogs.plotting_info(csv=growth_rate_csv)
                 PlottingDialogs.show()
-                if auto_plotting:
+                if self.auto_plotting:
                     plot = Plotting()
-                    plot.plot_growth_rates(self.growth_rate_df, selected_directions, self.output_folder)
+                    plot.plot_growth_rates(plotting_csv, self.selected_directions, self.output_folder)
             else:
                 logger.warning("The DataFrame is empty. No calculated growth rates.")
-
-    def collect_df(self, value):
-        logger.debug("Growth rates dataframe [%s] calculated.", value.shape)
-        self.growth_rate_df = value

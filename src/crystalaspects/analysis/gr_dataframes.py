@@ -35,9 +35,9 @@ def build_growthrates(size_file_list, supersat_list, directions=[], signals=None
             gr_list.append(model[0])
             # growth_array = np.append(growth_array, gr_list)
         growth_list.append(gr_list)
+        i += 1
         if signals:
             signals.progress.emit(int((i / n_size_files) * 100))
-        i += 1
     growth_array = np.array(growth_list)
     gr_df = pd.DataFrame(growth_array, columns=lengths)
     gr_df.insert(0, "Supersaturation", supersat_list)

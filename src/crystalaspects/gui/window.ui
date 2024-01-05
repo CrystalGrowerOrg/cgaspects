@@ -260,60 +260,6 @@ color: rgb(255, 255, 255);</string>
             <string>Batch Analysis</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_6">
-            <item row="8" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <item>
-               <widget class="QPushButton" name="aspect_ratio_pushButton">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>162</width>
-                  <height>100</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Aspect Ratios</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="growth_rate_pushButton">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>162</width>
-                  <height>100</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Growth Rates</string>
-                </property>
-                <property name="iconSize">
-                 <size>
-                  <width>16</width>
-                  <height>16</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
             <item row="0" column="0">
              <layout class="QGridLayout" name="gridLayout_8">
               <item row="0" column="2" alignment="Qt::AlignHCenter">
@@ -400,25 +346,59 @@ color: rgb(255, 255, 255);</string>
               </item>
              </layout>
             </item>
-            <item row="13" column="0">
-             <widget class="QProgressBar" name="progressBar">
-              <property name="styleSheet">
-               <string notr="true">QProgressBar {
-	background-color: rgb(213, 215, 255);
-	color: rgb(0, 0, 127);
-	border-style: none;
-	border-radius: 10px;
-	text-align: center;
-}
-QProgressBar::chunk{
-	border-radius: 10px;
-	background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.489, stop:0 rgba(255, 170, 255, 255), stop:1 rgba(185, 135, 255, 255));
-}</string>
-              </property>
-              <property name="value">
-               <number>0</number>
-              </property>
-             </widget>
+            <item row="8" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <widget class="QPushButton" name="aspect_ratio_pushButton">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>162</width>
+                  <height>100</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Aspect Ratios</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="growth_rate_pushButton">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>162</width>
+                  <height>100</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Growth Rates</string>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>16</width>
+                  <height>16</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
            </layout>
           </widget>

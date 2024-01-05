@@ -37,7 +37,7 @@ setup_logging(**log_dict)
 logger = logging.getLogger("CA:GUI")
 logger.critical("LOGGING AT %s", log_dict)
 
-class WorkerSignals(QObject):
+class GUISignals(QObject):
     """
     Defines the signals available from a running worker thread.
     Supported signals:
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect_buttons()
         self.menubar()
 
-        self.signals = WorkerSignals()
+        self.signals = GUISignals()
         self.aspectratio = AspectRatio(signals=self.signals)
         self.growthrate = GrowthRate(signals=self.signals)
         self.signals.location.connect(self.set_output_folder)
@@ -308,7 +308,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_XYZ_info(self, xyz):
         worker_xyz = WorkerXYZ(xyz)
         worker_xyz.signals.result.connect(self.insert_info)
-        worker_xyz.signals.progress.connect(self.update_progress)
         worker_xyz.signals.message.connect(self.update_statusbar)
         self.threadpool.start(worker_xyz)
 
@@ -474,7 +473,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for row in filter_df.index:
             XYZ_file = crystals[row]
             self.output_textBox_3.append(f"Row Number: {row}")
-            self.update_progress(0)
             Visualiser.update_XYZ(self, XYZ_file)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
@@ -527,9 +525,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.crystal_savol_label.setText(
             "Surface Area/Volume: {:2g}".format(result.sa_vol)
         )
-
-    def update_progress(self, progress):
-        self.progressBar.setValue(progress)
 
     def update_statusbar(self, status):
         self.statusBar().showMessage(status)
