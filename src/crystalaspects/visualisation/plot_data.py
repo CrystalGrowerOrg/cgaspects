@@ -1,6 +1,6 @@
 # Standard library imports
 from pathlib import Path
-
+import logging
 # Third-party library imports
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,13 +8,16 @@ import numpy as np
 import pandas as pd
 # PySide6 imports
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                               QFileDialog, QGridLayout, QHBoxLayout,
-                               QInputDialog, QLabel, QMessageBox, QPushButton,
-                               QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication, QCheckBox, QComboBox, QDialog,
+    QFileDialog, QGridLayout, QHBoxLayout,
+    QInputDialog, QLabel, QMessageBox, QPushButton,
+    QSizePolicy, QSpinBox, QVBoxLayout, QWidget
+)
 
 matplotlib.use("QT5Agg")
 
+logger = logging.getLogger("CA:Plotting")
 
 class Plotting(QDialog):
     def __init__(self, parent=None):
@@ -25,7 +28,7 @@ class Plotting(QDialog):
         plots_folder.mkdir(parents=True, exist_ok=True)
         return plots_folder
 
-    def plot_OBA(self, csv="", df="", folderpath="./outputs"):
+    def plot_oba(self, csv="", df="", folderpath="./outputs"):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -38,8 +41,6 @@ class Plotting(QDialog):
         ]
         x_data = df["OBA S:M"]
         y_data = df["OBA M:L"]
-        print(x_data)
-        print(y_data)
 
         plt.figure()
         plt.scatter(x_data, y_data, s=10)
@@ -49,7 +50,8 @@ class Plotting(QDialog):
         plt.ylim(0, 1)  # Adjust y-axis limits
         plt.xlabel("OBA S:M")
         plt.ylabel("OBA M:L")
-        savepath = f"{savefolder}/OBA Zingg"
+        savepath = savefolder / "oba_zingg"
+        logger.info("Plotting OBA FIG")
         plt.savefig(savepath, dpi=900)
         plt.close()
 
@@ -61,7 +63,6 @@ class Plotting(QDialog):
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
@@ -72,11 +73,12 @@ class Plotting(QDialog):
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            savepath = f"{savefolder}/OBAZingg_{interaction}"
+            savepath = savefolder / f"oba_zingg_{interaction}"
+            logger.info("Plotting OBA FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def build_PCAZingg(self, csv="", df="", folderpath="./outputs", i_plot=False):
+    def plot_pca(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -97,7 +99,8 @@ class Plotting(QDialog):
         plt.ylim(0.0, 1.0)
         plt.xlabel("PCA S:M")
         plt.ylabel("PCA M:L")
-        savepath = f"{savefolder}/PCA Zingg"
+        savepath = savefolder / "pca_zingg"
+        logger.info("Plotting PCA FIG")
         plt.savefig(savepath, dpi=900)
 
         for interaction in interactions:
@@ -108,7 +111,6 @@ class Plotting(QDialog):
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
@@ -119,11 +121,12 @@ class Plotting(QDialog):
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            savepath = f"{savefolder}/PCAZingg_{interaction}"
+            savepath = savefolder / f"pca_zingg_{interaction}"
+            logger.info("Plotting PCA FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def Aspect_Extended_Plot(
+    def plot_cda_extended(
         self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
     ):
         if csv != "":
@@ -140,7 +143,8 @@ class Plotting(QDialog):
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
         plt.ylabel(f"AspectRatio_{selected[i+1]}/{selected[i+2]}")
-        savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
+        savepath = savefolder / f"aspect_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
+        logger.info("Plotting CDA (extended) FIG")
         plt.savefig(savepath, dpi=300)
         plt.close()
 
@@ -153,13 +157,11 @@ class Plotting(QDialog):
         for interaction in interactions:
             plt.figure()
             c_df = extended_df[interaction]
-            print(c_df)
             colour = list(set(c_df))
             textstr = interaction
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             plt.title(textstr)
             plt.xlabel(f"AspectRatio_{selected[i]}/{selected[i+1]}")
@@ -168,12 +170,12 @@ class Plotting(QDialog):
             plt.ylim(0.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            savepath = f"{savefolder}/Aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
-            print(savepath)
+            savepath = savefolder / f"aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
+            logger.info("Plotting CDA (extended) FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
+    def plot_cda(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -188,7 +190,8 @@ class Plotting(QDialog):
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel("S/M")
         plt.ylabel("M/L")
-        savepath = f"{savefolder}/CDA"
+        savepath = savefolder / "cda_zingg"
+        logger.info("Plotting CDA FIG")
         plt.savefig(savepath, dpi=300)
         plt.close()
 
@@ -206,7 +209,6 @@ class Plotting(QDialog):
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
@@ -217,11 +219,12 @@ class Plotting(QDialog):
             plt.ylim(0.0, 1.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-            savepath = f"{savefolder}/CDAZingg_{interaction}"
+            savepath = savefolder / f"cda_zingg_{interaction}"
+            logger.info("Plotting CDA FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def PCA_CDA_Plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
+    def plot_cda_pca(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -238,7 +241,6 @@ class Plotting(QDialog):
             x_data = equation_df["PCA S:M"]
             y_data = equation_df["PCA M:L"]
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
@@ -247,11 +249,12 @@ class Plotting(QDialog):
             plt.ylabel("M:L")
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
-            savepath = f"{savefolder}/PCA_CDA_eq{equation}"
+            savepath = savefolder / f"pca_cda_eq{equation}"
+            logger.info("Plotting PCA/CDA FIG for equation %s", equation)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def build_CDA_OBA(self, csv="", df="", folderpath="./outputs", i_plot=False):
+    def plot_cda_oba(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -267,7 +270,6 @@ class Plotting(QDialog):
             x_data = equation_df["OBA S:M"]
             y_data = equation_df["OBA M:L"]
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, s=1.2)
             plt.axhline(y=0.66, color="black", linestyle="--")
             plt.axvline(x=0.66, color="black", linestyle="--")
@@ -276,7 +278,8 @@ class Plotting(QDialog):
             plt.ylabel("M:L")
             plt.xlim(0.0, 1.0)
             plt.ylim(0.0, 1.0)
-            savepath = f"{savefolder}/OBA_CDA_eq{equation}"
+            savepath = savefolder / f"oba_cda_eq{equation}"
+            logger.info("Plotting OBA/CDA FIG for equation %s", equation)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
@@ -284,7 +287,7 @@ class Plotting(QDialog):
     # Plotting Surface Area and Volume #
     ####################################
 
-    def SAVAR_plot(self, csv="", df="", folderpath="./outputs", i_plot=False):
+    def plot_sa_vol(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -310,23 +313,25 @@ class Plotting(QDialog):
             props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
-            print("FIG")
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             plt.xlabel(r"Volume ($\mu$$m^3$)")
             plt.ylabel(r"Surface Area ($\mu$$m^2$)")
-            savepath = f"{savefolder}/SAVAR_{interaction}"
+            savepath = savefolder / f"sa_vol_{interaction}"
+            logger.info("Plotting SA/VOL FIG for %s", interaction)
             plt.savefig(savepath, dpi=900)
         plt.close()
 
         plt.scatter(x_data, y_data, s=1.2)
         plt.xlabel(r"Volume ($\mu$$m^3$)")
         plt.ylabel(r"Surface Area ($\mu$$m^2$)")
-        savepath = f"{savefolder}/SAVAR"
+        savepath = savefolder / "sa_vol"
+        logger.info("Plotting SA/VOL FIG")
         plt.savefig(savepath, dpi=900)
 
-    def sph_plot(self, csv, mode=1):
+    """    
+    def plot_sph(self, csv, mode=1):
         savefolder = self.create_plots_folder(Path(csv).parents[0])
 
         df = pd.read_csv(csv)
@@ -343,7 +348,7 @@ class Plotting(QDialog):
                         color=i,
                         hover_data=["Simulation Number"],
                     )
-                    fig.write_html(f"{savefolder}/SPH_D_Zingg_{sol}_{i}.html")
+                    fig.write_html(savefolder / f"SPH_D_Zingg_{sol}_{i}.html")
                     fig.show()
 
         if mode == 2:
@@ -358,7 +363,7 @@ class Plotting(QDialog):
                     z="Distance",
                     hover_data=["Simulation Number"],
                 )
-                fig.write_html(f"{savefolder}/SPH_ints_{i}.html")
+                fig.write_html(savefolder / f"SPH_ints_{i}.html")
                 fig.show()
 
     def sph_plot_SvL(self, csv, mode=1):
@@ -378,7 +383,7 @@ class Plotting(QDialog):
                         color=i,
                         hover_data=["Simulation Number"],
                     )
-                    fig.write_html(f"{savefolder}/SPH_SvL_D_Zingg_{sol}_{i}.html")
+                    fig.write_html(savefolder / f"SPH_SvL_D_Zingg_{sol}_{i}.html")
                     # fig.show()
 
         if mode == 2:
@@ -393,9 +398,8 @@ class Plotting(QDialog):
                     z="Distance",
                     hover_data=["Simulation Number"],
                 )
-                fig.write_html(f"{savefolder}/SPH_ints_{i}.html")
+                fig.write_html(savefolder / f"SPH_ints_{i}.html")
 
-    """    
     def visualise_pca(self, xyz):
 
         shape = CrystalShape()
@@ -509,7 +513,6 @@ class Plotting(QDialog):
 
     def plot_growth_rates(self, gr_df, lengths, savepath):
         x_data = gr_df["Supersaturation"]
-        print(lengths)
         for i in lengths:
             plt.scatter(x_data, gr_df[i], s=1.2)
             plt.plot(x_data, gr_df[i], label=i)
@@ -517,7 +520,8 @@ class Plotting(QDialog):
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")
             plt.tight_layout()
-        plt.savefig(savepath / "Growth_rates+Dissolution_rates2", dpi=300)
+        logger.info("Plotting growth/dissolution rates")
+        plt.savefig(savepath / "growth_and_dissolution_rates", dpi=300)
 
         growth_data = gr_df[gr_df["Supersaturation"] >= 0]
         plt.clf()
@@ -530,7 +534,8 @@ class Plotting(QDialog):
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Growth Rate")
             plt.tight_layout()
-        plt.savefig(savepath / "Growth_rates2", dpi=300)
+        logger.info("Plotting growth rates")
+        plt.savefig(savepath / "growth_rates", dpi=300)
 
         plt.clf()
         plt.figure(figsize=(5, 5))
@@ -543,7 +548,8 @@ class Plotting(QDialog):
             plt.xlim(0.0, 2.5)
             plt.ylim(0.0, 0.4)
             plt.tight_layout()
-        plt.savefig(savepath / "Growth_rates2_zoomed", dpi=300)
+        logger.info("Plotting growth rates (zoomed)")
+        plt.savefig(savepath / "growth_rates_zoomed", dpi=300)
 
         dissolution_data = gr_df[gr_df["Supersaturation"] <= 0]
         plt.clf()
@@ -556,7 +562,8 @@ class Plotting(QDialog):
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Dissolution Rate")
             plt.tight_layout()
-        plt.savefig(savepath / "Dissolution_rates2", dpi=300)
+        logger.info("Plotting dissolution rates")
+        plt.savefig(savepath / "dissolution_rates", dpi=300)
 
         plt.clf()
         plt.figure(figsize=(5, 5))
@@ -569,7 +576,8 @@ class Plotting(QDialog):
             plt.xlim(-2.5, 0.0)
             plt.ylim(-2.5, 0.0)
             plt.tight_layout()
-        plt.savefig(savepath / "Dissolution2_zoomed", dpi=300)
+        logger.info("Plotting dissolution rates (zoomed)")
+        plt.savefig(savepath / "dissolution_rates_zoomed", dpi=300)
 
     def update_annot(self, ind):
         pos = self.scatter.get_offsets()[ind["ind"][0]]
@@ -578,8 +586,6 @@ class Plotting(QDialog):
         self.annot.set_text(text)
         # self.annot.get_bbox_patch().set_facecolor(self.c_df(norm(c[ind["ind"][0]])))
         self.annot.get_bbox_patch().set_alpha(0.4)
-        print("Text for Annotation:")
-        print(text)
 
     def on_hover(self, event):
         vis = self.annot.get_visible()

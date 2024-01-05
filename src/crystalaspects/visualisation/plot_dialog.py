@@ -14,10 +14,12 @@ from matplotlib.figure import Figure
 from PySide6 import QtCore, QtWidgets
 # PyQt imports
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                               QFileDialog, QGridLayout, QHBoxLayout,
-                               QInputDialog, QLabel, QMessageBox, QPushButton,
-                               QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication, QCheckBox, QComboBox, QDialog,
+    QFileDialog, QGridLayout, QHBoxLayout,
+    QInputDialog, QLabel, QMessageBox, QPushButton,
+    QSizePolicy, QSpinBox, QVBoxLayout, QWidget
+)
 
 matplotlib.use("QT5Agg")
 

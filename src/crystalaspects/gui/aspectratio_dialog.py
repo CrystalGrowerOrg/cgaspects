@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -116,6 +118,8 @@ class AnalysisOptionsDialog(QDialog):
         selected_directions = []
         plotting = self.plotting_checkbox.isChecked()
 
+        options = namedtuple("Options", ["selected_ar", "selected_cda", "checked_directions", "selected_directions", "plotting"])
+
         for i in range(3):
             selected_direction = self.combo_boxes[i].currentText()
             if (
@@ -124,10 +128,10 @@ class AnalysisOptionsDialog(QDialog):
             ):
                 selected_directions.append(selected_direction)
 
-        return (
-            selected_aspect_ratio,
-            selected_cda,
-            checked_directions,
-            selected_directions,
-            plotting,
+        return options(
+            selected_ar=selected_aspect_ratio,
+            selected_cda=selected_cda,
+            checked_directions=checked_directions,
+            selected_directions=selected_directions,
+            plotting=plotting,
         )
