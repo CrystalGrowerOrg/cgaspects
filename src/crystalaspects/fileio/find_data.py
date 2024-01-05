@@ -197,7 +197,7 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     full_df = compare_df.sort_values(by=["Simulation Number"], ignore_index=True)
     return full_df
 
-def combine_XYZ_CDA(CDA_df, XYZ_df):
+def combine_xyz_cda(CDA_df, XYZ_df):
     cda_cols = CDA_df.columns[1:]
     xyz_cols = XYZ_df.columns
 

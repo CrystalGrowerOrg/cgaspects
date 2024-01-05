@@ -188,15 +188,12 @@ class vis_GLWidget(QOpenGLWidget):
     def get_bg_colour(self, value):
         self.bg_colour = self.bg_colours[value]
         logger.debug("Background Colour: %s", self.bg_colour)
-        # Set alpha based on value
-        a = 1.0 if value == 2 else 0.0
 
-        # Ensure that the color is a valid color
         color = QColor(self.bg_colour)
         if not color.isValid():
             logger.warning("Error: Invalid color code")
             return
-        gl.glClearColor(color.redF(), color.greenF(), color.blueF(), a)
+        gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
         self.update()
 
     def get_colour_type(self, value):

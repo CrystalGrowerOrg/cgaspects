@@ -18,7 +18,7 @@ from crystalaspects.analysis.growth_rates import GrowthRate
 from crystalaspects.fileio.find_data import *
 from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.gui.crystal_slider import create_slider
-from crystalaspects.gui.gui_threads import Worker_Movies, Worker_XYZ
+from crystalaspects.analysis.gui_threads import WorkerMovies, WorkerXYZ
 from crystalaspects.fileio.logging import setup_logging
 
 # Project Module imports
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return result
 
     def update_XYZ_info(self, xyz):
-        worker_xyz = Worker_XYZ(xyz)
+        worker_xyz = WorkerXYZ(xyz)
         worker_xyz.signals.result.connect(self.insert_info)
         worker_xyz.signals.progress.connect(self.update_progress)
         worker_xyz.signals.message.connect(self.update_statusbar)
@@ -326,6 +326,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_batch_type(self):
         folder = Path(self.batch_lineEdit.text())
+        self.aspect_ratio_pushButton.setEnabled(False)
+        self.growth_rate_pushButton.setEnabled(False)
         try:
             if folder.is_dir():
                 self.input_folder = folder
