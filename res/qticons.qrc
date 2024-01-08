@@ -18,6 +18,7 @@
     <file>material_icons/png/step-backward-2.png</file>
     <file>material_icons/png/step-backward.png</file>
     <file>material_icons/png/step-forward-2.png</file>
+    <file>material_icons/png/file-table.png</file>
     <file>material_icons/png/step-forward.png</file>
   </qresource>
   <qresource prefix="program_icon">

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -9,8 +10,8 @@ from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
 import crystalaspects.analysis.gr_dataframes as gr
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerGrowthRates
-from crystalaspects.gui.growthrate_dialog import GrowthRateAnalysisDialogue
-from crystalaspects.gui.progress_dialog import CircularProgress
+from crystalaspects.gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
+from crystalaspects.gui.dialogs.progress_dialog import CircularProgress
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
@@ -28,6 +29,8 @@ class GrowthRate:
         self.signals = signals
         self.threadpool = None
         self.threadpool = QThreadPool()
+
+        self.result_tuple = namedtuple("Result", ["csv", "selected", "folder"])
 
         self.progress_updated = Signal(int)
         self.circular_progress = None
@@ -107,6 +110,13 @@ class GrowthRate:
                 logger.debug("Growth Rates Dataframe:\n%s", plotting_csv)
                 growth_rate_csv = self.output_folder / "growthrates.csv"
                 plotting_csv.to_csv(growth_rate_csv, index=None)
+                result = self.result_tuple(
+                    csv=growth_rate_csv,
+                    selected=self.selected_directions,
+                    folder=self.output_folder
+                )
+                self.signals.result.emit(result)
+                logger.debug("Sending plotting information to GUI: %s", result)
                 PlottingDialogs = PlottingDialog(self)
                 PlottingDialogs.plotting_info(csv=growth_rate_csv)
                 PlottingDialogs.show()

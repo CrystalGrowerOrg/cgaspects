@@ -16,12 +16,13 @@ from qt_material import apply_stylesheet
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
+from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.analysis.gui_threads import WorkerMovies, WorkerXYZ
 from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.fileio.find_data import *
 from crystalaspects.fileio.logging import setup_logging
 from crystalaspects.fileio.opendir import open_directory
-from crystalaspects.gui.crystal_slider import create_slider
+from crystalaspects.gui.utils.crystal_slider import create_slider
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.visualiser import Visualiser
@@ -78,12 +79,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectratio = AspectRatio(signals=self.signals)
         self.growthrate = GrowthRate(signals=self.signals)
         self.signals.location.connect(self.set_output_folder)
-
+        self.signals.result.connect(self.set_results)
         # Other self variables
-        self.sim_num = None
-        self.input_folder = None
-        self.output_folder = None
+        self.sim_num: int | None = None
+        self.input_folder: Path | None = None
+        self.output_folder: Path | None = None
         self.xyz_files: List[Path] = []
+        self.selected_directions: list = []
+        self.plotting_csv: Path | None = None
+
 
     def menubar(self):
         # Create a menu bar
@@ -202,9 +206,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
+        
+        self.plot_browse_toolButton.clicked.connect(self.browse_plot_csv)
+        self.plot_lineEdit.textChanged.connect(self.set_plotting)
+        self.plot_pushButton.clicked.connect(self.replotting_called)
 
     def key_shortcuts(self):
-        # Close Application with Ctrl+Q or Command+Q
+        # Close Application with Ctrl+Q or Cmd+Q
         close_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
         close_shortcut.activated.connect(self.close_application)
         mac_close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier | Qt.Key_Q), self)
@@ -218,7 +226,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Import XYZ file with Ctrl+F
         browse_for_batch = QShortcut(QKeySequence("Ctrl+F"), self)
         browse_for_batch.activated.connect(self.browse)
-        # Import XYZ file with Ctrl+D
+        # Display XYZ file(s) with Ctrl+D
         set_xyz = QShortcut(QKeySequence("Ctrl+D"), self)
         set_xyz.activated.connect(self.set_visualiser)
         # Open results folder with Ctrl+O
@@ -418,29 +426,75 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def calculate_aspect_ratio(self):
         self.aspectratio.calculate_aspect_ratio()
-        if self.aspectratio.output_folder:
-            pass
-        if self.aspectratio.directions:
-            pass
 
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
-        if self.growthrate.output_folder:
-            self.output_folder = self.growthrate.output_folder
-            self.view_results_pushButton.setEnabled(True)
+    
+    def browse_plot_csv(self):
+
+        try:
+            # Attempt to get the directory from the file dialog
+            plotting_csv = QFileDialog.getOpenFileName(
+            self, "Select CSV File", "./", "CSV Files (*.csv);;All Files (*)"
+            )[0]
+
+            # Check if the folder selection was canceled or empty and handle appropriately
+            if plotting_csv:
+                plotting_csv = Path(plotting_csv)
+                if plotting_csv.is_file():
+                    self.plot_lineEdit.setText(str(plotting_csv))
+            else:
+                # Handle the case where no folder was selected
+                self.log_message(
+                    "File selection was canceled or no file was selected.", "error"
+                )
+
+        # Note: Bare Exception
+        except Exception as e:
+            self.log_message(f"An error occurred: {e}", "error")
+    
+    def set_plotting(self, value):
+        if Path(value).is_file():
+            self.plotting_csv = Path(value)
+            self.plot_pushButton.setEnabled(True)
+            self.log_message(f"Plotting CSV set to {self.plotting_csv}", "info")
+        else:
+            self.plot_pushButton.setEnabled(False)
+            self.plotting_csv = None
+            self.log_message(f"Plotting CSV set to None", "debug")
+
+    def set_results(self, value):
+        self.plot_lineEdit.setText(str(value.csv))
+        self.log_message(f"Accepting incoming result to GUI {value}", "debug")
+        if value.selected:
+            self.selected_directions = value.selected
+            self.log_message(f"Selected Directions set to: {self.selected_directions}", "debug")
+        if value.folder:
+            self.output_folder = value.folder
+            self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
+        if value.selected and value.folder:
+            self.autoplot_checkBox.setEnabled(True)
+        else:
+            self.autoplot_checkBox.setEnabled(False)
 
     def replotting_called(self):
-        csv_file, _ = QFileDialog.getOpenFileName(
-            self, "Select CSV File", "./", "CSV Files (*.csv);;All Files (*)"
-        )
-        if csv_file:
-            # Handle the selected CSV file
-            self.log_message(f"Selected file: {csv_file}", "info")
-            # You can now load or process the CSV file as needed
 
-        PlottingDialogs = PlottingDialog()
-        PlottingDialogs.plotting_info(csv=csv_file)
-        PlottingDialogs.show()
+        if self.plotting_csv:
+            self.log_message(f"Plotting file: {self.plotting_csv}", "info")
+
+            PlottingDialogs = PlottingDialog()
+            PlottingDialogs.plotting_info(csv=self.plotting_csv)
+            PlottingDialogs.show()
+
+        if self.autoplot_checkBox.isChecked() and self.selected_directions:
+            plot = Plotting()
+            self.log_message(f"Plotting called with the automated Re-plotting option.", log_level="debug")
+            if self.plotting_csv.name.startswith("growth"):
+                self.log_message(f"Automated re-plotting started for growth rate options", log_level="debug")
+                plot.plot_growth_rates(pd.read_csv(self.plotting_csv), self.selected_directions, self.output_folder)
+            else:
+                self.log_message(f"Automated re-plotting option currently does not work with Aspect Ratio plots", log_level="warning")
+                
 
     def particle_swarm_analysis(self):
         # Create a message box

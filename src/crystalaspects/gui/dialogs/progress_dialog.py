@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                                QHBoxLayout, QLabel, QScrollArea, QVBoxLayout,
                                QWidget)
 
-from crystalaspects.gui.circular_progress import PyCircularProgress
+from crystalaspects.gui.utils.circular_progress import PyCircularProgress
 
 
 class CircularProgress(QDialog):
