@@ -8,8 +8,8 @@ from PySide6.QtWidgets import QDialog, QWidget
 import crystalaspects.analysis.ar_dataframes as ar
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerAspectRatios
-from crystalaspects.gui.aspectratio_dialog import AnalysisOptionsDialog
-from crystalaspects.gui.progress_dialog import CircularProgress
+from crystalaspects.gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
+from crystalaspects.gui.dialogs.progress_dialog import CircularProgress
 from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
@@ -27,11 +27,13 @@ class AspectRatio(QWidget):
         self.options: namedtuple | None = None
         self.threadpool = None
         self.threadpool = QThreadPool()
+        self.result_tuple = namedtuple("Result", ["csv", "selected", "folder"])
 
         self.progress_updated = Signal(int)
         self.circular_progress = None
         self.signals = signals
         self.signals.progress.connect(self.update_progress)
+        self.plotting_csv = None
 
     def update_progress(self, value):
         self.circular_progress.set_value(value)
@@ -100,14 +102,20 @@ class AspectRatio(QWidget):
                 output_folder=self.output_folder,
             )
             worker.signals.progress.connect(self.update_progress)
-            worker.signals.result.connect(self.plot)
+            worker.signals.result.connect(self.set_plotting)
             worker.signals.location.connect(self.get_location)
             self.threadpool.start(worker)
 
         else:
             logger.warning("Running Calculation on the same (GUI) thread!")
             self.run_on_same_thread()
-            self.plot(plotting_csv=self.plotting_csv)
+            self.set_plotting(plotting_csv=self.plotting_csv)
+
+    def set_plotting(self, plotting_csv):
+        result = self.result_tuple(csv=plotting_csv, selected=None, folder=None)
+        self.signals.result.emit(result)
+        logger.debug("Sending plotting information to GUI: %s", result)
+        self.plot(plotting_csv=plotting_csv)
 
     def plot(self, plotting_csv):
         self.circular_progress.hide()
