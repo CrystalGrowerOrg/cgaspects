@@ -67,6 +67,8 @@ class vis_GLWidget(QOpenGLWidget):
             cm.hsv,
         ]
 
+        self.vbo = None
+
     def createArrow(self):
         # Create a display list for the arrow
         arrow_model = gl.glGenLists(1)
@@ -368,6 +370,11 @@ class vis_GLWidget(QOpenGLWidget):
         return vbo
 
     def paintGL(self):
+
+        if not self.vbo:
+            logger.warning("Paint event called while buffer object (VBO) was not set.")
+            return
+        
         # print("painting")
         # Clear the color and depth buffers
         gl.glEnable(gl.GL_DEPTH_TEST)

@@ -16,12 +16,12 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame,
+from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QHBoxLayout, QLabel, QLayout,
     QLineEdit, QMainWindow, QPushButton, QScrollArea,
     QSizePolicy, QSlider, QSpacerItem, QSpinBox,
-    QStatusBar, QTextEdit, QToolBox, QToolButton,
-    QVBoxLayout, QWidget)
+    QStatusBar, QToolBox, QToolButton, QVBoxLayout,
+    QWidget)
 from crystalaspects.gui.utils import qticons_rc
 
 class Ui_MainWindow(object):
@@ -29,7 +29,7 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(1400, 847)
+        MainWindow.resize(1400, 865)
         font = QFont()
         font.setFamilies([u"Arial"])
         font.setPointSize(10)
@@ -166,9 +166,9 @@ class Ui_MainWindow(object):
         self.import_pushButton.setMinimumSize(QSize(150, 45))
         self.import_pushButton.setBaseSize(QSize(0, 0))
         icon1 = QIcon()
-        icon1.addFile(u":/material_icons/material_icons/png/folder-arrow-down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/material_icons/material_icons/png/folder-arrow-down-custom.png", QSize(), QIcon.Normal, QIcon.Off)
         self.import_pushButton.setIcon(icon1)
-        self.import_pushButton.setIconSize(QSize(20, 20))
+        self.import_pushButton.setIconSize(QSize(25, 25))
 
         self.gridLayout.addWidget(self.import_pushButton, 0, 0, 1, 1)
 
@@ -180,102 +180,162 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setMinimumSize(QSize(150, 45))
         self.view_results_pushButton.setBaseSize(QSize(0, 0))
         icon2 = QIcon()
-        icon2.addFile(u":/material_icons/material_icons/png/folder-arrow-right.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
         self.view_results_pushButton.setIcon(icon2)
-        self.view_results_pushButton.setIconSize(QSize(20, 20))
+        self.view_results_pushButton.setIconSize(QSize(25, 25))
 
         self.gridLayout.addWidget(self.view_results_pushButton, 0, 8, 1, 1)
 
-        self.settings_toolButton = QToolButton(self.centralwidget)
-        self.settings_toolButton.setObjectName(u"settings_toolButton")
-        self.settings_toolButton.setEnabled(False)
-        self.settings_toolButton.setMinimumSize(QSize(34, 34))
-        icon3 = QIcon()
-        icon3.addFile(u":/material_icons/material_icons/png/cog.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.settings_toolButton.setIcon(icon3)
-        self.settings_toolButton.setIconSize(QSize(20, 20))
-
-        self.gridLayout.addWidget(self.settings_toolButton, 0, 9, 1, 1)
-
-        self.vis_scrollArea = QScrollArea(self.centralwidget)
-        self.vis_scrollArea.setObjectName(u"vis_scrollArea")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        sizePolicy1.setHorizontalStretch(30)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.vis_scrollArea.sizePolicy().hasHeightForWidth())
-        self.vis_scrollArea.setSizePolicy(sizePolicy1)
-        self.vis_scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents_4 = QWidget()
-        self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 953, 757))
-        self.gridLayout_4 = QGridLayout(self.scrollAreaWidgetContents_4)
-        self.gridLayout_4.setObjectName(u"gridLayout_4")
-        self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
-        self.main_frame.setObjectName(u"main_frame")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(5)
-        sizePolicy2.setHeightForWidth(self.main_frame.sizePolicy().hasHeightForWidth())
-        self.main_frame.setSizePolicy(sizePolicy2)
-        self.gl_vLayout = QGridLayout(self.main_frame)
-        self.gl_vLayout.setObjectName(u"gl_vLayout")
-
-        self.gridLayout_4.addWidget(self.main_frame, 0, 1, 1, 2)
-
-        self.xyz_horizontalSlider = QSlider(self.scrollAreaWidgetContents_4)
-        self.xyz_horizontalSlider.setObjectName(u"xyz_horizontalSlider")
-        self.xyz_horizontalSlider.setOrientation(Qt.Horizontal)
-
-        self.gridLayout_4.addWidget(self.xyz_horizontalSlider, 1, 1, 1, 1)
-
-        self.xyz_spinBox = QSpinBox(self.scrollAreaWidgetContents_4)
-        self.xyz_spinBox.setObjectName(u"xyz_spinBox")
-
-        self.gridLayout_4.addWidget(self.xyz_spinBox, 1, 2, 1, 1)
-
-        self.vis_scrollArea.setWidget(self.scrollAreaWidgetContents_4)
-
-        self.gridLayout.addWidget(self.vis_scrollArea, 3, 7, 3, 3)
-
-        self.output_textbox = QTextEdit(self.centralwidget)
-        self.output_textbox.setObjectName(u"output_textbox")
-        self.output_textbox.setEnabled(False)
-        sizePolicy3 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        sizePolicy3.setHorizontalStretch(5)
-        sizePolicy3.setVerticalStretch(1)
-        sizePolicy3.setHeightForWidth(self.output_textbox.sizePolicy().hasHeightForWidth())
-        self.output_textbox.setSizePolicy(sizePolicy3)
-        self.output_textbox.setMinimumSize(QSize(0, 75))
-        self.output_textbox.setStyleSheet(u"background-color: rgb(58, 64, 85);\n"
-"color: rgb(255, 255, 255);")
-        self.output_textbox.setReadOnly(False)
-
-        self.gridLayout.addWidget(self.output_textbox, 5, 0, 1, 3)
-
-        self.console_label = QLabel(self.centralwidget)
-        self.console_label.setObjectName(u"console_label")
-        sizePolicy4 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy4.setHorizontalStretch(0)
-        sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.console_label.sizePolicy().hasHeightForWidth())
-        self.console_label.setSizePolicy(sizePolicy4)
-        self.console_label.setLayoutDirection(Qt.LeftToRight)
-
-        self.gridLayout.addWidget(self.console_label, 4, 0, 1, 3)
-
         self.scrollArea_options = QScrollArea(self.centralwidget)
         self.scrollArea_options.setObjectName(u"scrollArea_options")
-        sizePolicy5 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        sizePolicy5.setHorizontalStretch(5)
-        sizePolicy5.setVerticalStretch(4)
-        sizePolicy5.setHeightForWidth(self.scrollArea_options.sizePolicy().hasHeightForWidth())
-        self.scrollArea_options.setSizePolicy(sizePolicy5)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy1.setHorizontalStretch(5)
+        sizePolicy1.setVerticalStretch(4)
+        sizePolicy1.setHeightForWidth(self.scrollArea_options.sizePolicy().hasHeightForWidth())
+        self.scrollArea_options.setSizePolicy(sizePolicy1)
         self.scrollArea_options.setWidgetResizable(True)
         self.scrollAreaWidgetContents_5 = QWidget()
         self.scrollAreaWidgetContents_5.setObjectName(u"scrollAreaWidgetContents_5")
-        self.scrollAreaWidgetContents_5.setGeometry(QRect(0, 0, 409, 576))
-        self.gridLayout_12 = QGridLayout(self.scrollAreaWidgetContents_5)
-        self.gridLayout_12.setObjectName(u"gridLayout_12")
+        self.scrollAreaWidgetContents_5.setGeometry(QRect(0, 0, 393, 774))
+        self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents_5)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.location_label = QLabel(self.scrollAreaWidgetContents_5)
+        self.location_label.setObjectName(u"location_label")
+
+        self.verticalLayout_2.addWidget(self.location_label)
+
+        self.batch_lineEdit = QLineEdit(self.scrollAreaWidgetContents_5)
+        self.batch_lineEdit.setObjectName(u"batch_lineEdit")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
+        self.batch_lineEdit.setSizePolicy(sizePolicy2)
+        self.batch_lineEdit.setMinimumSize(QSize(0, 30))
+        self.batch_lineEdit.setStyleSheet(u"color: rgb(255, 255, 255);")
+
+        self.verticalLayout_2.addWidget(self.batch_lineEdit)
+
+        self.calculate_label = QLabel(self.scrollAreaWidgetContents_5)
+        self.calculate_label.setObjectName(u"calculate_label")
+
+        self.verticalLayout_2.addWidget(self.calculate_label)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.aspect_ratio_pushButton = QPushButton(self.scrollAreaWidgetContents_5)
+        self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
+        self.aspect_ratio_pushButton.setEnabled(False)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
+        self.aspect_ratio_pushButton.setSizePolicy(sizePolicy3)
+        self.aspect_ratio_pushButton.setMinimumSize(QSize(0, 45))
+
+        self.horizontalLayout_2.addWidget(self.aspect_ratio_pushButton)
+
+        self.growth_rate_pushButton = QPushButton(self.scrollAreaWidgetContents_5)
+        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
+        self.growth_rate_pushButton.setEnabled(False)
+        sizePolicy3.setHeightForWidth(self.growth_rate_pushButton.sizePolicy().hasHeightForWidth())
+        self.growth_rate_pushButton.setSizePolicy(sizePolicy3)
+        self.growth_rate_pushButton.setMinimumSize(QSize(0, 45))
+        self.growth_rate_pushButton.setIconSize(QSize(16, 16))
+
+        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+
+        self.plot_label = QLabel(self.scrollAreaWidgetContents_5)
+        self.plot_label.setObjectName(u"plot_label")
+
+        self.verticalLayout_2.addWidget(self.plot_label)
+
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.plot_lineEdit = QLineEdit(self.scrollAreaWidgetContents_5)
+        self.plot_lineEdit.setObjectName(u"plot_lineEdit")
+        sizePolicy4 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy4.setHorizontalStretch(5)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.plot_lineEdit.sizePolicy().hasHeightForWidth())
+        self.plot_lineEdit.setSizePolicy(sizePolicy4)
+        self.plot_lineEdit.setMinimumSize(QSize(0, 30))
+        self.plot_lineEdit.setStyleSheet(u"color: rgb(255, 255, 255);")
+
+        self.horizontalLayout_4.addWidget(self.plot_lineEdit)
+
+        self.plot_browse_toolButton = QToolButton(self.scrollAreaWidgetContents_5)
+        self.plot_browse_toolButton.setObjectName(u"plot_browse_toolButton")
+        self.plot_browse_toolButton.setMinimumSize(QSize(38, 38))
+        icon3 = QIcon()
+        icon3.addFile(u":/material_icons/material_icons/png/file-table-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_browse_toolButton.setIcon(icon3)
+        self.plot_browse_toolButton.setIconSize(QSize(25, 25))
+
+        self.horizontalLayout_4.addWidget(self.plot_browse_toolButton)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
+
+        self.plot_pushButton = QPushButton(self.scrollAreaWidgetContents_5)
+        self.plot_pushButton.setObjectName(u"plot_pushButton")
+        self.plot_pushButton.setEnabled(False)
+        self.plot_pushButton.setMinimumSize(QSize(0, 45))
+        icon4 = QIcon()
+        icon4.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_pushButton.setIcon(icon4)
+        self.plot_pushButton.setIconSize(QSize(25, 25))
+
+        self.verticalLayout_2.addWidget(self.plot_pushButton)
+
+        self.xyz_id_frame = QFrame(self.scrollAreaWidgetContents_5)
+        self.xyz_id_frame.setObjectName(u"xyz_id_frame")
+        self.xyz_id_frame.setFrameShape(QFrame.StyledPanel)
+        self.xyz_id_frame.setFrameShadow(QFrame.Raised)
+        self.gridLayout_5 = QGridLayout(self.xyz_id_frame)
+        self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.xyz_spinBox = QSpinBox(self.xyz_id_frame)
+        self.xyz_spinBox.setObjectName(u"xyz_spinBox")
+        self.xyz_spinBox.setMinimumSize(QSize(0, 0))
+        self.xyz_spinBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+
+        self.gridLayout_5.addWidget(self.xyz_spinBox, 0, 1, 1, 1)
+
+        self.saveframe_toolButton = QToolButton(self.xyz_id_frame)
+        self.saveframe_toolButton.setObjectName(u"saveframe_toolButton")
+        icon5 = QIcon()
+        icon5.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.saveframe_toolButton.setIcon(icon5)
+        self.saveframe_toolButton.setIconSize(QSize(25, 25))
+
+        self.gridLayout_5.addWidget(self.saveframe_toolButton, 0, 2, 1, 1)
+
+        self.fname_comboBox = QComboBox(self.xyz_id_frame)
+        self.fname_comboBox.setObjectName(u"fname_comboBox")
+        sizePolicy5 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy5.setHorizontalStretch(1)
+        sizePolicy5.setVerticalStretch(1)
+        sizePolicy5.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
+        self.fname_comboBox.setSizePolicy(sizePolicy5)
+        self.fname_comboBox.setMinimumSize(QSize(0, 0))
+        font1 = QFont()
+        font1.setKerning(True)
+        self.fname_comboBox.setFont(font1)
+        self.fname_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+
+        self.gridLayout_5.addWidget(self.fname_comboBox, 4, 0, 1, 3)
+
+        self.xyz_id_label = QLabel(self.xyz_id_frame)
+        self.xyz_id_label.setObjectName(u"xyz_id_label")
+
+        self.gridLayout_5.addWidget(self.xyz_id_label, 0, 0, 1, 1)
+
+
+        self.verticalLayout_2.addWidget(self.xyz_id_frame)
+
         self.main_toolBox = QToolBox(self.scrollAreaWidgetContents_5)
         self.main_toolBox.setObjectName(u"main_toolBox")
         sizePolicy6 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -283,248 +343,36 @@ class Ui_MainWindow(object):
         sizePolicy6.setVerticalStretch(3)
         sizePolicy6.setHeightForWidth(self.main_toolBox.sizePolicy().hasHeightForWidth())
         self.main_toolBox.setSizePolicy(sizePolicy6)
-        self.main_toolBox.setMinimumSize(QSize(0, 450))
-        self.batch_analysis_tab = QWidget()
-        self.batch_analysis_tab.setObjectName(u"batch_analysis_tab")
-        self.batch_analysis_tab.setGeometry(QRect(0, 0, 385, 372))
-        self.gridLayout_6 = QGridLayout(self.batch_analysis_tab)
-        self.gridLayout_6.setObjectName(u"gridLayout_6")
-        self.gridLayout_8 = QGridLayout()
-        self.gridLayout_8.setObjectName(u"gridLayout_8")
-        self.batch_browse_toolButton = QToolButton(self.batch_analysis_tab)
-        self.batch_browse_toolButton.setObjectName(u"batch_browse_toolButton")
-        self.batch_browse_toolButton.setMinimumSize(QSize(38, 38))
-        icon4 = QIcon()
-        icon4.addFile(u":/material_icons/material_icons/png/folder-open.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.batch_browse_toolButton.setIcon(icon4)
-        self.batch_browse_toolButton.setIconSize(QSize(25, 25))
-
-        self.gridLayout_8.addWidget(self.batch_browse_toolButton, 0, 2, 1, 1, Qt.AlignHCenter)
-
-        self.batch_lineEdit = QLineEdit(self.batch_analysis_tab)
-        self.batch_lineEdit.setObjectName(u"batch_lineEdit")
-        sizePolicy7 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy7.setHorizontalStretch(5)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.batch_lineEdit.sizePolicy().hasHeightForWidth())
-        self.batch_lineEdit.setSizePolicy(sizePolicy7)
-        self.batch_lineEdit.setMinimumSize(QSize(0, 30))
-
-        self.gridLayout_8.addWidget(self.batch_lineEdit, 0, 1, 1, 1)
-
-        self.batch_label = QLabel(self.batch_analysis_tab)
-        self.batch_label.setObjectName(u"batch_label")
-
-        self.gridLayout_8.addWidget(self.batch_label, 0, 0, 1, 1)
-
-        self.batch_visualise_toolButton = QToolButton(self.batch_analysis_tab)
-        self.batch_visualise_toolButton.setObjectName(u"batch_visualise_toolButton")
-        self.batch_visualise_toolButton.setMinimumSize(QSize(30, 30))
-        icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/cube-scan.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.batch_visualise_toolButton.setIcon(icon5)
-        self.batch_visualise_toolButton.setIconSize(QSize(30, 30))
-
-        self.gridLayout_8.addWidget(self.batch_visualise_toolButton, 1, 2, 1, 1, Qt.AlignHCenter)
-
-        self.batch_set_pushButton = QPushButton(self.batch_analysis_tab)
-        self.batch_set_pushButton.setObjectName(u"batch_set_pushButton")
-        self.batch_set_pushButton.setMinimumSize(QSize(0, 42))
-
-        self.gridLayout_8.addWidget(self.batch_set_pushButton, 1, 1, 1, 1)
-
-
-        self.gridLayout_6.addLayout(self.gridLayout_8, 0, 0, 1, 1)
-
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.aspect_ratio_pushButton = QPushButton(self.batch_analysis_tab)
-        self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
-        self.aspect_ratio_pushButton.setEnabled(False)
-        sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy8.setHorizontalStretch(0)
-        sizePolicy8.setVerticalStretch(0)
-        sizePolicy8.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
-        self.aspect_ratio_pushButton.setSizePolicy(sizePolicy8)
-        self.aspect_ratio_pushButton.setMinimumSize(QSize(162, 100))
-
-        self.horizontalLayout_2.addWidget(self.aspect_ratio_pushButton)
-
-        self.growth_rate_pushButton = QPushButton(self.batch_analysis_tab)
-        self.growth_rate_pushButton.setObjectName(u"growth_rate_pushButton")
-        self.growth_rate_pushButton.setEnabled(False)
-        sizePolicy8.setHeightForWidth(self.growth_rate_pushButton.sizePolicy().hasHeightForWidth())
-        self.growth_rate_pushButton.setSizePolicy(sizePolicy8)
-        self.growth_rate_pushButton.setMinimumSize(QSize(162, 100))
-        self.growth_rate_pushButton.setIconSize(QSize(16, 16))
-
-        self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
-
-
-        self.gridLayout_6.addLayout(self.horizontalLayout_2, 8, 0, 1, 1)
-
-        self.main_toolBox.addItem(self.batch_analysis_tab, u"Batch Analysis")
-        self.plotting_tab = QWidget()
-        self.plotting_tab.setObjectName(u"plotting_tab")
-        self.plotting_tab.setGeometry(QRect(0, 0, 385, 372))
-        self.gridLayout_3 = QGridLayout(self.plotting_tab)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.gridLayout_9 = QGridLayout()
-        self.gridLayout_9.setObjectName(u"gridLayout_9")
-        self.plot_pushButton = QPushButton(self.plotting_tab)
-        self.plot_pushButton.setObjectName(u"plot_pushButton")
-        self.plot_pushButton.setEnabled(False)
-        self.plot_pushButton.setMinimumSize(QSize(0, 100))
-        icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/chart-scatter-plot.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_pushButton.setIcon(icon6)
-        self.plot_pushButton.setIconSize(QSize(30, 30))
-
-        self.gridLayout_9.addWidget(self.plot_pushButton, 1, 1, 1, 1)
-
-        self.plot_browse_toolButton = QToolButton(self.plotting_tab)
-        self.plot_browse_toolButton.setObjectName(u"plot_browse_toolButton")
-        self.plot_browse_toolButton.setMinimumSize(QSize(38, 38))
-        icon7 = QIcon()
-        icon7.addFile(u":/material_icons/material_icons/png/file-table.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_browse_toolButton.setIcon(icon7)
-        self.plot_browse_toolButton.setIconSize(QSize(25, 25))
-
-        self.gridLayout_9.addWidget(self.plot_browse_toolButton, 0, 2, 1, 1, Qt.AlignHCenter)
-
-        self.plot_lineEdit = QLineEdit(self.plotting_tab)
-        self.plot_lineEdit.setObjectName(u"plot_lineEdit")
-        sizePolicy7.setHeightForWidth(self.plot_lineEdit.sizePolicy().hasHeightForWidth())
-        self.plot_lineEdit.setSizePolicy(sizePolicy7)
-        self.plot_lineEdit.setMinimumSize(QSize(0, 30))
-
-        self.gridLayout_9.addWidget(self.plot_lineEdit, 0, 1, 1, 1)
-
-        self.plot_label = QLabel(self.plotting_tab)
-        self.plot_label.setObjectName(u"plot_label")
-
-        self.gridLayout_9.addWidget(self.plot_label, 0, 0, 1, 1)
-
-        self.autoplot_checkBox = QCheckBox(self.plotting_tab)
-        self.autoplot_checkBox.setObjectName(u"autoplot_checkBox")
-        self.autoplot_checkBox.setEnabled(False)
-
-        self.gridLayout_9.addWidget(self.autoplot_checkBox, 2, 1, 1, 1, Qt.AlignRight)
-
-
-        self.gridLayout_3.addLayout(self.gridLayout_9, 0, 0, 1, 1)
-
-        self.main_toolBox.addItem(self.plotting_tab, u"Plotting")
-        self.crystal_info_tab = QWidget()
-        self.crystal_info_tab.setObjectName(u"crystal_info_tab")
-        self.crystal_info_tab.setGeometry(QRect(0, 0, 385, 372))
-        self.gridLayout_2 = QGridLayout(self.crystal_info_tab)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.ml_label = QLabel(self.crystal_info_tab)
-        self.ml_label.setObjectName(u"ml_label")
-
-        self.gridLayout_2.addWidget(self.ml_label, 5, 0, 1, 1)
-
-        self.crystal_savol_label = QLabel(self.crystal_info_tab)
-        self.crystal_savol_label.setObjectName(u"crystal_savol_label")
-
-        self.gridLayout_2.addWidget(self.crystal_savol_label, 7, 0, 1, 1)
-
-        self.spacegroup_label = QLabel(self.crystal_info_tab)
-        self.spacegroup_label.setObjectName(u"spacegroup_label")
-        self.spacegroup_label.setEnabled(False)
-
-        self.gridLayout_2.addWidget(self.spacegroup_label, 2, 0, 1, 1)
-
-        self.crystal_ar_label = QLabel(self.crystal_info_tab)
-        self.crystal_ar_label.setObjectName(u"crystal_ar_label")
-
-        self.gridLayout_2.addWidget(self.crystal_ar_label, 3, 0, 1, 1)
-
-        self.show_info_button = QPushButton(self.crystal_info_tab)
-        self.show_info_button.setObjectName(u"show_info_button")
-        sizePolicy9 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy9.setHorizontalStretch(1)
-        sizePolicy9.setVerticalStretch(0)
-        sizePolicy9.setHeightForWidth(self.show_info_button.sizePolicy().hasHeightForWidth())
-        self.show_info_button.setSizePolicy(sizePolicy9)
-        self.show_info_button.setMinimumSize(QSize(200, 0))
-
-        self.gridLayout_2.addWidget(self.show_info_button, 1, 0, 1, 1)
-
-        self.sm_label = QLabel(self.crystal_info_tab)
-        self.sm_label.setObjectName(u"sm_label")
-
-        self.gridLayout_2.addWidget(self.sm_label, 4, 0, 1, 1)
-
-        self.crystal_vol_label = QLabel(self.crystal_info_tab)
-        self.crystal_vol_label.setObjectName(u"crystal_vol_label")
-
-        self.gridLayout_2.addWidget(self.crystal_vol_label, 9, 0, 1, 1)
-
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.fname_label = QLabel(self.crystal_info_tab)
-        self.fname_label.setObjectName(u"fname_label")
-        sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy10.setHorizontalStretch(1)
-        sizePolicy10.setVerticalStretch(0)
-        sizePolicy10.setHeightForWidth(self.fname_label.sizePolicy().hasHeightForWidth())
-        self.fname_label.setSizePolicy(sizePolicy10)
-
-        self.horizontalLayout.addWidget(self.fname_label)
-
-        self.fname_comboBox = QComboBox(self.crystal_info_tab)
-        self.fname_comboBox.setObjectName(u"fname_comboBox")
-        sizePolicy11 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy11.setHorizontalStretch(3)
-        sizePolicy11.setVerticalStretch(1)
-        sizePolicy11.setHeightForWidth(self.fname_comboBox.sizePolicy().hasHeightForWidth())
-        self.fname_comboBox.setSizePolicy(sizePolicy11)
-        self.fname_comboBox.setMinimumSize(QSize(200, 0))
-
-        self.horizontalLayout.addWidget(self.fname_comboBox)
-
-
-        self.gridLayout_2.addLayout(self.horizontalLayout, 0, 0, 1, 1)
-
-        self.crystal_sa_label = QLabel(self.crystal_info_tab)
-        self.crystal_sa_label.setObjectName(u"crystal_sa_label")
-
-        self.gridLayout_2.addWidget(self.crystal_sa_label, 8, 0, 1, 1)
-
-        self.shape_label = QLabel(self.crystal_info_tab)
-        self.shape_label.setObjectName(u"shape_label")
-
-        self.gridLayout_2.addWidget(self.shape_label, 6, 0, 1, 1)
-
-        self.main_toolBox.addItem(self.crystal_info_tab, u"Crystal Information")
+        self.main_toolBox.setMinimumSize(QSize(0, 375))
+        font2 = QFont()
+        font2.setPointSize(12)
+        self.main_toolBox.setFont(font2)
         self.variables_tab = QWidget()
         self.variables_tab.setObjectName(u"variables_tab")
-        self.variables_tab.setGeometry(QRect(0, 0, 385, 372))
+        self.variables_tab.setGeometry(QRect(0, 0, 369, 311))
         self.gridLayout_7 = QGridLayout(self.variables_tab)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
         self.EVariable_title_label_2 = QLabel(self.variables_tab)
         self.EVariable_title_label_2.setObjectName(u"EVariable_title_label_2")
-        font1 = QFont()
-        font1.setFamilies([u"Arial"])
-        font1.setPointSize(10)
-        font1.setBold(True)
-        font1.setItalic(False)
-        self.EVariable_title_label_2.setFont(font1)
+        font3 = QFont()
+        font3.setFamilies([u"Arial"])
+        font3.setPointSize(10)
+        font3.setBold(True)
+        font3.setItalic(False)
+        self.EVariable_title_label_2.setFont(font3)
 
         self.gridLayout_7.addWidget(self.EVariable_title_label_2, 1, 0, 1, 1)
 
         self.select_summary_slider_button = QPushButton(self.variables_tab)
         self.select_summary_slider_button.setObjectName(u"select_summary_slider_button")
         self.select_summary_slider_button.setEnabled(False)
-        sizePolicy12 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy12.setHorizontalStretch(0)
-        sizePolicy12.setVerticalStretch(1)
-        sizePolicy12.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
-        self.select_summary_slider_button.setSizePolicy(sizePolicy12)
+        sizePolicy7 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy7.setHorizontalStretch(0)
+        sizePolicy7.setVerticalStretch(1)
+        sizePolicy7.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
+        self.select_summary_slider_button.setSizePolicy(sizePolicy7)
         self.select_summary_slider_button.setMinimumSize(QSize(200, 0))
-        self.select_summary_slider_button.setFont(font1)
+        self.select_summary_slider_button.setFont(font3)
 
         self.gridLayout_7.addWidget(self.select_summary_slider_button, 0, 0, 1, 1, Qt.AlignLeft)
 
@@ -539,245 +387,311 @@ class Ui_MainWindow(object):
         self.gridLayout_7.addItem(self.verticalSpacer, 3, 0, 1, 1)
 
         self.main_toolBox.addItem(self.variables_tab, u"Variables")
-        self.vis_options_tab = QWidget()
-        self.vis_options_tab.setObjectName(u"vis_options_tab")
-        self.vis_options_tab.setGeometry(QRect(0, 0, 370, 404))
-        self.verticalLayout = QVBoxLayout(self.vis_options_tab)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.saveFrame_button = QPushButton(self.vis_options_tab)
-        self.saveFrame_button.setObjectName(u"saveFrame_button")
-        icon8 = QIcon()
-        icon8.addFile(u":/material_icons/material_icons/png/content-save.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.saveFrame_button.setIcon(icon8)
-
-        self.verticalLayout.addWidget(self.saveFrame_button)
-
-        self.display_options_label = QLabel(self.vis_options_tab)
-        self.display_options_label.setObjectName(u"display_options_label")
-        self.display_options_label.setFont(font1)
-
-        self.verticalLayout.addWidget(self.display_options_label)
-
-        self.gridLayout_5 = QGridLayout()
-        self.gridLayout_5.setObjectName(u"gridLayout_5")
-        self.zoom_label = QLabel(self.vis_options_tab)
-        self.zoom_label.setObjectName(u"zoom_label")
-
-        self.gridLayout_5.addWidget(self.zoom_label, 0, 0, 1, 1)
-
-        self.zoom_slider = QSlider(self.vis_options_tab)
-        self.zoom_slider.setObjectName(u"zoom_slider")
-        sizePolicy13 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy13.setHorizontalStretch(0)
-        sizePolicy13.setVerticalStretch(0)
-        sizePolicy13.setHeightForWidth(self.zoom_slider.sizePolicy().hasHeightForWidth())
-        self.zoom_slider.setSizePolicy(sizePolicy13)
-        font2 = QFont()
-        font2.setFamilies([u"Arial"])
-        font2.setPointSize(8)
-        font2.setBold(True)
-        font2.setItalic(False)
-        self.zoom_slider.setFont(font2)
-        self.zoom_slider.setOrientation(Qt.Horizontal)
-
-        self.gridLayout_5.addWidget(self.zoom_slider, 0, 1, 1, 1)
-
-        self.pointsize_label = QLabel(self.vis_options_tab)
-        self.pointsize_label.setObjectName(u"pointsize_label")
-
-        self.gridLayout_5.addWidget(self.pointsize_label, 1, 0, 1, 1)
-
-        self.point_slider = QSlider(self.vis_options_tab)
-        self.point_slider.setObjectName(u"point_slider")
-        self.point_slider.setOrientation(Qt.Horizontal)
-
-        self.gridLayout_5.addWidget(self.point_slider, 1, 1, 1, 1)
-
-        self.brightness_label = QLabel(self.vis_options_tab)
-        self.brightness_label.setObjectName(u"brightness_label")
-        self.brightness_label.setEnabled(False)
-
-        self.gridLayout_5.addWidget(self.brightness_label, 2, 0, 1, 1)
-
-        self.brightness_slider = QSlider(self.vis_options_tab)
-        self.brightness_slider.setObjectName(u"brightness_slider")
-        self.brightness_slider.setEnabled(False)
-        self.brightness_slider.setMaximum(100)
-        self.brightness_slider.setOrientation(Qt.Horizontal)
-
-        self.gridLayout_5.addWidget(self.brightness_slider, 2, 1, 1, 1)
-
-        self.resolution_label = QLabel(self.vis_options_tab)
-        self.resolution_label.setObjectName(u"resolution_label")
-        self.resolution_label.setEnabled(False)
-
-        self.gridLayout_5.addWidget(self.resolution_label, 3, 0, 1, 1)
-
-        self.resolution_slider = QSlider(self.vis_options_tab)
-        self.resolution_slider.setObjectName(u"resolution_slider")
-        self.resolution_slider.setEnabled(False)
-        self.resolution_slider.setOrientation(Qt.Horizontal)
-
-        self.gridLayout_5.addWidget(self.resolution_slider, 3, 1, 1, 1)
-
-
-        self.verticalLayout.addLayout(self.gridLayout_5)
-
-        self.point_type_label = QLabel(self.vis_options_tab)
-        self.point_type_label.setObjectName(u"point_type_label")
-        self.point_type_label.setEnabled(True)
-        self.point_type_label.setFont(font1)
-
-        self.verticalLayout.addWidget(self.point_type_label)
-
-        self.pointtype_comboBox = QComboBox(self.vis_options_tab)
-        self.pointtype_comboBox.setObjectName(u"pointtype_comboBox")
-        self.pointtype_comboBox.setEnabled(True)
-
-        self.verticalLayout.addWidget(self.pointtype_comboBox)
-
-        self.colour_mode_label = QLabel(self.vis_options_tab)
-        self.colour_mode_label.setObjectName(u"colour_mode_label")
-        self.colour_mode_label.setFont(font1)
-
-        self.verticalLayout.addWidget(self.colour_mode_label)
-
-        self.colourmode_comboBox = QComboBox(self.vis_options_tab)
-        self.colourmode_comboBox.setObjectName(u"colourmode_comboBox")
-
-        self.verticalLayout.addWidget(self.colourmode_comboBox)
-
-        self.colour_label = QLabel(self.vis_options_tab)
-        self.colour_label.setObjectName(u"colour_label")
-        self.colour_label.setFont(font1)
-
-        self.verticalLayout.addWidget(self.colour_label)
-
-        self.colour_comboBox = QComboBox(self.vis_options_tab)
-        self.colour_comboBox.setObjectName(u"colour_comboBox")
-
-        self.verticalLayout.addWidget(self.colour_comboBox)
-
-        self.colour_label_2 = QLabel(self.vis_options_tab)
-        self.colour_label_2.setObjectName(u"colour_label_2")
-        self.colour_label_2.setFont(font1)
-
-        self.verticalLayout.addWidget(self.colour_label_2)
-
-        self.bgcolour_comboBox = QComboBox(self.vis_options_tab)
-        self.bgcolour_comboBox.setObjectName(u"bgcolour_comboBox")
-
-        self.verticalLayout.addWidget(self.bgcolour_comboBox)
-
-        self.main_toolBox.addItem(self.vis_options_tab, u"Visualiser Options")
-        self.video_options_tab = QWidget()
-        self.video_options_tab.setObjectName(u"video_options_tab")
-        self.video_options_tab.setGeometry(QRect(0, 0, 385, 372))
-        self.gridLayout_11 = QGridLayout(self.video_options_tab)
-        self.gridLayout_11.setObjectName(u"gridLayout_11")
-        self.pause_button = QPushButton(self.video_options_tab)
-        self.pause_button.setObjectName(u"pause_button")
-        self.pause_button.setMinimumSize(QSize(0, 45))
-        icon9 = QIcon()
-        icon9.addFile(u":/material_icons/material_icons/png/pause-box.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.pause_button.setIcon(icon9)
-
-        self.gridLayout_11.addWidget(self.pause_button, 2, 1, 1, 1)
-
-        self.end_simvis_button = QPushButton(self.video_options_tab)
-        self.end_simvis_button.setObjectName(u"end_simvis_button")
-        self.end_simvis_button.setMinimumSize(QSize(0, 45))
-        icon10 = QIcon()
-        icon10.addFile(u":/material_icons/material_icons/png/step-forward-2.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.end_simvis_button.setIcon(icon10)
-
-        self.gridLayout_11.addWidget(self.end_simvis_button, 13, 1, 1, 1)
-
-        self.play_button = QPushButton(self.video_options_tab)
-        self.play_button.setObjectName(u"play_button")
-        self.play_button.setMinimumSize(QSize(0, 45))
-        icon11 = QIcon()
-        icon11.addFile(u":/material_icons/material_icons/png/play-box.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.play_button.setIcon(icon11)
-
-        self.gridLayout_11.addWidget(self.play_button, 2, 0, 1, 1)
-
+        self.crystal_info_tab = QWidget()
+        self.crystal_info_tab.setObjectName(u"crystal_info_tab")
+        self.crystal_info_tab.setGeometry(QRect(0, 0, 369, 311))
+        self.gridLayout_2 = QGridLayout(self.crystal_info_tab)
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-        self.gridLayout_11.addItem(self.verticalSpacer_2, 18, 0, 1, 1)
+        self.gridLayout_2.addItem(self.verticalSpacer_2, 2, 0, 1, 1)
 
-        self.current_frame_spinBox = QSpinBox(self.video_options_tab)
-        self.current_frame_spinBox.setObjectName(u"current_frame_spinBox")
-        self.current_frame_spinBox.setMinimumSize(QSize(0, 20))
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setLabelAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+        self.formLayout.setFormAlignment(Qt.AlignHCenter|Qt.AlignTop)
+        self.lineEdit_uc_lengths = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_uc_lengths.setObjectName(u"lineEdit_uc_lengths")
+        sizePolicy8 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy8.setHorizontalStretch(1)
+        sizePolicy8.setVerticalStretch(0)
+        sizePolicy8.setHeightForWidth(self.lineEdit_uc_lengths.sizePolicy().hasHeightForWidth())
+        self.lineEdit_uc_lengths.setSizePolicy(sizePolicy8)
+        self.lineEdit_uc_lengths.setMinimumSize(QSize(200, 0))
+        self.lineEdit_uc_lengths.setFont(font)
+        self.lineEdit_uc_lengths.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_uc_lengths.setReadOnly(True)
 
-        self.gridLayout_11.addWidget(self.current_frame_spinBox, 0, 1, 1, 1)
+        self.formLayout.setWidget(7, QFormLayout.FieldRole, self.lineEdit_uc_lengths)
 
-        self.current_frame_comboBox = QComboBox(self.video_options_tab)
-        self.current_frame_comboBox.setObjectName(u"current_frame_comboBox")
-        self.current_frame_comboBox.setMinimumSize(QSize(0, 20))
+        self.label_9 = QLabel(self.crystal_info_tab)
+        self.label_9.setObjectName(u"label_9")
 
-        self.gridLayout_11.addWidget(self.current_frame_comboBox, 1, 0, 1, 2)
+        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.label_9)
 
-        self.frame_slider = QSlider(self.video_options_tab)
-        self.frame_slider.setObjectName(u"frame_slider")
-        self.frame_slider.setOrientation(Qt.Horizontal)
+        self.lineEdit_uc_angles = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_uc_angles.setObjectName(u"lineEdit_uc_angles")
+        sizePolicy8.setHeightForWidth(self.lineEdit_uc_angles.sizePolicy().hasHeightForWidth())
+        self.lineEdit_uc_angles.setSizePolicy(sizePolicy8)
+        self.lineEdit_uc_angles.setMinimumSize(QSize(200, 0))
+        self.lineEdit_uc_angles.setFont(font)
+        self.lineEdit_uc_angles.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_uc_angles.setReadOnly(True)
 
-        self.gridLayout_11.addWidget(self.frame_slider, 14, 0, 1, 2)
+        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.lineEdit_uc_angles)
 
-        self.start_simvis_button = QPushButton(self.video_options_tab)
-        self.start_simvis_button.setObjectName(u"start_simvis_button")
-        self.start_simvis_button.setMinimumSize(QSize(0, 45))
-        icon12 = QIcon()
-        icon12.addFile(u":/material_icons/material_icons/png/step-backward-2.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.start_simvis_button.setIcon(icon12)
+        self.label_8 = QLabel(self.crystal_info_tab)
+        self.label_8.setObjectName(u"label_8")
 
-        self.gridLayout_11.addWidget(self.start_simvis_button, 13, 0, 1, 1)
+        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.label_8)
 
-        self.current_frame_label = QLabel(self.video_options_tab)
-        self.current_frame_label.setObjectName(u"current_frame_label")
+        self.lineEdit_spaceg = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_spaceg.setObjectName(u"lineEdit_spaceg")
+        sizePolicy8.setHeightForWidth(self.lineEdit_spaceg.sizePolicy().hasHeightForWidth())
+        self.lineEdit_spaceg.setSizePolicy(sizePolicy8)
+        self.lineEdit_spaceg.setMinimumSize(QSize(200, 0))
+        self.lineEdit_spaceg.setFont(font2)
+        self.lineEdit_spaceg.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_spaceg.setReadOnly(True)
 
-        self.gridLayout_11.addWidget(self.current_frame_label, 0, 0, 1, 1)
+        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.lineEdit_spaceg)
 
-        self.previous_button = QPushButton(self.video_options_tab)
-        self.previous_button.setObjectName(u"previous_button")
-        self.previous_button.setMinimumSize(QSize(0, 40))
-        icon13 = QIcon()
-        icon13.addFile(u":/material_icons/material_icons/png/step-backward.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.previous_button.setIcon(icon13)
+        self.label_7 = QLabel(self.crystal_info_tab)
+        self.label_7.setObjectName(u"label_7")
 
-        self.gridLayout_11.addWidget(self.previous_button, 4, 0, 1, 1)
+        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_7)
 
-        self.next_button = QPushButton(self.video_options_tab)
-        self.next_button.setObjectName(u"next_button")
-        self.next_button.setMinimumSize(QSize(0, 45))
-        icon14 = QIcon()
-        icon14.addFile(u":/material_icons/material_icons/png/step-forward.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.next_button.setIcon(icon14)
+        self.lineEdit_vol = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_vol.setObjectName(u"lineEdit_vol")
+        sizePolicy8.setHeightForWidth(self.lineEdit_vol.sizePolicy().hasHeightForWidth())
+        self.lineEdit_vol.setSizePolicy(sizePolicy8)
+        self.lineEdit_vol.setMinimumSize(QSize(200, 0))
+        self.lineEdit_vol.setFont(font2)
+        self.lineEdit_vol.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_vol.setReadOnly(True)
 
-        self.gridLayout_11.addWidget(self.next_button, 4, 1, 1, 1)
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.lineEdit_vol)
 
-        self.main_toolBox.addItem(self.video_options_tab, u"Video Options")
+        self.label_6 = QLabel(self.crystal_info_tab)
+        self.label_6.setObjectName(u"label_6")
 
-        self.gridLayout_12.addWidget(self.main_toolBox, 1, 1, 1, 1)
+        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_6)
+
+        self.lineEdit_sa = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_sa.setObjectName(u"lineEdit_sa")
+        sizePolicy8.setHeightForWidth(self.lineEdit_sa.sizePolicy().hasHeightForWidth())
+        self.lineEdit_sa.setSizePolicy(sizePolicy8)
+        self.lineEdit_sa.setMinimumSize(QSize(200, 0))
+        self.lineEdit_sa.setFont(font2)
+        self.lineEdit_sa.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_sa.setReadOnly(True)
+
+        self.formLayout.setWidget(4, QFormLayout.FieldRole, self.lineEdit_sa)
+
+        self.label_5 = QLabel(self.crystal_info_tab)
+        self.label_5.setObjectName(u"label_5")
+
+        self.formLayout.setWidget(4, QFormLayout.LabelRole, self.label_5)
+
+        self.lineEdit_savol = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_savol.setObjectName(u"lineEdit_savol")
+        sizePolicy8.setHeightForWidth(self.lineEdit_savol.sizePolicy().hasHeightForWidth())
+        self.lineEdit_savol.setSizePolicy(sizePolicy8)
+        self.lineEdit_savol.setMinimumSize(QSize(200, 0))
+        self.lineEdit_savol.setFont(font2)
+        self.lineEdit_savol.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_savol.setReadOnly(True)
+
+        self.formLayout.setWidget(3, QFormLayout.FieldRole, self.lineEdit_savol)
+
+        self.label_4 = QLabel(self.crystal_info_tab)
+        self.label_4.setObjectName(u"label_4")
+
+        self.formLayout.setWidget(3, QFormLayout.LabelRole, self.label_4)
+
+        self.lineEdit_shape = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_shape.setObjectName(u"lineEdit_shape")
+        sizePolicy8.setHeightForWidth(self.lineEdit_shape.sizePolicy().hasHeightForWidth())
+        self.lineEdit_shape.setSizePolicy(sizePolicy8)
+        self.lineEdit_shape.setMinimumSize(QSize(200, 0))
+        self.lineEdit_shape.setFont(font2)
+        self.lineEdit_shape.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_shape.setReadOnly(True)
+
+        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.lineEdit_shape)
+
+        self.label_3 = QLabel(self.crystal_info_tab)
+        self.label_3.setObjectName(u"label_3")
+
+        self.formLayout.setWidget(2, QFormLayout.LabelRole, self.label_3)
+
+        self.lineEdit_ml = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_ml.setObjectName(u"lineEdit_ml")
+        sizePolicy8.setHeightForWidth(self.lineEdit_ml.sizePolicy().hasHeightForWidth())
+        self.lineEdit_ml.setSizePolicy(sizePolicy8)
+        self.lineEdit_ml.setMinimumSize(QSize(200, 0))
+        self.lineEdit_ml.setFont(font2)
+        self.lineEdit_ml.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_ml.setReadOnly(True)
+
+        self.formLayout.setWidget(1, QFormLayout.FieldRole, self.lineEdit_ml)
+
+        self.label_2 = QLabel(self.crystal_info_tab)
+        self.label_2.setObjectName(u"label_2")
+
+        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.label_2)
+
+        self.lineEdit_sm = QLineEdit(self.crystal_info_tab)
+        self.lineEdit_sm.setObjectName(u"lineEdit_sm")
+        sizePolicy8.setHeightForWidth(self.lineEdit_sm.sizePolicy().hasHeightForWidth())
+        self.lineEdit_sm.setSizePolicy(sizePolicy8)
+        self.lineEdit_sm.setMinimumSize(QSize(200, 0))
+        self.lineEdit_sm.setFont(font2)
+        self.lineEdit_sm.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.lineEdit_sm.setReadOnly(True)
+
+        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.lineEdit_sm)
+
+        self.label = QLabel(self.crystal_info_tab)
+        self.label.setObjectName(u"label")
+
+        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+
+
+        self.gridLayout_2.addLayout(self.formLayout, 1, 0, 1, 1)
+
+        self.main_toolBox.addItem(self.crystal_info_tab, u"Crystal Information")
+
+        self.verticalLayout_2.addWidget(self.main_toolBox)
 
         self.scrollArea_options.setWidget(self.scrollAreaWidgetContents_5)
 
-        self.gridLayout.addWidget(self.scrollArea_options, 3, 0, 1, 3)
+        self.gridLayout.addWidget(self.scrollArea_options, 3, 0, 2, 3)
+
+        self.settings_toolButton = QToolButton(self.centralwidget)
+        self.settings_toolButton.setObjectName(u"settings_toolButton")
+        self.settings_toolButton.setEnabled(True)
+        self.settings_toolButton.setMinimumSize(QSize(0, 0))
+        icon6 = QIcon()
+        icon6.addFile(u":/material_icons/material_icons/png/cog-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.settings_toolButton.setIcon(icon6)
+        self.settings_toolButton.setIconSize(QSize(25, 25))
+        self.settings_toolButton.setAutoRaise(False)
+
+        self.gridLayout.addWidget(self.settings_toolButton, 0, 9, 1, 1)
+
+        self.vis_scrollArea = QScrollArea(self.centralwidget)
+        self.vis_scrollArea.setObjectName(u"vis_scrollArea")
+        sizePolicy9 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy9.setHorizontalStretch(30)
+        sizePolicy9.setVerticalStretch(0)
+        sizePolicy9.setHeightForWidth(self.vis_scrollArea.sizePolicy().hasHeightForWidth())
+        self.vis_scrollArea.setSizePolicy(sizePolicy9)
+        self.vis_scrollArea.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_4 = QWidget()
+        self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 969, 774))
+        self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
+        self.main_frame.setObjectName(u"main_frame")
+        sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy10.setHorizontalStretch(0)
+        sizePolicy10.setVerticalStretch(5)
+        sizePolicy10.setHeightForWidth(self.main_frame.sizePolicy().hasHeightForWidth())
+        self.main_frame.setSizePolicy(sizePolicy10)
+        self.gl_vLayout = QGridLayout(self.main_frame)
+        self.gl_vLayout.setObjectName(u"gl_vLayout")
+
+        self.gridLayout_3.addWidget(self.main_frame, 0, 0, 1, 2)
+
+        self.movie_controls_frame = QFrame(self.scrollAreaWidgetContents_4)
+        self.movie_controls_frame.setObjectName(u"movie_controls_frame")
+        self.movie_controls_frame.setStyleSheet(u"background-color: rgb(58, 64, 85);\n"
+"color: rgb(255, 255, 255);\n"
+"border-radius: 12px;")
+        self.movie_controls_frame.setFrameShape(QFrame.StyledPanel)
+        self.movie_controls_frame.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout_5 = QHBoxLayout(self.movie_controls_frame)
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.frame_slider = QSlider(self.movie_controls_frame)
+        self.frame_slider.setObjectName(u"frame_slider")
+        sizePolicy2.setHeightForWidth(self.frame_slider.sizePolicy().hasHeightForWidth())
+        self.frame_slider.setSizePolicy(sizePolicy2)
+        self.frame_slider.setOrientation(Qt.Horizontal)
+
+        self.horizontalLayout_5.addWidget(self.frame_slider)
+
+        self.frame_spinBox = QSpinBox(self.movie_controls_frame)
+        self.frame_spinBox.setObjectName(u"frame_spinBox")
+
+        self.horizontalLayout_5.addWidget(self.frame_spinBox)
+
+        self.start_simvis_button = QToolButton(self.movie_controls_frame)
+        self.start_simvis_button.setObjectName(u"start_simvis_button")
+        self.start_simvis_button.setMinimumSize(QSize(0, 0))
+        icon7 = QIcon()
+        icon7.addFile(u":/material_icons/material_icons/png/skip-backward-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.start_simvis_button.setIcon(icon7)
+
+        self.horizontalLayout_5.addWidget(self.start_simvis_button)
+
+        self.previous_button = QToolButton(self.movie_controls_frame)
+        self.previous_button.setObjectName(u"previous_button")
+        self.previous_button.setMinimumSize(QSize(0, 0))
+        icon8 = QIcon()
+        icon8.addFile(u":/material_icons/material_icons/png/skip-previous-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.previous_button.setIcon(icon8)
+
+        self.horizontalLayout_5.addWidget(self.previous_button)
+
+        self.play_button = QToolButton(self.movie_controls_frame)
+        self.play_button.setObjectName(u"play_button")
+        self.play_button.setMinimumSize(QSize(0, 0))
+        icon9 = QIcon()
+        icon9.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.play_button.setIcon(icon9)
+
+        self.horizontalLayout_5.addWidget(self.play_button)
+
+        self.pause_button = QToolButton(self.movie_controls_frame)
+        self.pause_button.setObjectName(u"pause_button")
+        self.pause_button.setMinimumSize(QSize(0, 0))
+        icon10 = QIcon()
+        icon10.addFile(u":/material_icons/material_icons/png/pause-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.pause_button.setIcon(icon10)
+
+        self.horizontalLayout_5.addWidget(self.pause_button)
+
+        self.next_button = QToolButton(self.movie_controls_frame)
+        self.next_button.setObjectName(u"next_button")
+        self.next_button.setMinimumSize(QSize(0, 0))
+        icon11 = QIcon()
+        icon11.addFile(u":/material_icons/material_icons/png/skip-next-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.next_button.setIcon(icon11)
+
+        self.horizontalLayout_5.addWidget(self.next_button)
+
+        self.end_simvis_button = QToolButton(self.movie_controls_frame)
+        self.end_simvis_button.setObjectName(u"end_simvis_button")
+        self.end_simvis_button.setMinimumSize(QSize(0, 0))
+        icon12 = QIcon()
+        icon12.addFile(u":/material_icons/material_icons/png/skip-forward-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.end_simvis_button.setIcon(icon12)
+
+        self.horizontalLayout_5.addWidget(self.end_simvis_button)
+
+
+        self.gridLayout_3.addWidget(self.movie_controls_frame, 1, 0, 1, 2)
+
+        self.vis_scrollArea.setWidget(self.scrollAreaWidgetContents_4)
+
+        self.gridLayout.addWidget(self.vis_scrollArea, 3, 7, 2, 3)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
-        font3 = QFont()
-        font3.setFamilies([u"Arial"])
-        font3.setPointSize(8)
-        font3.setItalic(True)
-        self.statusbar.setFont(font3)
+        font4 = QFont()
+        font4.setFamilies([u"Arial"])
+        font4.setPointSize(8)
+        font4.setItalic(True)
+        self.statusbar.setFont(font4)
         self.statusbar.setCursor(QCursor(Qt.ArrowCursor))
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
 
-        self.main_toolBox.setCurrentIndex(0)
+        self.main_toolBox.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -843,53 +757,72 @@ class Ui_MainWindow(object):
         self.action2_3.setText(QCoreApplication.translate("MainWindow", u"2", None))
         self.action3_3.setText(QCoreApplication.translate("MainWindow", u"3", None))
         self.import_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Import", None))
-        self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results", None))
-        self.settings_toolButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
-        self.console_label.setText(QCoreApplication.translate("MainWindow", u"Console", None))
-        self.batch_browse_toolButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
-        self.batch_label.setText(QCoreApplication.translate("MainWindow", u"Folder: ", None))
-        self.batch_visualise_toolButton.setText(QCoreApplication.translate("MainWindow", u"View", None))
-        self.batch_set_pushButton.setText(QCoreApplication.translate("MainWindow", u"Set", None))
+        self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results Directory", None))
+        self.location_label.setText(QCoreApplication.translate("MainWindow", u"Location:", None))
+        self.calculate_label.setText(QCoreApplication.translate("MainWindow", u"Calculate:", None))
         self.aspect_ratio_pushButton.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
         self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
-        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.batch_analysis_tab), QCoreApplication.translate("MainWindow", u"Batch Analysis", None))
-        self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
+        self.plot_label.setText(QCoreApplication.translate("MainWindow", u"Plotting (CSV):", None))
         self.plot_browse_toolButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
-        self.plot_label.setText(QCoreApplication.translate("MainWindow", u"File: ", None))
-        self.autoplot_checkBox.setText(QCoreApplication.translate("MainWindow", u"AutoPlot", None))
-        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.plotting_tab), QCoreApplication.translate("MainWindow", u"Plotting", None))
-        self.ml_label.setText(QCoreApplication.translate("MainWindow", u"Medium/Long:", None))
-        self.crystal_savol_label.setText(QCoreApplication.translate("MainWindow", u"Surface Area:Volume:", None))
-        self.spacegroup_label.setText(QCoreApplication.translate("MainWindow", u"Space group:", None))
-        self.crystal_ar_label.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratio", None))
-        self.show_info_button.setText(QCoreApplication.translate("MainWindow", u"Show Information", None))
-        self.sm_label.setText(QCoreApplication.translate("MainWindow", u"Short/Medium:", None))
-        self.crystal_vol_label.setText(QCoreApplication.translate("MainWindow", u"Crystal Volume (nm<sup>2</sup>):", None))
-        self.fname_label.setText(QCoreApplication.translate("MainWindow", u"Filename:", None))
-        self.crystal_sa_label.setText(QCoreApplication.translate("MainWindow", u"Crystal Surface Area (nm<sup>2</sup>):", None))
-        self.shape_label.setText(QCoreApplication.translate("MainWindow", u"General Shape:", None))
-        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.crystal_info_tab), QCoreApplication.translate("MainWindow", u"Crystal Information", None))
+#if QT_CONFIG(tooltip)
+        self.plot_pushButton.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
+#if QT_CONFIG(statustip)
+        self.saveframe_toolButton.setStatusTip("")
+#endif // QT_CONFIG(statustip)
+        self.saveframe_toolButton.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
         self.EVariable_title_label_2.setText(QCoreApplication.translate("MainWindow", u"Variables:", None))
         self.select_summary_slider_button.setText(QCoreApplication.translate("MainWindow", u"Select Summary File", None))
         self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.variables_tab), QCoreApplication.translate("MainWindow", u"Variables", None))
-        self.saveFrame_button.setText(QCoreApplication.translate("MainWindow", u"   Save Frame", None))
-        self.display_options_label.setText(QCoreApplication.translate("MainWindow", u"Display Options", None))
-        self.zoom_label.setText(QCoreApplication.translate("MainWindow", u"Zoom", None))
-        self.pointsize_label.setText(QCoreApplication.translate("MainWindow", u"Point Size", None))
-        self.brightness_label.setText(QCoreApplication.translate("MainWindow", u"Brightness", None))
-        self.resolution_label.setText(QCoreApplication.translate("MainWindow", u"Resolution", None))
-        self.point_type_label.setText(QCoreApplication.translate("MainWindow", u"Point Type", None))
-        self.colour_mode_label.setText(QCoreApplication.translate("MainWindow", u"Colour Mode", None))
-        self.colour_label.setText(QCoreApplication.translate("MainWindow", u"Colour", None))
-        self.colour_label_2.setText(QCoreApplication.translate("MainWindow", u"Background Colour", None))
-        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.vis_options_tab), QCoreApplication.translate("MainWindow", u"Visualiser Options", None))
-        self.pause_button.setText(QCoreApplication.translate("MainWindow", u"   Pause", None))
-        self.end_simvis_button.setText(QCoreApplication.translate("MainWindow", u"   End", None))
-        self.play_button.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
-        self.start_simvis_button.setText(QCoreApplication.translate("MainWindow", u"   Start", None))
-        self.current_frame_label.setText(QCoreApplication.translate("MainWindow", u"Current Frame", None))
+#if QT_CONFIG(tooltip)
+        self.label_9.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_9.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Unit cell angles (<span style=\" font-weight:600;\">\u03b1 \u03b2 \u03b3</span>)</p></body></html>", None))
+#if QT_CONFIG(tooltip)
+        self.label_8.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_8.setText(QCoreApplication.translate("MainWindow", u"Unit cell lengths(<b>a b c</b>)", None))
+#if QT_CONFIG(tooltip)
+        self.label_7.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_7.setText(QCoreApplication.translate("MainWindow", u"Space Group", None))
+#if QT_CONFIG(tooltip)
+        self.label_6.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_6.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Volume (<span style=\" font-weight:600;\">nm</span><span style=\" font-weight:600; vertical-align:super;\">3</span>)</p></body></html>", None))
+#if QT_CONFIG(tooltip)
+        self.label_5.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_5.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Surface Area (<span style=\" font-weight:600;\">nm</span><span style=\" font-weight:600; vertical-align:super;\">2</span>)</p></body></html>", None))
+#if QT_CONFIG(tooltip)
+        self.label_4.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Surface Area : Volume", None))
+#if QT_CONFIG(tooltip)
+        self.label_3.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"General Shape", None))
+#if QT_CONFIG(tooltip)
+        self.label_2.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratio M:L", None))
+        self.lineEdit_sm.setText("")
+#if QT_CONFIG(tooltip)
+        self.label.setToolTip("")
+#endif // QT_CONFIG(tooltip)
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratio S:M", None))
+        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.crystal_info_tab), QCoreApplication.translate("MainWindow", u"Crystal Information", None))
+#if QT_CONFIG(statustip)
+        self.settings_toolButton.setStatusTip("")
+#endif // QT_CONFIG(statustip)
+        self.settings_toolButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
+        self.start_simvis_button.setText("")
         self.previous_button.setText(QCoreApplication.translate("MainWindow", u"   Previous", None))
+        self.play_button.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
+        self.pause_button.setText(QCoreApplication.translate("MainWindow", u"   Pause", None))
         self.next_button.setText(QCoreApplication.translate("MainWindow", u"   Next", None))
-        self.main_toolBox.setItemText(self.main_toolBox.indexOf(self.video_options_tab), QCoreApplication.translate("MainWindow", u"Video Options", None))
+        self.end_simvis_button.setText(QCoreApplication.translate("MainWindow", u"   End", None))
     # retranslateUi
 

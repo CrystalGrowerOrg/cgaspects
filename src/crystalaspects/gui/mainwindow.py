@@ -9,9 +9,9 @@ from natsort import natsorted
 from PySide6 import QtGui, QtOpenGL, QtWidgets
 from PySide6.QtCore import (QCoreApplication, QObject, Qt, QThreadPool, QTimer,
                             Signal, Slot)
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QKeySequence, QShortcut, QFont
 from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMenu,
-                               QMessageBox)
+                               QLineEdit)
 from qt_material import apply_stylesheet
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
@@ -23,9 +23,10 @@ from crystalaspects.fileio.find_data import *
 from crystalaspects.fileio.logging import setup_logging
 from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.gui.utils.crystal_slider import create_slider
+from crystalaspects.gui.dialogs.settings import SettingsDialog
+from crystalaspects.gui.openGL import vis_GLWidget
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.gui.visualiser import Visualiser
 from crystalaspects.visualisation.plot_dialog import PlottingDialog
 
 basedir = os.path.dirname(__file__)
@@ -62,7 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-
+        print(QtWidgets.QStyleFactory.keys())
         self.apply_style(theme_main="dark", theme_colour="teal")
 
         self.setupUi(self)
@@ -88,6 +89,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selected_directions: list = []
         self.plotting_csv: Path | None = None
 
+        self.xyz_id_frame.hide()
+        self.movie_controls_frame.hide()
+
+        self.settings_dialog = SettingsDialog()
 
     def menubar(self):
         # Create a menu bar
@@ -154,6 +159,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         growth_rate_action.triggered.connect(self.calculate_growth_rates)
         particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
         plotting_action.triggered.connect(self.replotting_called)
+        exit_action.triggered.connect(self.close_application)
         # docking_calc_action.triggered.connect(self.docking_calc)
 
         # Create the CrystalClear actions
@@ -198,12 +204,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.view_results_pushButton.clicked.connect(
             lambda: open_directory(path=self.output_folder)
         )
-
-        self.batch_browse_toolButton.clicked.connect(self.browse)
-        self.batch_set_pushButton.clicked.connect(self.set_batch_type)
-        self.batch_visualise_toolButton.clicked.connect(
-            lambda: self.import_and_visualise_xyz(folder=self.input_folder)
-        )
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
         
@@ -213,8 +213,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def key_shortcuts(self):
         # Close Application with Ctrl+Q or Cmd+Q
-        close_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
-        close_shortcut.activated.connect(self.close_application)
+        
         mac_close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier | Qt.Key_Q), self)
         mac_close_shortcut.activated.connect(self.close_application)
 
@@ -253,15 +252,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             gui=False,
         )
 
-    def log_message(self, message, log_level, gui=True):
+    def log_message(self, message, log_level, gui=False):
         message = str(message)
         log_level_method = getattr(logger, log_level.lower(), logger.debug)
 
-        if gui and log_level in ["info", "warning"]:
+        if gui or log_level in ["info", "warning"]:
             # Update the status bar with the message
-            # self.statusBar().showMessage(message)
-            # Update the output textbox
-            self.output_textbox.append(message)
+            self.statusBar().showMessage(message, 2000)
 
         # Log the message with given level
         log_level_method(message)
@@ -279,26 +276,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         n_xyz = len(self.xyz_files)
         if n_xyz == 0:
             self.log_message(
-                f"{n_xyz} XYZ files found to set to visualiser!", "warning"
+                f"{n_xyz} XYZ files found to set to self!", "warning"
             )
         if n_xyz > 0:
-            Visualiser.initGUI(self, self.xyz_files)
+            self.init_opengl(self.xyz_files)
 
             # Shape analysis to determine xyz, or xyz movie
             result = self.movie_or_single_frame(0)
 
             # Adjust the slider range based on the number of XYZ files in the list
-            self.xyz_horizontalSlider.setRange(0, len(self.xyz_files) - 1)
-            self.xyz_horizontalSlider.setValue(0)
             self.xyz_spinBox.setRange(0, len(self.xyz_files) - 1)
             self.xyz_spinBox.setValue(0)
 
-            Visualiser.init_crystal(self, result)
+            self.init_crystal(result)
 
             self.select_summary_slider_button.setEnabled(True)
             self.log_message(
-                f"{len(self.xyz_files)} XYZ files set to visualiser!", "info"
+                f"{len(self.xyz_files)} XYZ files set to self!", "info"
             )
+            self.update_XYZ_info(self.openglwidget.xyz)
+            self.xyz_id_frame.show()
+            self.set_batch_type()
 
     def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
@@ -347,14 +345,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(worker_xyz)
 
     def update_movie(self, frame):
-        Visualiser.update_frame(self, frame)
+        self.update_frame(frame)
         self.current_frame_comboBox.setCurrentIndex(frame)
         self.current_frame_spinBox.setValue(frame)
         self.frame_slider.setValue(frame)
 
     def play_movie(self, frames):
         for frame in range(frames):
-            Visualiser.update_frame(self, frame)
+            self.update_frame(frame)
             self.current_frame_comboBox.setCurrentIndex(frame)
             self.current_frame_spinBox.setValue(frame)
             self.frame_slider.setValue(frame)
@@ -557,7 +555,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for row in filter_df.index:
             XYZ_file = crystals[row]
             self.output_textBox_3.append(f"Row Number: {row}")
-            Visualiser.update_XYZ(self, XYZ_file)
+            self.update_XYZ(XYZ_file)
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
         dspinbox = self.sender()
@@ -578,10 +576,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.sim_num != value:
             self.fname_comboBox.setCurrentIndex(value)
             self.xyz_spinBox.setValue(value)
-            self.xyz_horizontalSlider.setValue(value)
+            self.update_XYZ_info(self.openglwidget.xyz)
+
+    # Utility function to clear a layout of all its widgets
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+
 
     def insert_info(self, result):
-        self.log_message("Inserting data to GUI!", log_level="info")
+        self.log_message("Inserting data to GUI!", log_level="debug", gui=True)
         aspect1 = result.aspect1
         aspect2 = result.aspect2
         shape_class = "Unassigned"
@@ -597,18 +604,165 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 shape_class = "Plate"
 
-        self.sm_label.setText("Small/Medium: {:.2f}".format(aspect1))
-        self.ml_label.setText("Medium/Long: {:.2f}".format(aspect2))
-        self.shape_label.setText(f"General Shape: {shape_class}")
-        self.crystal_sa_label.setText(
-            "Crystal Surface Area (nm^2): {:2g}".format(result.sa)
+        alignment = Qt.AlignRight
+        self.lineEdit_sm.setText(f"{aspect1:.2f}")
+        self.lineEdit_sm.setAlignment(alignment)
+
+        self.lineEdit_ml.setText(f"{aspect2:.2f}")
+        self.lineEdit_ml.setAlignment(alignment)
+
+        self.lineEdit_shape.setText(f"{shape_class:>8s}")
+        self.lineEdit_shape.setAlignment(alignment)
+
+        self.lineEdit_sa.setText(f"{result.sa:.2f} nm²")
+        self.lineEdit_sa.setAlignment(alignment)
+
+        self.lineEdit_vol.setText(f"{result.vol:.2f} nm³")
+        self.lineEdit_vol.setAlignment(alignment)
+
+        self.lineEdit_savol.setText(f"{result.sa_vol:.2f}")
+        self.lineEdit_savol.setAlignment(alignment)
+
+
+    def init_opengl(self, xyz_file_list):
+        self.openglwidget = vis_GLWidget()
+        
+        self.xyz_file_list = [str(path) for path in xyz_file_list]
+        tot_sims = "Unassigned"
+
+        # Check if the layout has any widgets
+        if self.gl_vLayout.count() > 0:
+            # Get the item at index 0 (the first and only widget in this case)
+            widget_item = self.gl_vLayout.itemAt(0)
+            # Check if the widget_item is valid
+            if widget_item:
+                widget = widget_item.widget()
+                # Check if the widget is valid
+                if widget:
+                    # Remove the widget from the layout
+                    self.gl_vLayout.removeWidget(widget)
+                    # Delete the widget
+                    widget.deleteLater()
+
+        # Clear all lists
+        self.colour_list = []
+        self.settings_dialog.ui.colourmode_comboBox.clear()
+        self.settings_dialog.ui.colour_comboBox.clear()
+        self.settings_dialog.ui.pointtype_comboBox.clear()
+        self.settings_dialog.ui.bgcolour_comboBox.clear()
+
+        # self.run_xyz_movie(xyz_file_list[0])
+        self.gl_vLayout.addWidget(self.openglwidget)
+        tot_sims = len(self.xyz_file_list)
+
+        self.colour_list = [
+            "Viridis",
+            "Plasma",
+            "Inferno",
+            "Magma",
+            "Cividis",
+            "Twilight",
+            "Twilight Shifted",
+            "HSV",
+        ]
+
+        self.settings_dialog.ui.colourmode_comboBox.addItems(
+            [
+                "Atom/Molecule Type",
+                "Atom/Molecule Number",
+                "Layer",
+                "Single Colour",
+                "Site Number",
+                "Particle Energy",
+            ]
         )
-        self.crystal_vol_label.setText(
-            "Crystal Volume (nm^3): {:2g}".format(result.vol)
+        self.settings_dialog.ui.pointtype_comboBox.addItems(["Points", "Spheres"])
+        self.settings_dialog.ui.colourmode_comboBox.setCurrentIndex(2)
+        self.settings_dialog.ui.colour_comboBox.addItems(self.colour_list)
+        self.settings_dialog.ui.bgcolour_comboBox.addItems(["White", "Black", "Transparent"])
+        self.settings_dialog.ui.bgcolour_comboBox.setCurrentIndex(1)
+
+        self.settings_dialog.ui.colour_comboBox.currentIndexChanged.connect(self.openglwidget.get_colour)
+        self.settings_dialog.ui.bgcolour_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_bg_colour
         )
-        self.crystal_savol_label.setText(
-            "Surface Area/Volume: {:2g}".format(result.sa_vol)
+        self.settings_dialog.ui.pointtype_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_point_type
         )
+        self.settings_dialog.ui.colourmode_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_colour_type
+        )
+
+        self.fname_comboBox.addItems(self.xyz_file_list)
+        self.openglwidget.pass_XYZ_list(xyz_file_list)
+        self.fname_comboBox.currentIndexChanged.connect(
+            self.openglwidget.get_XYZ_from_list
+        )
+        self.fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
+        self.saveframe_toolButton.clicked.connect(self.openglwidget.save_render_dialog)
+        self.settings_dialog.ui.point_slider.setMinimum(1)
+        self.settings_dialog.ui.point_slider.setMaximum(50)
+        self.settings_dialog.ui.point_slider.setValue(10)
+        self.settings_dialog.ui.point_slider.valueChanged.connect(self.openglwidget.change_point_size)
+        self.settings_dialog.ui.zoom_slider.valueChanged.connect(self.openglwidget.zoomGL)
+        
+
+        self.xyz_spinBox.setMinimum(0)
+        self.xyz_spinBox.setMaximum(tot_sims - 1)
+        self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
+        self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
+        
+
+    def init_crystal(self, result):
+        logger.debug("INIT CRYSTAL %s", result)
+        self.xyz, self.movie = result
+        self.openglwidget.pass_XYZ(self.xyz)
+
+        if self.movie:
+            self.frame_list = self.movie.keys()
+            logger.debug("Frames: %s", self.frame_list)
+            self.current_frame_comboBox.addItems(
+                [f"frame_{frame + 1}" for frame in self.frame_list]
+            )
+            self.current_frame_spinBox.setMinimum(0)
+            self.current_frame_spinBox.setMaximum(len(self.frame_list))
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(len(self.frame_list))
+            self.current_frame_comboBox.currentIndexChanged.connect(self.update_movie)
+            self.current_frame_spinBox.valueChanged.connect(self.update_movie)
+            self.frame_slider.valueChanged.connect(self.update_movie)
+            self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
+
+        try:
+            self.openglwidget.initGeometry()
+        except AttributeError:
+            logger.warning("Initialising XYZ: No Crystal Data Found!")
+
+    def update_frame(self, frame):
+        self.xyz = self.movie[frame]
+        self.openglwidget.pass_XYZ(self.xyz)
+
+        try:
+            self.openglwidget.initGeometry()
+            self.openglwidget.update()
+        except AttributeError:
+            logger.warning("Updating Frame: No Crystal Data Found!")
+
+    def update_XYZ(self):
+        self.openglwidget.pass_XYZ(self.xyz)
+        try:
+            self.openglwidget.initGeometry()
+        except AttributeError:
+            logger.warning("Updating XYZ: No Crystal Data Found!")
+
+    def close_opengl_widget(self):
+        if self.current_viewer:
+            # Remove the OpenGL widget from its parent layout
+            self.viewer_container_layout.removeWidget(self.current_viewer)
+
+            # Delete the widget from memory
+            self.current_viewer.deleteLater()
+            self.current_viewer = None  # Reset the active viewer
 
     def update_statusbar(self, status):
         self.statusBar().showMessage(status)
@@ -628,7 +782,7 @@ def main():
         pass
 
     # ############# Runs the application ############## #
-
+    # sys.argv += ['--style', 'Material.Light']
     app = QtWidgets.QApplication(sys.argv)
     mainwindow = MainWindow()
     mainwindow.show()
