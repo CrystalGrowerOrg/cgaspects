@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>information_Dialog</class>
+ <widget class="QDialog" name="information_Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QTableWidget" name="tableWidget">
+     <row>
+      <property name="text">
+       <string>Aspect Ratio (S:M)</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>Aspect Ratio (M:L)</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>General Shape</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>Surface Area : Volume</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>Crystal Surface Area</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>Crystal Volume</string>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string>Space Group</string>
+      </property>
+     </row>
+     <column>
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Units</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
