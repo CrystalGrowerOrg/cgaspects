@@ -98,6 +98,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.movie_controls_frame.hide()
 
         self.settings_dialog = SettingsDialog()
+        self.openglwidget = VisualisationWidget()
+        self.gl_vLayout.addWidget(self.openglwidget)
 
     def setup_menubar(self):
         # Create a menu bar
@@ -637,24 +639,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEdit_savol.setAlignment(alignment)
 
     def init_opengl(self, xyz_file_list):
-        self.openglwidget = VisualisationWidget()
-
         self.xyz_file_list = [str(path) for path in xyz_file_list]
         tot_sims = "Unassigned"
-
-        # Check if the layout has any widgets
-        if self.gl_vLayout.count() > 0:
-            # Get the item at index 0 (the first and only widget in this case)
-            widget_item = self.gl_vLayout.itemAt(0)
-            # Check if the widget_item is valid
-            if widget_item:
-                widget = widget_item.widget()
-                # Check if the widget is valid
-                if widget:
-                    # Remove the widget from the layout
-                    self.gl_vLayout.removeWidget(widget)
-                    # Delete the widget
-                    widget.deleteLater()
 
         # Clear all lists
         self.colour_list = []
@@ -664,7 +650,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.settings_dialog.ui.bgcolour_comboBox.clear()
 
         # self.run_xyz_movie(xyz_file_list[0])
-        self.gl_vLayout.addWidget(self.openglwidget)
         tot_sims = len(self.xyz_file_list)
 
         self.colour_list = [
@@ -796,7 +781,7 @@ def set_default_opengl_version(major, minor):
 
 
 def main():
-    set_default_opengl_version(4, 3)
+    set_default_opengl_version(3, 3)
     # Setting taskbar icon permissions - windows
     appid = "CNM.CrystalGrower.CrystalAspects.v1.0"
     import ctypes
