@@ -13,12 +13,6 @@
     <height>847</height>
    </rect>
   </property>
-  <property name="font">
-   <font>
-    <family>Arial</family>
-    <pointsize>10</pointsize>
-   </font>
-  </property>
   <property name="windowTitle">
    <string>CrystalAspects</string>
   </property>
@@ -30,12 +24,6 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="QPushButton" name="import_pushButton">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
       <property name="minimumSize">
        <size>
         <width>150</width>
@@ -143,8 +131,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>953</width>
-         <height>757</height>
+         <width>943</width>
+         <height>746</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_4">
@@ -231,8 +219,8 @@ color: rgb(255, 255, 255);</string>
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>409</width>
-         <height>576</height>
+         <width>419</width>
+         <height>568</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_12">
@@ -258,8 +246,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>372</height>
+             <width>395</width>
+             <height>340</height>
             </rect>
            </property>
            <attribute name="label">
@@ -413,8 +401,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>372</height>
+             <width>395</width>
+             <height>367</height>
             </rect>
            </property>
            <attribute name="label">
@@ -514,8 +502,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>372</height>
+             <width>395</width>
+             <height>367</height>
             </rect>
            </property>
            <attribute name="label">
@@ -640,8 +628,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>372</height>
+             <width>395</width>
+             <height>367</height>
             </rect>
            </property>
            <attribute name="label">
@@ -654,7 +642,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -685,7 +672,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -722,8 +708,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>370</width>
-             <height>404</height>
+             <width>380</width>
+             <height>440</height>
             </rect>
            </property>
            <attribute name="label">
@@ -747,7 +733,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -778,7 +763,6 @@ color: rgb(255, 255, 255);</string>
                  <font>
                   <family>Arial</family>
                   <pointsize>8</pointsize>
-                  <weight>75</weight>
                   <italic>false</italic>
                   <bold>true</bold>
                  </font>
@@ -856,7 +840,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -879,7 +862,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -898,7 +880,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -917,7 +898,6 @@ color: rgb(255, 255, 255);</string>
                <font>
                 <family>Arial</family>
                 <pointsize>10</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -937,8 +917,8 @@ color: rgb(255, 255, 255);</string>
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>372</height>
+             <width>395</width>
+             <height>367</height>
             </rect>
            </property>
            <attribute name="label">

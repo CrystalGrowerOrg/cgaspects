@@ -83,7 +83,8 @@ class GrowthRate:
         self.circular_progress = CircularProgress(calc_type="Growth Rates")
         self.circular_progress.show()
         self.circular_progress.raise_()
-        self.circular_progress.update_text(f"Calculating...\nFor Directions:\n{"\n".join(self.selected_directions)}")
+        directions_text = "\n".join(self.selected_directions)
+        self.circular_progress.update_text(f"Calculating...\nFor Directions:\n{directions_text}")
 
         if not self.threadpool:
             growth_rate_df = gr.build_growthrates(

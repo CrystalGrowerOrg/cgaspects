@@ -80,7 +80,7 @@ class VisualisationWidget(QOpenGLWidget):
 
             self.update()
 
-    def save_render_dialog(self):
+    def saveRenderDialog(self):
         # Create a list of options for the dropdown menu
         options = ["1x", "2x", "4x"]
 
@@ -96,7 +96,7 @@ class VisualisationWidget(QOpenGLWidget):
                 self, "Save File", "", "Images (*.png)"
             )
             if file_name:
-                self.save_render(file_name, resolution)
+                self.saveRender(file_name, resolution)
 
     def renderToImage(self, scale):
         self.makeCurrent()
@@ -116,7 +116,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.doneCurrent()
         return result
 
-    def save_render(self, file_name, resolution):
+    def saveRender(self, file_name, resolution):
         image = self.renderToImage(float(resolution[0]))
         image.save(file_name)
 
@@ -172,10 +172,7 @@ class VisualisationWidget(QOpenGLWidget):
             self.rightMouseButtonPressed = True
 
     def keyPressEvent(self, event):
-        # print(f"Key pressed: {event.key()}")
-
         dx, dy = 0, 0
-
         if event.key() == Qt.Key_W:
             dy -= 10
         if event.key() == Qt.Key_S:
