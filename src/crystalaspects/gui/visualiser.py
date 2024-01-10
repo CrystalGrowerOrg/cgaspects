@@ -88,7 +88,7 @@ class Visualiser(Ui_MainWindow):
         self.glwidget.pass_XYZ_list(xyz_file_list)
         self.fname_comboBox.currentIndexChanged.connect(self.glwidget.get_XYZ_from_list)
         self.fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
-        self.saveFrame_button.clicked.connect(self.glwidget.save_render_dialog)
+        self.saveFrame_button.clicked.connect(self.glwidget.saveRenderDialog)
         self.point_slider.setMinimum(1)
         self.point_slider.setMaximum(50)
         self.point_slider.setValue(self.glwidget.point_size)
