@@ -51,6 +51,7 @@ class SimplePointRenderer:
         }
         """
 
+        self.points = None
         self.program = QOpenGLShaderProgram()
         self.program.addShaderFromSourceCode(
             QOpenGLShader.Vertex, self.vertex_shader_source
@@ -101,6 +102,8 @@ class SimplePointRenderer:
         gl.glDrawArrays(GL_POINTS, 0, n)
 
     def numberOfPoints(self):
+        if self.points is None:
+            return 0
         return self.points.size // 6
 
     def setPoints(self, points):

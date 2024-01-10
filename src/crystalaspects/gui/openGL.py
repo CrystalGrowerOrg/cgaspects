@@ -33,10 +33,9 @@ class VisualisationWidget(QOpenGLWidget):
         self.xyz_path_list = []
         self.sim_num = 0
         self.vbo = None
-        self.point_cloud_renderer = SimplePointRenderer()
+        self.point_cloud_renderer = None
 
         self.xyz = None
-        self.lastPos = None
         # self.object = 0
 
         self.colormap = cm.viridis
@@ -205,6 +204,9 @@ class VisualisationWidget(QOpenGLWidget):
             self.rightMouseButtonPressed = False
 
     def initGeometry(self):
+        if self.point_cloud_renderer is None:
+            return
+
         varray = self.updatePointCloudVertices()
         self.point_cloud_renderer.setPoints(varray)
         self.update()
@@ -252,6 +254,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         color = self.backgroundColor
         gl = self.context().functions()
+        self.point_cloud_renderer = SimplePointRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
 

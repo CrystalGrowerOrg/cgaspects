@@ -1,20 +1,28 @@
 import logging
 
 from crystalaspects.gui.load_ui import Ui_MainWindow
+<<<<<<< HEAD
 from crystalaspects.gui.openGL import VisualisationWidget
+=======
+from crystalaspects.gui.dialogs import settings_ui
+from crystalaspects.gui.openGL import vis_GLWidget
+from crystalaspects.gui.dialogs.settings import SettingsDialog
+>>>>>>> main
 
 logger = logging.getLogger("CA:Visualiser")
 
 
 class Visualiser(Ui_MainWindow):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self):
+        super().__init__()
         self.xyz = None
         self.movie = None
         self.colour_list = []
         self.xyz_file_list = []
         self.frame_list = []
+        self.settings_dialog = SettingsDialog()
 
+<<<<<<< HEAD
     def initGUI(self, xyz_file_list):
         self.glwidget = VisualisationWidget(self)
         self.xyz_file_list = [str(path) for path in xyz_file_list]
@@ -157,3 +165,7 @@ class Visualiser(Ui_MainWindow):
             # Delete the widget from memory
             self.current_viewer.deleteLater()
             self.current_viewer = None  # Reset the active viewer
+=======
+
+    
+>>>>>>> main
