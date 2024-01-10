@@ -1,4 +1,3 @@
-import math
 from PySide6.QtGui import QMatrix4x4, QVector3D, QQuaternion
 
 
@@ -14,7 +13,7 @@ class Camera:
         self.scale = 1.0
         self.distance = (self.position - self.target).length()
 
-        self.perspectiveProjection = False
+        self.perspectiveProjection = True
         self.fieldOfView = 45
         self.orthoSize = 10
         self.nearPlane = 0.01
