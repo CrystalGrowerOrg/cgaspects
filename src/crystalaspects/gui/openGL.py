@@ -241,8 +241,15 @@ class VisualisationWidget(QOpenGLWidget):
             attributes = np.concatenate((points, colors), axis=1)
 
             return attributes
-        except AttributeError as exc:
-            logger.error("%s\n XYZ %s POINTS %s COLORS %s", exc, self.xyz.shape, points.shape, colors.shape)
+        except ValueError as exc:
+            logger.error(
+                "%s\n XYZ %s POINTS %s COLORS %s TYPE %s", 
+                exc,
+                self.xyz.shape,
+                points.shape,
+                colors.shape,
+                self.colour_type,
+            )
             return
 
     def initializeGL(self):
