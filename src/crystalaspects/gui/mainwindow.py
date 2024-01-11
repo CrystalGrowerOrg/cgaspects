@@ -1,11 +1,10 @@
-# PySide6 imports
-# General imports
+
 import logging
 import os
 import sys
 from collections import namedtuple
 from pathlib import Path
-
+from typing import List
 from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import (
@@ -97,9 +96,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_id_frame.hide()
         self.movie_controls_frame.hide()
 
-        self.settings_dialog = SettingsDialog()
+        self.settings_dialog = SettingsDialog(self)
         self.openglwidget = VisualisationWidget()
         self.gl_vLayout.addWidget(self.openglwidget)
+        self.settings_toolButton.clicked.connect(self.show_settings())
 
     def setup_menubar(self):
         # Create a menu bar
@@ -244,6 +244,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.output_folder
             else None
         )
+    
+    def show_settings(self):
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
+        self.activateWindow()
 
     def welcome_message(self):
         self.log_message(
@@ -256,7 +261,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "############################################", log_level="info", gui=False
         )
         self.log_message(
-            "Created by Nathan de Bruyn & Alvin J. Walisinghe",
+            "     The CrystalGrower Data Analysis Program",
             log_level="info",
             gui=False,
         )
@@ -349,10 +354,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(worker_xyz)
 
     def update_movie(self, frame):
-        self.update_frame(frame)
-        self.current_frame_comboBox.setCurrentIndex(frame)
-        self.current_frame_spinBox.setValue(frame)
-        self.frame_slider.setValue(frame)
+        if frame != self.frame:
+            self.update_frame(frame)
+            self.frame_spinBox.setValue(frame)
+            self.frame_slider.setValue(frame)
 
     def play_movie(self, frames):
         for frame in range(frames):
@@ -382,7 +387,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 # Handle the case where no folder was selected
                 self.log_message(
-                    "Folder selection was canceled or no folder was selected.", "error"
+                    "Folder selection was canceled or no folder was selected.", "warning"
                 )
 
         # Note: Bare Exception
@@ -475,10 +480,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if value.folder:
             self.output_folder = value.folder
             self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
-        if value.selected and value.folder:
-            self.autoplot_checkBox.setEnabled(True)
-        else:
-            self.autoplot_checkBox.setEnabled(False)
 
     def replotting_called(self):
         if self.plotting_csv:
@@ -487,28 +488,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             PlottingDialogs = PlottingDialog()
             PlottingDialogs.plotting_info(csv=self.plotting_csv)
             PlottingDialogs.show()
-
-        if self.autoplot_checkBox.isChecked() and self.selected_directions:
-            plot = Plotting()
-            self.log_message(
-                f"Plotting called with the automated Re-plotting option.",
-                log_level="debug",
-            )
-            if self.plotting_csv.name.startswith("growth"):
-                self.log_message(
-                    f"Automated re-plotting started for growth rate options",
-                    log_level="debug",
-                )
-                plot.plot_growth_rates(
-                    pd.read_csv(self.plotting_csv),
-                    self.selected_directions,
-                    self.output_folder,
-                )
-            else:
-                self.log_message(
-                    f"Automated re-plotting option currently does not work with Aspect Ratio plots",
-                    log_level="warning",
-                )
 
     def particle_swarm_analysis(self):
         # Create a message box
@@ -613,8 +592,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 shape_class = "Block"
             else:
                 shape_class = "Needle"
-        if aspect1 <= 2 / 3:
-            if aspect2 <= 2 / 3:
+        if aspect1 < 2 / 3:
+            if aspect2 < 2 / 3:
                 shape_class = "Lath"
             else:
                 shape_class = "Plate"
@@ -629,10 +608,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lineEdit_shape.setText(f"{shape_class:>8s}")
         self.lineEdit_shape.setAlignment(alignment)
 
-        self.lineEdit_sa.setText(f"{result.sa:.2f} nm²")
+        self.lineEdit_sa.setText(f"{result.sa:.2f}")
         self.lineEdit_sa.setAlignment(alignment)
 
-        self.lineEdit_vol.setText(f"{result.vol:.2f} nm³")
+        self.lineEdit_vol.setText(f"{result.vol:.2f}")
         self.lineEdit_vol.setAlignment(alignment)
 
         self.lineEdit_savol.setText(f"{result.sa_vol:.2f}")
@@ -677,9 +656,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.settings_dialog.ui.colourmode_comboBox.setCurrentIndex(2)
         self.settings_dialog.ui.colour_comboBox.addItems(self.colour_list)
         self.settings_dialog.ui.bgcolour_comboBox.addItems(
-            ["White", "Black", "Transparent"]
+            ["Black", "White"]
         )
-        self.settings_dialog.ui.bgcolour_comboBox.setCurrentIndex(1)
+        self.settings_dialog.ui.bgcolour_comboBox.setCurrentIndex(0)
 
         self.settings_dialog.ui.colour_comboBox.currentIndexChanged.connect(
             self.openglwidget.updateSelectedColormap
@@ -711,22 +690,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
 
     def init_crystal(self, result):
+        self.movie_controls_frame.hide()
         logger.debug("INIT CRYSTAL %s", result)
         self.xyz, self.movie = result
         self.openglwidget.pass_XYZ(self.xyz)
 
         if self.movie:
+            self.movie_controls_frame.show()
+            self.frame = 0
             self.frame_list = self.movie.keys()
             logger.debug("Frames: %s", self.frame_list)
-            self.current_frame_comboBox.addItems(
-                [f"frame_{frame + 1}" for frame in self.frame_list]
-            )
-            self.current_frame_spinBox.setMinimum(0)
-            self.current_frame_spinBox.setMaximum(len(self.frame_list))
+            
+            self.frame_spinBox.setMinimum(0)
+            self.frame_spinBox.setMaximum(len(self.frame_list))
             self.frame_slider.setMinimum(0)
             self.frame_slider.setMaximum(len(self.frame_list))
-            self.current_frame_comboBox.currentIndexChanged.connect(self.update_movie)
-            self.current_frame_spinBox.valueChanged.connect(self.update_movie)
+            self.frame_spinBox.valueChanged.connect(self.update_movie)
             self.frame_slider.valueChanged.connect(self.update_movie)
             self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
 
@@ -737,13 +716,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_frame(self, frame):
         self.xyz = self.movie[frame]
-        self.openglwidget.pass_XYZ(self.xyz)
-
-        try:
-            self.openglwidget.initGeometry()
-            self.openglwidget.update()
-        except AttributeError:
-            logger.warning("Updating Frame: No Crystal Data Found!")
+        self.update_XYZ()
 
     def update_XYZ(self):
         self.openglwidget.pass_XYZ(self.xyz)

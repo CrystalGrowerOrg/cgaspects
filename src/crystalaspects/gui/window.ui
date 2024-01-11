@@ -484,26 +484,28 @@
             <string>Crystal Information</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_2">
-            <item row="2" column="0">
-             <spacer name="verticalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
             <item row="1" column="0">
              <layout class="QFormLayout" name="formLayout">
+              <property name="fieldGrowthPolicy">
+               <enum>QFormLayout::ExpandingFieldsGrow</enum>
+              </property>
               <property name="labelAlignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
               </property>
               <property name="formAlignment">
-               <set>Qt::AlignHCenter|Qt::AlignTop</set>
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="horizontalSpacing">
+               <number>-1</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>7</number>
+              </property>
+              <property name="leftMargin">
+               <number>10</number>
+              </property>
+              <property name="rightMargin">
+               <number>10</number>
               </property>
               <item row="7" column="1">
                <widget class="QLineEdit" name="lineEdit_uc_lengths">
@@ -515,7 +517,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -553,7 +555,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -591,7 +593,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -628,7 +630,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -665,7 +667,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -702,7 +704,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -739,7 +741,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -776,7 +778,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -813,7 +815,7 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>0</width>
                   <height>0</height>
                  </size>
                 </property>
