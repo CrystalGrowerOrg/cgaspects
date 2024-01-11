@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Define file names for the main UI
 UI_FILE="window.ui"
 RC_FILE="../../../res/qticons.qrc"
 PY_FILE="load_ui.py"

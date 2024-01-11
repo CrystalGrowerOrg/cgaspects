@@ -42,7 +42,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.colour_type = 2
 
         self.point_size = 6.0
-        self.backgroundColors = ["#FFFFFF", "#000000", "#000000"]
+        self.backgroundColors = ["#000000", "#FFFFFF"]
         self.backgroundColor = QColor(self.backgroundColors[0])
         self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
@@ -213,10 +213,9 @@ class VisualisationWidget(QOpenGLWidget):
 
     def updatePointCloudVertices(self):
         logger.debug("Loading Vertices")
-        point_cloud = self.xyz
-        logger.debug(".XYZ shape: %s", point_cloud.shape[0])
-        layers = point_cloud[:, 2]
-        l_max = int(np.nanmax(layers[layers < 99]))
+        logger.debug(".XYZ shape: %s", self.xyz.shape[0])
+        layers = self.xyz[:, 2]
+        max_layers = int(np.nanmax(layers[layers < 99]))
 
         # Loading the point cloud from file
         def vis_pc(xyz, color_axis=-1):
@@ -229,18 +228,22 @@ class VisualisationWidget(QOpenGLWidget):
                 else:
                     axis_vis = xyz[:, color_axis]
 
-                pcd_colors = self.colormap(axis_vis / l_max)[:, 0:3]
+                pcd_colors = self.colormap(axis_vis / max_layers)[:, 0:3]
 
             return (pcd_points, pcd_colors)
 
-        points, colors = vis_pc(point_cloud, self.colour_type)
+        points, colors = vis_pc(self.xyz, self.colour_type)
 
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")
 
-        attributes = np.concatenate((points, colors), axis=1)
+        try:
+            attributes = np.concatenate((points, colors), axis=1)
 
-        return attributes
+            return attributes
+        except AttributeError as exc:
+            logger.error("%s\n XYZ %s POINTS %s COLORS %s", exc, self.xyz.shape, points.shape, colors.shape)
+            return
 
     def initializeGL(self):
         print(f"Initialized OpenGL: {self.context().format().version()}")
