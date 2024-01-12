@@ -29,13 +29,13 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(1400, 937)
+        MainWindow.resize(1400, 876)
         font = QFont()
         font.setFamilies([u"Arial"])
         font.setPointSize(10)
         MainWindow.setFont(font)
         icon = QIcon()
-        icon.addFile(u":/program_icon/icon.ico", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/app_icons/app_icons/CrystalAspects.icns", QSize(), QIcon.Normal, QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.actionOpen_Simulations = QAction(MainWindow)
         self.actionOpen_Simulations.setObjectName(u"actionOpen_Simulations")
@@ -167,7 +167,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1030, 886))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1016, 832))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -508,7 +508,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 236, 69))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 250, 77))
         self.verticalLayout_7 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.E_variables_layout = QGridLayout()
@@ -551,7 +551,7 @@ class Ui_MainWindow(object):
         self.crystal_info_formLayout.setObjectName(u"crystal_info_formLayout")
         self.crystal_info_formLayout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self.crystal_info_formLayout.setLabelAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
-        self.crystal_info_formLayout.setFormAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+        self.crystal_info_formLayout.setFormAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
         self.crystal_info_formLayout.setHorizontalSpacing(-1)
         self.crystal_info_formLayout.setVerticalSpacing(7)
         self.crystal_info_formLayout.setContentsMargins(10, -1, 10, -1)
@@ -599,6 +599,51 @@ class Ui_MainWindow(object):
         self.label.setObjectName(u"label")
 
         self.crystal_info_formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+
+        self.aspect1_label = QLabel(self.groupBox)
+        self.aspect1_label.setObjectName(u"aspect1_label")
+
+        self.crystal_info_formLayout.setWidget(0, QFormLayout.FieldRole, self.aspect1_label)
+
+        self.aspect2_label = QLabel(self.groupBox)
+        self.aspect2_label.setObjectName(u"aspect2_label")
+
+        self.crystal_info_formLayout.setWidget(1, QFormLayout.FieldRole, self.aspect2_label)
+
+        self.shape_label = QLabel(self.groupBox)
+        self.shape_label.setObjectName(u"shape_label")
+
+        self.crystal_info_formLayout.setWidget(2, QFormLayout.FieldRole, self.shape_label)
+
+        self.savol_label = QLabel(self.groupBox)
+        self.savol_label.setObjectName(u"savol_label")
+
+        self.crystal_info_formLayout.setWidget(3, QFormLayout.FieldRole, self.savol_label)
+
+        self.sa_label = QLabel(self.groupBox)
+        self.sa_label.setObjectName(u"sa_label")
+
+        self.crystal_info_formLayout.setWidget(4, QFormLayout.FieldRole, self.sa_label)
+
+        self.vol_label = QLabel(self.groupBox)
+        self.vol_label.setObjectName(u"vol_label")
+
+        self.crystal_info_formLayout.setWidget(5, QFormLayout.FieldRole, self.vol_label)
+
+        self.sg_label = QLabel(self.groupBox)
+        self.sg_label.setObjectName(u"sg_label")
+
+        self.crystal_info_formLayout.setWidget(6, QFormLayout.FieldRole, self.sg_label)
+
+        self.uc_lengths_label = QLabel(self.groupBox)
+        self.uc_lengths_label.setObjectName(u"uc_lengths_label")
+
+        self.crystal_info_formLayout.setWidget(7, QFormLayout.FieldRole, self.uc_lengths_label)
+
+        self.uc_angles_label = QLabel(self.groupBox)
+        self.uc_angles_label.setObjectName(u"uc_angles_label")
+
+        self.crystal_info_formLayout.setWidget(8, QFormLayout.FieldRole, self.uc_angles_label)
 
 
         self.gridLayout_4.addLayout(self.crystal_info_formLayout, 0, 0, 1, 1)
@@ -763,5 +808,14 @@ class Ui_MainWindow(object):
         self.label.setToolTip("")
 #endif // QT_CONFIG(tooltip)
         self.label.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratio S:M", None))
+        self.aspect1_label.setText("")
+        self.aspect2_label.setText("")
+        self.shape_label.setText("")
+        self.savol_label.setText("")
+        self.sa_label.setText("")
+        self.vol_label.setText("")
+        self.sg_label.setText("")
+        self.uc_lengths_label.setText("")
+        self.uc_angles_label.setText("")
     # retranslateUi
 
