@@ -21,7 +21,7 @@ def read_crystals(xyz_folderpath=None):
     # Check if the folder selection was canceled or empty and handle appropriately
     if not xyz_folderpath:
         logger.debug("Folder selection was canceled or no folder was selected.")
-        return
+        return (None, None)
 
     xyz_folderpath = Path(xyz_folderpath)
 

@@ -1,4 +1,4 @@
-pyinstaller installer/CrystalAspects.py --onedir --windowed --icon=icons/CrystalAspects.icns --noconfirm
+pyinstaller installer/CrystalAspects.py --onedir --windowed --icon=res/app_icons/CrystalAspects.icns --noconfirm
 echo "Running ad hoc code signing"
 export APP="dist/CrystalAspects.app"
 export CONTENTS_DIR="${APP}/Contents"

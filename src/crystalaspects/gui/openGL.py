@@ -145,9 +145,6 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.update()
 
-    def get_point_type(self, value):
-        pass
-
     def updatePointSize(self, val):
         self.point_size = float(val)
         logger.debug("point size, %s", self.point_size)

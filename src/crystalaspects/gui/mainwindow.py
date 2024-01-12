@@ -13,7 +13,7 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMenu, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel
 from PySide6.QtCore import Qt
 from qt_material import apply_stylesheet
 
@@ -67,8 +67,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        print(QtWidgets.QStyleFactory.keys())
-        self.apply_style(theme_main="dark", theme_colour="teal")
+
+        # self.apply_style(theme_main="dark", theme_colour="teal")
 
         self.setupUi(self)
         self.update_statusbar("CrystalAspects v1.0")
@@ -93,13 +93,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selected_directions: list = []
         self.plotting_csv: Path | None = None
 
-        self.xyz_id_frame.hide()
         self.movie_controls_frame.hide()
 
         self.settings_dialog = SettingsDialog(self)
         self.openglwidget = VisualisationWidget()
         self.gl_vLayout.addWidget(self.openglwidget)
-        self.settings_toolButton.clicked.connect(self.show_settings())
+        self.settings_pushButton.clicked.connect(self.show_settings)
 
     def setup_menubar(self):
         # Create a menu bar
@@ -119,15 +118,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         menu_bar.addMenu(crystalclear_menu)
 
         # Create actions for the File menu
-        new_action = QAction("New", self)
-        open_action = QAction("Open", self)
         save_action = QAction("Save", self)
         import_action = QAction("Import", self)
         exit_action = QAction("Exit", self)
 
         # Add actions to the File menu
-        file_menu.addAction(new_action)
-        file_menu.addAction(open_action)
         file_menu.addAction(save_action)
         file_menu.addAction(import_action)
         file_menu.addSeparator()
@@ -150,39 +145,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
         plotting_action = QAction("Plotting", self)
-        particle_swarm_action = QAction("Particle Swarm Analysis", self)
+        # particle_swarm_action = QAction("Particle Swarm Analysis", self)
         # docking_calc_action = QAction("Docking Calculation", self)
 
         # Add actions and Submenu to crystalaspects menu
         calculate_menu = crystalaspects_menu.addMenu("Calculate")
         calculate_menu.addAction(aspect_ratio_action)
         calculate_menu.addAction(growth_rate_action)
-        crystalaspects_menu.addAction(particle_swarm_action)
+
+        plot_menu = crystalaspects_menu.addMenu("Plot")
         crystalaspects_menu.addAction(plotting_action)
-        # crystalaspects_menu.addAction(docking_calc_action)
 
         # Connect the crystalaspects actions
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
         growth_rate_action.triggered.connect(self.calculate_growth_rates)
-        particle_swarm_action.triggered.connect(self.particle_swarm_analysis)
         plotting_action.triggered.connect(self.replotting_called)
         exit_action.triggered.connect(self.close_application)
-        # docking_calc_action.triggered.connect(self.docking_calc)
-
-        # Create the CrystalClear actions
-        generate_structure_action = QAction("Generate Structure", self)
-        generate_net_action = QAction("Generate Net", self)
-        solvent_screen_action = QAction("Solvent Screening", self)
-
-        # Add action and Submenu to CrystalClear menu
-        crystalclear_menu.addAction(generate_structure_action)
-        crystalclear_menu.addAction(generate_net_action)
-        crystalclear_menu.addAction(solvent_screen_action)
-
-        # Connect the CrystalClear actions
-        generate_structure_action.triggered.connect(self.generate_structure_file)
-        generate_net_action.triggered.connect(self.generate_net_file)
-        solvent_screen_action.triggered.connect(self.solvent_screening)
 
     def apply_style(self, theme_main, theme_colour, density=-1):
         extra = {
@@ -215,17 +193,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
-        self.plot_browse_toolButton.clicked.connect(self.browse_plot_csv)
+        self.plot_browse_pushButton.clicked.connect(self.browse_plot_csv)
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_pushButton.clicked.connect(self.replotting_called)
 
     def setup_keyboard_shortcuts(self):
-        # Close Application with Ctrl+Q or Cmd+Q
-        # close_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
-        # close_shortcut.activated.connect(self.close_application)
-        # mac_close_shortcut = QShortcut(QKeySequence(Qt.MetaModifier | Qt.Key_Q), self)
-        # mac_close_shortcut.activated.connect(self.close_application)
-
         # Import XYZ file with Ctrl+I
         import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
         import_xyz_shortcut.activated.connect(
@@ -248,7 +220,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def show_settings(self):
         self.settings_dialog.show()
         self.settings_dialog.raise_()
-        self.activateWindow()
 
     def welcome_message(self):
         self.log_message(
@@ -305,7 +276,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.select_summary_slider_button.setEnabled(True)
             self.log_message(f"{len(self.xyz_files)} XYZ files set to self!", "info")
             self.update_XYZ_info(self.openglwidget.xyz)
-            self.xyz_id_frame.show()
             self.set_batch_type()
 
     def import_xyz(self, folder=None):
@@ -319,9 +289,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Check for valid data
         if (folder, xyz_files) == (None, None):
-            self.log_message(
-                "Error: No valid XYZ files found in the directory.", "error"
-            )
             return False
 
         self.xyz_files = (
@@ -569,7 +536,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_xyz_slider(self, value):
         if self.sim_num != value:
-            self.fname_comboBox.setCurrentIndex(value)
+            self.xyz_fname_comboBox.setCurrentIndex(value)
             self.xyz_spinBox.setValue(value)
             self.update_XYZ_info(self.openglwidget.xyz)
 
@@ -598,96 +565,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 shape_class = "Plate"
 
-        alignment = Qt.AlignRight
-        self.lineEdit_sm.setText(f"{aspect1:.2f}")
-        self.lineEdit_sm.setAlignment(alignment)
-
-        self.lineEdit_ml.setText(f"{aspect2:.2f}")
-        self.lineEdit_ml.setAlignment(alignment)
-
-        self.lineEdit_shape.setText(f"{shape_class:>8s}")
-        self.lineEdit_shape.setAlignment(alignment)
-
-        self.lineEdit_sa.setText(f"{result.sa:.2f}")
-        self.lineEdit_sa.setAlignment(alignment)
-
-        self.lineEdit_vol.setText(f"{result.vol:.2f}")
-        self.lineEdit_vol.setAlignment(alignment)
-
-        self.lineEdit_savol.setText(f"{result.sa_vol:.2f}")
-        self.lineEdit_savol.setAlignment(alignment)
+        self.aspect1_label = QLabel(f"{aspect1:>10.2f}")
+        self.crystal_info_formLayout.setWidget(0, QFormLayout.FieldRole, self.aspect1_label)
+        self.aspect2_label = QLabel(f"{aspect2:>10.2f}")
+        self.crystal_info_formLayout.setWidget(1, QFormLayout.FieldRole, self.aspect2_label)
+        self.shape_label = QLabel(f"{shape_class:>10s}")
+        self.crystal_info_formLayout.setWidget(2, QFormLayout.FieldRole, self.shape_label)
+        self.sa_label = QLabel(f"{result.sa:>10.2f}")
+        self.crystal_info_formLayout.setWidget(3, QFormLayout.FieldRole, self.sa_label)
+        self.vol_label = QLabel(f"{result.vol:>10.2f}")
+        self.crystal_info_formLayout.setWidget(4, QFormLayout.FieldRole, self.vol_label)
+        self.savol_label = QLabel(f"{result.sa_vol:>10.2f}")
+        self.crystal_info_formLayout.setWidget(5, QFormLayout.FieldRole, self.savol_label)
 
     def init_opengl(self, xyz_file_list):
+
+        # XYZ Files
         self.xyz_file_list = [str(path) for path in xyz_file_list]
-        tot_sims = "Unassigned"
-
-        # Clear all lists
-        self.colour_list = []
-        self.settings_dialog.ui.colourmode_comboBox.clear()
-        self.settings_dialog.ui.colour_comboBox.clear()
-        self.settings_dialog.ui.pointtype_comboBox.clear()
-        self.settings_dialog.ui.bgcolour_comboBox.clear()
-
-        # self.run_xyz_movie(xyz_file_list[0])
         tot_sims = len(self.xyz_file_list)
-
-        self.colour_list = [
-            "Viridis",
-            "Plasma",
-            "Inferno",
-            "Magma",
-            "Cividis",
-            "Twilight",
-            "Twilight Shifted",
-            "HSV",
-        ]
-
-        self.settings_dialog.ui.colourmode_comboBox.addItems(
-            [
-                "Atom/Molecule Type",
-                "Atom/Molecule Number",
-                "Layer",
-                "Single Colour",
-                "Site Number",
-                "Particle Energy",
-            ]
-        )
-        self.settings_dialog.ui.pointtype_comboBox.addItems(["Points", "Spheres"])
-        self.settings_dialog.ui.colourmode_comboBox.setCurrentIndex(2)
-        self.settings_dialog.ui.colour_comboBox.addItems(self.colour_list)
-        self.settings_dialog.ui.bgcolour_comboBox.addItems(
-            ["Black", "White"]
-        )
-        self.settings_dialog.ui.bgcolour_comboBox.setCurrentIndex(0)
-
-        self.settings_dialog.ui.colour_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateSelectedColormap
-        )
-        self.settings_dialog.ui.bgcolour_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateBackgroundColor
-        )
-        self.settings_dialog.ui.colourmode_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateColorType
-        )
-
-        self.fname_comboBox.addItems(self.xyz_file_list)
         self.openglwidget.pass_XYZ_list(xyz_file_list)
-        self.fname_comboBox.currentIndexChanged.connect(
+        self.xyz_fname_comboBox.addItems(self.xyz_file_list)
+        self.xyz_fname_comboBox.currentIndexChanged.connect(
             self.openglwidget.get_XYZ_from_list
         )
-        self.fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
-        self.saveframe_toolButton.clicked.connect(self.openglwidget.saveRenderDialog)
-        self.settings_dialog.ui.point_slider.setMinimum(1)
-        self.settings_dialog.ui.point_slider.setMaximum(50)
-        self.settings_dialog.ui.point_slider.setValue(10)
-        self.settings_dialog.ui.point_slider.valueChanged.connect(
-            self.openglwidget.updatePointSize
-        )
+        self.xyz_fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
 
         self.xyz_spinBox.setMinimum(0)
         self.xyz_spinBox.setMaximum(tot_sims - 1)
         self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
         self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
+
+        self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
+        self.xyz_fname_comboBox.setEnabled(True)
+        self.xyz_id_label.setEnabled(True)
+        self.xyz_spinBox.setEnabled(True)
+        self.saveframe_pushButton.setEnabled(True)
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()
@@ -765,6 +677,7 @@ def main():
     # ############# Runs the application ############## #
     # sys.argv += ['--style', 'Material.Light']
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('Fusion')
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec())
