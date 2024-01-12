@@ -479,6 +479,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # Read Summary 
     def read_summary(self, summary_file=None):
+        if not self.xyz_file_list:
+            self.log_message("XYZ files needs to be loaded first to use summary file information", "warning")
+            return
+        
         self.log_message("Reading Summary file...", "info")
         if not summary_file:
             summary_file = QFileDialog.getOpenFileName(None, "Read Summary File")
@@ -510,8 +514,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         var = len(column_names)
         iteration_list = []
-        slider_list = []
-        dspinbox_list = []
+        self.slider_list = []
+        self.dspinbox_list = []
 
         for i in range(var):
             self.log_message("Adding Varible Sliders", "debug")
@@ -543,44 +547,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.slider.setMinimum(min_percent)
             self.slider.setMaximum(max_percent)
             self.slider.setTickInterval(int(iteration * 100))
-            slider_list.append(self.slider)
+            self.slider_list.append(self.slider)
 
-            try:
-                self.slider.valueChanged.connect(
-                    lambda: self.slider_change(
-                        var=var,
-                        slider_list=slider_list,
-                        dspinbox_list=dspinbox_list,
-                        summ_df=summ_df,
-                        crystals=self.xyz_files,
-                    )
-                )
-            except NameError:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setText("Please load in the images first!")
-                msg.setInformativeText(
-                    "You have not loaded in the images, please use the 'Open Images Folder' Button to load in the images first."
-                )
-                msg.setWindowTitle("Error: No Images Found!")
-                msg.exec()
+            self.slider.valueChanged.connect(self.summary_change)
+
             self.E_variables_layout.addWidget(self.slider, i, 1, 1, 1)
             self.dspinbox = QtWidgets.QDoubleSpinBox(self.xyz_variables_tab)
             self.dspinbox.setObjectName(dspinbox)
             self.dspinbox.setMinimum(min_var)
             self.dspinbox.setMaximum(max_var)
             self.dspinbox.setSingleStep(iteration)
-            dspinbox_list.append(self.dspinbox)
-            self.dspinbox.valueChanged.connect(
-                lambda: self.dspinbox_change(
-                    var=var,
-                    dspinbox_list=dspinbox_list,
-                    slider_list=slider_list,
-                )
-            )
+            self.dspinbox_list.append(self.dspinbox)
+
+            self.dspinbox.valueChanged.connect(self.summary_change)
+
             self.E_variables_layout.addWidget(self.dspinbox, i, 2, 1, 1)
 
         self.statusBar().showMessage("Complete: Summary file read in!")
+    
+    def summary_change(self, val):
+        sender = self.sender()
+
 
 
     def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
@@ -602,8 +589,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.log_message(f"Combination: {value_list}", "debug")
         self.log_message(filter_df, "debug")
         for row in filter_df.index:
-            XYZ_file = crystals[row]
-            self.update_XYZ(XYZ_file)
+            self.xyz = crystals[row]
+            self.update_XYZ()
 
     def dspinbox_change(self, var, dspinbox_list, slider_list):
         dspinbox = self.sender()
@@ -657,7 +644,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shape_label.setText(f"{shape_class:>10s}")
         self.savol_label.setText(f"{result.sa_vol:>10.2f}")
         self.sa_label.setText(f"{result.sa:>10.2f}")
-        self.vol_label.setText(f"{result.sa:>10.2f}")
+        self.vol_label.setText(f"{result.vol:>10.2f}")
 
     def init_opengl(self, xyz_file_list):
 
