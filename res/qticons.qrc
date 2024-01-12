@@ -1,8 +1,4 @@
 <RCC>
-  <qresource prefix="program_icon">
-    <file>icon.ico</file>
-    <file>icon.png</file>
-  </qresource>
   <qresource prefix="material_icons">
     <file>material_icons/png/chart-scatter-plot-custom.png</file>
     <file>material_icons/png/pause-custom.png</file>
@@ -39,5 +35,9 @@
     <file>material_icons/png/folder-sync.png</file>
     <file>material_icons/png/pause-box.png</file>
     <file>material_icons/png/play-box.png</file>
+  </qresource>
+  <qresource prefix="app_icons">
+    <file>app_icons/CrystalAspects.icns</file>
+    <file>app_icons/CrystalAspects.png</file>
   </qresource>
 </RCC>

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1400</width>
-    <height>937</height>
+    <height>876</height>
    </rect>
   </property>
   <property name="font">
@@ -24,7 +24,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../../../res/qticons.qrc">
-    <normaloff>:/program_icon/icon.ico</normaloff>:/program_icon/icon.ico</iconset>
+    <normaloff>:/app_icons/app_icons/CrystalAspects.icns</normaloff>:/app_icons/app_icons/CrystalAspects.icns</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1030</width>
-         <height>886</height>
+         <width>1016</width>
+         <height>832</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -295,6 +295,7 @@
           <font>
            <family>Arial</family>
            <pointsize>12</pointsize>
+           <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
@@ -581,6 +582,7 @@
                  <font>
                   <family>Arial</family>
                   <pointsize>10</pointsize>
+                  <weight>75</weight>
                   <italic>false</italic>
                   <bold>true</bold>
                  </font>
@@ -596,6 +598,7 @@
                  <font>
                   <family>Arial</family>
                   <pointsize>10</pointsize>
+                  <weight>75</weight>
                   <italic>false</italic>
                   <bold>true</bold>
                  </font>
@@ -618,8 +621,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>236</width>
-                   <height>69</height>
+                   <width>250</width>
+                   <height>77</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -799,6 +802,69 @@
               </property>
               <property name="text">
                <string>Aspect Ratio S:M</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="aspect1_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="aspect2_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="shape_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="savol_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLabel" name="sa_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLabel" name="vol_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <widget class="QLabel" name="sg_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <widget class="QLabel" name="uc_lengths_label">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="1">
+             <widget class="QLabel" name="uc_angles_label">
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
