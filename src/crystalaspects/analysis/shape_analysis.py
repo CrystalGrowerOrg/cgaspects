@@ -20,6 +20,7 @@ class CrystalShape:
         self.xyz = None
 
     def set_xyz(self, xyz_array=None, filepath=None):
+        xyz_vals = None
         # Check if the xyz_array is provided and is not None
         if xyz_array is not None:
             xyz_vals = np.array(xyz_array)

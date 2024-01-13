@@ -18,7 +18,8 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel
+from PySide6.QtWidgets import (
+    QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel, QSpinBox, QSlider)
 
 from qt_material import apply_stylesheet
 
@@ -32,6 +33,7 @@ from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.fileio.find_data import read_crystals, find_info
 from crystalaspects.gui.dialogs.settings import SettingsDialog
 from crystalaspects.gui.openGL import VisualisationWidget
+from crystalaspects.gui.utils.dspinbox import DoubleSlider
 
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
@@ -96,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_files: List[Path] = []
         self.selected_directions: list = []
         self.plotting_csv: Path | None = None
+        self.summ_df = None
 
         self.movie_controls_frame.hide()
 
@@ -103,10 +106,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget = VisualisationWidget()
         self.gl_vLayout.addWidget(self.openglwidget)
         self.settings_pushButton.clicked.connect(self.show_settings)
-        self.xyz_fname_comboBox.currentIndexChanged.connect(self.openglwidget.get_XYZ_from_list)
-        self.xyz_fname_comboBox.currentIndexChanged.connect(self.update_xyz_slider)
-        self.xyz_spinBox.valueChanged.connect(self.openglwidget.get_XYZ_from_list)
-        self.xyz_spinBox.valueChanged.connect(self.update_xyz_slider)
+        self.xyz_fname_comboBox.currentIndexChanged.connect(self.update_xyz)
+        self.xyz_spinBox.valueChanged.connect(self.update_xyz)
+
         self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
 
         self.settings_dialog.ui.colour_comboBox.currentIndexChanged.connect(
@@ -128,53 +130,38 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create two menus
         file_menu = QMenu("File", self)
-        edit_menu = QMenu("Edit", self)
-        crystalaspects_menu = QMenu("CrystalAspects", self)
-        crystalclear_menu = QMenu("CrystalClear", self)
-        Calculations_menu = QMenu("Calculations", self)
+        calculations_menu = QMenu("Calculations", self)
+        plotting_menu = QMenu("Plotting", self)
 
         # Add menus to the menu bar
         menu_bar.addMenu(file_menu)
-        menu_bar.addMenu(edit_menu)
-        menu_bar.addMenu(crystalaspects_menu)
-        menu_bar.addMenu(crystalclear_menu)
+        menu_bar.addMenu(calculations_menu)
 
         # Create actions for the File menu
-        save_action = QAction("Save", self)
         import_action = QAction("Import", self)
+        save_action = QAction("Save", self)
         exit_action = QAction("Exit", self)
 
         # Add actions to the File menu
-        file_menu.addAction(save_action)
         file_menu.addAction(import_action)
+        file_menu.addAction(save_action)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
 
         # Connect actions from the File menu
-        import_action.triggered.connect(self.import_xyz)
-
-        # Create actions for the Edit menu
-        cut_action = QAction("Cut", self)
-        copy_action = QAction("Copy", self)
-        paste_action = QAction("Paste", self)
-
-        # Add actions to the Edit menu
-        edit_menu.addAction(cut_action)
-        edit_menu.addAction(copy_action)
-        edit_menu.addAction(paste_action)
+        import_action.triggered.connect(lambda: self.import_and_visualise_xyz(folder=None))
 
         # Create actions to the crystalaspects menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
         growth_rate_action = QAction("Growth Rates", self)
-        plotting_action = QAction("Plotting", self)
+        plotting_action = QAction("Plot", self)
 
         # Add actions and Submenu to crystalaspects menu
-        calculate_menu = crystalaspects_menu.addMenu("Calculate")
-        calculate_menu.addAction(aspect_ratio_action)
-        calculate_menu.addAction(growth_rate_action)
+        calculations_menu.addAction(aspect_ratio_action)
+        calculations_menu.addAction(growth_rate_action)
 
-        plot_menu = crystalaspects_menu.addMenu("Plot")
-        crystalaspects_menu.addAction(plotting_action)
+        
+        plotting_menu.addAction(plotting_action)
 
         # Connect the crystalaspects actions
         aspect_ratio_action.triggered.connect(self.calculate_aspect_ratio)
@@ -198,12 +185,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def setup_button_connections(self):
-        # Visualisation Buttons
-        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary(summary_file=None))
-        self.play_button.clicked.connect(self.play_movie)
+
         self.import_pushButton.clicked.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
+        self.batch_lineEdit.returnPressed.connect(self.import_and_visualise_xyz)
         self.view_results_pushButton.clicked.connect(
             lambda: open_directory(path=self.output_folder)
         )
@@ -211,10 +197,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
+        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary(summary_file=None))
+
         self.plot_browse_pushButton.clicked.connect(self.browse_plot_csv)
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_pushButton.clicked.connect(self.replotting_called)
 
+        self.play_button.clicked.connect(self.play_movie)
 
     def setup_keyboard_shortcuts(self):
         # Import XYZ file with Ctrl+I
@@ -222,9 +211,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         import_xyz_shortcut.activated.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
-        # Import XYZ file with Ctrl+F
-        browse_for_batch = QShortcut(QKeySequence("Ctrl+F"), self)
-        browse_for_batch.activated.connect(self.browse)
+
         # Display XYZ file(s) with Ctrl+D
         set_xyz = QShortcut(QKeySequence("Ctrl+D"), self)
         set_xyz.activated.connect(self.set_visualiser)
@@ -272,38 +259,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.view_results_pushButton.setEnabled(True)
 
     def import_and_visualise_xyz(self, folder=None):
+
+        if folder != None and folder != "":
+            folder = Path(folder)
+            if not folder.is_dir():
+                return
+        
         imported = self.import_xyz(folder=folder)
         if imported:
             self.set_visualiser()
 
-    def set_visualiser(self):
-        n_xyz = len(self.xyz_files)
-        if n_xyz == 0:
-            self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
-        if n_xyz > 0:
-            self.init_opengl(self.xyz_files)
-
-            # Shape analysis to determine xyz, or xyz movie
-            result = self.movie_or_single_frame(0)
-
-            # Adjust the slider range based on the number of XYZ files in the list
-            self.xyz_spinBox.setRange(0, len(self.xyz_files) - 1)
-            self.xyz_spinBox.setValue(0)
-
-            self.init_crystal(result)
-
-            self.select_summary_slider_button.setEnabled(True)
-            self.log_message(f"{len(self.xyz_files)} XYZ files set to self!", "info")
-            self.update_XYZ_info(self.openglwidget.xyz)
-            self.set_batch_type()
-
     def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget"""
-        self.log_message("Reading Images...", "info")
         # Initialize or clear the list of XYZ files
         self.xyz_files = []
         # Read the .XYZ files from the selected folder
+        if folder is None:
+            folder = QFileDialog.getExistingDirectory(
+                None, "Select Folder that contains the Crystal Outputs (.XYZ)"
+            )
+        if self.input_folder == folder:
+            self.log_message("Same path as current location!", "info")
+            return False
+        
+        self.log_message("Reading Images...", "info")
         folder, xyz_files = read_crystals(folder)
 
         # Check for valid data
@@ -311,10 +291,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return False
 
         self.xyz_files = (
-            xyz_files  # Assuming you want to update self.xyz_files with the new list
+            xyz_files
         )
         self.input_folder = folder
         self.batch_lineEdit.setText(str(self.input_folder))
+        
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
         if folder:
@@ -322,7 +303,64 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         return True
 
-    def movie_or_single_frame(self, index):
+    def set_visualiser(self):
+        n_xyz = len(self.xyz_files)
+        if n_xyz == 0:
+            self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
+        if n_xyz > 0:
+            self.init_opengl(self.xyz_files)
+            result = self.get_xyz_frame_or_movie(0)
+            self.init_crystal(result)
+
+            self.select_summary_slider_button.setEnabled(True)
+            self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
+            self.update_XYZ_info(self.openglwidget.xyz)
+            self.set_batch_type()
+
+    def init_opengl(self, xyz_file_list):
+
+        # XYZ Files
+        self.xyz_file_list = [str(path) for path in xyz_file_list]
+        tot_sims = len(self.xyz_file_list)
+        self.openglwidget.pass_XYZ_list(xyz_file_list)
+        self.sim_num = 0
+        self.openglwidget.get_XYZ_from_list(0)
+        self.xyz_fname_comboBox.addItems(self.xyz_file_list)
+        
+        self.xyz_spinBox.setMinimum(0)
+        self.xyz_spinBox.setMaximum(tot_sims - 1)
+
+        self.xyz_fname_comboBox.setEnabled(True)
+        self.xyz_id_label.setEnabled(True)
+        self.xyz_spinBox.setEnabled(True)
+        self.saveframe_pushButton.setEnabled(True)
+
+    def init_crystal(self, result):
+        self.movie_controls_frame.hide()
+        logger.debug("INIT CRYSTAL %s", result)
+        self.xyz, self.movie = result
+        self.openglwidget.pass_XYZ(self.xyz)
+
+        if self.movie:
+            self.movie_controls_frame.show()
+            self.frame = 0
+            self.frame_list = self.movie.keys()
+            logger.debug("Frames: %s", self.frame_list)
+            
+            self.frame_spinBox.setMinimum(0)
+            self.frame_spinBox.setMaximum(len(self.frame_list))
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(len(self.frame_list))
+            self.frame_spinBox.valueChanged.connect(self.update_movie)
+            self.frame_slider.valueChanged.connect(self.update_movie)
+            self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
+
+        try:
+            self.openglwidget.initGeometry()
+        except AttributeError as e:
+            logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
+
+    def get_xyz_frame_or_movie(self, index):
         folder = self.input_folder
         if 0 <= index < len(self.xyz_files):
             file_name = self.xyz_files[index]
@@ -381,9 +419,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message(f"An error occurred: {e}", "error")
 
     def set_batch_type(self):
-        folder = Path(self.batch_lineEdit.text())
+        folder = self.input_folder
         self.aspect_ratio_pushButton.setEnabled(False)
         self.growth_rate_pushButton.setEnabled(False)
+        self.summ_df = None
         try:
             if folder.is_dir():
                 self.input_folder = folder
@@ -412,7 +451,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
-                f"An error occurred: {e}\nPlease make sure the folder you have selected "
+                f"{e}\nPlease make sure the folder you have selected "
                 "contains CrystalGrower output from the simulation(s)."
             )
             msg.setWindowTitle("Error! No CrystalGrower files detected.")
@@ -494,21 +533,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         # Select summary file and read in as a Dataframe
         self.log_message(f"Summary File Found at: {summary_file}", "debug")
-        summ_df = pd.read_csv(summary_file)
-        if list(summ_df.columns)[-1].startswith("Unnamed"):
-            summ_df = summ_df.iloc[:, 1:-1]
+        self.summ_df = pd.read_csv(summary_file)
+        if list(self.summ_df.columns)[-1].startswith("Unnamed"):
+            self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
-            summ_df = summ_df.iloc[:, 1:]
-        self.log_message(f"Summary data succesfully read! [SHAPE {summ_df.shape}]", "info")
+            self.summ_df = self.summ_df.iloc[:, 1:]
+        self.log_message(f"Summary data succesfully read! [SHAPE {self.summ_df.shape}]", "info")
 
-        column_names = list(summ_df)
+        column_names = list(self.summ_df)
         self.log_message(f"Summary Column Name: {column_names}", "debug")
         # Create dictionary to store the change in variables (tile/interaction energies)
         var_dict = defaultdict(list)
 
         # Records the variable values from summary file
         for column in column_names:
-            for index, row in summ_df.iterrows():
+            for index, row in self.summ_df.iterrows():
                 if row[str(column)] not in var_dict[column]:
                     var_dict[column].append(row[str(column)])
 
@@ -516,6 +555,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         iteration_list = []
         self.slider_list = []
         self.dspinbox_list = []
+        self.clear_layout(self.variables_layout)
 
         for i in range(var):
             self.log_message("Adding Varible Sliders", "debug")
@@ -540,78 +580,80 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.label_name.setFont(font)
             self.label_name.setObjectName(label_name)
             self.label_name.setText(str(name))
-            self.E_variables_layout.addWidget(self.label_name, i, 0, 1, 1)
-            self.slider = QtWidgets.QSlider(self.xyz_variables_tab)
+            self.variables_layout.addWidget(self.label_name, i, 0, 1, 1)
+            self.slider = DoubleSlider()
             self.slider.setOrientation(QtCore.Qt.Horizontal)
             self.slider.setObjectName(slider)
-            self.slider.setMinimum(min_percent)
-            self.slider.setMaximum(max_percent)
-            self.slider.setTickInterval(int(iteration * 100))
-            self.slider_list.append(self.slider)
+            self.slider.setMinimum(min_var)
+            self.slider.setMaximum(max_var)
+            self.slider.setTickInterval(iteration)
 
             self.slider.valueChanged.connect(self.summary_change)
+            self.slider_list.append(self.slider)
 
-            self.E_variables_layout.addWidget(self.slider, i, 1, 1, 1)
+            self.variables_layout.addWidget(self.slider, i, 1, 1, 1)
             self.dspinbox = QtWidgets.QDoubleSpinBox(self.xyz_variables_tab)
             self.dspinbox.setObjectName(dspinbox)
             self.dspinbox.setMinimum(min_var)
             self.dspinbox.setMaximum(max_var)
             self.dspinbox.setSingleStep(iteration)
-            self.dspinbox_list.append(self.dspinbox)
 
             self.dspinbox.valueChanged.connect(self.summary_change)
+            self.dspinbox_list.append(self.dspinbox)
 
-            self.E_variables_layout.addWidget(self.dspinbox, i, 2, 1, 1)
+            self.variables_layout.addWidget(self.dspinbox, i, 2, 1, 1)
 
         self.statusBar().showMessage("Complete: Summary file read in!")
     
     def summary_change(self, val):
         sender = self.sender()
+        # Check if the sender is a spinbox or a slider
+        if sender in self.dspinbox_list:
+            values = [spinbox.value() for spinbox in self.dspinbox_list]
 
+        elif sender in self.slider_list:
+            values = [slider.value() for slider in self.slider_list]
 
+        self.log_message(f"Looking for: {values}", log_level="debug")
 
-    def slider_change(self, var, slider_list, dspinbox_list, summ_df, crystals):
-        slider = self.sender()
-        i = 0
-        for name in slider_list:
-            if name == slider:
-                slider_value = name.value()
-                self.log_message(slider_value, log_level="debug")
-                dspinbox_list[i].setValue(slider_value / 100)
-            i += 1
-        value_list = []
-        filter_df = summ_df
-        for i in range(var):
-            value = slider_list[i].value() / 100
-            self.log_message(f"looking for: {value}", log_level="debug")
-            filter_df = filter_df[(summ_df.iloc[:, i] == value)]
-            value_list.append(value)
-        self.log_message(f"Combination: {value_list}", "debug")
-        self.log_message(filter_df, "debug")
-        for row in filter_df.index:
-            self.xyz = crystals[row]
-            self.update_XYZ()
+        mask = (self.summ_df == values).all(axis=1)
+        filtered_df = self.summ_df[mask]
+        if filtered_df.empty:
+            return
 
-    def dspinbox_change(self, var, dspinbox_list, slider_list):
-        dspinbox = self.sender()
-        i = 0
-        for name in dspinbox_list:
-            if name == dspinbox:
-                dspinbox_value = name.value()
-                self.log_message(dspinbox_value, "debug")
-                slider_list[i].setValue(int(dspinbox_value * 100))
-            i += 1
-        value_list = []
-        for i in range(var):
-            value = dspinbox_list[i].value()
-            value_list.append(value)
-        self.log_message(value_list, "debug")
+        if len(filtered_df.index) > 1:
+            self.log_message("Set of values have selected more than one row/simulation", "warning")
+            return
+        
+        self.update_variables(values=values)
 
-    def update_xyz_slider(self, value):
+        selected_index = filtered_df.index[0]
+        self.update_xyz(value=selected_index)
+    
+    def update_variables(self, values):
+        # Disconnect slider/spinbox signals to prevent recursive calls
+        for slider, spinbox in zip(self.slider_list, self.dspinbox_list):
+            slider.valueChanged.disconnect()
+            spinbox.valueChanged.disconnect()
+        
+        for i, (slider, spinbox) in enumerate(zip(self.slider_list, self.dspinbox_list)):
+            slider.setValue(values[i])
+            spinbox.setValue(values[i])
+        # Reconnect slider/spinbox signals
+        for slider, spinbox in zip(self.slider_list, self.dspinbox_list):
+            slider.valueChanged.connect(self.summary_change)
+            spinbox.valueChanged.connect(self.summary_change)
+
+    def update_xyz(self, value):
         if self.sim_num != value:
+            self.openglwidget.get_XYZ_from_list(value=value)
             self.xyz_fname_comboBox.setCurrentIndex(value)
             self.xyz_spinBox.setValue(value)
             self.update_XYZ_info(self.openglwidget.xyz)
+            
+            if self.summ_df is not None:
+                var_values = self.summ_df.iloc[value, :].values
+                self.update_variables(values=var_values)
 
     # Utility function to clear a layout of all its widgets
     def clear_layout(self, layout):
@@ -646,52 +688,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.sa_label.setText(f"{result.sa:>10.2f}")
         self.vol_label.setText(f"{result.vol:>10.2f}")
 
-    def init_opengl(self, xyz_file_list):
-
-        # XYZ Files
-        self.xyz_file_list = [str(path) for path in xyz_file_list]
-        tot_sims = len(self.xyz_file_list)
-        self.openglwidget.pass_XYZ_list(xyz_file_list)
-        self.xyz_fname_comboBox.addItems(self.xyz_file_list)
-        
-        self.xyz_spinBox.setMinimum(0)
-        self.xyz_spinBox.setMaximum(tot_sims - 1)
-
-        self.xyz_fname_comboBox.setEnabled(True)
-        self.xyz_id_label.setEnabled(True)
-        self.xyz_spinBox.setEnabled(True)
-        self.saveframe_pushButton.setEnabled(True)
-
-    def init_crystal(self, result):
-        self.movie_controls_frame.hide()
-        logger.debug("INIT CRYSTAL %s", result)
-        self.xyz, self.movie = result
-        self.openglwidget.pass_XYZ(self.xyz)
-
-        if self.movie:
-            self.movie_controls_frame.show()
-            self.frame = 0
-            self.frame_list = self.movie.keys()
-            logger.debug("Frames: %s", self.frame_list)
-            
-            self.frame_spinBox.setMinimum(0)
-            self.frame_spinBox.setMaximum(len(self.frame_list))
-            self.frame_slider.setMinimum(0)
-            self.frame_slider.setMaximum(len(self.frame_list))
-            self.frame_spinBox.valueChanged.connect(self.update_movie)
-            self.frame_slider.valueChanged.connect(self.update_movie)
-            self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
-
-        try:
-            self.openglwidget.initGeometry()
-        except AttributeError as e:
-            logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
-
     def update_frame(self, frame):
         self.xyz = self.movie[frame]
         self.update_XYZ()
-
-    def update_XYZ(self):
         self.openglwidget.pass_XYZ(self.xyz)
         try:
             self.openglwidget.initGeometry()

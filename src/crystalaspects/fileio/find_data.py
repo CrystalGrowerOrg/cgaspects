@@ -13,10 +13,6 @@ logger = logging.getLogger("CA:FileIO")
 
 
 def read_crystals(xyz_folderpath=None):
-    if xyz_folderpath is None:
-        xyz_folderpath = QFileDialog.getExistingDirectory(
-            None, "Select Folder that contains the Crystal Outputs (.XYZ)"
-        )
 
     # Check if the folder selection was canceled or empty and handle appropriately
     if not xyz_folderpath:
@@ -49,7 +45,7 @@ def read_crystals(xyz_folderpath=None):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText(
-            f"An error occurred: {e}\nPlease make sure the folder you have selected "
+            f"{e}\nPlease make sure the folder you have selected "
             "contains .XYZ files from the simulation(s)."
         )
         msg.setWindowTitle("Error! No XYZ files detected.")
