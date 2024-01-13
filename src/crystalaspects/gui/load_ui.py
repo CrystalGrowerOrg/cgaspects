@@ -511,11 +511,11 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 250, 77))
         self.verticalLayout_7 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.E_variables_layout = QGridLayout()
-        self.E_variables_layout.setObjectName(u"E_variables_layout")
-        self.E_variables_layout.setSizeConstraint(QLayout.SetNoConstraint)
+        self.variables_layout = QGridLayout()
+        self.variables_layout.setObjectName(u"variables_layout")
+        self.variables_layout.setSizeConstraint(QLayout.SetNoConstraint)
 
-        self.verticalLayout_7.addLayout(self.E_variables_layout)
+        self.verticalLayout_7.addLayout(self.variables_layout)
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
@@ -667,7 +667,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.xyz_tabWidget.setCurrentIndex(0)
+        self.xyz_tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)

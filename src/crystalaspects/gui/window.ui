@@ -462,7 +462,7 @@
           <item>
            <widget class="QTabWidget" name="xyz_tabWidget">
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="xyz_files_tab">
              <attribute name="title">
@@ -627,7 +627,7 @@
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_7">
                   <item>
-                   <layout class="QGridLayout" name="E_variables_layout">
+                   <layout class="QGridLayout" name="variables_layout">
                     <property name="sizeConstraint">
                      <enum>QLayout::SetNoConstraint</enum>
                     </property>
