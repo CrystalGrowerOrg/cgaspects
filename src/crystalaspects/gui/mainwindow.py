@@ -37,7 +37,7 @@ from crystalaspects.gui.utils.dspinbox import DoubleSlider
 
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.visualisation.plot_dialog import PlottingDialog
+from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -216,6 +216,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.plot_browse_pushButton.clicked.connect(self.browse_plot_csv)
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
+        self.plot_lineEdit.returnPressed.connect(self.replotting_called)
         self.plot_pushButton.clicked.connect(self.replotting_called)
 
         self.play_button.clicked.connect(self.play_movie)
@@ -546,8 +547,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.plotting_csv:
             self.log_message(f"Plotting file: {self.plotting_csv}", "info")
 
-            PlottingDialogs = PlottingDialog()
-            PlottingDialogs.plotting_info(csv=self.plotting_csv)
+            PlottingDialogs = PlottingDialog(csv=self.plotting_csv)
             PlottingDialogs.show()
 
     # Read Summary 
