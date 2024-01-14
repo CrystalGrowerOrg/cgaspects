@@ -35,10 +35,9 @@ class GrowthRate:
         self.progress_updated = Signal(int)
         self.circular_progress = None
         self.signals = signals
-        self.signals.progress.connect(self.update_progress)
     
     def update_progress(self, value):
-        self.circular_progress.set_value(value)
+        self.signals.progress.emit(value)
 
     def set_folder(self, folder):
         self.input_folder = Path(folder)
@@ -80,11 +79,11 @@ class GrowthRate:
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
-        self.circular_progress = CircularProgress(calc_type="Growth Rates")
-        self.circular_progress.show()
-        self.circular_progress.raise_()
-        directions_text = "\n".join(self.selected_directions)
-        self.circular_progress.update_text(f"Calculating...\nFor Directions:\n{directions_text}")
+        # self.circular_progress = CircularProgress(calc_type="Growth Rates")
+        # self.circular_progress.show()
+        # self.circular_progress.raise_()
+        # directions_text = "\n".join(self.selected_directions)
+        # self.circular_progress.update_text(f"Calculating...\nFor Directions:\n{directions_text}")
 
         if not self.threadpool:
             growth_rate_df = gr.build_growthrates(
@@ -100,10 +99,12 @@ class GrowthRate:
             )
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.plot)
+            self.signals.started.emit()
             self.threadpool.start(worker)
     
     def plot(self, plotting_csv):
-        self.circular_progress.hide()
+        # self.circular_progress.hide()
+        self.signals.finished.emit()
         if plotting_csv is None:
             logger.warning("No Size Files (*size.csv) found to calculate growth rates")
         else:

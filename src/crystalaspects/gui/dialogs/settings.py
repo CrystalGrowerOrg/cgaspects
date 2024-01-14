@@ -20,15 +20,6 @@ class SettingsDialog(QDialog):
         self.ui.colour_comboBox.clear()
         self.ui.pointtype_comboBox.clear()
         self.ui.bgcolour_comboBox.clear()
-
-        self.projection_toggle = PyToggle(
-            min_width=275,
-            expanding=True,
-            state_text=["Perspective", "Orthographic"],
-            bg_color="#ff9966",
-            active_color="#00BCFF"
-        )
-        self.ui.formLayout.setWidget(8, QFormLayout.FieldRole, self.projection_toggle)
         
         self.colour_list = [
             "Viridis",
@@ -52,6 +43,7 @@ class SettingsDialog(QDialog):
             ]
         )
         self.ui.pointtype_comboBox.addItems(["Points", "Spheres"])
+        self.ui.projection_comboBox.addItems(["Orthographic", "Perspective"])
         self.ui.colour_comboBox.addItems(self.colour_list)
         self.ui.bgcolour_comboBox.addItems(
             ["Black", "White"]

@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFormLayout,
     QFrame, QGridLayout, QGroupBox, QLabel,
-    QScrollArea, QSizePolicy, QSlider, QSpacerItem,
-    QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSlider, QVBoxLayout,
+    QWidget)
 
 class Ui_settings_Dialog(object):
     def setupUi(self, settings_Dialog):
@@ -142,7 +142,7 @@ class Ui_settings_Dialog(object):
         sizePolicy1.setHeightForWidth(self.pointtype_comboBox.sizePolicy().hasHeightForWidth())
         self.pointtype_comboBox.setSizePolicy(sizePolicy1)
         self.pointtype_comboBox.setMinimumSize(QSize(0, 0))
-        self.pointtype_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.pointtype_comboBox.setStyleSheet(u"")
 
         self.formLayout.setWidget(4, QFormLayout.FieldRole, self.pointtype_comboBox)
 
@@ -157,7 +157,7 @@ class Ui_settings_Dialog(object):
         sizePolicy1.setHeightForWidth(self.colourmode_comboBox.sizePolicy().hasHeightForWidth())
         self.colourmode_comboBox.setSizePolicy(sizePolicy1)
         self.colourmode_comboBox.setMinimumSize(QSize(100, 0))
-        self.colourmode_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.colourmode_comboBox.setStyleSheet(u"")
 
         self.formLayout.setWidget(5, QFormLayout.FieldRole, self.colourmode_comboBox)
 
@@ -172,7 +172,7 @@ class Ui_settings_Dialog(object):
         sizePolicy1.setHeightForWidth(self.colour_comboBox.sizePolicy().hasHeightForWidth())
         self.colour_comboBox.setSizePolicy(sizePolicy1)
         self.colour_comboBox.setMinimumSize(QSize(100, 0))
-        self.colour_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.colour_comboBox.setStyleSheet(u"")
 
         self.formLayout.setWidget(6, QFormLayout.FieldRole, self.colour_comboBox)
 
@@ -190,7 +190,7 @@ class Ui_settings_Dialog(object):
         sizePolicy2.setHeightForWidth(self.bgcolour_comboBox.sizePolicy().hasHeightForWidth())
         self.bgcolour_comboBox.setSizePolicy(sizePolicy2)
         self.bgcolour_comboBox.setMinimumSize(QSize(100, 0))
-        self.bgcolour_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.bgcolour_comboBox.setStyleSheet(u"")
 
         self.formLayout.setWidget(7, QFormLayout.FieldRole, self.bgcolour_comboBox)
 
@@ -200,12 +200,15 @@ class Ui_settings_Dialog(object):
 
         self.formLayout.setWidget(8, QFormLayout.LabelRole, self.projection_label)
 
+        self.projection_comboBox = QComboBox(self.groupBox)
+        self.projection_comboBox.setObjectName(u"projection_comboBox")
+        sizePolicy.setHeightForWidth(self.projection_comboBox.sizePolicy().hasHeightForWidth())
+        self.projection_comboBox.setSizePolicy(sizePolicy)
+
+        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.projection_comboBox)
+
 
         self.verticalLayout_2.addWidget(self.groupBox)
-
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.verticalLayout_2.addItem(self.verticalSpacer)
 
         self.settings_scrollArea.setWidget(self.scrollAreaWidgetContents)
 
