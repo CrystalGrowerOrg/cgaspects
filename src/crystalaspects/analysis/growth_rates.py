@@ -11,9 +11,8 @@ import crystalaspects.analysis.gr_dataframes as gr
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerGrowthRates
 from crystalaspects.gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
-from crystalaspects.gui.dialogs.progress_dialog import CircularProgress
 from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.plot_dialog import PlottingDialog
+from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
 
 logger = logging.getLogger("CA:G-Rates")
 
@@ -119,8 +118,7 @@ class GrowthRate:
                 )
                 self.signals.result.emit(result)
                 logger.debug("Sending plotting information to GUI: %s", result)
-                PlottingDialogs = PlottingDialog(self)
-                PlottingDialogs.plotting_info(csv=growth_rate_csv)
+                PlottingDialogs = PlottingDialog(csv=growth_rate_csv)
                 PlottingDialogs.show()
                 if self.auto_plotting:
                     plot = Plotting()
