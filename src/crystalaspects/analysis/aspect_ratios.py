@@ -9,9 +9,8 @@ import crystalaspects.analysis.ar_dataframes as ar
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerAspectRatios
 from crystalaspects.gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
-from crystalaspects.gui.dialogs.progress_dialog import CircularProgress
 from crystalaspects.visualisation.plot_data import Plotting
-from crystalaspects.visualisation.plot_dialog import PlottingDialog
+from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
 
 logger = logging.getLogger("CA:A-Ratios")
 
@@ -126,8 +125,7 @@ class AspectRatio(QWidget):
                 selected_directions=self.options.selected_directions,
             )
 
-        PlottingDialogs = PlottingDialog(self)
-        PlottingDialogs.plotting_info(csv=plotting_csv)
+        PlottingDialogs = PlottingDialog(csv=plotting_csv)
         PlottingDialogs.show()
 
     def perform_plotting(self, csv_file, folderpath, selected_directions=None):

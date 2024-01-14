@@ -23,7 +23,7 @@ logger = logging.getLogger("CA:PlotDialog")
 
 
 class PlottingDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, csv):
         super().__init__()
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
@@ -34,9 +34,15 @@ class PlottingDialog(QDialog):
         self.create_widgets()
         self.create_layout()
         self.annot = None
+        self.trendline = None
+        self.trendline_text = None
 
         self.selected_plot = None
         self.plot_objects = {}
+
+        self.plotting_info(csv)
+        self.plot_list_combo_box.clear()
+        self.plot_list_combo_box.addItems(self.plots_list)
 
     def plotting_info(self, csv):
         self.csv = csv
@@ -109,34 +115,27 @@ class PlottingDialog(QDialog):
         self.ax = self.figure.add_subplot(111)
         self.toolbar = NavigationToolbar(self.canvas, self)
 
-        self.button_plot = QPushButton("Plot")
-        self.button_save = QPushButton("Save")
-        self.button_plot_list = QPushButton("Generate Plot List")
         self.label_pointsize = QLabel("Point Size:")
+        self.label_plotstyle = QLabel("Plot Style:")
+        self.label_plottype = QLabel("Plot Type:")
         self.spin_point_size = QSpinBox()
-        self.checkbox_colorbar = QCheckBox("Colorbar")
-        self.button_add_trendline = QPushButton("Add Trendline")
-        # Set the properties of the widgets
         self.spin_point_size.setRange(1, 100)
 
+        self.button_add_trendline = QPushButton("Add Trendline")
+        self.button_save = QPushButton("Save")
+
         # Initialize the variables
-        self.point_size = self.spin_point_size.value()
+        self.point_size = 12
+        self.spin_point_size.setValue(self.point_size)
         self.colorbar = False
         self.scatter = None
 
-        self.checkbox_colorbar = QCheckBox("Show Colorbar")
 
-        # Connect the signals and slots
         # Initialize checkboxes
         self.checkbox_grid = QCheckBox("Show Grid")
         self.checkbox_trendline = QCheckBox("Add Trendline")
-        self.button_plot.clicked.connect(self.plot)
+
         self.button_save.clicked.connect(self.save)
-        self.button_plot_list.clicked.connect(self.add_plot_list)
-        # Connect the add trendline button to its handler
-        self.checkbox_colorbar.stateChanged.connect(self.toggle_colorbar)
-        self.button_add_trendline.clicked.connect(self.add_trendline)
-        self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.canvas.mpl_connect(
             "motion_notify_event", lambda event: self.on_hover(event)
         )
@@ -144,14 +143,17 @@ class PlottingDialog(QDialog):
         # Create the plot type combo box
         self.plot_type_combo_box = QComboBox()
         self.plot_type_combo_box.addItems(["Scatter", "Line", "Scatter+Line"])
-        self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
-        self.btn_change_plot = QPushButton("Change Plot Type")
-        self.btn_change_plot.clicked.connect(self.change_plot_type)
-        # Create and add items to plot_list_combo_box here
+
         self.plot_list_combo_box = QComboBox()
-        self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
         self.plot_list_combo_box.setMaxVisibleItems(5)
         self.plot_list_combo_box.show()
+
+        self.button_save.clicked.connect(self.save)
+        self.checkbox_grid.stateChanged.connect(self.toggle_grid)
+        self.button_add_trendline.clicked.connect(self.toggle_trendline)
+        self.spin_point_size.valueChanged.connect(self.set_point_size)
+        self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
+        self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
 
         # Initialize the plot type
         self.plot_type = "scatter"
@@ -162,17 +164,17 @@ class PlottingDialog(QDialog):
         layout.addWidget(self.toolbar)
 
         hbox1 = QHBoxLayout()
+        hbox1.addWidget(self.checkbox_grid)
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
-        hbox1.addWidget(self.checkbox_grid)
+        hbox1.addWidget(self.label_plotstyle)
         hbox1.addWidget(self.plot_type_combo_box)
+        hbox1.addWidget(self.label_plottype)
         hbox1.addWidget(self.plot_list_combo_box)
 
         hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.button_plot)
-        hbox2.addWidget(self.button_save)
-        hbox2.addWidget(self.button_plot_list)
         hbox2.addWidget(self.button_add_trendline)
+        hbox2.addWidget(self.button_save)
 
         layout.addLayout(hbox1)
         layout.addLayout(hbox2)
@@ -187,9 +189,9 @@ class PlottingDialog(QDialog):
         if self.scatter is not None:
             self.scatter.set_sizes([self.point_size] * len(self.scatter.get_offsets()))
         self.canvas.draw()
-
-    def toggle_colorbar(self, state):
-        self.colorbar = state == Qt.Checked
+    
+    def toggle_grid(self, state):
+        self.plot()
 
     def change_plot_type(self):
         plot_type = self.plot_type
@@ -202,14 +204,11 @@ class PlottingDialog(QDialog):
             self.plot()
         if plot_type == "Line":
             self.plot_type = "line"
-            self.plot()
-
-    def add_plot_list(self):
-        self.plot_list_combo_box.clear()
-        self.plot_list_combo_box.addItems(self.plots_list)
+            self.plot()        
 
     def change_plot_from_list(self):
         self.selected_plot = self.plot_list_combo_box.currentText()
+        self.plot()
 
     def plot(self):
         self.figure.clear()
@@ -258,7 +257,7 @@ class PlottingDialog(QDialog):
                 "Plotting x[ OBA S:M %s], y[ OBA M:L %s]", x_data.shape, y_data.shape
             )
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
             # When creating a scatter plot without colour data
             self.plot_objects[f""] = (None, self.scatter, None, None)
             self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -277,7 +276,7 @@ class PlottingDialog(QDialog):
                 "Plotting x[ PCA S:M %s], y[ PCA M:L %s]", x_data.shape, y_data.shape
             )
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
             # When creating a scatter plot without colour data
             self.plot_objects[f""] = (None, self.scatter, None, None)
             self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -298,7 +297,7 @@ class PlottingDialog(QDialog):
                 y_data.shape,
             )
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
             # When creating a scatter plot without colour data
             self.plot_objects[f""] = (None, self.scatter, None, None)
             self.ax.set_xlabel("Surface Area (nm2)")
@@ -311,7 +310,7 @@ class PlottingDialog(QDialog):
 
             logger.info("Plotting x[ S/M %s], y[ M/L %s]", x_data.shape, y_data.shape)
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
             # When creating a scatter plot without colour data
             self.plot_objects[f""] = (None, self.scatter, None, None)
             self.ax.set_xlabel("CDA S/M")
@@ -348,7 +347,7 @@ class PlottingDialog(QDialog):
                 y_data.shape,
             )
             # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=12)
+            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
             # When creating a scatter plot without colour data
             self.plot_objects[f""] = (None, self.scatter, None, None)
             self.ax.set_xlabel(x_column_name)
@@ -373,7 +372,7 @@ class PlottingDialog(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=12
+                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
                 )
                 # When creating a scatter plot with colour data
                 self.plot_objects[f"Plot {interaction}"] = (
@@ -410,7 +409,7 @@ class PlottingDialog(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=12
+                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
                 )
                 # When creating a scatter plot with colour data
                 self.plot_objects[f"Plot {interaction}"] = (
@@ -449,7 +448,7 @@ class PlottingDialog(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=12
+                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
                 )
                 # When creating a scatter plot with colour data
                 self.plot_objects[f"Plot {interaction}"] = (
@@ -482,7 +481,7 @@ class PlottingDialog(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=12
+                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
                 )
                 # When creating a scatter plot with colour data
                 self.plot_objects[f"Plot {interaction}"] = (
@@ -538,7 +537,7 @@ class PlottingDialog(QDialog):
                     colour_data = pd.factorize(colour_data)[0]
                 # Plot the data
                 self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=12
+                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
                 )
                 # When creating a scatter plot with colour data
                 self.plot_objects[f"Plot {interaction}"] = (
@@ -569,7 +568,7 @@ class PlottingDialog(QDialog):
                         interaction,
                     )
                     # Plot the data
-                    self.scatter = self.ax.scatter(x_data, y_data, s=12)
+                    self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
                     # When creating a scatter plot without colour data
                     self.plot_objects[f""] = (None, self.scatter, None, None)
                     self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -592,7 +591,7 @@ class PlottingDialog(QDialog):
                         interaction,
                     )
                     # Plot the data
-                    self.scatter = self.ax.scatter(x_data, y_data, s=12)
+                    self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
                     # When creating a scatter plot without colour data
                     self.plot_objects[f""] = (None, self.scatter, None, None)
                     self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -642,6 +641,7 @@ class PlottingDialog(QDialog):
 
         if self.checkbox_grid.isChecked():
             self.ax.grid()
+
         self.annot = self.ax.annotate(
             "",
             xy=(-1, -1),
@@ -701,30 +701,37 @@ class PlottingDialog(QDialog):
         except NameError:
             pass
 
-    def add_trendline(self):
-        if self.scatter is None:
-            self.statusBar().showMessage("Error: No scatter plot to add trendline to.")
-            return
-        x = self.scatter.get_offsets()[:, 0]
-        y = self.scatter.get_offsets()[:, 1]
+    def toggle_trendline(self):
+        if not self.trendline:
+            if self.scatter is None:
+                self.statusBar().showMessage("Error: No scatter plot to add trendline to.")
+                return
 
-        z = np.polyfit(x, y, 1)
-        p = np.poly1d(z)
-        self.ax.plot(x, p(x), "r--")
+            x = self.scatter.get_offsets()[:, 0]
+            y = self.scatter.get_offsets()[:, 1]
 
-        # Format the equation text
-        equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
-        # Add the text to the plot. Adjust the position as needed.
-        self.ax.text(
-            0.05,
-            0.95,
-            equation_text,
-            transform=self.ax.transAxes,
-            fontsize=12,
-            verticalalignment="top",
-        )
+            z = np.polyfit(x, y, 1)
+            p = np.poly1d(z)
+            self.trendline, = self.ax.plot(x, p(x), "r--")  # Store the trendline object
 
-        self.canvas.draw()
+            equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
+            self.trendline_text = self.ax.text(  # Store the text object
+                0.05, 0.95, equation_text, transform=self.ax.transAxes, fontsize=12, verticalalignment="top")
+
+            self.canvas.draw()
+            self.button_add_trendline.setText("Remove Trendline")
+        else:
+            # Remove the trendline and its text from the plot
+            if self.trendline:
+                self.trendline.remove()
+                self.trendline = None
+
+            if hasattr(self, 'trendline_text') and self.trendline_text:
+                self.trendline_text.remove()
+                self.trendline_text = None
+
+            self.canvas.draw()
+            self.button_add_trendline.setText("Add Trendline")
 
     def save(self):
         file_dialog = QFileDialog()
