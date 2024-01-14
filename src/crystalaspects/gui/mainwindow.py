@@ -19,7 +19,7 @@ from PySide6 import QtCore
 
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel, QSpinBox, QSlider)
+    QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel, QSpinBox, QSlider, QProgressBar)
 
 from qt_material import apply_stylesheet
 
@@ -58,7 +58,7 @@ class GUIWorkerSignals(QObject):
     progress
         int indicating % progress
     """
-
+    started = Signal()
     finished = Signal()
     error = Signal(tuple)
     result = Signal(object)
@@ -91,6 +91,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growthrate = GrowthRate(signals=self.worker_signals)
         self.worker_signals.location.connect(self.set_output_folder)
         self.worker_signals.result.connect(self.set_results)
+        self.worker_signals.started.connect(self.set_progressbar)
+        self.worker_signals.finished.connect(self.clear_progressbar)
+        self.worker_signals.progress.connect(self.update_progressbar)
+        self.worker_signals.message.connect(self.set_message)
         # Other self variables
         self.sim_num: int | None = None
         self.input_folder: Path | None = None
@@ -100,6 +104,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotting_csv: Path | None = None
         self.summ_df = None
 
+        self.progressBar = QProgressBar()
+        self.statusBar().addPermanentWidget(self.progressBar)
+        self.progressBar.hide()
+        
         self.movie_controls_frame.hide()
 
         self.settings_dialog = SettingsDialog(self)
@@ -123,6 +131,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.settings_dialog.ui.point_slider.valueChanged.connect(
             self.openglwidget.updatePointSize
         )
+        # self.settings_dialog.ui.projection_comboBox.currentIndexChanged.connect(
+        #     self.openglwidget.updateProjectionType
+        # )
 
     def setup_menubar(self):
         # Create a menu bar
@@ -189,7 +200,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.import_pushButton.clicked.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
-        self.batch_lineEdit.returnPressed.connect(self.import_and_visualise_xyz)
+        self.batch_lineEdit.returnPressed.connect(
+            lambda: self.import_and_visualise_xyz(
+                folder=self.batch_lineEdit.text()
+            )
+        )
         self.view_results_pushButton.clicked.connect(
             lambda: open_directory(path=self.output_folder)
         )
@@ -223,6 +238,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else None
         )
     
+    def set_progressbar(self):
+        self.set_message("Started Calculations...")
+        self.progressBar.setValue(0)
+        self.progressBar.show()
+
+    def clear_progressbar(self):
+        self.set_message("Calculations Completed!")
+        if self.progressBar is not None:
+            self.progressBar.hide()
+
+    def update_progressbar(self, value):
+        if self.progressBar is not None:
+            self.progressBar.setValue(value)
+
+    def set_message(self, msg):
+        self.log_message(message=msg, log_level="info", gui=True)
+    
     def show_settings(self):
         self.settings_dialog.show()
         self.settings_dialog.raise_()
@@ -243,7 +275,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             gui=False,
         )
 
-    def log_message(self, message, log_level, gui=False):
+    def log_message(self, message: str, log_level: str, gui: bool = False):
         message = str(message)
         log_level_method = getattr(logger, log_level.lower(), logger.debug)
 
@@ -272,8 +304,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def import_xyz(self, folder=None):
         """Import XYZ file(s) by first opening the folder
         and then opening them via an OpenGL widget"""
+
         # Initialize or clear the list of XYZ files
         self.xyz_files = []
+
         # Read the .XYZ files from the selected folder
         if folder is None:
             folder = QFileDialog.getExistingDirectory(
