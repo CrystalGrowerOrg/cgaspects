@@ -125,7 +125,7 @@ class AspectRatio(QWidget):
                 selected_directions=self.options.selected_directions,
             )
 
-        PlottingDialogs = PlottingDialog(csv=plotting_csv)
+        PlottingDialogs = PlottingDialog(csv=plotting_csv, signals=self.signals)
         PlottingDialogs.show()
 
     def perform_plotting(self, csv_file, folderpath, selected_directions=None):
