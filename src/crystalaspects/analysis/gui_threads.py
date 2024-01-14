@@ -28,7 +28,7 @@ class WorkerSignals(QObject):
     progress
         int indicating % progress
     """
-
+    started = Signal()
     finished = Signal()
     error = Signal(tuple)
     result = Signal(object)
@@ -63,6 +63,7 @@ class WorkerAspectRatios(QRunnable):
         self.output_folder = output_folder
         self.information = information
         self.options = options
+        self.plotting_csv = None
 
         self.signals = WorkerSignals()
 
@@ -72,6 +73,14 @@ class WorkerAspectRatios(QRunnable):
         summary_file = self.information.summary_file
         folders = self.information.folders
 
+        if not (self.options.selected_ar 
+        or (self.options.selected_cda
+            and self.options.checked_directions
+            and self.options.selected_directions)
+        ):
+            logger.error("Condtions not met: AR AND/OR CDA (with checked AND selected directions)")
+            return
+
         if self.options.selected_ar:
             xyz_df = ar.collect_all(folder=self.input_folder, signals=self.signals)
             xyz_combine = xyz_df
@@ -80,6 +89,7 @@ class WorkerAspectRatios(QRunnable):
             xyz_df_final_csv = self.output_folder / "aspectratio.csv"
             xyz_df.to_csv(xyz_df_final_csv, index=None)
             ar.get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
+            logger.info("Plotting CSV created from: PCA/OBA")
             self.plotting_csv = xyz_df_final_csv
 
         if self.options.selected_cda and not self.options.checked_directions:
@@ -110,8 +120,10 @@ class WorkerAspectRatios(QRunnable):
             )
             if summary_file:
                 zn_df = fd.summary_compare(summary_csv=summary_file, aspect_df=zn_df)
+
             zn_df_final_csv = self.output_folder / "cda.csv"
             zn_df.to_csv(zn_df_final_csv, index=None)
+            logger.info("Plotting CSV created from: CDA")
             self.plotting_csv = zn_df_final_csv
 
             if self.options.selected_ar and self.options.selected_cda:
@@ -121,6 +133,7 @@ class WorkerAspectRatios(QRunnable):
                 ar.get_cda_shape_percentage(
                     df=combined_df, savefolder=self.output_folder
                 )
+                logger.info("Plotting CSV created from: CDA + PCA/OBA")
                 self.plotting_csv = final_cda_xyz_csv
 
         self.signals.result.emit(self.plotting_csv)

@@ -31,20 +31,18 @@ class AnalysisOptionsDialog(QDialog):
         self.layout().addWidget(scroll)
 
         # Initialise Checkboxes
-        aspect_ratio_checkbox = QCheckBox(
+        self.aspect_ratio_checkbox = QCheckBox(
             "Aspect Ratio (PCA, OBA, Surface Area and Volume)"
         )
-        cda_checkbox = QCheckBox("CDA")
-        plotting_checkbox = QCheckBox("Auto-Generate Plots")
-        layout.addWidget(aspect_ratio_checkbox)
-        layout.addWidget(cda_checkbox)
 
-        self.aspect_ratio_checkbox = aspect_ratio_checkbox
-        self.cda_checkbox = cda_checkbox
-        self.plotting_checkbox = plotting_checkbox
-        self.checkboxes = []
-        self.combo_boxes = []
-        self.checked_directions = []
+        self.cda_checkbox = QCheckBox("CDA")
+        self.plotting_checkbox = QCheckBox("Auto-Generate Plots")
+        layout.addWidget(self.aspect_ratio_checkbox)
+        layout.addWidget(self.cda_checkbox)
+
+        self.checkboxes: list[QCheckBox] = []
+        self.combo_boxes: list[QComboBox] = []
+        self.checked_directions: list[str] = []
 
         for direction in directions:
             checkbox = QCheckBox(direction)
@@ -64,35 +62,61 @@ class AnalysisOptionsDialog(QDialog):
             self.combo_boxes.append(combo_box)
 
         layout.addLayout(direction_layout)
-        layout.addWidget(plotting_checkbox)
+        layout.addWidget(self.plotting_checkbox)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-        cda_checkbox.stateChanged.connect(self.toggle_directions)
+        self.cda_checkbox.stateChanged.connect(self.enable_cda)
 
         for checkbox in self.checkboxes:
-            checkbox.toggled.connect(self.update_checked_directions)
+            checkbox.stateChanged.connect(self.update_checked_directions)
 
-    def toggle_directions(self, state):
-        enabled = state == Qt.Checked
-        for checkbox in self.checkboxes:
-            checkbox.setEnabled(True)
+    def enable_cda(self, state):
+        state = Qt.CheckState(state)
+        if state == Qt.Checked:
+            for checkbox in self.checkboxes:
+                checkbox.setEnabled(True)
+                checkbox.setCheckState(Qt.Unchecked)
+            for combo_box in self.combo_boxes:
+                combo_box.setEnabled(True)
+            self.checked_directions = []
 
-        for combo_box in self.combo_boxes:
-            combo_box.setEnabled(True)
+        if state == Qt.Unchecked:
+            for checkbox in self.checkboxes:
+                checkbox.setEnabled(False)
+                checkbox.setCheckState(Qt.Unchecked)
+            for combo_box in self.combo_boxes:
+                combo_box.setEnabled(False)
+            self.checked_directions = []
+
 
     def update_checked_directions(self):
+        for checkbox in self.checkboxes:
+            if checkbox.isChecked():
+                # Add the item to all combo boxes if it's not already there
+                for combo_box in self.combo_boxes:
+                    if checkbox.text() not in [combo_box.itemText(i) for i in range(combo_box.count())]:
+                        combo_box.addItem(checkbox.text())
+            else:
+                # Remove the item from all combo boxes if it exists
+                for combo_box in self.combo_boxes:
+                    index = combo_box.findText(checkbox.text())
+                    if index >= 0:
+                        combo_box.removeItem(index)
+
         self.checked_directions = [
             checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()
         ]
-        self.update_combo_boxes()
+
 
     def update_combo_boxes(self):
+
         for combo_box in self.combo_boxes:
-            combo_box.clear()
+            if combo_box.count() > 0:
+                combo_box.clear()
             combo_box.addItem("Select Direction")
             combo_box.addItems(self.checked_directions)
 
