@@ -23,7 +23,7 @@ logger = logging.getLogger("CA:PlotDialog")
 
 
 class PlottingDialog(QDialog):
-    def __init__(self, csv):
+    def __init__(self, csv, signals=None):
         super().__init__()
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
@@ -36,6 +36,7 @@ class PlottingDialog(QDialog):
         self.annot = None
         self.trendline = None
         self.trendline_text = None
+        self.signals = signals
 
         self.selected_plot = None
         self.plot_objects = {}
@@ -114,6 +115,8 @@ class PlottingDialog(QDialog):
         self.canvas = FigureCanvas(self.figure)
         self.ax = self.figure.add_subplot(111)
         self.toolbar = NavigationToolbar(self.canvas, self)
+        self.figure.canvas.mpl_connect('button_press_event', self.on_click)
+
 
         self.label_pointsize = QLabel("Point Size:")
         self.label_plotstyle = QLabel("Plot Style:")
@@ -173,8 +176,8 @@ class PlottingDialog(QDialog):
         hbox1.addWidget(self.plot_list_combo_box)
 
         hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.button_add_trendline)
         hbox2.addWidget(self.button_save)
+        hbox2.addWidget(self.button_add_trendline)
 
         layout.addLayout(hbox1)
         layout.addLayout(hbox2)
@@ -218,6 +221,7 @@ class PlottingDialog(QDialog):
         logger.info("Plotting called for: %s", self.selected_plot)
         # Reading the dataframe
         df = pd.read_csv(self.csv)
+        self.df = df
         self.plot_objects = {}
         # Finding interactions in data frame if there are any
         interactions = [
@@ -701,6 +705,34 @@ class PlottingDialog(QDialog):
         except NameError:
             pass
 
+    def on_click(self, event):
+        if event.inaxes == self.ax:
+            for _, plot_data in self.plot_objects.items():
+                # Unpack the plot data
+                line, scatter, colour_data, column_name = plot_data
+
+                # Check if scatter plot exists and handle click event
+                if scatter is not None:
+                    cont, ind = scatter.contains(event)
+                    if cont:
+                        self.handle_click(scatter, colour_data, column_name, ind)
+                        break
+    def handle_click(self, scatter, colour_data, column_name, ind):
+        # index of the clicked point
+        point_index = ind["ind"][0]
+
+        # Extracting the x and y data of the clicked point
+        x, y = scatter.get_offsets()[point_index]
+
+        # Access the row in the self.df
+        if self.df is not None and point_index < len(self.df):
+            row_data = self.df.iloc[point_index]
+            if self.signals:
+                self.signals.sim_id.emit(int(row_data["Simulation Number"] - 1))
+            logger.info(f"Clicked on row {point_index}: {row_data}")
+        else:
+            logger.debug(f"Clicked on point {point_index} with coordinates (x={x}, y={y})")
+
     def toggle_trendline(self):
         if not self.trendline:
             if self.scatter is None:
@@ -739,25 +771,29 @@ class PlottingDialog(QDialog):
         file_dialog.setDefaultSuffix("png")
         file_dialog.setNameFilters(["PNG(*.png);;JPEG(*.jpg *.jpeg);;All Files(*.*)"])
         file_dialog.setOption(QFileDialog.DontUseNativeDialog)
-        file_dialog.setDirectory(".")
+        file_dialog.setDirectory("~/")
         file_dialog.setWindowTitle("Save Plot")
 
         if file_dialog.exec() == QDialog.Accepted:
             file_name = file_dialog.selectedFiles()[0]
-            transparent = (
-                QMessageBox.question(
-                    self,
-                    "Transparent Background",
-                    "Do you want a transparent background?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
-                )
-                == QMessageBox.Yes
-            )
 
             if file_name:
-                # size = [6.8, 4.8]
-                if transparent:
-                    self.figure.savefig(file_name, transparent=True, dpi=600)
-                else:
-                    self.figure.savefig(file_name, dpi=600)
+                transparent = (
+                    QMessageBox.question(
+                        self,
+                        "Transparent Background",
+                        "Do you want a transparent background?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No,
+                    )
+                    == QMessageBox.Yes
+                )
+
+                try:
+                    if transparent:
+                        self.figure.savefig(file_name, transparent=True, dpi=600)
+                    else:
+                        self.figure.savefig(file_name, dpi=600)
+                except Exception as e:
+                    logger.error("Error saving file: %s", e)
+

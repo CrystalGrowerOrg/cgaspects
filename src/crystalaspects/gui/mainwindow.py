@@ -60,6 +60,7 @@ class GUIWorkerSignals(QObject):
     """
     started = Signal()
     finished = Signal()
+    sim_id = Signal(int)
     error = Signal(tuple)
     result = Signal(object)
     location = Signal(object)
@@ -95,6 +96,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals.finished.connect(self.clear_progressbar)
         self.worker_signals.progress.connect(self.update_progressbar)
         self.worker_signals.message.connect(self.set_message)
+        self.worker_signals.sim_id.connect(self.update_sim_id)
         # Other self variables
         self.sim_num: int | None = None
         self.input_folder: Path | None = None
@@ -252,6 +254,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_progressbar(self, value):
         if self.progressBar is not None:
             self.progressBar.setValue(value)
+
+    def update_sim_id(self, value):
+        if self.input_folder is not None:
+            self.update_xyz(value=value)
 
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
