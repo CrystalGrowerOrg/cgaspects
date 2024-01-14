@@ -29,14 +29,11 @@ class AspectRatio(QWidget):
         self.threadpool = QThreadPool()
         self.result_tuple = namedtuple("Result", ["csv", "selected", "folder"])
 
-        self.progress_updated = Signal(int)
-        self.circular_progress = None
         self.signals = signals
-        self.signals.progress.connect(self.update_progress)
         self.plotting_csv = None
 
     def update_progress(self, value):
-        self.circular_progress.set_value(value)
+        self.signals.progress.emit(value)
 
     def set_folder(self, folder):
         self.input_folder = Path(folder)
@@ -71,7 +68,7 @@ class AspectRatio(QWidget):
         logger.debug("All Directions: %s", self.directions)
 
         # Create the analysis options dialog
-        dialog = AnalysisOptionsDialog(self.directions)
+        dialog = AnalysisOptionsDialog(directions=self.directions)
 
         if dialog.exec() != QDialog.Accepted:
             logger.warning("Selecting aspect ratio options cancelled")
@@ -88,11 +85,12 @@ class AspectRatio(QWidget):
             self.options.selected_directions,
             self.options.plotting,
         )
-        self.circular_progress = CircularProgress(calc_type="Aspect Ratio")
-        self.circular_progress.show()
-        self.circular_progress.raise_()
-        # Display the information in a QMessageBox
-        self.circular_progress.update_options(self.options)
+
+        # self.circular_progress = CircularProgress(calc_type="Aspect Ratio")
+        # self.circular_progress.show()
+        # self.circular_progress.raise_()
+        # # Display the information in a QMessageBox
+        # self.circular_progress.update_options(self.options)
 
         if self.threadpool:
             worker = WorkerAspectRatios(
@@ -104,6 +102,7 @@ class AspectRatio(QWidget):
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.set_plotting)
             worker.signals.location.connect(self.get_location)
+            self.signals.started.emit()
             self.threadpool.start(worker)
 
         else:
@@ -113,12 +112,13 @@ class AspectRatio(QWidget):
 
     def set_plotting(self, plotting_csv):
         result = self.result_tuple(csv=plotting_csv, selected=None, folder=None)
+        self.signals.finished.emit()
         self.signals.result.emit(result)
         logger.debug("Sending plotting information to GUI: %s", result)
         self.plot(plotting_csv=plotting_csv)
 
     def plot(self, plotting_csv):
-        self.circular_progress.hide()
+        # self.circular_progress.hide()
         if self.options.plotting:
             self.perform_plotting(
                 csv_file=plotting_csv,

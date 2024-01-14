@@ -14,7 +14,7 @@ from crystalaspects.fileio.find_data import *
 logger = logging.getLogger("CA:AR-Dataframes")
 
 
-def build_cda(folders, folderpath, savefolder, directions, selected):
+def build_cda(folders, folderpath, savefolder, directions, selected, singals=None):
     path = Path(folderpath)
 
     ar_keys = ["Simulation Number"] + directions
