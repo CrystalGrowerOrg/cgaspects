@@ -47,7 +47,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1016</width>
+         <width>1012</width>
          <height>832</height>
         </rect>
        </property>
@@ -462,7 +462,7 @@
           <item>
            <widget class="QTabWidget" name="xyz_tabWidget">
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="xyz_files_tab">
              <attribute name="title">
@@ -494,7 +494,7 @@
                  </font>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">color: rgb(255, 255, 255);</string>
+                 <string notr="true"/>
                 </property>
                </widget>
               </item>
@@ -537,7 +537,7 @@
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">color: rgb(255, 255, 255);</string>
+                 <string notr="true"/>
                 </property>
                </widget>
               </item>
@@ -621,7 +621,7 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>250</width>
+                   <width>254</width>
                    <height>77</height>
                   </rect>
                  </property>
