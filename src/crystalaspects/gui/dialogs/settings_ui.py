@@ -24,7 +24,7 @@ class Ui_settings_Dialog(object):
     def setupUi(self, settings_Dialog):
         if not settings_Dialog.objectName():
             settings_Dialog.setObjectName(u"settings_Dialog")
-        settings_Dialog.resize(496, 575)
+        settings_Dialog.resize(380, 380)
         font = QFont()
         font.setFamilies([u"Apple Chancery"])
         font.setPointSize(10)
@@ -43,7 +43,7 @@ class Ui_settings_Dialog(object):
         self.settings_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 470, 549))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 354, 354))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.groupBox = QGroupBox(self.scrollAreaWidgetContents)

@@ -167,7 +167,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1016, 832))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1012, 832))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -442,7 +442,7 @@ class Ui_MainWindow(object):
         font3.setPointSize(13)
         font3.setKerning(True)
         self.xyz_fname_comboBox.setFont(font3)
-        self.xyz_fname_comboBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.xyz_fname_comboBox.setStyleSheet(u"")
 
         self.gridLayout_2.addWidget(self.xyz_fname_comboBox, 1, 0, 1, 4)
 
@@ -465,7 +465,7 @@ class Ui_MainWindow(object):
         self.xyz_spinBox.setObjectName(u"xyz_spinBox")
         self.xyz_spinBox.setEnabled(False)
         self.xyz_spinBox.setMinimumSize(QSize(0, 0))
-        self.xyz_spinBox.setStyleSheet(u"color: rgb(255, 255, 255);")
+        self.xyz_spinBox.setStyleSheet(u"")
 
         self.gridLayout_2.addWidget(self.xyz_spinBox, 0, 1, 1, 1)
 
@@ -508,7 +508,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 250, 77))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 254, 77))
         self.verticalLayout_7 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.variables_layout = QGridLayout()
@@ -667,7 +667,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.xyz_tabWidget.setCurrentIndex(1)
+        self.xyz_tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
