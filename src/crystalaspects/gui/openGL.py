@@ -251,13 +251,14 @@ class VisualisationWidget(QOpenGLWidget):
 
     def initializeGL(self):
         print(f"Initialized OpenGL: {self.context().format().version()}")
-        self.logger = QOpenGLDebugLogger(self.context())
-        if self.logger.initialize():
-            self.logger.startLogging(QOpenGLDebugLogger.DebugLogging)
-            self.logger.messageLogged.connect(self.handleLoggedMessage)
-        else:
-            ext = self.context().hasExtension(QtCore.QByteArray("GL_KHR_debug"))
-            print(f"Debug logger not initialized, have extension: {ext}")
+        debug = False
+        if debug:
+            self.logger = QOpenGLDebugLogger(self.context())
+            if self.logger.initialize():
+                self.logger.messageLogged.connect(self.handleLoggedMessage)
+            else:
+                ext = self.context().hasExtension(QtCore.QByteArray("GL_KHR_debug"))
+                print(f"Debug logger not initialized, have extension: {ext}")
 
         color = self.backgroundColor
         gl = self.context().functions()
