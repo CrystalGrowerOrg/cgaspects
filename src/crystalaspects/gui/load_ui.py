@@ -18,10 +18,10 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-    QLayout, QLineEdit, QMainWindow, QPushButton,
-    QScrollArea, QSizePolicy, QSlider, QSpacerItem,
-    QSpinBox, QStatusBar, QTabWidget, QToolButton,
-    QVBoxLayout, QWidget)
+    QLineEdit, QMainWindow, QPushButton, QScrollArea,
+    QSizePolicy, QSlider, QSpacerItem, QSpinBox,
+    QStatusBar, QTabWidget, QToolButton, QVBoxLayout,
+    QWidget)
 from crystalaspects.gui.utils import qticons_rc
 
 class Ui_MainWindow(object):
@@ -167,7 +167,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1012, 832))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1037, 825))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -478,52 +478,32 @@ class Ui_MainWindow(object):
         self.xyz_variables_tab.setObjectName(u"xyz_variables_tab")
         self.verticalLayout_5 = QVBoxLayout(self.xyz_variables_tab)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
-        self.select_summary_slider_button = QPushButton(self.xyz_variables_tab)
-        self.select_summary_slider_button.setObjectName(u"select_summary_slider_button")
-        self.select_summary_slider_button.setEnabled(False)
+        self.simulationVariablesSelectButton = QPushButton(self.xyz_variables_tab)
+        self.simulationVariablesSelectButton.setObjectName(u"simulationVariablesSelectButton")
+        self.simulationVariablesSelectButton.setEnabled(False)
         sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         sizePolicy8.setHorizontalStretch(0)
         sizePolicy8.setVerticalStretch(1)
-        sizePolicy8.setHeightForWidth(self.select_summary_slider_button.sizePolicy().hasHeightForWidth())
-        self.select_summary_slider_button.setSizePolicy(sizePolicy8)
-        self.select_summary_slider_button.setMinimumSize(QSize(200, 0))
+        sizePolicy8.setHeightForWidth(self.simulationVariablesSelectButton.sizePolicy().hasHeightForWidth())
+        self.simulationVariablesSelectButton.setSizePolicy(sizePolicy8)
+        self.simulationVariablesSelectButton.setMinimumSize(QSize(200, 0))
         font4 = QFont()
         font4.setFamilies([u"Arial"])
         font4.setPointSize(10)
         font4.setBold(True)
         font4.setItalic(False)
-        self.select_summary_slider_button.setFont(font4)
+        self.simulationVariablesSelectButton.setFont(font4)
 
-        self.verticalLayout_5.addWidget(self.select_summary_slider_button)
+        self.verticalLayout_5.addWidget(self.simulationVariablesSelectButton)
 
-        self.EVariable_title_label_2 = QLabel(self.xyz_variables_tab)
-        self.EVariable_title_label_2.setObjectName(u"EVariable_title_label_2")
-        self.EVariable_title_label_2.setFont(font4)
+        self.simulationVariablesHeading = QLabel(self.xyz_variables_tab)
+        self.simulationVariablesHeading.setObjectName(u"simulationVariablesHeading")
 
-        self.verticalLayout_5.addWidget(self.EVariable_title_label_2)
+        self.verticalLayout_5.addWidget(self.simulationVariablesHeading)
 
-        self.scrollArea = QScrollArea(self.xyz_variables_tab)
-        self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setFrameShape(QFrame.NoFrame)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 254, 77))
-        self.verticalLayout_7 = QVBoxLayout(self.scrollAreaWidgetContents)
-        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.variables_layout = QGridLayout()
-        self.variables_layout.setObjectName(u"variables_layout")
-        self.variables_layout.setSizeConstraint(QLayout.SetNoConstraint)
+        self.simulationVariablesSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-        self.verticalLayout_7.addLayout(self.variables_layout)
-
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
-
-        self.verticalLayout_5.addWidget(self.scrollArea)
-
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.verticalLayout_5.addItem(self.verticalSpacer)
+        self.verticalLayout_5.addItem(self.simulationVariablesSpacer)
 
         self.xyz_tabWidget.addTab(self.xyz_variables_tab, "")
 
@@ -667,7 +647,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.xyz_tabWidget.setCurrentIndex(0)
+        self.xyz_tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -764,8 +744,8 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(statustip)
         self.saveframe_pushButton.setText(QCoreApplication.translate("MainWindow", u"Save Frame", None))
         self.xyz_tabWidget.setTabText(self.xyz_tabWidget.indexOf(self.xyz_files_tab), QCoreApplication.translate("MainWindow", u"Files", None))
-        self.select_summary_slider_button.setText(QCoreApplication.translate("MainWindow", u"Select Summary File", None))
-        self.EVariable_title_label_2.setText(QCoreApplication.translate("MainWindow", u"Variables:", None))
+        self.simulationVariablesSelectButton.setText(QCoreApplication.translate("MainWindow", u"Select Summary File", None))
+        self.simulationVariablesHeading.setText(QCoreApplication.translate("MainWindow", u"Simulation Variables", None))
         self.xyz_tabWidget.setTabText(self.xyz_tabWidget.indexOf(self.xyz_variables_tab), QCoreApplication.translate("MainWindow", u"Variables", None))
 #if QT_CONFIG(statustip)
         self.settings_pushButton.setStatusTip("")

@@ -1,4 +1,3 @@
-
 import logging
 import os
 import sys
@@ -19,13 +18,18 @@ from PySide6 import QtCore
 
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QFileDialog, QMainWindow, QMenu, QMessageBox, QFormLayout, QLabel, QSpinBox, QSlider, QProgressBar)
+    QFileDialog,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QSlider,
+    QProgressBar,
+)
 
 from qt_material import apply_stylesheet
 
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
-from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.analysis.gui_threads import WorkerXYZ
 from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.fileio.logging import setup_logging
@@ -33,11 +37,11 @@ from crystalaspects.fileio.opendir import open_directory
 from crystalaspects.fileio.find_data import read_crystals, find_info
 from crystalaspects.gui.dialogs.settings import SettingsDialog
 from crystalaspects.gui.openGL import VisualisationWidget
-from crystalaspects.gui.utils.dspinbox import DoubleSlider
 
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
+from crystalaspects.widgets import SimulationVariablesWidget
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -58,6 +62,7 @@ class GUIWorkerSignals(QObject):
     progress
         int indicating % progress
     """
+
     started = Signal()
     finished = Signal()
     sim_id = Signal(int)
@@ -109,7 +114,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
         self.progressBar.hide()
-        
+
+        self.simulation_variables_widget = None
+
         self.movie_controls_frame.hide()
 
         self.settings_dialog = SettingsDialog(self)
@@ -162,7 +169,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file_menu.addAction(exit_action)
 
         # Connect actions from the File menu
-        import_action.triggered.connect(lambda: self.import_and_visualise_xyz(folder=None))
+        import_action.triggered.connect(
+            lambda: self.import_and_visualise_xyz(folder=None)
+        )
 
         # Create actions to the crystalaspects menu
         aspect_ratio_action = QAction("Aspect Ratio", self)
@@ -173,7 +182,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         calculations_menu.addAction(aspect_ratio_action)
         calculations_menu.addAction(growth_rate_action)
 
-        
         plotting_menu.addAction(plotting_action)
 
         # Connect the crystalaspects actions
@@ -198,14 +206,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def setup_button_connections(self):
-
         self.import_pushButton.clicked.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
         self.batch_lineEdit.returnPressed.connect(
-            lambda: self.import_and_visualise_xyz(
-                folder=self.batch_lineEdit.text()
-            )
+            lambda: self.import_and_visualise_xyz(folder=self.batch_lineEdit.text())
         )
         self.view_results_pushButton.clicked.connect(
             lambda: open_directory(path=self.output_folder)
@@ -214,7 +219,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
-        self.select_summary_slider_button.clicked.connect(lambda: self.read_summary(summary_file=None))
+        self.simulationVariablesSelectButton.clicked.connect(
+            lambda: self.read_summary(summary_file=None)
+        )
 
         self.plot_browse_pushButton.clicked.connect(self.browse_plot_csv)
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
@@ -240,7 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.output_folder
             else None
         )
-    
+
     def set_progressbar(self):
         self.set_message("Started Calculations...")
         self.progressBar.setValue(0)
@@ -261,7 +268,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
-    
+
     def show_settings(self):
         self.settings_dialog.show()
         self.settings_dialog.raise_()
@@ -298,12 +305,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.view_results_pushButton.setEnabled(True)
 
     def import_and_visualise_xyz(self, folder=None):
-
         if folder != None and folder != "":
             folder = Path(folder)
             if not folder.is_dir():
                 return
-        
+
         imported = self.import_xyz(folder=folder)
         if imported:
             self.set_visualiser()
@@ -323,7 +329,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.input_folder == folder:
             self.log_message("Same path as current location!", "info")
             return False
-        
+
         self.log_message("Reading Images...", "info")
         folder, xyz_files = read_crystals(folder)
 
@@ -331,12 +337,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if (folder, xyz_files) == (None, None):
             return False
 
-        self.xyz_files = (
-            xyz_files
-        )
+        self.xyz_files = xyz_files
         self.input_folder = folder
         self.batch_lineEdit.setText(str(self.input_folder))
-        
+
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
         if folder:
@@ -353,13 +357,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             result = self.get_xyz_frame_or_movie(0)
             self.init_crystal(result)
 
-            self.select_summary_slider_button.setEnabled(True)
-            self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
+            self.simulationVariablesSelectButton.setEnabled(True)
+            self.log_message(
+                f"{len(self.xyz_files)} XYZ files set to visualiser!", "info"
+            )
             self.update_XYZ_info(self.openglwidget.xyz)
             self.set_batch_type()
 
     def init_opengl(self, xyz_file_list):
-
         # XYZ Files
         self.xyz_file_list = [str(path) for path in xyz_file_list]
         tot_sims = len(self.xyz_file_list)
@@ -367,7 +372,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.sim_num = 0
         self.openglwidget.get_XYZ_from_list(0)
         self.xyz_fname_comboBox.addItems(self.xyz_file_list)
-        
+
         self.xyz_spinBox.setMinimum(0)
         self.xyz_spinBox.setMaximum(tot_sims - 1)
 
@@ -387,7 +392,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.frame = 0
             self.frame_list = self.movie.keys()
             logger.debug("Frames: %s", self.frame_list)
-            
+
             self.frame_spinBox.setMinimum(0)
             self.frame_spinBox.setMaximum(len(self.frame_list))
             self.frame_slider.setMinimum(0)
@@ -452,7 +457,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 # Handle the case where no folder was selected
                 self.log_message(
-                    "Folder selection was canceled or no folder was selected.", "warning"
+                    "Folder selection was canceled or no folder was selected.",
+                    "warning",
                 )
 
         # Note: Bare Exception
@@ -556,21 +562,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             PlottingDialogs = PlottingDialog(csv=self.plotting_csv)
             PlottingDialogs.show()
 
-    # Read Summary 
+    # Read Summary
     def read_summary(self, summary_file=None):
         if not self.xyz_file_list:
-            self.log_message("XYZ files needs to be loaded first to use summary file information", "warning")
+            self.log_message(
+                "XYZ files needs to be loaded first to use summary file information",
+                "warning",
+            )
             return
-        
+
         self.log_message("Reading Summary file...", "info")
         if not summary_file:
             summary_file = QFileDialog.getOpenFileName(None, "Read Summary File")
             summary_file = Path(summary_file[0])
-        
+
         if not summary_file:
             self.log_message("Summary file not set!", "warning")
             return
-        
+
         # Select summary file and read in as a Dataframe
         self.log_message(f"Summary File Found at: {summary_file}", "debug")
         self.summ_df = pd.read_csv(summary_file)
@@ -578,7 +587,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
             self.summ_df = self.summ_df.iloc[:, 1:]
-        self.log_message(f"Summary data succesfully read! [SHAPE {self.summ_df.shape}]", "info")
+        self.log_message(
+            f"Summary data succesfully read! [SHAPE {self.summ_df.shape}]", "info"
+        )
 
         column_names = list(self.summ_df)
         self.log_message(f"Summary Column Name: {column_names}", "debug")
@@ -591,69 +602,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if row[str(column)] not in var_dict[column]:
                     var_dict[column].append(row[str(column)])
 
-        var = len(column_names)
-        iteration_list = []
-        self.slider_list = []
-        self.dspinbox_list = []
-        self.clear_layout(self.variables_layout)
+        layout = self.xyz_variables_tab.layout()
+        if self.simulation_variables_widget is not None:
+            layout.removeItem(self.simulation_variables_widget)
 
-        for i in range(var):
-            self.log_message("Adding Varible Sliders", "debug")
-            label_name = f"varSlider_name_{i+1}"
-            name = column_names[i]
-            slider = f"varSlider_{i+1}"
-            dspinbox = f"spinBox_{i+1}"
-            min_var = var_dict[column_names[i]][0]
-            min_percent = int(min_var * 100)
-            max_var = var_dict[column_names[i]][-1]
-            max_percent = int(max_var * 100)
-            iteration = var_dict[column_names[i]][1] - var_dict[column_names[i]][0]
-            iteration = float("{:.2f}".format(iteration))
-            iteration_list.append(iteration)
-            self.log_message(
-                f"{iteration}  min: {min_var}  max: {max_var}",
-                "debug"
-            )
-            self.label_name = QtWidgets.QLabel(self.xyz_variables_tab)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            self.label_name.setFont(font)
-            self.label_name.setObjectName(label_name)
-            self.label_name.setText(str(name))
-            self.variables_layout.addWidget(self.label_name, i, 0, 1, 1)
-            self.slider = DoubleSlider()
-            self.slider.setOrientation(QtCore.Qt.Horizontal)
-            self.slider.setObjectName(slider)
-            self.slider.setMinimum(min_var)
-            self.slider.setMaximum(max_var)
-            self.slider.setTickInterval(iteration)
+        layout.removeItem(self.simulationVariablesSpacer)
 
-            self.slider.valueChanged.connect(self.summary_change)
-            self.slider_list.append(self.slider)
+        self.simulation_variables_widget = SimulationVariablesWidget(
+            var_dict, parent=self
+        )
 
-            self.variables_layout.addWidget(self.slider, i, 1, 1, 1)
-            self.dspinbox = QtWidgets.QDoubleSpinBox(self.xyz_variables_tab)
-            self.dspinbox.setObjectName(dspinbox)
-            self.dspinbox.setMinimum(min_var)
-            self.dspinbox.setMaximum(max_var)
-            self.dspinbox.setSingleStep(iteration)
+        self.simulation_variables_widget.variableCombinationChanged.connect(
+            self.summary_change
+        )
 
-            self.dspinbox.valueChanged.connect(self.summary_change)
-            self.dspinbox_list.append(self.dspinbox)
+        layout.addWidget(self.simulation_variables_widget)
 
-            self.variables_layout.addWidget(self.dspinbox, i, 2, 1, 1)
-
+        layout.addItem(self.simulationVariablesSpacer)
         self.statusBar().showMessage("Complete: Summary file read in!")
-    
-    def summary_change(self, val):
-        sender = self.sender()
-        # Check if the sender is a spinbox or a slider
-        if sender in self.dspinbox_list:
-            values = [spinbox.value() for spinbox in self.dspinbox_list]
 
-        elif sender in self.slider_list:
-            values = [slider.value() for slider in self.slider_list]
-
+    def summary_change(self):
+        values = self.simulation_variables_widget.currentValues()
         self.log_message(f"Looking for: {values}", log_level="debug")
 
         mask = (self.summ_df == values).all(axis=1)
@@ -662,27 +631,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         if len(filtered_df.index) > 1:
-            self.log_message("Set of values have selected more than one row/simulation", "warning")
+            self.log_message(
+                "Set of values have selected more than one row/simulation", "warning"
+            )
             return
-        
-        self.update_variables(values=values)
+
+        # self.update_variables(values=values)
 
         selected_index = filtered_df.index[0]
         self.update_xyz(value=selected_index)
-    
+
     def update_variables(self, values):
-        # Disconnect slider/spinbox signals to prevent recursive calls
-        for slider, spinbox in zip(self.slider_list, self.dspinbox_list):
-            slider.valueChanged.disconnect()
-            spinbox.valueChanged.disconnect()
-        
-        for i, (slider, spinbox) in enumerate(zip(self.slider_list, self.dspinbox_list)):
-            slider.setValue(values[i])
-            spinbox.setValue(values[i])
-        # Reconnect slider/spinbox signals
-        for slider, spinbox in zip(self.slider_list, self.dspinbox_list):
-            slider.valueChanged.connect(self.summary_change)
-            spinbox.valueChanged.connect(self.summary_change)
+        if self.simulation_variables_widget is not None:
+            self.simulation_variables_widget.setValues(values)
 
     def update_xyz(self, value):
         if self.sim_num != value:
@@ -690,7 +651,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.xyz_fname_comboBox.setCurrentIndex(value)
             self.xyz_spinBox.setValue(value)
             self.update_XYZ_info(self.openglwidget.xyz)
-            
+
             if self.summ_df is not None:
                 var_values = self.summ_df.iloc[value, :].values
                 self.update_variables(values=var_values)
@@ -777,7 +738,7 @@ def main():
     # ############# Runs the application ############## #
     # sys.argv += ['--style', 'Material.Light']
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('Fusion')
+    app.setStyle("Fusion")
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec())
