@@ -26,6 +26,7 @@ class SimulationVariableSlider(QWidget):
 
         # Layout
         layout = QHBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
         layout.addWidget(self.label)
         layout.addWidget(self.slider)
         layout.addWidget(self.spinbox)

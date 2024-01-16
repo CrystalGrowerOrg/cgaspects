@@ -20,8 +20,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QGroupBox, QHBoxLayout, QLabel,
     QLineEdit, QMainWindow, QPushButton, QScrollArea,
     QSizePolicy, QSlider, QSpacerItem, QSpinBox,
-    QStatusBar, QTabWidget, QToolButton, QVBoxLayout,
-    QWidget)
+    QStatusBar, QToolButton, QVBoxLayout, QWidget)
 from crystalaspects.gui.utils import qticons_rc
 
 class Ui_MainWindow(object):
@@ -167,7 +166,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1037, 825))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 1055, 825))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -317,11 +316,6 @@ class Ui_MainWindow(object):
 
         self.dataAnalysis_groupBox = QGroupBox(self.frame)
         self.dataAnalysis_groupBox.setObjectName(u"dataAnalysis_groupBox")
-        font2 = QFont()
-        font2.setFamilies([u"Arial"])
-        font2.setPointSize(12)
-        font2.setBold(False)
-        self.dataAnalysis_groupBox.setFont(font2)
         self.dataAnalysis_groupBox.setFlat(False)
         self.verticalLayout_2 = QVBoxLayout(self.dataAnalysis_groupBox)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
@@ -417,18 +411,34 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.dataAnalysis_groupBox)
 
-        self.visualisation_groupBox = QGroupBox(self.frame)
-        self.visualisation_groupBox.setObjectName(u"visualisation_groupBox")
-        self.visualisation_groupBox.setFont(font1)
-        self.verticalLayout_6 = QVBoxLayout(self.visualisation_groupBox)
-        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
-        self.xyz_tabWidget = QTabWidget(self.visualisation_groupBox)
-        self.xyz_tabWidget.setObjectName(u"xyz_tabWidget")
-        self.xyz_files_tab = QWidget()
-        self.xyz_files_tab.setObjectName(u"xyz_files_tab")
-        self.gridLayout_2 = QGridLayout(self.xyz_files_tab)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.xyz_fname_comboBox = QComboBox(self.xyz_files_tab)
+        self.simulationVariablesGroupBox = QGroupBox(self.frame)
+        self.simulationVariablesGroupBox.setObjectName(u"simulationVariablesGroupBox")
+        self.verticalLayout_3 = QVBoxLayout(self.simulationVariablesGroupBox)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.xyzFrame = QFrame(self.simulationVariablesGroupBox)
+        self.xyzFrame.setObjectName(u"xyzFrame")
+        self.xyzFrame.setFrameShape(QFrame.StyledPanel)
+        self.xyzFrame.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout = QHBoxLayout(self.xyzFrame)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.xyz_id_label = QLabel(self.xyzFrame)
+        self.xyz_id_label.setObjectName(u"xyz_id_label")
+        self.xyz_id_label.setEnabled(False)
+
+        self.horizontalLayout.addWidget(self.xyz_id_label)
+
+        self.xyz_spinBox = QSpinBox(self.xyzFrame)
+        self.xyz_spinBox.setObjectName(u"xyz_spinBox")
+        self.xyz_spinBox.setEnabled(False)
+        self.xyz_spinBox.setMinimumSize(QSize(0, 0))
+        self.xyz_spinBox.setStyleSheet(u"")
+
+        self.horizontalLayout.addWidget(self.xyz_spinBox)
+
+
+        self.verticalLayout_3.addWidget(self.xyzFrame)
+
+        self.xyz_fname_comboBox = QComboBox(self.simulationVariablesGroupBox)
         self.xyz_fname_comboBox.setObjectName(u"xyz_fname_comboBox")
         self.xyz_fname_comboBox.setEnabled(False)
         sizePolicy7 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -437,48 +447,16 @@ class Ui_MainWindow(object):
         sizePolicy7.setHeightForWidth(self.xyz_fname_comboBox.sizePolicy().hasHeightForWidth())
         self.xyz_fname_comboBox.setSizePolicy(sizePolicy7)
         self.xyz_fname_comboBox.setMinimumSize(QSize(0, 0))
-        font3 = QFont()
-        font3.setFamilies([u".AppleSystemUIFont"])
-        font3.setPointSize(13)
-        font3.setKerning(True)
-        self.xyz_fname_comboBox.setFont(font3)
+        font2 = QFont()
+        font2.setFamilies([u".AppleSystemUIFont"])
+        font2.setPointSize(13)
+        font2.setKerning(True)
+        self.xyz_fname_comboBox.setFont(font2)
         self.xyz_fname_comboBox.setStyleSheet(u"")
 
-        self.gridLayout_2.addWidget(self.xyz_fname_comboBox, 1, 0, 1, 4)
+        self.verticalLayout_3.addWidget(self.xyz_fname_comboBox)
 
-        self.xyz_id_label = QLabel(self.xyz_files_tab)
-        self.xyz_id_label.setObjectName(u"xyz_id_label")
-        self.xyz_id_label.setEnabled(False)
-
-        self.gridLayout_2.addWidget(self.xyz_id_label, 0, 0, 1, 1)
-
-        self.saveframe_pushButton = QPushButton(self.xyz_files_tab)
-        self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
-        self.saveframe_pushButton.setEnabled(False)
-        icon11 = QIcon()
-        icon11.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.saveframe_pushButton.setIcon(icon11)
-
-        self.gridLayout_2.addWidget(self.saveframe_pushButton, 0, 3, 1, 1)
-
-        self.xyz_spinBox = QSpinBox(self.xyz_files_tab)
-        self.xyz_spinBox.setObjectName(u"xyz_spinBox")
-        self.xyz_spinBox.setEnabled(False)
-        self.xyz_spinBox.setMinimumSize(QSize(0, 0))
-        self.xyz_spinBox.setStyleSheet(u"")
-
-        self.gridLayout_2.addWidget(self.xyz_spinBox, 0, 1, 1, 1)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.gridLayout_2.addItem(self.verticalSpacer_2, 2, 0, 1, 1)
-
-        self.xyz_tabWidget.addTab(self.xyz_files_tab, "")
-        self.xyz_variables_tab = QWidget()
-        self.xyz_variables_tab.setObjectName(u"xyz_variables_tab")
-        self.verticalLayout_5 = QVBoxLayout(self.xyz_variables_tab)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
-        self.simulationVariablesSelectButton = QPushButton(self.xyz_variables_tab)
+        self.simulationVariablesSelectButton = QPushButton(self.simulationVariablesGroupBox)
         self.simulationVariablesSelectButton.setObjectName(u"simulationVariablesSelectButton")
         self.simulationVariablesSelectButton.setEnabled(False)
         sizePolicy8 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -487,44 +465,20 @@ class Ui_MainWindow(object):
         sizePolicy8.setHeightForWidth(self.simulationVariablesSelectButton.sizePolicy().hasHeightForWidth())
         self.simulationVariablesSelectButton.setSizePolicy(sizePolicy8)
         self.simulationVariablesSelectButton.setMinimumSize(QSize(200, 0))
-        font4 = QFont()
-        font4.setFamilies([u"Arial"])
-        font4.setPointSize(10)
-        font4.setBold(True)
-        font4.setItalic(False)
-        self.simulationVariablesSelectButton.setFont(font4)
+        font3 = QFont()
+        font3.setFamilies([u"Arial"])
+        font3.setPointSize(10)
+        font3.setBold(True)
+        font3.setItalic(False)
+        self.simulationVariablesSelectButton.setFont(font3)
 
-        self.verticalLayout_5.addWidget(self.simulationVariablesSelectButton)
-
-        self.simulationVariablesHeading = QLabel(self.xyz_variables_tab)
-        self.simulationVariablesHeading.setObjectName(u"simulationVariablesHeading")
-
-        self.verticalLayout_5.addWidget(self.simulationVariablesHeading)
-
-        self.simulationVariablesSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.verticalLayout_5.addItem(self.simulationVariablesSpacer)
-
-        self.xyz_tabWidget.addTab(self.xyz_variables_tab, "")
-
-        self.verticalLayout_6.addWidget(self.xyz_tabWidget)
-
-        self.settings_pushButton = QPushButton(self.visualisation_groupBox)
-        self.settings_pushButton.setObjectName(u"settings_pushButton")
-        self.settings_pushButton.setEnabled(True)
-        self.settings_pushButton.setMinimumSize(QSize(0, 0))
-        icon12 = QIcon()
-        icon12.addFile(u":/material_icons/material_icons/png/cog-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.settings_pushButton.setIcon(icon12)
-
-        self.verticalLayout_6.addWidget(self.settings_pushButton)
+        self.verticalLayout_3.addWidget(self.simulationVariablesSelectButton)
 
 
-        self.verticalLayout.addWidget(self.visualisation_groupBox)
+        self.verticalLayout.addWidget(self.simulationVariablesGroupBox)
 
         self.groupBox = QGroupBox(self.frame)
         self.groupBox.setObjectName(u"groupBox")
-        self.groupBox.setFont(font1)
         self.gridLayout_4 = QGridLayout(self.groupBox)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.crystal_info_formLayout = QFormLayout()
@@ -631,24 +585,37 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.groupBox)
 
+        self.visualizationGroupBox = QGroupBox(self.frame)
+        self.visualizationGroupBox.setObjectName(u"visualizationGroupBox")
+        self.verticalLayout_6 = QVBoxLayout(self.visualizationGroupBox)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.saveframe_pushButton = QPushButton(self.visualizationGroupBox)
+        self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
+        self.saveframe_pushButton.setEnabled(False)
+        icon11 = QIcon()
+        icon11.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.saveframe_pushButton.setIcon(icon11)
+
+        self.verticalLayout_6.addWidget(self.saveframe_pushButton)
+
+
+        self.verticalLayout.addWidget(self.visualizationGroupBox)
+
 
         self.gridLayout.addWidget(self.frame, 1, 0, 4, 2)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
-        font5 = QFont()
-        font5.setFamilies([u"Arial"])
-        font5.setPointSize(8)
-        font5.setItalic(True)
-        self.statusbar.setFont(font5)
+        font4 = QFont()
+        font4.setFamilies([u"Arial"])
+        font4.setPointSize(8)
+        font4.setItalic(True)
+        self.statusbar.setFont(font4)
         self.statusbar.setCursor(QCursor(Qt.ArrowCursor))
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-
-        self.xyz_tabWidget.setCurrentIndex(1)
-
 
         QMetaObject.connectSlotsByName(MainWindow)
     # setupUi
@@ -737,20 +704,9 @@ class Ui_MainWindow(object):
         self.plot_pushButton.setToolTip("")
 #endif // QT_CONFIG(tooltip)
         self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
-        self.visualisation_groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Visualisation", None))
+        self.simulationVariablesGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"Simulation Variables", None))
         self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
-#if QT_CONFIG(statustip)
-        self.saveframe_pushButton.setStatusTip("")
-#endif // QT_CONFIG(statustip)
-        self.saveframe_pushButton.setText(QCoreApplication.translate("MainWindow", u"Save Frame", None))
-        self.xyz_tabWidget.setTabText(self.xyz_tabWidget.indexOf(self.xyz_files_tab), QCoreApplication.translate("MainWindow", u"Files", None))
         self.simulationVariablesSelectButton.setText(QCoreApplication.translate("MainWindow", u"Select Summary File", None))
-        self.simulationVariablesHeading.setText(QCoreApplication.translate("MainWindow", u"Simulation Variables", None))
-        self.xyz_tabWidget.setTabText(self.xyz_tabWidget.indexOf(self.xyz_variables_tab), QCoreApplication.translate("MainWindow", u"Variables", None))
-#if QT_CONFIG(statustip)
-        self.settings_pushButton.setStatusTip("")
-#endif // QT_CONFIG(statustip)
-        self.settings_pushButton.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Crystal Information", None))
 #if QT_CONFIG(tooltip)
         self.label_9.setToolTip("")
@@ -797,5 +753,10 @@ class Ui_MainWindow(object):
         self.sg_label.setText("")
         self.uc_lengths_label.setText("")
         self.uc_angles_label.setText("")
+        self.visualizationGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"Visualisation Settings", None))
+#if QT_CONFIG(statustip)
+        self.saveframe_pushButton.setStatusTip("")
+#endif // QT_CONFIG(statustip)
+        self.saveframe_pushButton.setText(QCoreApplication.translate("MainWindow", u"Save Frame", None))
     # retranslateUi
 
