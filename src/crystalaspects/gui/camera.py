@@ -101,3 +101,14 @@ class Camera:
 
     def toggleProjectionMode(self):
         self.perspectiveProjection = not self.perspectiveProjection
+
+    def setProjectionMode(self, kind):
+        if kind.lower() == "orthographic":
+            self.perspectiveProjection = False
+        elif kind.lower() == "perspective":
+            self.perspectiveProjection = True
+        else:
+            print("unknown projection mode", kind)
+
+    def projectionMode(self):
+        return "Perspective" if self.perspectiveProjection else "Orthographic"

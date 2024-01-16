@@ -16,6 +16,8 @@ from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.gui.point_cloud_renderer import (
     SimplePointRenderer,
 )
+from crystalaspects.gui.axes_renderer import AxesRenderer
+
 from crystalaspects.gui.camera import Camera
 
 logger = logging.getLogger("CA:OpenGL")
@@ -32,36 +34,41 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.xyz_path_list = []
         self.sim_num = 0
-        self.vbo = None
         self.point_cloud_renderer = None
+        self.axes_renderer = None
 
         self.xyz = None
         # self.object = 0
 
-        self.colormap = cm.viridis
-        self.colour_type = 2
+        self.colormap = "Viridis"
+        self.color_by = "Layer"
 
         self.point_size = 6.0
-        self.backgroundColors = ["#000000", "#FFFFFF"]
-        self.backgroundColor = QColor(self.backgroundColors[0])
-        self.point_types = ["Point", "Sphere"]
         self.point_type = "Point"
-        self.texture = None
-        self.tex_coords = None
-        self.num_vertices = 8
+        self.backgroundColor = QColor(Qt.white)
 
         self.lattice_parameters = None
 
-        self.availableColormaps = [
-            cm.viridis,
-            cm.plasma,
-            cm.inferno,
-            cm.magma,
-            cm.cividis,
-            cm.twilight,
-            cm.twilight_shifted,
-            cm.hsv,
-        ]
+        self.availableColormaps = {
+            "Viridis": cm.viridis,
+            "Cividis": cm.cividis,
+            "Plasma": cm.plasma,
+            "Inferno": cm.inferno,
+            "Magma": cm.magma,
+            "Twilight": cm.twilight,
+            "HSV": cm.hsv,
+        }
+
+        self.columnLabelToIndex = {
+            "Atom/Molecule Type": 0,
+            "Atom/Molecule Number": 1,
+            "Layer": 2,
+            "Single Colour": 3,
+            "Site Number": 4,
+            "Particle Energy": 5,
+        }
+
+        self.availableColumns = {}
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
@@ -119,40 +126,48 @@ class VisualisationWidget(QOpenGLWidget):
         image = self.renderToImage(float(resolution[0]))
         image.save(file_name)
 
-    def updateSelectedColormap(self, value):
-        self.colormap = self.availableColormaps[value]
-        logger.debug("Colour selected: %s", self.colormap)
-        self.initGeometry()
-
-        self.update()
-
-    def updateBackgroundColor(self, value=0):
-        self.backgroundColor = self.backgroundColors[value]
-        logger.debug("Background Colour: %s", self.backgroundColor)
-
-        color = QColor(self.backgroundColor)
-        if not color.isValid():
-            logger.warning("Error: Invalid color code")
-            return
+    def setBackgroundColor(self, color):
+        self.backgroundColor = QColor(color)
+        self.makeCurrent()
         gl = self.context().functions()
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
-        self.update()
+        self.doneCurrent()
 
-    def updateColorType(self, value):
-        self.colour_type = value
-        logger.debug("Colour Mode: %s", value)
-        self.initGeometry()
+    def updateSettings(self, **kwargs):
+        if not kwargs:
+            return
 
-        self.update()
+        def present_and_changed(key, prev_val):
+            return (key in kwargs) and (prev_val != kwargs[key])
 
-    def updatePointSize(self, val):
-        self.point_size = float(val)
-        logger.debug("point size, %s", self.point_size)
+        needs_reinit = False
+        if present_and_changed("Color Map", self.colormap):
+            self.colormap = kwargs["Color Map"]
+            needs_reinit = True
+
+        if present_and_changed("Background Color", self.backgroundColor):
+            color = kwargs["Background Color"]
+            self.setBackgroundColor(color)
+
+        if present_and_changed("Color By", self.color_by):
+            self.color_by = kwargs.get("Color By", self.color_by)
+            needs_reinit = True
+
+        if present_and_changed("Point Size", self.point_size):
+            self.point_size = float(kwargs["Point Size"])
+
+        if present_and_changed("Projection", self.camera.projectionMode()):
+            self.camera.setProjectionMode(kwargs["Projection"])
+
+        if needs_reinit:
+            self.initGeometry()
+
         self.update()
 
     def resizeGL(self, width, height):
         super().resizeGL(width, height)
         self.aspect_ratio = width / float(height)
+        self.screen_size = width, height
 
     def wheelEvent(self, event):
         degrees = event.angleDelta() / 8
@@ -225,11 +240,13 @@ class VisualisationWidget(QOpenGLWidget):
                 else:
                     axis_vis = xyz[:, color_axis]
 
-                pcd_colors = self.colormap(axis_vis / max_layers)[:, 0:3]
+                pcd_colors = self.availableColormaps[self.colormap](
+                    axis_vis / max_layers
+                )[:, 0:3]
 
             return (pcd_points, pcd_colors)
 
-        points, colors = vis_pc(self.xyz, self.colour_type)
+        points, colors = vis_pc(self.xyz, self.columnLabelToIndex[self.color_by])
 
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")
@@ -240,12 +257,12 @@ class VisualisationWidget(QOpenGLWidget):
             return attributes
         except ValueError as exc:
             logger.error(
-                "%s\n XYZ %s POINTS %s COLORS %s TYPE %s", 
+                "%s\n XYZ %s POINTS %s COLORS %s TYPE %s",
                 exc,
                 self.xyz.shape,
                 points.shape,
                 colors.shape,
-                self.colour_type,
+                self.color_by,
             )
             return
 
@@ -263,6 +280,7 @@ class VisualisationWidget(QOpenGLWidget):
         color = self.backgroundColor
         gl = self.context().functions()
         self.point_cloud_renderer = SimplePointRenderer()
+        self.axes_renderer = AxesRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
 
@@ -272,17 +290,37 @@ class VisualisationWidget(QOpenGLWidget):
         )
 
     def draw(self, gl):
+        from PySide6.QtGui import QMatrix4x4, QVector2D
+
         mvp = self.camera.modelViewProjectionMatrix(self.aspect_ratio)
+        view = self.camera.viewMatrix()
+        axes = QMatrix4x4()
+        screen_size = QVector2D(*self.screen_size)
+
         if self.point_cloud_renderer.numberOfPoints() > 0:
             self.point_cloud_renderer.bind()
             self.point_cloud_renderer.setUniforms(
-                **{"u_modelViewProjectionMat": mvp, "u_pointSize": self.point_size}
+                **{
+                    "u_modelViewProjectionMat": mvp,
+                    "u_pointSize": self.point_size,
+                    "u_axesMat": axes,
+                }
             )
 
             self.point_cloud_renderer.draw(gl)
             self.point_cloud_renderer.release()
 
-            self.point_cloud_renderer.bind()
+        self.axes_renderer.bind()
+        self.axes_renderer.setUniforms(
+            **{
+                "u_viewMat": view,
+                "u_axesMat": axes,
+                "u_screenSize": screen_size,
+            }
+        )
+
+        self.axes_renderer.draw(gl)
+        self.axes_renderer.release()
 
     def paintGL(self):
         gl = self.context().functions()

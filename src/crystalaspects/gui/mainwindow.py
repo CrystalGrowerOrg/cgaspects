@@ -13,16 +13,13 @@ from PySide6.QtCore import (
     QThreadPool,
     Signal,
 )
-from PySide6 import QtGui
-from PySide6 import QtCore
 
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QKeySequence, QShortcut, Qt
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
     QMenu,
     QMessageBox,
-    QSlider,
     QProgressBar,
 )
 
@@ -41,7 +38,10 @@ from crystalaspects.gui.openGL import VisualisationWidget
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
-from crystalaspects.widgets import SimulationVariablesWidget
+from crystalaspects.widgets import (
+    SimulationVariablesWidget,
+    VisualizationSettingsWidget,
+)
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -116,33 +116,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar.hide()
 
         self.simulation_variables_widget = None
+        self.plotting_dialog = None
 
         self.movie_controls_frame.hide()
 
         self.settings_dialog = SettingsDialog(self)
         self.openglwidget = VisualisationWidget()
         self.gl_vLayout.addWidget(self.openglwidget)
-        self.settings_pushButton.clicked.connect(self.show_settings)
         self.xyz_fname_comboBox.currentIndexChanged.connect(self.update_xyz)
         self.xyz_spinBox.valueChanged.connect(self.update_xyz)
 
         self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
 
-        self.settings_dialog.ui.colour_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateSelectedColormap
+        self.visualizationSettings = VisualizationSettingsWidget(parent=self)
+        self.visualizationSettings.setEnabled(enabled=True)
+        self.visualizationSettings.settingsChanged.connect(
+            self.handleVisualizationSettingsChange
         )
-        self.settings_dialog.ui.bgcolour_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateBackgroundColor
-        )
-        self.settings_dialog.ui.colourmode_comboBox.currentIndexChanged.connect(
-            self.openglwidget.updateColorType
-        )
-        self.settings_dialog.ui.point_slider.valueChanged.connect(
-            self.openglwidget.updatePointSize
-        )
-        # self.settings_dialog.ui.projection_comboBox.currentIndexChanged.connect(
-        #     self.openglwidget.updateProjectionType
-        # )
+
+        self.visualizationGroupBox.layout().addWidget(self.visualizationSettings)
 
     def setup_menubar(self):
         # Create a menu bar
@@ -559,8 +551,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.plotting_csv:
             self.log_message(f"Plotting file: {self.plotting_csv}", "info")
 
-            PlottingDialogs = PlottingDialog(csv=self.plotting_csv)
-            PlottingDialogs.show()
+            self.plotting_dialog = PlottingDialog(
+                csv=self.plotting_csv, signals=self.worker_signals
+            )
+            self.plotting_dialog.connect
+            self.plotting_dialog.show()
 
     # Read Summary
     def read_summary(self, summary_file=None):
@@ -602,11 +597,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if row[str(column)] not in var_dict[column]:
                     var_dict[column].append(row[str(column)])
 
-        layout = self.xyz_variables_tab.layout()
+        layout = self.simulationVariablesGroupBox.layout()
+
         if self.simulation_variables_widget is not None:
             layout.removeItem(self.simulation_variables_widget)
-
-        layout.removeItem(self.simulationVariablesSpacer)
 
         self.simulation_variables_widget = SimulationVariablesWidget(
             var_dict, parent=self
@@ -618,7 +612,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         layout.addWidget(self.simulation_variables_widget)
 
-        layout.addItem(self.simulationVariablesSpacer)
         self.statusBar().showMessage("Complete: Summary file read in!")
 
     def summary_change(self):
@@ -644,6 +637,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_variables(self, values):
         if self.simulation_variables_widget is not None:
             self.simulation_variables_widget.setValues(values)
+        else:
+            print("Simulation variables widget is none")
 
     def update_xyz(self, value):
         if self.sim_num != value:
@@ -652,9 +647,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.xyz_spinBox.setValue(value)
             self.update_XYZ_info(self.openglwidget.xyz)
 
+            self.updateVisualizationSettings()
+
             if self.summ_df is not None:
                 var_values = self.summ_df.iloc[value, :].values
                 self.update_variables(values=var_values)
+
+    def updateVisualizationSettings(self):
+        pass
+
+    def handleVisualizationSettingsChange(self):
+        self.openglwidget.updateSettings(**self.visualizationSettings.settings())
 
     # Utility function to clear a layout of all its widgets
     def clear_layout(self, layout):
@@ -737,6 +740,7 @@ def main():
 
     # ############# Runs the application ############## #
     # sys.argv += ['--style', 'Material.Light']
+    QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
     mainwindow = MainWindow()
