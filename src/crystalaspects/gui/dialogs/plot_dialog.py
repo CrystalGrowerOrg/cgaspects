@@ -1,30 +1,51 @@
 import logging
-from pathlib import Path
 
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import \
-    NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                               QFileDialog, QGridLayout, QHBoxLayout,
-                               QInputDialog, QLabel, QMessageBox, QPushButton,
-                               QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
+from PySide6 import QtCore
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+)
+from crystalaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
 
-matplotlib.use("QT5Agg")
+matplotlib.use("QTAgg")
 
 logger = logging.getLogger("CA:PlotDialog")
 
 
+class NavigationToolbar(NavigationToolbar2QT):
+    toolitems = (
+        ("Home", "Reset original view", "home", "home"),
+        ("Back", "Back to previous view", "back", "back"),
+        ("Forward", "Forward to next view", "forward", "forward"),
+        (None, None, None, None),
+        (
+            "Pan",
+            "Left button pans, Right button zooms\n"
+            "x/y fixes axis, CTRL fixes aspect",
+            "move",
+            "pan",
+        ),
+        ("Zoom", "Zoom to rectangle\nx/y fixes axis", "zoom_to_rect", "zoom"),
+    )
+
+
 class PlottingDialog(QDialog):
-    def __init__(self, csv, signals=None):
-        super().__init__()
+    def __init__(self, csv, signals=None, parent=None):
+        super().__init__(parent=parent)
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
 
@@ -115,8 +136,7 @@ class PlottingDialog(QDialog):
         self.canvas = FigureCanvas(self.figure)
         self.ax = self.figure.add_subplot(111)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.figure.canvas.mpl_connect('button_press_event', self.on_click)
-
+        self.figure.canvas.mpl_connect("button_press_event", self.on_click)
 
         self.label_pointsize = QLabel("Point Size:")
         self.label_plotstyle = QLabel("Plot Style:")
@@ -125,7 +145,7 @@ class PlottingDialog(QDialog):
         self.spin_point_size.setRange(1, 100)
 
         self.button_add_trendline = QPushButton("Add Trendline")
-        self.button_save = QPushButton("Save")
+        self.button_save = QPushButton("Save", parent=self)
 
         # Initialize the variables
         self.point_size = 12
@@ -133,12 +153,10 @@ class PlottingDialog(QDialog):
         self.colorbar = False
         self.scatter = None
 
-
         # Initialize checkboxes
         self.checkbox_grid = QCheckBox("Show Grid")
         self.checkbox_trendline = QCheckBox("Add Trendline")
 
-        self.button_save.clicked.connect(self.save)
         self.canvas.mpl_connect(
             "motion_notify_event", lambda event: self.on_hover(event)
         )
@@ -192,7 +210,7 @@ class PlottingDialog(QDialog):
         if self.scatter is not None:
             self.scatter.set_sizes([self.point_size] * len(self.scatter.get_offsets()))
         self.canvas.draw()
-    
+
     def toggle_grid(self, state):
         self.plot()
 
@@ -207,7 +225,7 @@ class PlottingDialog(QDialog):
             self.plot()
         if plot_type == "Line":
             self.plot_type = "line"
-            self.plot()        
+            self.plot()
 
     def change_plot_from_list(self):
         self.selected_plot = self.plot_list_combo_box.currentText()
@@ -717,6 +735,7 @@ class PlottingDialog(QDialog):
                     if cont:
                         self.handle_click(scatter, colour_data, column_name, ind)
                         break
+
     def handle_click(self, scatter, colour_data, column_name, ind):
         # index of the clicked point
         point_index = ind["ind"][0]
@@ -731,12 +750,16 @@ class PlottingDialog(QDialog):
                 self.signals.sim_id.emit(int(row_data["Simulation Number"] - 1))
             logger.info(f"Clicked on row {point_index}: {row_data}")
         else:
-            logger.debug(f"Clicked on point {point_index} with coordinates (x={x}, y={y})")
+            logger.debug(
+                f"Clicked on point {point_index} with coordinates (x={x}, y={y})"
+            )
 
     def toggle_trendline(self):
         if not self.trendline:
             if self.scatter is None:
-                self.statusBar().showMessage("Error: No scatter plot to add trendline to.")
+                self.statusBar().showMessage(
+                    "Error: No scatter plot to add trendline to."
+                )
                 return
 
             x = self.scatter.get_offsets()[:, 0]
@@ -744,11 +767,19 @@ class PlottingDialog(QDialog):
 
             z = np.polyfit(x, y, 1)
             p = np.poly1d(z)
-            self.trendline, = self.ax.plot(x, p(x), "r--")  # Store the trendline object
+            (self.trendline,) = self.ax.plot(
+                x, p(x), "r--"
+            )  # Store the trendline object
 
             equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
             self.trendline_text = self.ax.text(  # Store the text object
-                0.05, 0.95, equation_text, transform=self.ax.transAxes, fontsize=12, verticalalignment="top")
+                0.05,
+                0.95,
+                equation_text,
+                transform=self.ax.transAxes,
+                fontsize=12,
+                verticalalignment="top",
+            )
 
             self.canvas.draw()
             self.button_add_trendline.setText("Remove Trendline")
@@ -758,7 +789,7 @@ class PlottingDialog(QDialog):
                 self.trendline.remove()
                 self.trendline = None
 
-            if hasattr(self, 'trendline_text') and self.trendline_text:
+            if hasattr(self, "trendline_text") and self.trendline_text:
                 self.trendline_text.remove()
                 self.trendline_text = None
 
@@ -766,34 +797,8 @@ class PlottingDialog(QDialog):
             self.button_add_trendline.setText("Add Trendline")
 
     def save(self):
-        file_dialog = QFileDialog()
-        file_dialog.setAcceptMode(QFileDialog.AcceptSave)
-        file_dialog.setDefaultSuffix("png")
-        file_dialog.setNameFilters(["PNG(*.png);;JPEG(*.jpg *.jpeg);;All Files(*.*)"])
-        file_dialog.setOption(QFileDialog.DontUseNativeDialog)
-        file_dialog.setDirectory("~/")
-        file_dialog.setWindowTitle("Save Plot")
-
+        file_dialog = PlotSaveDialog(self.figure)
         if file_dialog.exec() == QDialog.Accepted:
-            file_name = file_dialog.selectedFiles()[0]
-
-            if file_name:
-                transparent = (
-                    QMessageBox.question(
-                        self,
-                        "Transparent Background",
-                        "Do you want a transparent background?",
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.No,
-                    )
-                    == QMessageBox.Yes
-                )
-
-                try:
-                    if transparent:
-                        self.figure.savefig(file_name, transparent=True, dpi=600)
-                    else:
-                        self.figure.savefig(file_name, dpi=600)
-                except Exception as e:
-                    logger.error("Error saving file: %s", e)
-
+            logger.debug("Closing PlotSaveDialog: accepted")
+        else:
+            logger.debug("Closing PlotSaveDialog: not accepted")
