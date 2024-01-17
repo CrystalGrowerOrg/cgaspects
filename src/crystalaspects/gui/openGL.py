@@ -280,7 +280,9 @@ class VisualisationWidget(QOpenGLWidget):
             return
 
     def initializeGL(self):
-        print(f"Initialized OpenGL: {self.context().format().version()}")
+        logger.debug(
+            "Initialized OpenGL, version info: %s", self.context().format().version()
+        )
         debug = False
         if debug:
             self.logger = QOpenGLDebugLogger(self.context())
@@ -288,7 +290,9 @@ class VisualisationWidget(QOpenGLWidget):
                 self.logger.messageLogged.connect(self.handleLoggedMessage)
             else:
                 ext = self.context().hasExtension(QtCore.QByteArray("GL_KHR_debug"))
-                print(f"Debug logger not initialized, have extension: {ext}")
+                logger.debug(
+                    "Debug logger not initialized, have extension GL_KHR_debug: %s", ext
+                )
 
         color = self.backgroundColor
         gl = self.context().functions()
@@ -298,8 +302,11 @@ class VisualisationWidget(QOpenGLWidget):
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
 
     def handleLoggedMessage(self, message):
-        print(
-            f"Source: {message.source()}, Type: {message.type()}, Message: {message.message()}"
+        logger.debug(
+            "Source: %s, Type: %s, Message: %s",
+            message.source(),
+            message.type(),
+            message.message(),
         )
 
     def draw(self, gl):

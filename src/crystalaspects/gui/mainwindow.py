@@ -551,10 +551,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.plotting_csv:
             self.log_message(f"Plotting file: {self.plotting_csv}", "info")
 
-            self.plotting_dialog = PlottingDialog(
-                csv=self.plotting_csv, signals=self.worker_signals
-            )
-            self.plotting_dialog.connect
+            if self.plotting_dialog is None:
+                self.plotting_dialog = PlottingDialog(
+                    csv=self.plotting_csv, signals=self.worker_signals, parent=self
+                )
+                self.plotting_dialog.connect
             self.plotting_dialog.show()
 
     # Read Summary

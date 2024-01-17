@@ -17,6 +17,7 @@ sed -i '' 's/import qticons_rc/from crystalaspects.gui.utils import qticons_rc/g
 
 # Process additional .ui files in the dialogs folder
 for file in dialogs/*.ui; do
+    echo "Converting $file"
     # Define the output Python file name based on the UI file
     dialog_py_file=$(echo $file | sed 's/\.ui/_ui.py/')
 
