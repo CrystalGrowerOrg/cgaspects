@@ -502,9 +502,8 @@
             </property>
             <property name="font">
              <font>
-              <family>.AppleSystemUIFont</family>
-              <pointsize>13</pointsize>
-              <kerning>true</kerning>
+              <family>Arial</family>
+              <pointsize>10</pointsize>
              </font>
             </property>
             <property name="styleSheet">

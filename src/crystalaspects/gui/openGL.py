@@ -19,6 +19,7 @@ from crystalaspects.gui.point_cloud_renderer import (
 from crystalaspects.gui.axes_renderer import AxesRenderer
 
 from crystalaspects.gui.camera import Camera
+from crystalaspects.widgets.overlay_widget import TransparentOverlay
 
 logger = logging.getLogger("CA:OpenGL")
 
@@ -43,9 +44,13 @@ class VisualisationWidget(QOpenGLWidget):
         self.colormap = "Viridis"
         self.color_by = "Layer"
 
+        self.viewInitialized = False
         self.point_size = 6.0
         self.point_type = "Point"
         self.backgroundColor = QColor(Qt.white)
+
+        self.overlay = TransparentOverlay(self)
+        self.overlay.setGeometry(self.geometry())
 
         self.lattice_parameters = None
 
@@ -169,6 +174,10 @@ class VisualisationWidget(QOpenGLWidget):
         self.aspect_ratio = width / float(height)
         self.screen_size = width, height
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.overlay.setGeometry(self.geometry())
+
     def wheelEvent(self, event):
         degrees = event.angleDelta() / 8
 
@@ -247,6 +256,10 @@ class VisualisationWidget(QOpenGLWidget):
             return (pcd_points, pcd_colors)
 
         points, colors = vis_pc(self.xyz, self.columnLabelToIndex[self.color_by])
+
+        if not self.viewInitialized:
+            self.camera.fitToObject(points)
+            self.viewInitialized = True
 
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")

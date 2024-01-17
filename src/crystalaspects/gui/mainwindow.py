@@ -599,18 +599,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         layout = self.simulationVariablesGroupBox.layout()
 
-        if self.simulation_variables_widget is not None:
-            layout.removeItem(self.simulation_variables_widget)
+        widget = SimulationVariablesWidget(var_dict, parent=self)
 
-        self.simulation_variables_widget = SimulationVariablesWidget(
-            var_dict, parent=self
-        )
+        if self.simulation_variables_widget is not None:
+            layout.replaceWidget(self.simulation_variables_widget, widget)
+            self.simulation_variables_widget.deleteLater()
+            self.simulation_variables_widget = widget
+
+        else:
+            self.simulation_variables_widget = widget
+            layout.addWidget(self.simulation_variables_widget)
 
         self.simulation_variables_widget.variableCombinationChanged.connect(
             self.summary_change
         )
-
-        layout.addWidget(self.simulation_variables_widget)
 
         self.statusBar().showMessage("Complete: Summary file read in!")
 

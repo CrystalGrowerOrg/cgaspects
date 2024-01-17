@@ -1,4 +1,17 @@
 from PySide6.QtGui import QMatrix4x4, QVector3D, QQuaternion
+import numpy as np
+
+
+def pca(vertices):
+    "returns the magnitudes and the principle axes"
+    centered_vertices = vertices - np.mean(vertices, axis=0)
+    covariance_matrix = np.cov(centered_vertices.T)
+    U, S, vh = np.linalg.svd(covariance_matrix)
+    return S, vh
+
+
+def bounding_box(vertices):
+    return np.min(vertices, axis=0), np.max(vertices, axis=0)
 
 
 class Camera:
@@ -109,6 +122,12 @@ class Camera:
             self.perspectiveProjection = True
         else:
             print("unknown projection mode", kind)
+
+    def fitToObject(self, points):
+        extents, axes = pca(points)
+        self.right = QVector3D(axes[0, 0], axes[0, 1], axes[0, 2])
+        self.up = QVector3D.crossProduct(self.target - self.position, self.right)
+        self.scale = 1 / np.sqrt(np.max(extents))
 
     def projectionMode(self):
         return "Perspective" if self.perspectiveProjection else "Orthographic"
