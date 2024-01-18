@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1280</width>
-    <height>640</height>
+    <height>790</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>905</width>
-         <height>546</height>
+         <width>901</width>
+         <height>722</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -313,48 +313,14 @@
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
-            <item>
-             <widget class="QLabel" name="plot_label">
-              <property name="text">
-               <string>Plotting</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QPushButton" name="plot_browse_pushButton">
-              <property name="toolTip">
-               <string extracomment="Import a CSV produced by CrystalAspects for plotting"/>
-              </property>
-              <property name="statusTip">
-               <string/>
-              </property>
-              <property name="text">
-               <string>Import CSV for Plotting</string>
-              </property>
-              <property name="icon">
-               <iconset resource="../../../res/qticons.qrc">
-                <normaloff>:/material_icons/material_icons/png/file-table-custom.png</normaloff>:/material_icons/material_icons/png/file-table-custom.png</iconset>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <widget class="QLabel" name="plot_label">
+            <property name="text">
+             <string>Plotting</string>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
             <item>
              <widget class="QLineEdit" name="plot_lineEdit">
               <property name="sizePolicy">
@@ -401,36 +367,6 @@
          <property name="currentIndex">
           <number>1</number>
          </property>
-         <widget class="QWidget" name="crystalInfoTab">
-          <attribute name="title">
-           <string>Crystal Properties</string>
-          </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_5"/>
-         </widget>
-         <widget class="QWidget" name="visualizationTab">
-          <attribute name="title">
-           <string>Visualization</string>
-          </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
-           <item>
-            <widget class="QPushButton" name="saveframe_pushButton">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="statusTip">
-              <string comment="Save Frame" extracomment="Save Frame"/>
-             </property>
-             <property name="text">
-              <string>Save Frame</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../../../res/qticons.qrc">
-               <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
          <widget class="QWidget" name="variablesTab">
           <attribute name="title">
            <string>Variables</string>
@@ -512,28 +448,6 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="simulationVariablesSelectButton">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>1</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>200</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Select Summary File</string>
-                </property>
-               </widget>
-              </item>
-              <item>
                <spacer name="verticalSpacer">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
@@ -551,6 +465,38 @@
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="visualizationTab">
+          <attribute name="title">
+           <string>Visualization</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QPushButton" name="saveframe_pushButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="statusTip">
+              <string comment="Save Frame" extracomment="Save Frame"/>
+             </property>
+             <property name="text">
+              <string>Save Frame</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../../res/qticons.qrc">
+               <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="crystalInfo_groupBox">
+         <property name="title">
+          <string>Crystal Information</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_8"/>
         </widget>
        </item>
       </layout>
@@ -576,7 +522,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>43</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -585,11 +531,14 @@
     </property>
     <addaction name="actionImport"/>
     <addaction name="actionImport_CSV_for_Plotting"/>
+    <addaction name="actionImport_Summary_File"/>
+    <addaction name="actionRender"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
      <string>View</string>
     </property>
+    <addaction name="actionInput_Directory"/>
     <addaction name="actionResults_Directory"/>
     <addaction name="actionPlotting_Dialog"/>
    </widget>
@@ -893,6 +842,9 @@
    </property>
   </action>
   <action name="actionResults_Directory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Results Directory</string>
    </property>
@@ -909,11 +861,38 @@
    </property>
   </action>
   <action name="actionPlotting_Dialog">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Plot</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+P</string>
+   </property>
+  </action>
+  <action name="actionInput_Directory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Input Directory</string>
+   </property>
+  </action>
+  <action name="actionImport_Summary_File">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Import Summary File</string>
+   </property>
+  </action>
+  <action name="actionRender">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Render</string>
    </property>
   </action>
  </widget>

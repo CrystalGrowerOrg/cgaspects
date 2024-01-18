@@ -29,7 +29,7 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(1280, 640)
+        MainWindow.resize(1280, 790)
         icon = QIcon()
         icon.addFile(u":/app_icons/app_icons/CrystalAspects.icns", QSize(), QIcon.Normal, QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -152,10 +152,21 @@ class Ui_MainWindow(object):
         self.actionImport.setObjectName(u"actionImport")
         self.actionResults_Directory = QAction(MainWindow)
         self.actionResults_Directory.setObjectName(u"actionResults_Directory")
+        self.actionResults_Directory.setEnabled(False)
         self.actionImport_CSV_for_Plotting = QAction(MainWindow)
         self.actionImport_CSV_for_Plotting.setObjectName(u"actionImport_CSV_for_Plotting")
         self.actionPlotting_Dialog = QAction(MainWindow)
         self.actionPlotting_Dialog.setObjectName(u"actionPlotting_Dialog")
+        self.actionPlotting_Dialog.setEnabled(False)
+        self.actionInput_Directory = QAction(MainWindow)
+        self.actionInput_Directory.setObjectName(u"actionInput_Directory")
+        self.actionInput_Directory.setEnabled(False)
+        self.actionImport_Summary_File = QAction(MainWindow)
+        self.actionImport_Summary_File.setObjectName(u"actionImport_Summary_File")
+        self.actionImport_Summary_File.setEnabled(False)
+        self.actionRender = QAction(MainWindow)
+        self.actionRender.setObjectName(u"actionRender")
+        self.actionRender.setEnabled(False)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -173,7 +184,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 905, 546))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 901, 722))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -338,30 +349,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.plot_label = QLabel(self.dataAnalysis_groupBox)
         self.plot_label.setObjectName(u"plot_label")
 
-        self.horizontalLayout_4.addWidget(self.plot_label)
+        self.verticalLayout_2.addWidget(self.plot_label)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_2)
-
-        self.plot_browse_pushButton = QPushButton(self.dataAnalysis_groupBox)
-        self.plot_browse_pushButton.setObjectName(u"plot_browse_pushButton")
-        icon4 = QIcon()
-        icon4.addFile(u":/material_icons/material_icons/png/file-table-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_browse_pushButton.setIcon(icon4)
-
-        self.horizontalLayout_4.addWidget(self.plot_browse_pushButton)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
-
-        self.horizontalLayout_6 = QHBoxLayout()
-        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.plot_lineEdit = QLineEdit(self.dataAnalysis_groupBox)
         self.plot_lineEdit.setObjectName(u"plot_lineEdit")
         sizePolicy7 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -371,19 +365,19 @@ class Ui_MainWindow(object):
         self.plot_lineEdit.setSizePolicy(sizePolicy7)
         self.plot_lineEdit.setStyleSheet(u"")
 
-        self.horizontalLayout_6.addWidget(self.plot_lineEdit)
+        self.horizontalLayout_4.addWidget(self.plot_lineEdit)
 
         self.plot_pushButton = QPushButton(self.dataAnalysis_groupBox)
         self.plot_pushButton.setObjectName(u"plot_pushButton")
         self.plot_pushButton.setEnabled(False)
-        icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_pushButton.setIcon(icon5)
+        icon4 = QIcon()
+        icon4.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_pushButton.setIcon(icon4)
 
-        self.horizontalLayout_6.addWidget(self.plot_pushButton)
+        self.horizontalLayout_4.addWidget(self.plot_pushButton)
 
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
 
 
         self.verticalLayout.addWidget(self.dataAnalysis_groupBox)
@@ -395,25 +389,6 @@ class Ui_MainWindow(object):
         sizePolicy8.setVerticalStretch(0)
         sizePolicy8.setHeightForWidth(self.variablesTabWidget.sizePolicy().hasHeightForWidth())
         self.variablesTabWidget.setSizePolicy(sizePolicy8)
-        self.crystalInfoTab = QWidget()
-        self.crystalInfoTab.setObjectName(u"crystalInfoTab")
-        self.verticalLayout_5 = QVBoxLayout(self.crystalInfoTab)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
-        self.variablesTabWidget.addTab(self.crystalInfoTab, "")
-        self.visualizationTab = QWidget()
-        self.visualizationTab.setObjectName(u"visualizationTab")
-        self.verticalLayout_6 = QVBoxLayout(self.visualizationTab)
-        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
-        self.saveframe_pushButton = QPushButton(self.visualizationTab)
-        self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
-        self.saveframe_pushButton.setEnabled(False)
-        icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.saveframe_pushButton.setIcon(icon6)
-
-        self.verticalLayout_6.addWidget(self.saveframe_pushButton)
-
-        self.variablesTabWidget.addTab(self.visualizationTab, "")
         self.variablesTab = QWidget()
         self.variablesTab.setObjectName(u"variablesTab")
         self.verticalLayout_4 = QVBoxLayout(self.variablesTab)
@@ -459,18 +434,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.xyz_fname_comboBox)
 
-        self.simulationVariablesSelectButton = QPushButton(self.simulationVariablesWidget)
-        self.simulationVariablesSelectButton.setObjectName(u"simulationVariablesSelectButton")
-        self.simulationVariablesSelectButton.setEnabled(False)
-        sizePolicy10 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy10.setHorizontalStretch(0)
-        sizePolicy10.setVerticalStretch(1)
-        sizePolicy10.setHeightForWidth(self.simulationVariablesSelectButton.sizePolicy().hasHeightForWidth())
-        self.simulationVariablesSelectButton.setSizePolicy(sizePolicy10)
-        self.simulationVariablesSelectButton.setMinimumSize(QSize(200, 0))
-
-        self.verticalLayout_3.addWidget(self.simulationVariablesSelectButton)
-
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.verticalLayout_3.addItem(self.verticalSpacer)
@@ -479,8 +442,29 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.simulationVariablesWidget)
 
         self.variablesTabWidget.addTab(self.variablesTab, "")
+        self.visualizationTab = QWidget()
+        self.visualizationTab.setObjectName(u"visualizationTab")
+        self.verticalLayout_6 = QVBoxLayout(self.visualizationTab)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.saveframe_pushButton = QPushButton(self.visualizationTab)
+        self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
+        self.saveframe_pushButton.setEnabled(False)
+        icon5 = QIcon()
+        icon5.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.saveframe_pushButton.setIcon(icon5)
+
+        self.verticalLayout_6.addWidget(self.saveframe_pushButton)
+
+        self.variablesTabWidget.addTab(self.visualizationTab, "")
 
         self.verticalLayout.addWidget(self.variablesTabWidget)
+
+        self.crystalInfo_groupBox = QGroupBox(self.frame)
+        self.crystalInfo_groupBox.setObjectName(u"crystalInfo_groupBox")
+        self.verticalLayout_8 = QVBoxLayout(self.crystalInfo_groupBox)
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+
+        self.verticalLayout.addWidget(self.crystalInfo_groupBox)
 
 
         self.gridLayout.addWidget(self.frame, 1, 0, 4, 2)
@@ -497,7 +481,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1280, 43))
+        self.menuBar.setGeometry(QRect(0, 0, 1280, 24))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuView = QMenu(self.menuBar)
@@ -508,6 +492,9 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuView.menuAction())
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionImport_CSV_for_Plotting)
+        self.menuFile.addAction(self.actionImport_Summary_File)
+        self.menuFile.addAction(self.actionRender)
+        self.menuView.addAction(self.actionInput_Directory)
         self.menuView.addAction(self.actionResults_Directory)
         self.menuView.addAction(self.actionPlotting_Dialog)
 
@@ -594,6 +581,9 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(shortcut)
         self.actionPlotting_Dialog.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+P", None))
 #endif // QT_CONFIG(shortcut)
+        self.actionInput_Directory.setText(QCoreApplication.translate("MainWindow", u"Input Directory", None))
+        self.actionImport_Summary_File.setText(QCoreApplication.translate("MainWindow", u"Import Summary File", None))
+        self.actionRender.setText(QCoreApplication.translate("MainWindow", u"Render", None))
         self.playPauseButton.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
 #if QT_CONFIG(shortcut)
         self.playPauseButton.setShortcut(QCoreApplication.translate("MainWindow", u"Space", None))
@@ -609,25 +599,17 @@ class Ui_MainWindow(object):
         self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.plot_label.setText(QCoreApplication.translate("MainWindow", u"Plotting", None))
 #if QT_CONFIG(tooltip)
-        self.plot_browse_pushButton.setToolTip("")
-#endif // QT_CONFIG(tooltip)
-#if QT_CONFIG(statustip)
-        self.plot_browse_pushButton.setStatusTip("")
-#endif // QT_CONFIG(statustip)
-        self.plot_browse_pushButton.setText(QCoreApplication.translate("MainWindow", u"Import CSV for Plotting", None))
-#if QT_CONFIG(tooltip)
         self.plot_pushButton.setToolTip("")
 #endif // QT_CONFIG(tooltip)
         self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
-        self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.crystalInfoTab), QCoreApplication.translate("MainWindow", u"Crystal Properties", None))
+        self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
+        self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.variablesTab), QCoreApplication.translate("MainWindow", u"Variables", None))
 #if QT_CONFIG(statustip)
         self.saveframe_pushButton.setStatusTip("")
 #endif // QT_CONFIG(statustip)
         self.saveframe_pushButton.setText(QCoreApplication.translate("MainWindow", u"Save Frame", None))
         self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.visualizationTab), QCoreApplication.translate("MainWindow", u"Visualization", None))
-        self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
-        self.simulationVariablesSelectButton.setText(QCoreApplication.translate("MainWindow", u"Select Summary File", None))
-        self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.variablesTab), QCoreApplication.translate("MainWindow", u"Variables", None))
+        self.crystalInfo_groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Crystal Information", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuView.setTitle(QCoreApplication.translate("MainWindow", u"View", None))
     # retranslateUi

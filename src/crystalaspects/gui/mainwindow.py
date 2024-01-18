@@ -135,7 +135,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.crystalInfoWidget = CrystalInfoWidget(self)
         self.crystalInfoWidget.setEnabled(False)
-        self.crystalInfoTab.layout().addWidget(self.crystalInfoWidget)
+        self.crystalInfo_groupBox.layout().addWidget(self.crystalInfoWidget)
 
         self.crystal_info = CrystalInfo()
         self.crystalInfoChanged.connect(self.crystalInfoWidget.update)
@@ -153,17 +153,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
+        self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
 
     def setup_menubar_connections(self):
         self.actionImport.triggered.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
+        
+        self.actionInput_Directory.triggered.connect(
+            lambda: open_directory(path=self.input_folder)
+            if self.input_folder is not None
+            else None
+        )
 
     def setup_keyboard_shortcuts(self):
         # Import XYZ file with Ctrl+I
-        import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
-        import_xyz_shortcut.activated.connect(
+        self.import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
+        self.import_xyz_shortcut.activated.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
 
@@ -171,11 +178,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.view_results = QShortcut(QKeySequence("Ctrl+O"), self)
         self.view_results.activated.connect(
             lambda: open_directory(path=self.output_folder)
-            if self.output_folder
+            if self.output_folder is not None
             else None
         )
-
-        pass
 
     def apply_style(self, theme_main, theme_colour, density=-1):
         extra = {
@@ -210,7 +215,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #    lambda: self.read_summary(summary_file=None)
         # )
 
-        self.plot_browse_pushButton.clicked.connect(self.browse_plot_csv)
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
         self.plot_pushButton.clicked.connect(self.replotting_called)
@@ -269,6 +273,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_output_folder(self, value):
         self.output_folder = Path(value)
+        self.actionResults_Directory.setEnabled(True)
         self.view_results_pushButton.setEnabled(True)
 
     def import_and_visualise_xyz(self, folder=None):
@@ -307,6 +312,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_files = xyz_files
         self.input_folder = folder
         self.batch_lineEdit.setText(str(self.input_folder))
+        self.actionInput_Directory.setEnabled(True)
 
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
@@ -316,6 +322,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     def set_visualiser(self):
+        if self.xyz_files is None:
+            self.log_message(f"No XYZ files to visualise", "warning")
+            return
         n_xyz = len(self.xyz_files)
         if n_xyz == 0:
             self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
@@ -330,6 +339,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
             self.update_XYZ_info(self.openglwidget.xyz)
             self.set_batch_type()
+            self.variablesTabWidget.setCurrentIndex(0)
 
     def init_opengl(self, xyz_file_list):
         from pathlib import Path
@@ -350,6 +360,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_id_label.setEnabled(True)
         self.xyz_spinBox.setEnabled(True)
         self.saveframe_pushButton.setEnabled(True)
+        self.actionRender.setEnabled(True)
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()
@@ -761,7 +772,7 @@ def main():
     # sys.argv += ['--style', 'Material.Light']
     QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     app = QtWidgets.QApplication(sys.argv)
-    # app.setStyle("Fusion")
+    app.setStyle("Fusion")
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec())
