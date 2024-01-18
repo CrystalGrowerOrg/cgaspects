@@ -211,9 +211,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
 
-        # self.simulationVariablesSelectButton.clicked.connect(
-        #    lambda: self.read_summary(summary_file=None)
-        # )
+        self.actionImport_Summary_File.triggered.connect(
+            lambda: self.read_summary(summary_file=None)
+        )
 
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
@@ -359,8 +359,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_fname_comboBox.setEnabled(True)
         self.xyz_id_label.setEnabled(True)
         self.xyz_spinBox.setEnabled(True)
-        self.saveframe_pushButton.setEnabled(True)
-        self.actionRender.setEnabled(True)
+        
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()
@@ -387,6 +386,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         try:
             self.openglwidget.initGeometry()
+            self.actionRender.setEnabled(True)
+            self.saveframe_pushButton.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
@@ -481,6 +482,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         folder = self.input_folder
         self.aspect_ratio_pushButton.setEnabled(False)
         self.growth_rate_pushButton.setEnabled(False)
+        self.actionImport_Summary_File.setEnabled(False)
         self.summ_df = None
         try:
             if Path(folder).is_dir():
@@ -490,10 +492,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.growth_rate_pushButton.setEnabled(True)
                     self.growthrate.set_folder(folder=folder)
                     self.growthrate.set_information(information=information)
+                    self.actionImport_Summary_File.setEnabled(True)
                 if information.directions:
                     self.aspect_ratio_pushButton.setEnabled(True)
                     self.aspectratio.set_folder(folder=folder)
                     self.aspectratio.set_information(information=information)
+                    self.actionImport_Summary_File.setEnabled(True)
                 if not (information.directions or information.size_files):
                     self.log_message(information, "error")
                     raise FileNotFoundError(
@@ -502,7 +506,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if information.summary_file:
                     self.read_summary(summary_file=information.summary_file)
                 self.input_folder = Path(folder)
-
             else:
                 raise NotADirectoryError(f"{folder} is not a valid directory.")
 
