@@ -55,6 +55,7 @@ class AnalysisOptionsDialog(QDialog):
 
         self.combo_boxes: list[QComboBox] = []
         self.directions = directions
+        self.checked_directions = None
         direction_layout = QHBoxLayout()
 
         for i in range(3):
