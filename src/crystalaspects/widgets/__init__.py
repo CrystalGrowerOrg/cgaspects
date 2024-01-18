@@ -6,8 +6,8 @@ from .visualization_settings_widget import (
 )
 
 __all__ = [
+    LabelledDoubleSlider,
     SimulationVariableSlider,
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
-    LabelledDoubleSlider,
 ]

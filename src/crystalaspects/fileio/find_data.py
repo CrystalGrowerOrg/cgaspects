@@ -12,12 +12,11 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 logger = logging.getLogger("CA:FileIO")
 
 
-def read_crystals(xyz_folderpath=None):
-
+def locate_xyz_files(xyz_folderpath):
     # Check if the folder selection was canceled or empty and handle appropriately
-    if not xyz_folderpath:
+    if xyz_folderpath is None:
         logger.debug("Folder selection was canceled or no folder was selected.")
-        return (None, None)
+        return None
 
     xyz_folderpath = Path(xyz_folderpath)
 
@@ -50,10 +49,10 @@ def read_crystals(xyz_folderpath=None):
         )
         msg.setWindowTitle("Error! No XYZ files detected.")
         msg.exec()
-        return (None, None)
+        return None
 
     logger.debug("%s .XYZ Files Found", len(crystal_xyz_list))
-    return (xyz_folderpath, crystal_xyz_list)
+    return crystal_xyz_list
 
 
 def create_aspects_folder(path):

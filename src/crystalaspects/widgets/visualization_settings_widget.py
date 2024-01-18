@@ -8,12 +8,46 @@ from PySide6.QtWidgets import (
     QComboBox,
     QToolButton,
     QColorDialog,
+    QCheckBox,
 )
 
 from PySide6.QtGui import QPixmap, QIcon, QColor
 
 
 MARGINS = (5, 5, 5, 5)
+
+
+class LabelledCheckBox(QWidget):
+    valueChanged = Signal()
+
+    def __init__(self, label, state=False, parent=None):
+        super().__init__(parent)
+
+        self.label = QLabel(label)
+
+        self.checkBox = QCheckBox()
+        self.setCheckState(state)
+
+        self.checkBox.stateChanged.connect(lambda x: self.valueChanged.emit())
+
+        # Layout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(*MARGINS)
+        layout.addWidget(self.label)
+        layout.addWidget(self.checkBox)
+        self.setLayout(layout)
+
+    @property
+    def value(self):
+        return self.checkState() == Qt.CheckState.Checked
+
+    def setCheckState(self, value):
+        self.checkBox.setCheckState(
+            Qt.CheckState.Checked if value else Qt.CheckState.Unchecked
+        )
+
+    def checkState(self):
+        return self.checkBox.checkState()
 
 
 class LabelledComboBox(QWidget):

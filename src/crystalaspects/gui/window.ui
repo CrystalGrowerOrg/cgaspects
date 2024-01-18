@@ -9,15 +9,9 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1400</width>
-    <height>876</height>
+    <width>1280</width>
+    <height>640</height>
    </rect>
-  </property>
-  <property name="font">
-   <font>
-    <family>Arial</family>
-    <pointsize>10</pointsize>
-   </font>
   </property>
   <property name="windowTitle">
    <string>CrystalAspects</string>
@@ -39,6 +33,12 @@
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
       </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
       <property name="widgetResizable">
        <bool>true</bool>
       </property>
@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1055</width>
-         <height>825</height>
+         <width>905</width>
+         <height>546</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -60,7 +60,20 @@
             <verstretch>5</verstretch>
            </sizepolicy>
           </property>
-          <layout class="QGridLayout" name="gl_vLayout" rowstretch="0"/>
+          <layout class="QGridLayout" name="gl_vLayout" rowstretch="0">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+          </layout>
          </widget>
         </item>
         <item row="1" column="0" colspan="2">
@@ -75,6 +88,18 @@
            <enum>QFrame::Raised</enum>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
            <item>
             <widget class="QSlider" name="frame_slider">
              <property name="sizePolicy">
@@ -220,6 +245,9 @@
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <property name="sizeConstraint">
+          <enum>QLayout::SetFixedSize</enum>
+         </property>
          <item>
           <widget class="QPushButton" name="import_pushButton">
            <property name="sizePolicy">
@@ -233,12 +261,6 @@
              <width>0</width>
              <height>0</height>
             </size>
-           </property>
-           <property name="font">
-            <font>
-             <family>Arial</family>
-             <pointsize>12</pointsize>
-            </font>
            </property>
            <property name="text">
             <string>   Import</string>
@@ -272,12 +294,6 @@
              <height>0</height>
             </size>
            </property>
-           <property name="font">
-            <font>
-             <family>Arial</family>
-             <pointsize>12</pointsize>
-            </font>
-           </property>
            <property name="text">
             <string>   View Results Directory</string>
            </property>
@@ -300,6 +316,12 @@
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
            <widget class="QLabel" name="location_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
              <string>Location</string>
             </property>
@@ -315,13 +337,6 @@
             </property>
             <property name="styleSheet">
              <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="calculate_label">
-            <property name="text">
-             <string>Calculate</string>
             </property>
            </widget>
           </item>
@@ -440,321 +455,166 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="simulationVariablesGroupBox">
-         <property name="title">
-          <string>Simulation Variables</string>
+        <widget class="QTabWidget" name="variablesTabWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <item>
-           <widget class="QFrame" name="xyzFrame">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
-            </property>
-            <layout class="QHBoxLayout" name="horizontalLayout">
-             <item>
-              <widget class="QLabel" name="xyz_id_label">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="text">
-                <string>XYZ ID: </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="xyz_spinBox">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="xyz_fname_comboBox">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>1</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="font">
-             <font>
-              <family>Arial</family>
-              <pointsize>10</pointsize>
-             </font>
-            </property>
-            <property name="styleSheet">
-             <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="simulationVariablesSelectButton">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>1</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>200</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="font">
-             <font>
-              <family>Arial</family>
-              <pointsize>10</pointsize>
-              <italic>false</italic>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>Select Summary File</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox">
-         <property name="title">
-          <string>Crystal Information</string>
+         <property name="currentIndex">
+          <number>1</number>
          </property>
-         <layout class="QGridLayout" name="gridLayout_4">
-          <item row="0" column="0">
-           <layout class="QFormLayout" name="crystal_info_formLayout">
-            <property name="fieldGrowthPolicy">
-             <enum>QFormLayout::ExpandingFieldsGrow</enum>
-            </property>
-            <property name="labelAlignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-            <property name="formAlignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-            </property>
-            <property name="horizontalSpacing">
-             <number>-1</number>
-            </property>
-            <property name="verticalSpacing">
-             <number>7</number>
-            </property>
-            <property name="leftMargin">
-             <number>10</number>
-            </property>
-            <property name="rightMargin">
-             <number>10</number>
-            </property>
-            <item row="8" column="0">
-             <widget class="QLabel" name="label_9">
-              <property name="toolTip">
-               <string comment="Unit cell angles of the crystal system" extracomment="Unit cell angles of the crystal system"/>
+         <widget class="QWidget" name="crystalInfoTab">
+          <attribute name="title">
+           <string>Crystal Properties</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_5"/>
+         </widget>
+         <widget class="QWidget" name="visualizationTab">
+          <attribute name="title">
+           <string>Visualization</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QPushButton" name="saveframe_pushButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="statusTip">
+              <string comment="Save Frame" extracomment="Save Frame"/>
+             </property>
+             <property name="text">
+              <string>Save Frame</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../../res/qticons.qrc">
+               <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="variablesTab">
+          <attribute name="title">
+           <string>Variables</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <item>
+            <widget class="QWidget" name="simulationVariablesWidget" native="true">
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <property name="leftMargin">
+               <number>0</number>
               </property>
-              <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Unit cell angles (&lt;span style=&quot; font-weight:600;&quot;&gt;α β γ&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <property name="topMargin">
+               <number>0</number>
               </property>
-             </widget>
-            </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_8">
-              <property name="toolTip">
-               <string comment="Unit cell dimensions of the crystal system" extracomment="Unit cell dimensions of the crystal system"/>
+              <property name="rightMargin">
+               <number>0</number>
               </property>
-              <property name="text">
-               <string>Unit cell lengths(&lt;b&gt;a b c&lt;/b&gt;)</string>
+              <property name="bottomMargin">
+               <number>0</number>
               </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_7">
-              <property name="toolTip">
-               <string comment="Crystallographic space group of the crystal" extracomment="Crystallographic space group of the crystal"/>
-              </property>
-              <property name="text">
-               <string>Space Group</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_6">
-              <property name="toolTip">
-               <string comment="Normalised volume ratio of the crystal" extracomment="Normalised volume ratio of the crystal"/>
-              </property>
-              <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Volume (&lt;span style=&quot; font-weight:600;&quot;&gt;nm&lt;/span&gt;&lt;span style=&quot; font-weight:600; vertical-align:super;&quot;&gt;3&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="toolTip">
-               <string comment="Normalised surface area ratio of the crystal" extracomment="Normalised surface area ratio of the crystal"/>
-              </property>
-              <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Surface Area (&lt;span style=&quot; font-weight:600;&quot;&gt;nm&lt;/span&gt;&lt;span style=&quot; font-weight:600; vertical-align:super;&quot;&gt;2&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="toolTip">
-               <string comment="Surface Area : Volume ratio of the crystal" extracomment="Surface Area : Volume ratio of the crystal"/>
-              </property>
-              <property name="text">
-               <string>Surface Area : Volume</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="toolTip">
-               <string comment="Zingg shape class for crystal" extracomment="Zingg shape class for crystal"/>
-              </property>
-              <property name="text">
-               <string>General Shape</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_2">
-              <property name="toolTip">
-               <string comment="Medium : Long aspect ratio of the crystal shape" extracomment="Medium : Long aspect ratio of the crystal shape"/>
-              </property>
-              <property name="text">
-               <string>Aspect Ratio M:L</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label">
-              <property name="toolTip">
-               <string comment="Small : Medium aspect ratio of the crystal shape" extracomment="Small : Medium aspect ratio of the crystal shape"/>
-              </property>
-              <property name="text">
-               <string>Aspect Ratio S:M</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QLabel" name="aspect1_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLabel" name="aspect2_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="shape_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QLabel" name="savol_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QLabel" name="sa_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QLabel" name="vol_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QLabel" name="sg_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1">
-             <widget class="QLabel" name="uc_lengths_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="1">
-             <widget class="QLabel" name="uc_angles_label">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="visualizationGroupBox">
-         <property name="title">
-          <string>Visualisation Settings</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_6">
-          <item>
-           <widget class="QPushButton" name="saveframe_pushButton">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="statusTip">
-             <string comment="Save Frame" extracomment="Save Frame"/>
-            </property>
-            <property name="text">
-             <string>Save Frame</string>
-            </property>
-            <property name="icon">
-             <iconset resource="../../../res/qticons.qrc">
-              <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
-            </property>
-           </widget>
-          </item>
-         </layout>
+              <item>
+               <widget class="QWidget" name="xyzWidget" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout">
+                 <item>
+                  <widget class="QLabel" name="xyz_id_label">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="text">
+                    <string>XYZ ID: </string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="xyz_spinBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="xyz_fname_comboBox">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>1</horstretch>
+                  <verstretch>1</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true"/>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="simulationVariablesSelectButton">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>1</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>200</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Select Summary File</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </widget>
        </item>
       </layout>
@@ -773,6 +633,32 @@
    <property name="cursor">
     <cursorShape>ArrowCursor</cursorShape>
    </property>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>43</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionImport"/>
+    <addaction name="actionImport_CSV_for_Plotting"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionResults_Directory"/>
+    <addaction name="actionPlotting_Dialog"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuView"/>
   </widget>
   <action name="actionOpen_Simulations">
    <property name="text">
@@ -1060,6 +946,38 @@
   <action name="action3_3">
    <property name="text">
     <string>3</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>Import</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionResults_Directory">
+   <property name="text">
+    <string>Results Directory</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
+   </property>
+  </action>
+  <action name="actionImport_CSV_for_Plotting">
+   <property name="text">
+    <string>Import CSV for Plotting</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+  </action>
+  <action name="actionPlotting_Dialog">
+   <property name="text">
+    <string>Plot</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+P</string>
    </property>
   </action>
  </widget>
