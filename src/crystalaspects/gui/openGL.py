@@ -76,7 +76,7 @@ class VisualisationWidget(QOpenGLWidget):
 
     def pass_XYZ(self, xyz):
         self.xyz = xyz
-        logger.info("XYZ cordinates passed on OpenGL widget")
+        logger.debug("XYZ coordinates passed on OpenGL widget")
 
     def pass_XYZ_list(self, xyz_path_list):
         self.xyz_path_list = xyz_path_list

@@ -10,7 +10,7 @@ import pandas as pd
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QThreadPool, Signal, QSignalBlocker, QTimer
 
-from PySide6.QtGui import QKeySequence, QShortcut, Qt
+from PySide6.QtGui import QKeySequence, QShortcut, Qt, QIcon
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
@@ -93,7 +93,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.frame_timer.timeout.connect(self.next_frame)
         self.frame = 0
         self.frame_list = []
+        self.playingState = False
+        self.playingLoop = True
+        self.playIcon = QIcon(":/material_icons/material_icons/png/play-custom.png")
+        self.pauseIcon = QIcon(":/material_icons/material_icons/png/pause-custom.png")
         self.fps = 60
+        self.frame_slider.valueChanged.connect(self.update_movie)
+        self.frame_spinBox.valueChanged.connect(self.update_movie)
+        self.playPauseButton.clicked.connect(self.play_movie)
 
         self.worker_signals = GUIWorkerSignals()
         self.aspectratio = AspectRatio(signals=self.worker_signals)
@@ -351,14 +358,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget.pass_XYZ(self.xyz)
 
         if self.movie:
+            self.playingState = False
+            self.frame_timer.stop()
             self.movie_controls_frame.show()
             self.frame_list = self.movie.keys()
+            self.frame = 0
             logger.debug("Frames: %s", self.frame_list)
 
+            num_frames = len(self.frame_list)
+
             self.frame_slider.setMinimum(0)
-            self.frame_slider.setMaximum(len(self.frame_list))
-            self.frame_slider.valueChanged.connect(self.update_movie)
-            self.play_button.clicked.connect(self.play_movie)
+            self.frame_slider.setMaximum(num_frames - 1)
+
+            self.frame_spinBox.setMinimum(0)
+            self.frame_spinBox.setMaximum(num_frames - 1)
+            self.frameMaxLabel.setText(f"{num_frames - 1}")
 
         try:
             self.openglwidget.initGeometry()
@@ -389,19 +403,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.update_frame(frame)
 
     def next_frame(self):
-        if self.frame < len(self.frame_list) - 1:
-            self.frame += 1
+        num_frames = len(self.frame_list)
+
+        if self.frame < num_frames:
             self.update_frame(self.frame)
             self.frame_slider.setValue(self.frame)
+            self.frame_spinBox.setValue(self.frame)
+            self.frame += 1
+            if self.playingLoop and self.frame >= num_frames:
+                self.frame = 0
         else:
+            self.frame = 0
             self.frame_timer.stop()  # Stop the timer if we've reached the last frame
-            self.frame = 0  # Reset the index if you want to replay the movie next time
+            self.frame_slider.setValue(self.frame)
+            self.frame_spinBox.setValue(self.frame)
 
     def play_movie(self):
         if not self.frame_list:
             return
 
-        self.frame_timer.start(1000 // self.fps)
+        if self.playingState:
+            # pause playing
+            self.playPauseButton.setIcon(self.playIcon)
+            self.frame_timer.stop()
+            self.playingState = False
+        else:
+            # play movie
+            self.playPauseButton.setIcon(self.pauseIcon)
+            # make sure we don't play from after the end
+            if self.frame >= len(self.frame_list):
+                self.frame = 0
+
+            self.frame_timer.start(1000 // self.fps)
+            self.playingState = True
 
     def close_application(self):
         self.log_message("Closing Application", "info")
