@@ -838,7 +838,7 @@
     <string>Import</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+O</string>
+    <string>Ctrl+I</string>
    </property>
   </action>
   <action name="actionResults_Directory">
@@ -857,7 +857,7 @@
     <string>Import CSV for Plotting</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+O</string>
+    <string>Ctrl+Shift+I</string>
    </property>
   </action>
   <action name="actionPlotting_Dialog">
@@ -877,6 +877,9 @@
    </property>
    <property name="text">
     <string>Input Directory</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
   <action name="actionImport_Summary_File">
