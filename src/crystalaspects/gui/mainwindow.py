@@ -8,9 +8,9 @@ from natsort import natsorted
 from collections import defaultdict
 import pandas as pd
 from PySide6 import QtWidgets
-from PySide6.QtCore import QObject, QThreadPool, Signal, QSignalBlocker
+from PySide6.QtCore import QObject, QThreadPool, Signal, QSignalBlocker, QTimer
 
-from PySide6.QtGui import QAction, QKeySequence, QShortcut, Qt
+from PySide6.QtGui import QKeySequence, QShortcut, Qt
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
@@ -34,7 +34,7 @@ from crystalaspects.gui.crystal_info import CrystalInfo
 # Project Module imports
 from crystalaspects.gui.load_ui import Ui_MainWindow
 from crystalaspects.gui.dialogs import PlottingDialog, CrystalInfoWidget
-from crystalaspects.widgets import (
+from crystalaspects.gui.widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
 )
@@ -87,6 +87,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.welcome_message()
         self.setup_button_connections()
         self.setup_menubar_connections()
+
+        # movie timer
+        self.frame_timer = QTimer()
+        self.frame_timer.timeout.connect(self.next_frame)
+        self.frame = 0
+        self.frame_list = []
+        self.fps = 60
 
         self.worker_signals = GUIWorkerSignals()
         self.aspectratio = AspectRatio(signals=self.worker_signals)
@@ -200,8 +207,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
         self.plot_pushButton.clicked.connect(self.replotting_called)
-
-        self.play_button.clicked.connect(self.play_movie)
 
     def set_progressbar(self):
         self.set_message("Started Calculations...")
@@ -347,17 +352,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.movie:
             self.movie_controls_frame.show()
-            self.frame = 0
             self.frame_list = self.movie.keys()
             logger.debug("Frames: %s", self.frame_list)
 
-            self.frame_spinBox.setMinimum(0)
-            self.frame_spinBox.setMaximum(len(self.frame_list))
             self.frame_slider.setMinimum(0)
             self.frame_slider.setMaximum(len(self.frame_list))
-            self.frame_spinBox.valueChanged.connect(self.update_movie)
             self.frame_slider.valueChanged.connect(self.update_movie)
-            self.play_button.clicked.connect(lambda: self.play_movie(self.frame_list))
+            self.play_button.clicked.connect(self.play_movie)
 
         try:
             self.openglwidget.initGeometry()
@@ -386,15 +387,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_movie(self, frame):
         if frame != self.frame:
             self.update_frame(frame)
-            self.frame_spinBox.setValue(frame)
-            self.frame_slider.setValue(frame)
 
-    def play_movie(self, frames):
-        for frame in range(frames):
-            self.update_frame(frame)
-            self.current_frame_comboBox.setCurrentIndex(frame)
-            self.current_frame_spinBox.setValue(frame)
-            self.frame_slider.setValue(frame)
+    def next_frame(self):
+        if self.frame < len(self.frame_list) - 1:
+            self.frame += 1
+            self.update_frame(self.frame)
+            self.frame_slider.setValue(self.frame)
+        else:
+            self.frame_timer.stop()  # Stop the timer if we've reached the last frame
+            self.frame = 0  # Reset the index if you want to replay the movie next time
+
+    def play_movie(self):
+        if not self.frame_list:
+            return
+
+        self.frame_timer.start(1000 // self.fps)
 
     def close_application(self):
         self.log_message("Closing Application", "info")
@@ -670,9 +677,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.crystalInfoChanged.emit(self.crystal_info)
 
     def update_frame(self, frame):
+        self.frame = frame
         self.xyz = self.movie[frame]
-        self.update_XYZ()
         self.openglwidget.pass_XYZ(self.xyz)
+        self.update_XYZ_info(self.openglwidget.xyz)
         try:
             self.openglwidget.initGeometry()
         except AttributeError:
