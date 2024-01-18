@@ -1,4 +1,3 @@
-import ctypes
 import logging
 
 import numpy as np
@@ -19,7 +18,7 @@ from crystalaspects.gui.point_cloud_renderer import (
 from crystalaspects.gui.axes_renderer import AxesRenderer
 
 from crystalaspects.gui.camera import Camera
-from crystalaspects.widgets.overlay_widget import TransparentOverlay
+from crystalaspects.gui.widgets.overlay_widget import TransparentOverlay
 
 logger = logging.getLogger("CA:OpenGL")
 
