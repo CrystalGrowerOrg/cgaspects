@@ -68,8 +68,8 @@ class VisualisationWidget(QOpenGLWidget):
             "Atom/Molecule Number": 1,
             "Layer": 2,
             "Single Colour": 3,
-            "Site Number": 4,
-            "Particle Energy": 5,
+            "Site Number": 6,
+            "Particle Energy": 7,
         }
 
         self.availableColumns = {}
@@ -243,13 +243,26 @@ class VisualisationWidget(QOpenGLWidget):
             pcd_colors = None
 
             if color_axis >= 0:
+                
                 if color_axis == 3:
                     axis_vis = np.arange(0, xyz.shape[0], dtype=np.float32)
                 else:
                     axis_vis = xyz[:, color_axis]
 
+                if color_axis == 2:
+                    min_val = 1
+                    max_val = max_layers
+                else:
+                    min_val = np.nanmin(axis_vis)
+                    max_val = np.nanmax(axis_vis)
+                
+                # Avoid division by zero in case all values are the same
+                range_val = max_val - min_val if max_val != min_val else 1
+                
+                normalized_axis_vis = (axis_vis - min_val) / range_val
+
                 pcd_colors = self.availableColormaps[self.colormap](
-                    axis_vis / max_layers
+                    normalized_axis_vis
                 )[:, 0:3]
 
             return (pcd_points, pcd_colors)
