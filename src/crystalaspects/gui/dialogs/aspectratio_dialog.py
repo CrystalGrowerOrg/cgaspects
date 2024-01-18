@@ -2,8 +2,18 @@ import logging
 from collections import namedtuple
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QHBoxLayout, QScrollArea, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+    QListWidget,
+    QListWidgetItem,
+)
 
 logger = logging.getLogger("CA:AspectDaliog")
 
@@ -40,17 +50,11 @@ class AnalysisOptionsDialog(QDialog):
         layout.addWidget(self.aspect_ratio_checkbox)
         layout.addWidget(self.cda_checkbox)
 
-        self.checkboxes: list[QCheckBox] = []
+        self.listWidget = QListWidget(parent=self)
+        layout.addWidget(self.listWidget)
+
         self.combo_boxes: list[QComboBox] = []
-        self.checked_directions: list[str] = []
-
-        for direction in directions:
-            checkbox = QCheckBox(direction)
-            # Initially disable all direction checkboxes
-            checkbox.setEnabled(False)
-            layout.addWidget(checkbox)
-            self.checkboxes.append(checkbox)
-
+        self.directions = directions
         direction_layout = QHBoxLayout()
 
         for i in range(3):
@@ -71,49 +75,39 @@ class AnalysisOptionsDialog(QDialog):
 
         self.cda_checkbox.stateChanged.connect(self.enable_cda)
 
-        for checkbox in self.checkboxes:
-            checkbox.stateChanged.connect(self.update_checked_directions)
+        self.listWidget.itemChanged.connect(lambda x: self.update_checked_directions())
 
     def enable_cda(self, state):
         state = Qt.CheckState(state)
         if state == Qt.Checked:
-            for checkbox in self.checkboxes:
-                checkbox.setEnabled(True)
-                checkbox.setCheckState(Qt.Unchecked)
+            for direction in self.directions:
+                item = QListWidgetItem(direction)
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Unchecked)
+                self.listWidget.addItem(item)
+
             for combo_box in self.combo_boxes:
                 combo_box.setEnabled(True)
-            self.checked_directions = []
 
         if state == Qt.Unchecked:
-            for checkbox in self.checkboxes:
-                checkbox.setEnabled(False)
-                checkbox.setCheckState(Qt.Unchecked)
+            self.listWidget.clear()
             for combo_box in self.combo_boxes:
                 combo_box.setEnabled(False)
-            self.checked_directions = []
-
 
     def update_checked_directions(self):
-        for checkbox in self.checkboxes:
-            if checkbox.isChecked():
-                # Add the item to all combo boxes if it's not already there
-                for combo_box in self.combo_boxes:
-                    if checkbox.text() not in [combo_box.itemText(i) for i in range(combo_box.count())]:
-                        combo_box.addItem(checkbox.text())
-            else:
-                # Remove the item from all combo boxes if it exists
-                for combo_box in self.combo_boxes:
-                    index = combo_box.findText(checkbox.text())
-                    if index >= 0:
-                        combo_box.removeItem(index)
+        for combo_box in self.combo_boxes:
+            combo_box.clear()
 
-        self.checked_directions = [
-            checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()
-        ]
+        self.checked_directions = []
+        for index in range(self.listWidget.count()):
+            item = self.listWidget.item(index)
+            if item.checkState() == Qt.Checked:
+                self.checked_directions.append(item.text())
 
+        for combo_box in self.combo_boxes:
+            combo_box.addItems(self.checked_directions)
 
     def update_combo_boxes(self):
-
         for combo_box in self.combo_boxes:
             if combo_box.count() > 0:
                 combo_box.clear()
