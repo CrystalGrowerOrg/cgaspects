@@ -28,6 +28,7 @@ class WorkerSignals(QObject):
     progress
         int indicating % progress
     """
+
     started = Signal()
     finished = Signal()
     error = Signal(tuple)
@@ -73,12 +74,17 @@ class WorkerAspectRatios(QRunnable):
         summary_file = self.information.summary_file
         folders = self.information.folders
 
-        if not (self.options.selected_ar 
-        or (self.options.selected_cda
-            and self.options.checked_directions
-            and self.options.selected_directions)
+        if not (
+            self.options.selected_ar
+            or (
+                self.options.selected_cda
+                and self.options.checked_directions
+                and self.options.selected_directions
+            )
         ):
-            logger.error("Condtions not met: AR AND/OR CDA (with checked AND selected directions)")
+            logger.error(
+                "Condtions not met: AR AND/OR CDA (with checked AND selected directions)"
+            )
             return
 
         if self.options.selected_ar:

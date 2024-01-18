@@ -10,6 +10,7 @@ class TransparentOverlay(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.label = QLabel("", parent=self)
         self.label.setAlignment(Qt.AlignLeft)
+        self.setVisible(False)
 
     def setText(self, text):
         self.label.setText(text)
