@@ -142,15 +142,26 @@ class CrystalShape:
         based on the x, y and z directions
         """
 
+        # Perform PCA to find the principal components
+        pca = PCA(n_components=3)
+        pca.fit(self.xyz)
+
+        # Align the principal component with the x-axis
+        transformed_xyz = pca.transform(self.xyz)
+
+        # Note: PCA.transform() aligns the first principal component
+        # with the x-axis, second with y-axis, and third with z-axis.
+
         # Calculate min, max, and lengths for x, y, z coordinates
-        mins = np.min(self.xyz, axis=0)
-        maxs = np.max(self.xyz, axis=0)
+        # based on the transformed (rotated) coordinates
+        mins = np.min(transformed_xyz, axis=0)
+        maxs = np.max(transformed_xyz, axis=0)
         lengths = maxs - mins
 
         # Calculate aspect ratios
         sorted_lengths = np.sort(lengths)
-        aspect1 = sorted_lengths[0] / sorted_lengths[1]
-        aspect2 = sorted_lengths[1] / sorted_lengths[2]
+        aspect1 = sorted_lengths[0] / sorted_lengths[1] if sorted_lengths[1] != 0 else 0
+        aspect2 = sorted_lengths[1] / sorted_lengths[2] if sorted_lengths[2] != 0 else 0
 
         # Determine crystal shape
         shape = self.get_shape_class(aspect1, aspect2)
@@ -159,8 +170,8 @@ class CrystalShape:
             [
                 [
                     lengths[0],
-                    lengths[0],
-                    lengths[0],
+                    lengths[1],
+                    lengths[2],
                     aspect1,
                     aspect2,
                     shape,
@@ -170,18 +181,22 @@ class CrystalShape:
         return oba_array
 
     def get_shape_class(self, aspect1, aspect2):
-        """Creating the definition of the shape according
-        to the Zingg diagram, used by both PCA and OBA"""
-        if aspect1 <= 0.667 and aspect2 <= 0.667:
-            return "Lath"
-        elif aspect1 <= 0.667 and aspect2 >= 0.667:
-            return "Plate"
-        elif aspect1 >= 0.667 and aspect2 >= 0.667:
-            return "Block"
-        elif aspect1 >= 0.667 and aspect2 <= 0.667:
-            return "Needle"
-        else:
-            return "unknown"
+        """Determining the crystal shape 
+        based on the aspect ratios.
+        """
+        
+        threshold = 3 / 2
+
+        aspects = (aspect1 > threshold, aspect2 > threshold)
+
+        shapes = {
+            (False, False): "Lath",
+            (False, True): "Plate",
+            (True, True): "Block",
+            (True, False): "Needle"
+        }
+
+        return shapes.get(aspects, "unknown")
 
     def get_all(self, n=3):
         """Returns both Aspect Ratio through PCA
