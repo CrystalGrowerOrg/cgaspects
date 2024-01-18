@@ -196,7 +196,30 @@ class Ui_MainWindow(object):
         self.movie_controls_frame.setFrameShadow(QFrame.Raised)
         self.horizontalLayout_5 = QHBoxLayout(self.movie_controls_frame)
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
-        self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.playPauseButton = QToolButton(self.movie_controls_frame)
+        self.playPauseButton.setObjectName(u"playPauseButton")
+        self.playPauseButton.setMinimumSize(QSize(0, 0))
+        icon1 = QIcon()
+        icon1.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.playPauseButton.setIcon(icon1)
+
+        self.horizontalLayout_5.addWidget(self.playPauseButton)
+
+        self.frameCurrentLabel = QLabel(self.movie_controls_frame)
+        self.frameCurrentLabel.setObjectName(u"frameCurrentLabel")
+
+        self.horizontalLayout_5.addWidget(self.frameCurrentLabel)
+
+        self.frame_spinBox = QSpinBox(self.movie_controls_frame)
+        self.frame_spinBox.setObjectName(u"frame_spinBox")
+
+        self.horizontalLayout_5.addWidget(self.frame_spinBox)
+
+        self.frameZeroLabel = QLabel(self.movie_controls_frame)
+        self.frameZeroLabel.setObjectName(u"frameZeroLabel")
+
+        self.horizontalLayout_5.addWidget(self.frameZeroLabel)
+
         self.frame_slider = QSlider(self.movie_controls_frame)
         self.frame_slider.setObjectName(u"frame_slider")
         sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -204,69 +227,18 @@ class Ui_MainWindow(object):
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.frame_slider.sizePolicy().hasHeightForWidth())
         self.frame_slider.setSizePolicy(sizePolicy2)
+        self.frame_slider.setMaximum(60)
+        self.frame_slider.setPageStep(1000000)
         self.frame_slider.setOrientation(Qt.Horizontal)
-        self.frame_slider.setTickPosition(QSlider.TicksBelow)
+        self.frame_slider.setTickPosition(QSlider.TicksAbove)
+        self.frame_slider.setTickInterval(1)
 
         self.horizontalLayout_5.addWidget(self.frame_slider)
 
-        self.frame_spinBox = QSpinBox(self.movie_controls_frame)
-        self.frame_spinBox.setObjectName(u"frame_spinBox")
+        self.frameMaxLabel = QLabel(self.movie_controls_frame)
+        self.frameMaxLabel.setObjectName(u"frameMaxLabel")
 
-        self.horizontalLayout_5.addWidget(self.frame_spinBox)
-
-        self.start_simvis_button = QToolButton(self.movie_controls_frame)
-        self.start_simvis_button.setObjectName(u"start_simvis_button")
-        self.start_simvis_button.setMinimumSize(QSize(0, 0))
-        icon1 = QIcon()
-        icon1.addFile(u":/material_icons/material_icons/png/skip-backward-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.start_simvis_button.setIcon(icon1)
-
-        self.horizontalLayout_5.addWidget(self.start_simvis_button)
-
-        self.previous_button = QToolButton(self.movie_controls_frame)
-        self.previous_button.setObjectName(u"previous_button")
-        self.previous_button.setMinimumSize(QSize(0, 0))
-        icon2 = QIcon()
-        icon2.addFile(u":/material_icons/material_icons/png/skip-previous-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.previous_button.setIcon(icon2)
-
-        self.horizontalLayout_5.addWidget(self.previous_button)
-
-        self.play_button = QToolButton(self.movie_controls_frame)
-        self.play_button.setObjectName(u"play_button")
-        self.play_button.setMinimumSize(QSize(0, 0))
-        icon3 = QIcon()
-        icon3.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.play_button.setIcon(icon3)
-
-        self.horizontalLayout_5.addWidget(self.play_button)
-
-        self.pause_button = QToolButton(self.movie_controls_frame)
-        self.pause_button.setObjectName(u"pause_button")
-        self.pause_button.setMinimumSize(QSize(0, 0))
-        icon4 = QIcon()
-        icon4.addFile(u":/material_icons/material_icons/png/pause-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.pause_button.setIcon(icon4)
-
-        self.horizontalLayout_5.addWidget(self.pause_button)
-
-        self.next_button = QToolButton(self.movie_controls_frame)
-        self.next_button.setObjectName(u"next_button")
-        self.next_button.setMinimumSize(QSize(0, 0))
-        icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/skip-next-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.next_button.setIcon(icon5)
-
-        self.horizontalLayout_5.addWidget(self.next_button)
-
-        self.end_simvis_button = QToolButton(self.movie_controls_frame)
-        self.end_simvis_button.setObjectName(u"end_simvis_button")
-        self.end_simvis_button.setMinimumSize(QSize(0, 0))
-        icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/skip-forward-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.end_simvis_button.setIcon(icon6)
-
-        self.horizontalLayout_5.addWidget(self.end_simvis_button)
+        self.horizontalLayout_5.addWidget(self.frameMaxLabel)
 
 
         self.gridLayout_3.addWidget(self.movie_controls_frame, 1, 0, 1, 2)
@@ -297,9 +269,9 @@ class Ui_MainWindow(object):
         sizePolicy4.setHeightForWidth(self.import_pushButton.sizePolicy().hasHeightForWidth())
         self.import_pushButton.setSizePolicy(sizePolicy4)
         self.import_pushButton.setBaseSize(QSize(0, 0))
-        icon7 = QIcon()
-        icon7.addFile(u":/material_icons/material_icons/png/folder-arrow-down-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.import_pushButton.setIcon(icon7)
+        icon2 = QIcon()
+        icon2.addFile(u":/material_icons/material_icons/png/folder-arrow-down-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.import_pushButton.setIcon(icon2)
 
         self.horizontalLayout_7.addWidget(self.import_pushButton)
 
@@ -310,9 +282,9 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setSizePolicy(sizePolicy4)
         self.view_results_pushButton.setMinimumSize(QSize(0, 0))
         self.view_results_pushButton.setBaseSize(QSize(0, 0))
-        icon8 = QIcon()
-        icon8.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.view_results_pushButton.setIcon(icon8)
+        icon3 = QIcon()
+        icon3.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.view_results_pushButton.setIcon(icon3)
 
         self.horizontalLayout_7.addWidget(self.view_results_pushButton)
 
@@ -379,9 +351,9 @@ class Ui_MainWindow(object):
 
         self.plot_browse_pushButton = QPushButton(self.dataAnalysis_groupBox)
         self.plot_browse_pushButton.setObjectName(u"plot_browse_pushButton")
-        icon9 = QIcon()
-        icon9.addFile(u":/material_icons/material_icons/png/file-table-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_browse_pushButton.setIcon(icon9)
+        icon4 = QIcon()
+        icon4.addFile(u":/material_icons/material_icons/png/file-table-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_browse_pushButton.setIcon(icon4)
 
         self.horizontalLayout_4.addWidget(self.plot_browse_pushButton)
 
@@ -404,9 +376,9 @@ class Ui_MainWindow(object):
         self.plot_pushButton = QPushButton(self.dataAnalysis_groupBox)
         self.plot_pushButton.setObjectName(u"plot_pushButton")
         self.plot_pushButton.setEnabled(False)
-        icon10 = QIcon()
-        icon10.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_pushButton.setIcon(icon10)
+        icon5 = QIcon()
+        icon5.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_pushButton.setIcon(icon5)
 
         self.horizontalLayout_6.addWidget(self.plot_pushButton)
 
@@ -435,9 +407,9 @@ class Ui_MainWindow(object):
         self.saveframe_pushButton = QPushButton(self.visualizationTab)
         self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
         self.saveframe_pushButton.setEnabled(False)
-        icon11 = QIcon()
-        icon11.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.saveframe_pushButton.setIcon(icon11)
+        icon6 = QIcon()
+        icon6.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.saveframe_pushButton.setIcon(icon6)
 
         self.verticalLayout_6.addWidget(self.saveframe_pushButton)
 
@@ -453,6 +425,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.xyzWidget = QWidget(self.simulationVariablesWidget)
         self.xyzWidget.setObjectName(u"xyzWidget")
+        sizePolicy5.setHeightForWidth(self.xyzWidget.sizePolicy().hasHeightForWidth())
+        self.xyzWidget.setSizePolicy(sizePolicy5)
         self.horizontalLayout = QHBoxLayout(self.xyzWidget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.xyz_id_label = QLabel(self.xyzWidget)
@@ -497,6 +471,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.simulationVariablesSelectButton)
 
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout_3.addItem(self.verticalSpacer)
+
 
         self.verticalLayout_4.addWidget(self.simulationVariablesWidget)
 
@@ -535,7 +513,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.variablesTabWidget.setCurrentIndex(2)
+        self.variablesTabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -616,12 +594,13 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(shortcut)
         self.actionPlotting_Dialog.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+P", None))
 #endif // QT_CONFIG(shortcut)
-        self.start_simvis_button.setText("")
-        self.previous_button.setText(QCoreApplication.translate("MainWindow", u"   Previous", None))
-        self.play_button.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
-        self.pause_button.setText(QCoreApplication.translate("MainWindow", u"   Pause", None))
-        self.next_button.setText(QCoreApplication.translate("MainWindow", u"   Next", None))
-        self.end_simvis_button.setText(QCoreApplication.translate("MainWindow", u"   End", None))
+        self.playPauseButton.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
+#if QT_CONFIG(shortcut)
+        self.playPauseButton.setShortcut(QCoreApplication.translate("MainWindow", u"Space", None))
+#endif // QT_CONFIG(shortcut)
+        self.frameCurrentLabel.setText(QCoreApplication.translate("MainWindow", u"Frame", None))
+        self.frameZeroLabel.setText(QCoreApplication.translate("MainWindow", u"0", None))
+        self.frameMaxLabel.setText(QCoreApplication.translate("MainWindow", u"60", None))
         self.import_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Import", None))
         self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results Directory", None))
         self.dataAnalysis_groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Data Analysis", None))
