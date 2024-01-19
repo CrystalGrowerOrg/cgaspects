@@ -198,6 +198,9 @@
              <height>0</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Import crystalgrower output directory</string>
+           </property>
            <property name="text">
             <string>   Import</string>
            </property>
@@ -229,6 +232,9 @@
              <width>0</width>
              <height>0</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Open directory with the analysed data</string>
            </property>
            <property name="text">
             <string>   View Results Directory</string>
@@ -271,6 +277,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="toolTip">
+             <string>Folder path of imported files</string>
+            </property>
             <property name="styleSheet">
              <string notr="true"/>
             </property>
@@ -289,6 +298,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>Perform aspect ratio calculations</string>
+              </property>
               <property name="text">
                <string>Aspect Ratios</string>
               </property>
@@ -304,6 +316,9 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>Perform growth rate calculations</string>
               </property>
               <property name="text">
                <string>Growth Rates</string>
@@ -329,6 +344,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="toolTip">
+               <string>.csv filepath used for plotting</string>
+              </property>
               <property name="styleSheet">
                <string notr="true"/>
               </property>
@@ -340,7 +358,7 @@
                <bool>false</bool>
               </property>
               <property name="toolTip">
-               <string extracomment="Plot data from CSV"/>
+               <string extracomment="Plot data from CSV">Open a plotting dialog using the specified .csv file</string>
               </property>
               <property name="text">
                <string>   Plot</string>
@@ -475,6 +493,9 @@
              <property name="enabled">
               <bool>false</bool>
              </property>
+             <property name="toolTip">
+              <string>Render current frame</string>
+             </property>
              <property name="statusTip">
               <string comment="Save Frame" extracomment="Save Frame"/>
              </property>
@@ -493,6 +514,9 @@
        </item>
        <item>
         <widget class="QGroupBox" name="crystalInfo_groupBox">
+         <property name="toolTip">
+          <string>Crystal information from the current selection</string>
+         </property>
          <property name="title">
           <string>Crystal Information</string>
          </property>
@@ -525,6 +549,12 @@
      <height>24</height>
     </rect>
    </property>
+   <property name="defaultUp">
+    <bool>false</bool>
+   </property>
+   <property name="nativeMenuBar">
+    <bool>false</bool>
+   </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
@@ -541,6 +571,7 @@
     <addaction name="actionInput_Directory"/>
     <addaction name="actionResults_Directory"/>
     <addaction name="actionPlotting_Dialog"/>
+    <addaction name="actionSettings"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -837,6 +868,9 @@
    <property name="text">
     <string>Import</string>
    </property>
+   <property name="toolTip">
+    <string>Import crystalgrower output directory</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
    </property>
@@ -848,12 +882,18 @@
    <property name="text">
     <string>Results Directory</string>
    </property>
+   <property name="toolTip">
+    <string>Open directory with the analysed data</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+Shift+R</string>
    </property>
   </action>
   <action name="actionImport_CSV_for_Plotting">
    <property name="text">
+    <string>Import CSV for Plotting</string>
+   </property>
+   <property name="toolTip">
     <string>Import CSV for Plotting</string>
    </property>
    <property name="shortcut">
@@ -866,6 +906,9 @@
    </property>
    <property name="text">
     <string>Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Open the plotting dialog using specified .csv file</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+P</string>
@@ -889,6 +932,9 @@
    <property name="text">
     <string>Import Summary File</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
   <action name="actionRender">
    <property name="enabled">
@@ -896,6 +942,31 @@
    </property>
    <property name="text">
     <string>Render</string>
+   </property>
+   <property name="toolTip">
+    <string>Render current frame</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Open visualisation settings</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+S</string>
+   </property>
+  </action>
+  <action name="actionVariables">
+   <property name="text">
+    <string>Variables</string>
    </property>
   </action>
  </widget>

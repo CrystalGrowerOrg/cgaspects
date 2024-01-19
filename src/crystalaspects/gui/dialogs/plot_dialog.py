@@ -683,17 +683,25 @@ class PlottingDialog(QDialog):
         self.annot.xy = pos
         x, y = pos
 
+        _sim_id = "N/A"
+        if self.df is not None and ind["ind"][0] < len(self.df):
+            row_data = self.df.iloc[ind["ind"][0]]
+            try:
+                _sim_id = int(row_data["Simulation Number"] - 1)
+            except KeyError:
+                _sim_id = "N/A"
+
         # Check if colour_data is available
         if colour_data is not None:
             color_val = colour_data[ind["ind"][0]]
             text = (
-                f"Sim Number: {ind['ind'][0] + 1}\n"
+                f"Sim Number: {_sim_id}\n"
                 f" x: {x:.2f}'\n"
                 f" y: {y:.2f}\n"
                 f" {column_name}: {color_val:.2f}"
             )
         else:
-            text = f"Sim Number: {ind['ind'][0] + 1}\n" f" x: {x:.2f}\n" f" y: {y:.2f}"
+            text = f"Sim Number: {_sim_id}\n" f" x: {x:.2f}\n" f" y: {y:.2f}"
 
         self.annot.set_text(text)
         self.annot.get_bbox_patch().set_alpha(0.4)
@@ -746,8 +754,12 @@ class PlottingDialog(QDialog):
         # Access the row in the self.df
         if self.df is not None and point_index < len(self.df):
             row_data = self.df.iloc[point_index]
+            try:
+                _sim_id = int(row_data["Simulation Number"] - 1)
+            except KeyError:
+                _sim_id = None
             if self.signals:
-                self.signals.sim_id.emit(int(row_data["Simulation Number"] - 1))
+                self.signals.sim_id.emit(_sim_id)
             logger.info(f"Clicked on row {point_index}: {row_data}")
         else:
             logger.debug(
@@ -767,9 +779,7 @@ class PlottingDialog(QDialog):
 
             z = np.polyfit(x, y, 1)
             p = np.poly1d(z)
-            (self.trendline,) = self.ax.plot(
-                x, p(x), "r--"
-            )  # Store the trendline object
+            (self.trendline,) = self.ax.plot(x, p(x), "r--")
 
             equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
             self.trendline_text = self.ax.text(  # Store the text object

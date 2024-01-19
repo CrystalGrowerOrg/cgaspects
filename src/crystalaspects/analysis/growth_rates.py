@@ -34,33 +34,34 @@ class GrowthRate:
         self.progress_updated = Signal(int)
         self.circular_progress = None
         self.signals = signals
-    
+
     def update_progress(self, value):
         self.signals.progress.emit(value)
 
     def set_folder(self, folder):
         self.input_folder = Path(folder)
         logger.info("Folder set for growth rate calculations")
-    
+
     def set_information(self, information):
         self.information = information
         logger.info("Information set for growth rate calculations")
 
     def calculate_growth_rates(self):
-        logger.debug(
-            "Called growth rate method at directory: %s",
-            self.input_folder        
-        )
+        logger.debug("Called growth rate method at directory: %s", self.input_folder)
         # Check if the user selected a folder
         if self.input_folder:
             if self.information is None:
-                logger.warning("Method called without information, looking for information now.")
+                logger.warning(
+                    "Method called without information, looking for information now."
+                )
                 # Read the information from the selected folder
                 self.information = fd.find_info(self.input_folder)
             logger.info("Attempting to calculate Growth Rates...")
 
         if not (self.input_folder and self.information):
-            logger.warning("Unable to proceed as Input folder and Information was not set properly.")
+            logger.warning(
+                "Unable to proceed as Input folder and Information was not set properly."
+            )
             return
 
         # Get the directions from the information
@@ -71,7 +72,7 @@ class GrowthRate:
         if growth_rate_dialog.exec() != QDialog.Accepted:
             logger.warning("Selecting growth directions cancelled")
             return
-        
+
         # if growth_rate_dialog.exec() == QDialog.Accepted:
         self.selected_directions = growth_rate_dialog.selected_directions
         self.auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
@@ -94,13 +95,13 @@ class GrowthRate:
         if self.threadpool:
             worker = WorkerGrowthRates(
                 information=self.information,
-                selected_directions=self.selected_directions    
+                selected_directions=self.selected_directions,
             )
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.plot)
             self.signals.started.emit()
             self.threadpool.start(worker)
-    
+
     def plot(self, plotting_csv):
         # self.circular_progress.hide()
         self.signals.finished.emit()
@@ -114,14 +115,18 @@ class GrowthRate:
                 result = self.result_tuple(
                     csv=growth_rate_csv,
                     selected=self.selected_directions,
-                    folder=self.output_folder
+                    folder=self.output_folder,
                 )
                 self.signals.result.emit(result)
                 logger.debug("Sending plotting information to GUI: %s", result)
-                PlottingDialogs = PlottingDialog(csv=growth_rate_csv)
+                PlottingDialogs = PlottingDialog(
+                    csv=growth_rate_csv, signals=self.signals
+                )
                 PlottingDialogs.show()
                 if self.auto_plotting:
                     plot = Plotting()
-                    plot.plot_growth_rates(plotting_csv, self.selected_directions, self.output_folder)
+                    plot.plot_growth_rates(
+                        plotting_csv, self.selected_directions, self.output_folder
+                    )
             else:
                 logger.warning("The DataFrame is empty. No calculated growth rates.")

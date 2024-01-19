@@ -81,19 +81,24 @@ def find_info(path):
             summary_file = item_path
         if item_path.is_dir() and not any(
             item_path.name.endswith(suffix)
-            for suffix in ["XYZ_files", "CrystalAspects", "CrystalMaps"]
+            for suffix in [
+                "XYZ_files",
+                "CrystalAspects",
+                "CrystalMaps",
+                "crystalaspects",
+            ]
         ):
             folders.append(item_path)
 
     size_files = []
     supersats = []
     directions = []
+    get_facets = True
     file_info = namedtuple(
         "file_info",
         "supersats, size_files, directions, growth_mod, folders, summary_file",
     )
 
-    i = 0
     for folder in folders:
         for f_path in folder.iterdir():
             f_name = f_path.name
@@ -110,6 +115,7 @@ def find_info(path):
 
                 for line in lines:
                     if line.startswith("Starting delta mu value (kcal/mol):"):
+                        print(line)
                         supersat = float(line.split()[-1])
                         supersats.append(supersat)
                     if line.startswith("normal, ordered or growth modifier"):
@@ -119,24 +125,26 @@ def find_info(path):
                         else:
                             growth_mod = False
 
-                    if line.startswith("Size of crystal at frame output") and i == 0:
+                    if line.startswith("Size of crystal") and get_facets:
+                        print(line)
                         frame = lines.index(line) + 1
                         # From starting point - read facet information
                         for n in range(frame, len(lines)):
                             line = lines[n]
-                            if line == " \n":
+                            if line in [" \n", "\n"]:
+                                get_facets = False
                                 break
                             else:
                                 facet = line.split("      ")[0]
                                 if len(facet) <= 8:
                                     directions.append(facet)
-        i += 1
 
-    infomation = file_info(
+    information = file_info(
         supersats, size_files, directions, growth_mod, folders, summary_file
     )
+    print(information)
 
-    return infomation
+    return information
 
 
 def find_growth_directions(csv):
@@ -161,8 +169,8 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     aspect_cols = aspect_df.columns
 
     try:
-        """This allows the user to pick the two different
-        summary file verions from CrystalGrower"""
+        """This allows backcompatibility with
+        an older version of CrystalGrower"""
 
         search = summary_df.iloc[0, 0]
         search = search.split("_")
@@ -179,7 +187,6 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
             aspect_row = row.values
             aspect_row = np.array([aspect_row])
             collect_row = summary_df.filter(items=[num_string], axis=0).values
-
             collect_row = np.concatenate([aspect_row, collect_row], axis=1)
             compare_array = np.append(compare_array, collect_row, axis=0)
 
