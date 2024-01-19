@@ -1,0 +1,451 @@
+CrystalGrower code version:                       CrystalGrower_X_1_12_0.f90
+Directory for file storage:                       /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/
+Filename root:                                    urea_movies_4
+Checkpoint load enabled:                          yes
+Checkpoint load file path:                        /Users/alvin/GitHub/crystalaspects/examples/normal/20240118_223939/urea_test_8/urea_test_8_checkpoint.txt
+Checkpoint save enabled:                          yes
+File containing TOPOS input?:                     /Users/alvin/Library/CloudStorage/Dropbox/CrystalGrower_X_1_12_1/Structure_Files/Net_structures/Urea.txt
+File name for output visualisation data?:         /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_visualiser.vis
+Filetype, old, new, new_mol:                      new_mol
+normal, ordered or growth modifier:               normal
+Do you want to add screw dislocations?:           no
+Checking sweeps, 1 normal, 2 clear defects:       1
+Method for determining combinations:              2
+Is this a tile or net crystal?:                   net
+Do you want molecules grouped?:                   yes
+
+    net.txt (1)
+    1
+    1
+    1
+    1
+    2
+    2
+    3
+    3
+    3
+    3
+      3.500
+      3.500
+      1.000
+    end net.txt (1)
+
+
+    net.txt (2)
+    1
+    1
+    1
+    1
+    2
+    2
+    3
+    3
+    3
+    3
+      3.500
+      3.500
+      1.000
+    end net.txt (2)
+
+Different weighting for multiple bonds?:          no
+File name for output data:                        /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_ovito_CGvisualiser.XYZ                                                                                   
+File name growth events vs time:                  /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_growth.txt                                                                                               
+File name delta mu [kcal/mol] vs time:            /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_delmu.txt                                                                                                
+ File name for output of crystal size:            /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_size.csv                                                                                                 
+File name for count of each site type:            /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_count.txt                                                                                                
+File name for population of each site type:       /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_populations.csv                                                                                          
+File name for count of crystallisation events:    /Users/alvin/GitHub/crystalaspects/examples/movies/20240119_223615/urea_movies_4/urea_movies_4_crystallisation_events.csv                                                                               
+Automatic memory calculation?:                    no
+Maximum memory in MBytes:                         10000
+Temperature in Celsius:                           25.00
+Iterations:                                       50000
+Input mode for delta mu:                          3
+ 
+      Iterations for supersaturation to equilibrate:        10000
+      Iterations at starting supersaturation:               80000
+ 
+Do you want an excess supersaturation?:           no
+ 
+        The excess supersaturation for all species is 0.0
+ 
+Starting delta mu value (kcal/mol):               100.000
+ 
+MOVIE: number of frames:                          20
+MOVIE: Iteration at movie capture start:          1
+MOVIE: Iteration at movie capture end:            50000
+Delta mu DATA: The number of outputs:             1000
+Delta mu DATA: Iteration at initial output:       1
+Delta mu DATA: iteration at final output:         50000
+ 
+Do you want to visualise crystal terraces?:       yes
+File read containing visualisation surfaces:      /Users/alvin/GitHub/crystalaspects/examples/normal/urea_colouring.txt
+FIND surfaces or COLOUR surfaces?:                colour
+ Do you want to output crystal size?:             yes
+ 
+     Size of simulation in a-direction (primitive unit cells):      131
+     Size of simulation in b-direction (primitive unit cells):      129
+     Size of simulation in c-direction (primitive unit cells):      227
+ 
+Continuing from checkpoint iteration:             100000
+ 
+Size of crystal at frame output
+ 0 -1 -1       48.2 nm
+ 0 -1  1       47.8 nm
+ 0  1 -1       47.8 nm
+ 0  1  1       48.2 nm
+ 1  0 -1       48.2 nm
+-1 -1  0       12.8 nm
+-1  1  0       12.0 nm
+ 1 -1  0       12.0 nm
+ 1  1  0       12.8 nm
+ 0  0 -1       55.9 nm
+ 0  0  1       55.9 nm
+-1  0  0       16.1 nm
+ 0 -1  0       15.9 nm
+ 0  1  0       15.9 nm
+ 1  0  0       16.1 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       48.9 nm
+ 0 -1  1       48.2 nm
+ 0  1 -1       48.2 nm
+ 0  1  1       48.9 nm
+ 1  0 -1       48.9 nm
+-1 -1  0       12.8 nm
+-1  1  0       12.0 nm
+ 1 -1  0       12.0 nm
+ 1  1  0       12.8 nm
+ 0  0 -1       56.1 nm
+ 0  0  1       56.1 nm
+-1  0  0       16.4 nm
+ 0 -1  0       16.7 nm
+ 0  1  0       16.7 nm
+ 1  0  0       16.4 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       49.3 nm
+ 0 -1  1       49.3 nm
+ 0  1 -1       49.3 nm
+ 0  1  1       49.3 nm
+ 1  0 -1       49.3 nm
+-1 -1  0       12.8 nm
+-1  1  0       12.4 nm
+ 1 -1  0       12.4 nm
+ 1  1  0       12.8 nm
+ 0  0 -1       56.5 nm
+ 0  0  1       56.5 nm
+-1  0  0       16.4 nm
+ 0 -1  0       16.7 nm
+ 0  1  0       16.7 nm
+ 1  0  0       16.4 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       49.6 nm
+ 0 -1  1       49.3 nm
+ 0  1 -1       49.3 nm
+ 0  1  1       49.6 nm
+ 1  0 -1       50.0 nm
+-1 -1  0       13.6 nm
+-1  1  0       12.8 nm
+ 1 -1  0       12.8 nm
+ 1  1  0       13.6 nm
+ 0  0 -1       56.8 nm
+ 0  0  1       56.8 nm
+-1  0  0       16.7 nm
+ 0 -1  0       16.7 nm
+ 0  1  0       16.7 nm
+ 1  0  0       16.7 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       50.0 nm
+ 0 -1  1       49.6 nm
+ 0  1 -1       49.6 nm
+ 0  1  1       50.0 nm
+ 1  0 -1       50.4 nm
+-1 -1  0       13.6 nm
+-1  1  0       12.8 nm
+ 1 -1  0       12.8 nm
+ 1  1  0       13.6 nm
+ 0  0 -1       57.3 nm
+ 0  0  1       57.3 nm
+-1  0  0       16.7 nm
+ 0 -1  0       16.7 nm
+ 0  1  0       16.7 nm
+ 1  0  0       16.7 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       50.4 nm
+ 0 -1  1       49.6 nm
+ 0  1 -1       49.6 nm
+ 0  1  1       50.4 nm
+ 1  0 -1       50.4 nm
+-1 -1  0       13.6 nm
+-1  1  0       12.8 nm
+ 1 -1  0       12.8 nm
+ 1  1  0       13.6 nm
+ 0  0 -1       57.3 nm
+ 0  0  1       57.3 nm
+-1  0  0       17.0 nm
+ 0 -1  0       17.0 nm
+ 0  1  0       17.0 nm
+ 1  0  0       17.0 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       50.7 nm
+ 0 -1  1       50.3 nm
+ 0  1 -1       50.3 nm
+ 0  1  1       50.7 nm
+ 1  0 -1       50.7 nm
+-1 -1  0       14.0 nm
+-1  1  0       12.8 nm
+ 1 -1  0       12.8 nm
+ 1  1  0       14.0 nm
+ 0  0 -1       57.5 nm
+ 0  0  1       57.5 nm
+-1  0  0       17.3 nm
+ 0 -1  0       17.3 nm
+ 0  1  0       17.3 nm
+ 1  0  0       17.3 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       51.1 nm
+ 0 -1  1       50.7 nm
+ 0  1 -1       50.7 nm
+ 0  1  1       51.1 nm
+ 1  0 -1       51.1 nm
+-1 -1  0       14.0 nm
+-1  1  0       13.2 nm
+ 1 -1  0       13.2 nm
+ 1  1  0       14.0 nm
+ 0  0 -1       57.7 nm
+ 0  0  1       57.7 nm
+-1  0  0       17.3 nm
+ 0 -1  0       17.3 nm
+ 0  1  0       17.3 nm
+ 1  0  0       17.3 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       51.1 nm
+ 0 -1  1       51.1 nm
+ 0  1 -1       51.1 nm
+ 0  1  1       51.1 nm
+ 1  0 -1       51.4 nm
+-1 -1  0       14.0 nm
+-1  1  0       13.2 nm
+ 1 -1  0       13.2 nm
+ 1  1  0       14.0 nm
+ 0  0 -1       58.4 nm
+ 0  0  1       58.4 nm
+-1  0  0       17.3 nm
+ 0 -1  0       17.8 nm
+ 0  1  0       17.8 nm
+ 1  0  0       17.3 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       51.4 nm
+ 0 -1  1       51.1 nm
+ 0  1 -1       51.1 nm
+ 0  1  1       51.4 nm
+ 1  0 -1       51.4 nm
+-1 -1  0       14.0 nm
+-1  1  0       13.2 nm
+ 1 -1  0       13.2 nm
+ 1  1  0       14.0 nm
+ 0  0 -1       58.7 nm
+ 0  0  1       58.7 nm
+-1  0  0       17.5 nm
+ 0 -1  0       17.8 nm
+ 0  1  0       17.8 nm
+ 1  0  0       17.5 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       51.8 nm
+ 0 -1  1       51.8 nm
+ 0  1 -1       51.8 nm
+ 0  1  1       51.8 nm
+ 1  0 -1       51.8 nm
+-1 -1  0       14.0 nm
+-1  1  0       13.6 nm
+ 1 -1  0       13.6 nm
+ 1  1  0       14.0 nm
+ 0  0 -1       58.7 nm
+ 0  0  1       58.7 nm
+-1  0  0       17.5 nm
+ 0 -1  0       17.8 nm
+ 0  1  0       17.8 nm
+ 1  0  0       17.5 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       52.5 nm
+ 0 -1  1       52.2 nm
+ 0  1 -1       52.2 nm
+ 0  1  1       52.5 nm
+ 1  0 -1       52.5 nm
+-1 -1  0       14.4 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.4 nm
+ 0  0 -1       58.7 nm
+ 0  0  1       58.7 nm
+-1  0  0       17.5 nm
+ 0 -1  0       17.8 nm
+ 0  1  0       17.8 nm
+ 1  0  0       17.5 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       52.5 nm
+ 0 -1  1       52.5 nm
+ 0  1 -1       52.5 nm
+ 0  1  1       52.5 nm
+ 1  0 -1       52.5 nm
+-1 -1  0       14.4 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.4 nm
+ 0  0 -1       58.9 nm
+ 0  0  1       58.9 nm
+-1  0  0       18.1 nm
+ 0 -1  0       17.8 nm
+ 0  1  0       17.8 nm
+ 1  0  0       18.1 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       52.9 nm
+ 0 -1  1       52.9 nm
+ 0  1 -1       52.9 nm
+ 0  1  1       52.9 nm
+ 1  0 -1       52.5 nm
+-1 -1  0       14.4 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.4 nm
+ 0  0 -1       59.6 nm
+ 0  0  1       59.6 nm
+-1  0  0       18.1 nm
+ 0 -1  0       18.4 nm
+ 0  1  0       18.4 nm
+ 1  0  0       18.1 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       52.9 nm
+ 0 -1  1       52.9 nm
+ 0  1 -1       52.9 nm
+ 0  1  1       52.9 nm
+ 1  0 -1       53.3 nm
+-1 -1  0       14.4 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.4 nm
+ 0  0 -1       59.6 nm
+ 0  0  1       59.6 nm
+-1  0  0       18.7 nm
+ 0 -1  0       18.4 nm
+ 0  1  0       18.4 nm
+ 1  0  0       18.7 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       53.3 nm
+ 0 -1  1       53.6 nm
+ 0  1 -1       53.6 nm
+ 0  1  1       53.3 nm
+ 1  0 -1       53.3 nm
+-1 -1  0       14.8 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.8 nm
+ 0  0 -1       59.6 nm
+ 0  0  1       59.6 nm
+-1  0  0       18.7 nm
+ 0 -1  0       18.4 nm
+ 0  1  0       18.4 nm
+ 1  0  0       18.7 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       53.3 nm
+ 0 -1  1       53.6 nm
+ 0  1 -1       53.6 nm
+ 0  1  1       53.3 nm
+ 1  0 -1       53.6 nm
+-1 -1  0       14.8 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.8 nm
+ 0  0 -1       60.1 nm
+ 0  0  1       60.1 nm
+-1  0  0       18.7 nm
+ 0 -1  0       18.7 nm
+ 0  1  0       18.7 nm
+ 1  0  0       18.7 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       54.0 nm
+ 0 -1  1       53.6 nm
+ 0  1 -1       53.6 nm
+ 0  1  1       54.0 nm
+ 1  0 -1       53.6 nm
+-1 -1  0       14.8 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.8 nm
+ 0  0 -1       60.6 nm
+ 0  0  1       60.6 nm
+-1  0  0       19.0 nm
+ 0 -1  0       19.0 nm
+ 0  1  0       19.0 nm
+ 1  0  0       19.0 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       54.7 nm
+ 0 -1  1       54.3 nm
+ 0  1 -1       54.3 nm
+ 0  1  1       54.7 nm
+ 1  0 -1       54.0 nm
+-1 -1  0       14.8 nm
+-1  1  0       14.0 nm
+ 1 -1  0       14.0 nm
+ 1  1  0       14.8 nm
+ 0  0 -1       60.6 nm
+ 0  0  1       60.6 nm
+-1  0  0       19.2 nm
+ 0 -1  0       19.0 nm
+ 0  1  0       19.0 nm
+ 1  0  0       19.2 nm
+ 
+ 
+Size of crystal at frame output
+ 0 -1 -1       54.7 nm
+ 0 -1  1       54.3 nm
+ 0  1 -1       54.3 nm
+ 0  1  1       54.7 nm
+ 1  0 -1       54.0 nm
+-1 -1  0       14.8 nm
+-1  1  0       14.8 nm
+ 1 -1  0       14.8 nm
+ 1  1  0       14.8 nm
+ 0  0 -1       60.6 nm
+ 0  0  1       60.6 nm
+-1  0  0       19.2 nm
+ 0 -1  0       19.0 nm
+ 0  1  0       19.0 nm
+ 1  0  0       19.2 nm
+ 
+Total iterations completed by end of simulation (includes checkpoints):      150000
+Date 19/01/2024, Time 22:39:15
