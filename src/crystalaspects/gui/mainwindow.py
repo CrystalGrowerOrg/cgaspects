@@ -1,41 +1,31 @@
 import logging
 import os
 import sys
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from pathlib import Path
 from typing import List
-from natsort import natsorted
-from collections import defaultdict
 import pandas as pd
-from PySide6 import QtWidgets
-from PySide6.QtCore import QObject, QThreadPool, Signal, QSignalBlocker, QTimer
-
-from PySide6.QtGui import QKeySequence, QShortcut, Qt, QIcon
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QMainWindow,
-    QMessageBox,
-    QProgressBar,
-)
-
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
 from crystalaspects.analysis.gui_threads import WorkerXYZ
 from crystalaspects.analysis.shape_analysis import CrystalShape
+from crystalaspects.fileio.find_data import find_info, locate_xyz_files
 from crystalaspects.fileio.logging import setup_logging
 from crystalaspects.fileio.opendir import open_directory
-from crystalaspects.fileio.find_data import locate_xyz_files, find_info
-from crystalaspects.gui.dialogs.settings import SettingsDialog
-from crystalaspects.gui.openGL import VisualisationWidget
 from crystalaspects.gui.crystal_info import CrystalInfo
-
-# Project Module imports
+from crystalaspects.gui.dialogs import CrystalInfoWidget, PlottingDialog
+from crystalaspects.gui.dialogs.settings import SettingsDialog
 from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.gui.dialogs import PlottingDialog, CrystalInfoWidget
+from crystalaspects.gui.openGL import VisualisationWidget
 from crystalaspects.gui.widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
 )
+from natsort import natsorted
+from PySide6 import QtWidgets
+from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, Qt
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -81,8 +71,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool = QThreadPool()
 
         self.welcome_message()
-        self.setup_button_connections()
-        self.setup_menubar_connections()
 
         # movie timer
         self.frame_timer = QTimer()
@@ -116,13 +104,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.selected_directions: list = []
         self.plotting_csv: Path | None = None
         self.summ_df = None
+        self.simulation_variables_widget = None
+        self.plotting_dialog = None
 
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
         self.progressBar.hide()
-
-        self.simulation_variables_widget = None
-        self.plotting_dialog = None
 
         self.movie_controls_frame.hide()
 
@@ -147,9 +134,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.visualizationSettings.settingsChanged.connect(
             self.handleVisualizationSettingsChange
         )
-
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
-        self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
+
+        self.setup_button_connections()
+        self.setup_menubar_connections()
 
     def setup_menubar_connections(self):
         self.actionImport.triggered.connect(
@@ -157,26 +145,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
 
+        self.actionImport_Summary_File.triggered.connect(
+            lambda: self.read_summary(summary_file=None)
+        )
+
         self.actionInput_Directory.triggered.connect(
             lambda: open_directory(path=self.input_folder)
             if self.input_folder is not None
             else None
         )
-
-    def setup_keyboard_shortcuts(self):
-        # Import XYZ file with Ctrl+I
-        self.import_xyz_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
-        self.import_xyz_shortcut.activated.connect(
-            lambda: self.import_and_visualise_xyz(folder=None)
-        )
-
-        # Open results folder with Ctrl+O
-        self.view_results = QShortcut(QKeySequence("Ctrl+O"), self)
-        self.view_results.activated.connect(
+        self.actionResults_Directory.triggered.connect(
             lambda: open_directory(path=self.output_folder)
             if self.output_folder is not None
             else None
         )
+        self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
+        self.actionPlotting_Dialog.triggered.connect(self.replotting_called)
 
     def setup_button_connections(self):
         self.import_pushButton.clicked.connect(
@@ -191,10 +175,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
-
-        self.actionImport_Summary_File.triggered.connect(
-            lambda: self.read_summary(summary_file=None)
-        )
 
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
@@ -215,6 +195,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.progressBar.setValue(value)
 
     def update_sim_id(self, value):
+        if value is None:
+            return
         if self.input_folder is not None:
             self.setCurrentXYZIndex(value=value)
 
@@ -331,7 +313,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget.pass_XYZ_list(xyz_file_list)
         self.sim_num = 0
         self.openglwidget.get_XYZ_from_list(0)
-
+        self.xyz_fname_comboBox.clear()
         self.xyz_fname_comboBox.addItems([Path(x).name for x in self.xyz_file_list])
 
         self.xyz_spinBox.setMinimum(0)
@@ -393,6 +375,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_movie(self, frame):
         if frame != self.frame:
             self.update_frame(frame)
+            # block to prevent double updates
+            with QSignalBlocker(self.frame_slider):
+                self.frame_slider.setValue(frame)
+            with QSignalBlocker(self.xyz_spinBox):
+                self.frame_spinBox.setValue(frame)
 
     def next_frame(self):
         num_frames = len(self.frame_list)
@@ -406,7 +393,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.frame = 0
         else:
             self.frame = 0
-            self.frame_timer.stop()  # Stop the timer if we've reached the last frame
+            self.frame_timer.stop()
             self.frame_slider.setValue(self.frame)
             self.frame_spinBox.setValue(self.frame)
 
@@ -464,11 +451,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growth_rate_pushButton.setEnabled(False)
         self.actionImport_Summary_File.setEnabled(False)
         self.summ_df = None
+        if self.simulation_variables_widget is not None:
+            self.simulation_variables_widget.deleteLater()
+            self.simulation_variables_widget = None
+
         try:
             if Path(folder).is_dir():
                 self.input_folder = folder
                 information = find_info(folder)
-                if information.directions and information.size_files:
+                if information.size_files and information.directions:
                     self.growth_rate_pushButton.setEnabled(True)
                     self.growthrate.set_folder(folder=folder)
                     self.growthrate.set_information(information=information)

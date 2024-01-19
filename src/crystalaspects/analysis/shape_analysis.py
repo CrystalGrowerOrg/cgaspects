@@ -94,13 +94,15 @@ class CrystalShape:
 
                 progress_num = ((frame + 1) / num_frames) * 100
 
-                print(f"#####\nFRAME NUMBER: {frame}")
-                print(f"Particle Number Line: {particle_num_line}")
-                print(f"Frame Start Line: {frame_line}")
-                print(f"Frame End Line: {frame_line + num_particles}")
-                print(f"Number of Particles read: {frame_line}")
-
-                print(f"Number of Particles in list: {xyz.shape[0]}")
+                print(
+                    f"#####\nFRAME NUMBER: {frame}\n"
+                    f"Particle Number Line: {particle_num_line}\n"
+                    f"Frame Start Line: {frame_line}\n"
+                    f"Frame End Line: {frame_line + num_particles}\n"
+                    f"Number of Particles read: {frame_line}\n",
+                    f"Number of Particles in list: {xyz.shape[0]}\n",
+                    end="\r",
+                )
 
         return (xyz, xyz_movie, progress_num)
 

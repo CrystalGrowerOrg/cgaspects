@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog
 from crystalaspects.analysis.shape_analysis import CrystalShape
 from crystalaspects.gui.point_cloud_renderer import SimplePointRenderer
 from crystalaspects.gui.axes_renderer import AxesRenderer
+
 # from crystalaspects.gui.sphere_renderer import SphereRenderer
 
 from crystalaspects.gui.camera import Camera
@@ -67,7 +68,7 @@ class VisualisationWidget(QOpenGLWidget):
             "Atom/Molecule Type": 0,
             "Atom/Molecule Number": 1,
             "Layer": 2,
-            "Single Colour": 3,
+            "Single Colour": -1,
             "Site Number": 6,
             "Particle Energy": 7,
         }
@@ -239,32 +240,37 @@ class VisualisationWidget(QOpenGLWidget):
         max_layers = int(np.nanmax(layers[layers < 99]))
 
         # Loading the point cloud from file
-        def vis_pc(xyz, color_axis=-1):
+        def vis_pc(xyz, color_axis):
             pcd_points = xyz[:, 3:6]
             pcd_colors = None
 
-            if color_axis >= 0:
-                
-                if color_axis == 3:
-                    axis_vis = np.arange(0, xyz.shape[0], dtype=np.float32)
-                else:
-                    axis_vis = xyz[:, color_axis]
+            if xyz.shape[1] <= 6 and color_axis >= 6:
+                logger.warning(
+                    "Old CrystalGrower version! %s option not available for colouring.",
+                    self.color_by,
+                )
+                color_axis = 3
 
-                if color_axis == 2:
-                    min_val = 1
-                    max_val = max_layers
-                else:
-                    min_val = np.nanmin(axis_vis)
-                    max_val = np.nanmax(axis_vis)
-                
-                # Avoid division by zero in case all values are the same
-                range_val = max_val - min_val if max_val != min_val else 1
-                
-                normalized_axis_vis = (axis_vis - min_val) / range_val
+            if color_axis == 3:
+                axis_vis = np.arange(0, xyz.shape[0], dtype=np.float32)
+            else:
+                axis_vis = xyz[:, color_axis]
 
-                pcd_colors = self.availableColormaps[self.colormap](
-                    normalized_axis_vis
-                )[:, 0:3]
+            if color_axis == 2:
+                min_val = 1
+                max_val = max_layers
+            else:
+                min_val = np.nanmin(axis_vis)
+                max_val = np.nanmax(axis_vis)
+
+            # Avoid division by zero in case all values are the same
+            range_val = max_val - min_val if max_val != min_val else 1
+
+            normalized_axis_vis = (axis_vis - min_val) / range_val
+
+            pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[
+                :, 0:3
+            ]
 
             return (pcd_points, pcd_colors)
 

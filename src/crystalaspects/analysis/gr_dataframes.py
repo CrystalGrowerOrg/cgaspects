@@ -1,5 +1,5 @@
 import logging
-
+import re
 import numpy as np
 import pandas as pd
 
@@ -20,17 +20,18 @@ def build_growthrates(size_file_list, supersat_list, directions=[], signals=None
     for f in size_file_list:
         lt_df = pd.read_csv(f)
         x_data = lt_df["time"]
-
+        sim_num = int(re.findall(r"\d+", f.name)[-1])
         if directions:
             lengths = directions
         if directions is False:
+            lengths = []
             columns = lt_df.columns
             if i == 0:
                 for col in columns:
                     if col.startswith(" ") or col.startwith("-1"):
                         lengths.append(col)
 
-        gr_list = []
+        gr_list = [sim_num]
         for direction in lengths:
             y_data = np.array(lt_df[direction])
             model = np.polyfit(x_data, y_data, 1)
@@ -41,7 +42,7 @@ def build_growthrates(size_file_list, supersat_list, directions=[], signals=None
         if signals:
             signals.progress.emit(int((i / n_size_files) * 100))
     growth_array = np.array(growth_list)
-    gr_df = pd.DataFrame(growth_array, columns=lengths)
-    gr_df.insert(0, "Supersaturation", supersat_list)
+    gr_df = pd.DataFrame(growth_array, columns=["Simulation Number"] + lengths)
+    gr_df.insert(1, "Supersaturation", supersat_list)
 
     return gr_df
