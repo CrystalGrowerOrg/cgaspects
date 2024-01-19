@@ -18,8 +18,6 @@ from PySide6.QtWidgets import (
     QProgressBar,
 )
 
-from qt_material import apply_stylesheet
-
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
 from crystalaspects.analysis.gui_threads import WorkerXYZ
@@ -76,8 +74,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-
-        # self.apply_style(theme_main="dark", theme_colour="teal")
 
         self.setupUi(self)
         self.update_statusbar("CrystalAspects v1.0")
@@ -160,7 +156,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: self.import_and_visualise_xyz(folder=None)
         )
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
-        
+
         self.actionInput_Directory.triggered.connect(
             lambda: open_directory(path=self.input_folder)
             if self.input_folder is not None
@@ -180,21 +176,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda: open_directory(path=self.output_folder)
             if self.output_folder is not None
             else None
-        )
-
-    def apply_style(self, theme_main, theme_colour, density=-1):
-        extra = {
-            # Font
-            "font_family": "Roboto",
-            # Density Scale
-            "density_scale": str(density),
-        }
-
-        apply_stylesheet(
-            self,
-            f"{theme_main}_{theme_colour}.xml",
-            invert_secondary=False,
-            extra=extra,
         )
 
     def setup_button_connections(self):
@@ -359,7 +340,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_fname_comboBox.setEnabled(True)
         self.xyz_id_label.setEnabled(True)
         self.xyz_spinBox.setEnabled(True)
-        
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()

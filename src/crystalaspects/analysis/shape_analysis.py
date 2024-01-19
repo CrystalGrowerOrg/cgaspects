@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import trimesh
 from scipy.spatial import ConvexHull
-from sklearn.decomposition import PCA
 
 logger = logging.getLogger("CA:ShapeAnalysis")
 
@@ -111,14 +110,9 @@ class CrystalShape:
         used as the longest length, second component
         the medium and the third the shortest"""
 
-        pca = PCA(n_components=n)
-        pca.fit(self._normalise_verts(self.xyz))
-
-        # pca_vectors = pca.components_
-        # pca_values = pca.explained_variance_ratio_
-        pca_svalues = pca.singular_values_
-
-        return pca_svalues
+        u, s, vh = np.linalg.svd(self.xyz, full_matrices=False)
+        vals = s**2 / self.xyz.shape[0]
+        return vals
 
     def get_sa_vol_ratio(self):
         """Returns 3D data of a crystal shape,
@@ -143,11 +137,9 @@ class CrystalShape:
         """
 
         # Perform PCA to find the principal components
-        pca = PCA(n_components=3)
-        pca.fit(self.xyz)
-
+        u, s, vh = np.linalg.svd(self.xyz, full_matrices=False)
         # Align the principal component with the x-axis
-        transformed_xyz = pca.transform(self.xyz)
+        transformed_xyz = self.xyz @ vh.T
 
         # Note: PCA.transform() aligns the first principal component
         # with the x-axis, second with y-axis, and third with z-axis.
@@ -181,10 +173,10 @@ class CrystalShape:
         return oba_array
 
     def get_shape_class(self, aspect1, aspect2):
-        """Determining the crystal shape 
+        """Determining the crystal shape
         based on the aspect ratios.
         """
-        
+
         threshold = 3 / 2
 
         aspects = (aspect1 > threshold, aspect2 > threshold)
@@ -193,7 +185,7 @@ class CrystalShape:
             (False, False): "Lath",
             (False, True): "Plate",
             (True, True): "Block",
-            (True, False): "Needle"
+            (True, False): "Needle",
         }
 
         return shapes.get(aspects, "unknown")

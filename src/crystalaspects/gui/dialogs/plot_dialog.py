@@ -3,7 +3,6 @@ import logging
 import matplotlib
 import numpy as np
 import pandas as pd
-import re
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
@@ -53,8 +52,8 @@ class PlottingDialog(QDialog):
         # Set the dialog to be non-modal
         self.setWindowModality(QtCore.Qt.NonModal)
 
-        self._create_widgets()
-        self._create_layout()
+        self.create_widgets()
+        self.create_layout()
         self.annot = None
         self.trendline = None
         self.trendline_text = None
@@ -63,78 +62,76 @@ class PlottingDialog(QDialog):
         self.selected_plot = None
         self.plot_objects = {}
 
-        self._plotting_info(csv)
-
+        self.plotting_info(csv)
         self.plot_list_combo_box.clear()
         self.plot_list_combo_box.addItems(self.plots_list)
-        self.interaction_combo_box = QComboBox()
-        self.interaction_combo_box.addItems(self.interaction_columns)
 
-    def _plotting_info(self, csv):
+    def plotting_info(self, csv):
         self.csv = csv
-        self.df = pd.read_csv(self.csv)
-        self.cols = self.df.columns
-        logger.debug("Dataframe read:\n%s", self.df)
+        df = pd.read_csv(self.csv)
+        logger.debug("Dataframe read:\n%s", df)
         plotting = ""
-        self.growth_rate = None
-        for col in self.cols:
+        for col in df.columns:
             if col.startswith("Supersaturation"):
                 plotting = "Growth Rates"
+        self.growth_rate = None
         # Identify interaction columns
-        self.interaction_columns = [
+        interaction_columns = [
             col
-            for col in self.cols
+            for col in df.columns
             if col.startswith(
-                ("interaction","tile", "temperature", "starting_delmu", "excess")
+                ("interaction", "tile", "temperature", "starting_delmu", "excess")
             )
         ]
-        logger.debug("Interaction energy columns: %s", self.interaction_columns)
+        logger.debug("Interaction energy columns: %s", interaction_columns)
 
         # List to store the results
-        self.plot_types = []
-        self.selected_directions = []
+        plot_types = []
 
         # Check each column heading
-        for column in self.cols:
-            if column.startswith("OBA") and "OBA" not in self.plot_types:
-                self.plot_types.append("OBA")
-            elif column.startswith("PCA") and "PCA" not in self.plot_types:
-                self.plot_types.append("PCA")
+        for column in df.columns:
+            if column.startswith("OBA") and "OBA" not in plot_types:
+                plot_types.append("OBA")
+            elif column.startswith("PCA") and "PCA" not in plot_types:
+                plot_types.append("PCA")
             elif (
                 column == "Surface Area: Volume Ratio"
-                and "SA:Vol" not in self.plot_types
+                and "Surface Area: Volume Ratio" not in plot_types
             ):
-                self.plot_types.append("SA:Vol")
-            elif column.startswith("AspectRatio") and "CDA" not in self.plot_types:
-                self.plot_types.append("CDA")
-                directions = re.sub(r'[a-zA-Z]', '', column).split("/")
-                for direction in directions:
-                    if direction and direction not in self.selected_directions:
-                        self.selected_directions.append(direction)
+                plot_types.append("Surface Area: Volume Ratio")
+            elif column.startswith("M/L") and "CDA" not in plot_types:
+                plot_types.append("CDA")
+            elif column.startswith("AspectRatio") and "CDA Extended" not in plot_types:
+                plot_types.append("CDA Extended")
 
         # Get equations
-        for column in self.cols:
+        for column in df.columns:
             if column.startswith("CDA_Equation"):
-                equations = set(self.df["CDA_Equation"])
+                equations = set(df["CDA_Equation"])
                 for equation in equations:
-                    self.plot_types.append(f"OBA in group {equation}")
-                    self.plot_types.append(f"PCA in group {equation}")
+                    plot_types.append(f"OBA vs CDA Equation {equation}")
+                    plot_types.append(f"PCA vs CDA Equation {equation}")
 
-        for plot_type in self.plot_types:
+        self.plots_list = []
+        for plot_type in plot_types:
+            # Add the basic plot
+            self.plots_list.append(plot_type)
+
             # Add plots with interaction
-            for interaction_col in self.interaction_columns:
-                self.plot_types.append(f"{plot_type} vs {interaction_col}")
+            for interaction_col in interaction_columns:
+                self.plots_list.append(f"{plot_type} vs {interaction_col}")
 
         if plotting == "Growth Rates":
+            self.plotting = "Scatter+Line"
             self.growth_rate = True
             directions = []
-            for col in self.cols:
+            for col in df.columns:
                 if col.startswith(" "):
                     directions.append(col)
             self.directions = directions
             self.plots_list = ["Growth Rates"]
 
-    def _create_widgets(self):
+    def create_widgets(self):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.ax = self.figure.add_subplot(111)
@@ -166,19 +163,11 @@ class PlottingDialog(QDialog):
 
         # Create the plot type combo box
         self.plot_type_combo_box = QComboBox()
-        self.plot_type_combo_box.addItems(["OBA", "PCA", "CDA"])
+        self.plot_type_combo_box.addItems(["Scatter", "Line", "Scatter+Line"])
 
         self.plot_list_combo_box = QComboBox()
         self.plot_list_combo_box.setMaxVisibleItems(5)
         self.plot_list_combo_box.show()
-
-        self.interactions_label = QLabel("Colour By: ")
-        self.interaction_combo_box = QComboBox()
-        self.interaction_combo_box.addItems(self.interaction_columns)
-
-        self.cda_group_label = QLabel("Ratio Group: ")
-        self.cda_group = QComboBox()
-        self.cda_group.addItems(self.selected_directions)
 
         self.button_save.clicked.connect(self.save)
         self.checkbox_grid.stateChanged.connect(self.toggle_grid)
@@ -187,7 +176,10 @@ class PlottingDialog(QDialog):
         self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
         self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
 
-    def _create_layout(self):
+        # Initialize the plot type
+        self.plot_type = "scatter"
+
+    def create_layout(self):
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
         layout.addWidget(self.toolbar)
@@ -202,19 +194,11 @@ class PlottingDialog(QDialog):
         hbox1.addWidget(self.plot_list_combo_box)
 
         hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.label_plotstyle)
-        hbox2.addWidget(self.plot_type_combo_box)
-        hbox2.addWidget(self.label_plottype)
-        hbox2.addWidget(self.interactions_label)
-        hbox2.addWidget(self.interaction_combo_box)
-
-        hbox3 = QHBoxLayout()
-        hbox3.addWidget(self.button_save)
-        hbox3.addWidget(self.button_add_trendline)
+        hbox2.addWidget(self.button_save)
+        hbox2.addWidget(self.button_add_trendline)
 
         layout.addLayout(hbox1)
         layout.addLayout(hbox2)
-        layout.addLayout(hbox3)
 
         # Set window properties
         self.setWindowTitle("Plot Window")
@@ -231,7 +215,7 @@ class PlottingDialog(QDialog):
         self.plot()
 
     def change_plot_type(self):
-        self.plot_type = self.plot_type_combo_box.currentText()
+        plot_type = self.plot_type
 
         if plot_type == "Scatter":
             self.plot_type = "scatter"
@@ -247,25 +231,6 @@ class PlottingDialog(QDialog):
         self.selected_plot = self.plot_list_combo_box.currentText()
         self.plot()
 
-    def _plot_zingg(self, type):
-        x_data = self.df["OBA S:M"]
-        y_data = self.df["OBA M:L"]
-
-        logger.info(
-            "Plotting x[ OBA S:M %s], y[ OBA M:L %s]", x_data.shape, y_data.shape
-        )
-        # Plot the data
-        self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-        # When creating a scatter plot without colour data
-        self.plot_objects[f""] = (None, self.scatter, None, None)
-        self.ax.axhline(y=0.66, color="black", linestyle="--")
-        self.ax.axvline(x=0.66, color="black", linestyle="--")
-        self.ax.set_xlabel("S:M")
-        self.ax.set_ylabel("M:L")
-        self.ax.set_xlim(0, 1.0)
-        self.ax.set_ylim(0, 1.0)
-        self.ax.set_title("OBA Zingg Diagram")
-
     def plot(self):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
@@ -273,12 +238,13 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
         logger.info("Plotting called for: %s", self.selected_plot)
         # Reading the dataframe
-        
+        df = pd.read_csv(self.csv)
+        self.df = df
         self.plot_objects = {}
         # Finding interactions in data frame if there are any
         interactions = [
             col
-            for col in self.cols
+            for col in df.columns
             if col.startswith("interaction")
             or col.startswith("tile")
             or col.startswith("starting_delmu")
@@ -343,7 +309,7 @@ class PlottingDialog(QDialog):
             self.ax.set_ylim(0, 1.0)
             self.ax.set_title("PCA Zingg Diagram")
 
-        if self.selected_plot == "SA:Vol":
+        if self.selected_plot == "Surface Area: Volume Ratio":
             x_data = df["Surface Area (SA)"]
             y_data = df["Volume (Vol)"]
 
@@ -488,7 +454,7 @@ class PlottingDialog(QDialog):
                 self.canvas.draw()
 
             if self.selected_plot.startswith(
-                "SA:Vol vs " + interaction
+                "Surface Area: Volume Ratio vs " + interaction
             ):
                 x_data = df["Surface Area (SA)"]
                 y_data = df["Volume (Vol)"]
@@ -613,7 +579,7 @@ class PlottingDialog(QDialog):
 
         if equation_plot:
             for equation in equations:
-                if self.selected_plot.startswith(f"OBA in group {equation}"):
+                if self.selected_plot.startswith(f"OBA vs CDA Equation {equation}"):
                     df = df[df["CDA_Equation"] == equation]
                     x_data = df["OBA S:M"]
                     y_data = df["OBA M:L"]
@@ -633,10 +599,10 @@ class PlottingDialog(QDialog):
                     self.ax.set_ylabel("M:L")
                     self.ax.set_xlim(0.0, 1.0)
                     self.ax.set_ylim(0.0, 1.0)
-                    self.ax.set_title(f"OBA in group {equation}")
+                    self.ax.set_title(f"OBA vs CDA Equation {equation}")
                     self.canvas.draw()
 
-                if self.selected_plot.startswith(f"PCA in group {equation}"):
+                if self.selected_plot.startswith(f"PCA vs CDA Equation {equation}"):
                     df = df[df["CDA_Equation"] == equation]
                     x_data = df["PCA S:M"]
                     y_data = df["PCA M:L"]
@@ -656,7 +622,7 @@ class PlottingDialog(QDialog):
                     self.ax.set_ylabel("M:L")
                     self.ax.set_xlim(0.0, 1.0)
                     self.ax.set_ylim(0.0, 1.0)
-                    self.ax.set_title(f"PCA in group {equation}")
+                    self.ax.set_title(f"PCA vs CDA Equation {equation}")
                     self.canvas.draw()
 
         if self.growth_rate:
