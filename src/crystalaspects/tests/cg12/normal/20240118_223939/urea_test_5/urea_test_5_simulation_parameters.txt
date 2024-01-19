@@ -1,0 +1,138 @@
+CrystalGrower code version:                       CrystalGrower_X_1_12_0.f90
+Directory for file storage:                       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/
+Filename root:                                    urea_test_5
+Checkpoint load enabled:                          no
+Checkpoint load file path:                        N/A
+Checkpoint save enabled:                          yes
+File containing TOPOS input?:                     /Users/alvin/Library/CloudStorage/Dropbox/CrystalGrower_X_1_12_1/Structure_Files/Net_structures/Urea.txt
+File name for output visualisation data?:         /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_visualiser.vis
+Filetype, old, new, new_mol:                      new_mol
+normal, ordered or growth modifier:               normal
+Do you want to add screw dislocations?:           no
+Checking sweeps, 1 normal, 2 clear defects:       1
+Method for determining combinations:              2
+Is this a tile or net crystal?:                   net
+Do you want molecules grouped?:                   yes
+
+    net.txt (1)
+    1
+    1
+    1
+    1
+    2
+    2
+    3
+    3
+    3
+    3
+      4.000
+      3.000
+      1.000
+    end net.txt (1)
+
+
+    net.txt (2)
+    1
+    1
+    1
+    1
+    2
+    2
+    3
+    3
+    3
+    3
+      4.000
+      3.000
+      1.000
+    end net.txt (2)
+
+Different weighting for multiple bonds?:          no
+File name for output data:                        /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_ovito_CGvisualiser.XYZ                                                                  
+File name growth events vs time:                  /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_growth.txt                                                                              
+File name delta mu [kcal/mol] vs time:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_delmu.txt                                                                               
+ File name for output of crystal size:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_size.csv                                                                                
+File name for count of each site type:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_count.txt                                                                               
+File name for population of each site type:       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_populations.csv                                                                         
+File name for count of crystallisation events:    /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_crystallisation_events.csv                                                              
+Automatic memory calculation?:                    yes
+Maximum memory in MBytes:                         10000
+Temperature in Celsius:                           25.00
+Iterations:                                       100000
+Input mode for delta mu:                          3
+ 
+      Iterations for supersaturation to equilibrate:        10000
+      Iterations at starting supersaturation:               80000
+ 
+Do you want an excess supersaturation?:           no
+ 
+        The excess supersaturation for all species is 0.0
+ 
+Starting delta mu value (kcal/mol):               100.000
+ 
+MOVIE: number of frames:                          1
+MOVIE: Iteration at movie capture start:          1
+MOVIE: Iteration at movie capture end:            100000
+Delta mu DATA: The number of outputs:             1000
+Delta mu DATA: Iteration at initial output:       1
+Delta mu DATA: iteration at final output:         100000
+ 
+Do you want to visualise crystal terraces?:       yes
+File read containing visualisation surfaces:      
+FIND surfaces or COLOUR surfaces?:                find
+File to store surfaces found for visualisation:   /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_facets_found.txt
+File to store extra visualisation surfaces:       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_5/urea_test_5_facets_all.txt
+ 
+Size of memory allocation in a-direction:         145
+Size of memory allocation in b-direction:         145
+Size of memory allocation in c-direction:         159
+Total size of GRID in MBytes:                     72
+ 
+Size of crystal at frame output
+-4 -4  0        0.0 nm
+-4  4  0        0.0 nm
+-3 -3  0        0.0 nm
+-3  3  0        0.0 nm
+-2 -2  0        0.0 nm
+-2 -1  0        0.0 nm
+-2  1  0        0.0 nm
+-2  2  0        0.0 nm
+-1 -2  0        0.0 nm
+-1 -1 -1        0.0 nm
+-1 -1  0        0.0 nm
+-1 -1  1        0.0 nm
+-1  0  0        0.0 nm
+-1  1 -1        0.0 nm
+-1  1  0        0.0 nm
+-1  2  0        0.0 nm
+ 0 -2  0        0.0 nm
+ 0 -1  0        0.0 nm
+ 0  0 -4        0.0 nm
+ 0  0 -3        0.0 nm
+ 0  0 -2        0.0 nm
+ 0  0 -1        0.0 nm
+ 0  0  1        0.0 nm
+ 0  0  2        0.0 nm
+ 0  0  3        0.0 nm
+ 0  0  4        0.0 nm
+ 0  1  0        0.0 nm
+ 0  2  0        0.0 nm
+ 1 -2  0        0.0 nm
+ 1 -1  0        0.0 nm
+ 1 -1  1        0.0 nm
+ 1  0  0        0.0 nm
+ 1  1 -1        0.0 nm
+ 1  1  0        0.0 nm
+ 1  1  1        0.0 nm
+ 1  2  0        0.0 nm
+ 2 -2  0        0.0 nm
+ 2 -1  0        0.0 nm
+ 2  1  0        0.0 nm
+ 2  2  0        0.0 nm
+ 3 -3  0        0.0 nm
+ 3  3  0        0.0 nm
+ 4 -4  0        0.0 nm
+ 4  4  0        0.0 nm
+ 
+Total iterations completed by end of simulation (includes checkpoints):      100000
+Date 18/01/2024, Time 22:40:11
