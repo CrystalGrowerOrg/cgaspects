@@ -12,10 +12,9 @@ from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.gui.point_cloud_renderer import (
-    SimplePointRenderer,
-)
+from crystalaspects.gui.point_cloud_renderer import SimplePointRenderer
 from crystalaspects.gui.axes_renderer import AxesRenderer
+# from crystalaspects.gui.sphere_renderer import SphereRenderer
 
 from crystalaspects.gui.camera import Camera
 from crystalaspects.gui.widgets.overlay_widget import TransparentOverlay
@@ -35,6 +34,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.xyz_path_list = []
         self.sim_num = 0
         self.point_cloud_renderer = None
+        self.sphere_renderer = None
         self.axes_renderer = None
 
         self.xyz = None
@@ -229,6 +229,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         varray = self.updatePointCloudVertices()
         self.point_cloud_renderer.setPoints(varray)
+        # self.sphere_renderer.setPoints(varray)
         self.update()
 
     def updatePointCloudVertices(self):
@@ -307,8 +308,9 @@ class VisualisationWidget(QOpenGLWidget):
                 )
 
         color = self.backgroundColor
-        gl = self.context().functions()
+        gl = self.context().extraFunctions()
         self.point_cloud_renderer = SimplePointRenderer()
+        # self.sphere_renderer = SphereRenderer(gl)
         self.axes_renderer = AxesRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
@@ -355,6 +357,6 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer.release()
 
     def paintGL(self):
-        gl = self.context().functions()
+        gl = self.context().extraFunctions()
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.draw(gl)
