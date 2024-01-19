@@ -38,6 +38,7 @@ dependencies = [
     "matplotlib>=3.5.2",
     "qt-material",
     "natsort>=8.2",
+    "trimesh",
 ]
 
 [project.urls]

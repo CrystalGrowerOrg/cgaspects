@@ -76,7 +76,7 @@ class AnalysisOptionsDialog(QDialog):
 
         self.cda_checkbox.stateChanged.connect(self.enable_cda)
 
-        self.listWidget.itemChanged.connect(lambda x: self.update_checked_directions())
+        self.listWidget.itemChanged.connect(self.update_checked_directions)
 
     def enable_cda(self, state):
         state = Qt.CheckState(state)
@@ -95,7 +95,7 @@ class AnalysisOptionsDialog(QDialog):
             for combo_box in self.combo_boxes:
                 combo_box.setEnabled(False)
 
-    def update_checked_directions(self):
+    def update_checked_directions(self, item):
         for combo_box in self.combo_boxes:
             combo_box.clear()
 
