@@ -25,9 +25,8 @@ jobs:
 
     - name: Build the project
       run: |
-        hatch shell
-        python -m pip install pyinstaller
-        ./scripts/macos_bundle.sh
+        hatch run pip install pyinstaller
+        hatch run ./scripts/macos_bundle.sh
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
