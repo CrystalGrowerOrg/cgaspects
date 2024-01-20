@@ -175,7 +175,7 @@ class WorkerMovies(QRunnable):
 
         self.signals.message.emit("Reading XYZ file. Please wait...")
         xyz, xyz_movie, progress = CrystalShape.read_XYZ(self.filepath)
-        print(progress)
+        print(progress, end="\r")
         self.signals.progress.emit(progress)
 
         result = results(xyz=xyz, xyz_movie=xyz_movie)

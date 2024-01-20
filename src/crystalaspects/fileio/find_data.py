@@ -115,7 +115,6 @@ def find_info(path):
 
                 for line in lines:
                     if line.startswith("Starting delta mu value (kcal/mol):"):
-                        print(line)
                         supersat = float(line.split()[-1])
                         supersats.append(supersat)
                     if line.startswith("normal, ordered or growth modifier"):
@@ -126,7 +125,6 @@ def find_info(path):
                             growth_mod = False
 
                     if line.startswith("Size of crystal") and get_facets:
-                        print(line)
                         frame = lines.index(line) + 1
                         # From starting point - read facet information
                         for n in range(frame, len(lines)):
@@ -142,7 +140,6 @@ def find_info(path):
     information = file_info(
         supersats, size_files, directions, growth_mod, folders, summary_file
     )
-    print(information)
 
     return information
 
