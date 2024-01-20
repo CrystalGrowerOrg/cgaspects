@@ -94,15 +94,15 @@ class CrystalShape:
 
                 progress_num = ((frame + 1) / num_frames) * 100
 
-                print(
-                    f"#####\nFRAME NUMBER: {frame}\n"
-                    f"Particle Number Line: {particle_num_line}\n"
-                    f"Frame Start Line: {frame_line}\n"
-                    f"Frame End Line: {frame_line + num_particles}\n"
-                    f"Number of Particles read: {frame_line}\n",
-                    f"Number of Particles in list: {xyz.shape[0]}\n",
-                    end="\r",
-                )
+                # print(
+                #     f"#####\nFRAME NUMBER: {frame}\n"
+                #     f"Particle Number Line: {particle_num_line}\n"
+                #     f"Frame Start Line: {frame_line}\n"
+                #     f"Frame End Line: {frame_line + num_particles}\n"
+                #     f"Number of Particles read: {frame_line}\n",
+                #     f"Number of Particles in list: {xyz.shape[0]}\n",
+                #     end="\r",
+                # )
 
         return (xyz, xyz_movie, progress_num)
 
@@ -142,9 +142,6 @@ class CrystalShape:
         u, s, vh = np.linalg.svd(self.xyz, full_matrices=False)
         # Align the principal component with the x-axis
         transformed_xyz = self.xyz @ vh.T
-
-        # Note: PCA.transform() aligns the first principal component
-        # with the x-axis, second with y-axis, and third with z-axis.
 
         # Calculate min, max, and lengths for x, y, z coordinates
         # based on the transformed (rotated) coordinates
