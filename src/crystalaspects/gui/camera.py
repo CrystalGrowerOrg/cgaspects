@@ -1,5 +1,5 @@
-from PySide6.QtGui import QMatrix4x4, QVector3D, QQuaternion
 import numpy as np
+from PySide6.QtGui import QMatrix4x4, QQuaternion, QVector3D
 
 
 def pca(vertices):

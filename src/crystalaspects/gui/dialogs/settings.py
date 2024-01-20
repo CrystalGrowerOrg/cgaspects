@@ -2,11 +2,12 @@ from collections import namedtuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QHBoxLayout, QLabel, QScrollArea, QVBoxLayout,
-                               QWidget, QFormLayout)
+                               QFormLayout, QHBoxLayout, QLabel, QScrollArea,
+                               QVBoxLayout, QWidget)
 
 from crystalaspects.gui.dialogs import settings_ui
 from crystalaspects.gui.utils.py_toggle import PyToggle
+
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
