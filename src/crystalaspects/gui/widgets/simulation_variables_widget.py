@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import Signal, QSignalBlocker
+from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+
 from .simulation_variable_slider import SimulationVariableSlider
 
 

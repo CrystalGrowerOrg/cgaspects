@@ -17,6 +17,10 @@ class CrystalShape:
         self,
     ):
         self.xyz = None
+        self.shape_tuple = namedtuple(
+            "shape_info",
+            "x, y, z, pc1, pc2, pc3, aspect1, aspect2, sa, vol, sa_vol, shape",
+        )
 
     def set_xyz(self, xyz_array=None, filepath=None):
         xyz_vals = None
@@ -93,7 +97,6 @@ class CrystalShape:
                 frame_line = particle_num_line + 2
 
                 progress_num = ((frame + 1) / num_frames) * 100
-
                 # print(
                 #     f"#####\nFRAME NUMBER: {frame}\n"
                 #     f"Particle Number Line: {particle_num_line}\n"
@@ -106,16 +109,6 @@ class CrystalShape:
 
         return (xyz, xyz_movie, progress_num)
 
-    def get_pca(self, n=3):
-        """Looks to obtain information on a crystal
-        shape as the largest pricipal component is
-        used as the longest length, second component
-        the medium and the third the shortest"""
-
-        u, s, vh = np.linalg.svd(self.xyz, full_matrices=False)
-        vals = s**2 / self.xyz.shape[0]
-        return vals
-
     def get_sa_vol_ratio(self):
         """Returns 3D data of a crystal shape,
         Volume:
@@ -126,22 +119,42 @@ class CrystalShape:
         sa_hull = hull.area
         sa_vol = sa_hull / vol_hull
 
-        sa_vol_ratio_array = np.array([[sa_hull, vol_hull, sa_vol]])
+        sa_vol_ratio_array = np.array([sa_hull, vol_hull, sa_vol])
 
         return sa_vol_ratio_array
 
-    def get_oba(self):
-        """OBA - (Orthogonal Box Analysis)
-        Measuring the size of the crystal from
-        the coordinates collected in read_xyz_file.
-        This is measuring the size of the crystal
-        based on the x, y and z directions
+    def get_shape_class(self, aspect1, aspect2):
+        """Determining the crystal shape
+        based on the aspect ratios.
         """
 
+        threshold = 2 / 3
+
+        aspects = (aspect1 > threshold, aspect2 > threshold)
+
+        shapes = {
+            (False, False): "Lath",
+            (False, True): "Plate",
+            (True, True): "Block",
+            (True, False): "Needle",
+        }
+
+        return shapes.get(aspects, "unknown")
+
+    def get_zingg_analysis(self, get_sa_vol=True):
+        """
+        Crystal is aligned in so that the
+        first principal component is aligned
+        with the cartesian x asis -
+        thus allowing for zingg aspect ratio analysis
+        using a bounding box.
+        """
         # Perform PCA to find the principal components
         u, s, vh = np.linalg.svd(self.xyz, full_matrices=False)
         # Align the principal component with the x-axis
         transformed_xyz = self.xyz @ vh.T
+        # Get the explained variance
+        sorted_pca = np.sort(s**2 / self.xyz.shape[0])
 
         # Calculate min, max, and lengths for x, y, z coordinates
         # based on the transformed (rotated) coordinates
@@ -157,52 +170,26 @@ class CrystalShape:
         # Determine crystal shape
         shape = self.get_shape_class(aspect1, aspect2)
 
-        oba_array = np.array(
-            [
-                [
-                    lengths[0],
-                    lengths[1],
-                    lengths[2],
-                    aspect1,
-                    aspect2,
-                    shape,
-                ]
-            ]
+        sa_hull, vol_hull, sa_vol = None, None, None
+        if get_sa_vol:
+            sa_vol_vals = self.get_sa_vol_ratio()
+            sa_hull, vol_hull, sa_vol = (
+                sa_vol_vals[0],
+                sa_vol_vals[1],
+                sa_vol_vals[2],
+            )
+
+        return self.shape_tuple(
+            x=lengths[0],
+            y=lengths[1],
+            z=lengths[2],
+            pc1=sorted_pca[0],
+            pc2=sorted_pca[1],
+            pc3=sorted_pca[2],
+            aspect1=aspect1,
+            aspect2=aspect2,
+            sa=sa_hull,
+            vol=vol_hull,
+            sa_vol=sa_vol,
+            shape=shape,
         )
-        return oba_array
-
-    def get_shape_class(self, aspect1, aspect2):
-        """Determining the crystal shape
-        based on the aspect ratios.
-        """
-
-        threshold = 3 / 2
-
-        aspects = (aspect1 > threshold, aspect2 > threshold)
-
-        shapes = {
-            (False, False): "Lath",
-            (False, True): "Plate",
-            (True, True): "Block",
-            (True, False): "Needle",
-        }
-
-        return shapes.get(aspects, "unknown")
-
-    def get_all(self, n=3):
-        """Returns both Aspect Ratio through PCA
-        and Surface Area/Volume information on a
-        crystal shape."""
-        shape_tuple = namedtuple("shape_info", "aspect1, aspect2, sa, vol, sa_vol")
-
-        pca_svalues = self.get_pca(n=n)
-        sa_vol_r = self.get_sa_vol_ratio()
-        sa_hull, vol_hull, sa_vol = sa_vol_r[0][0], sa_vol_r[0][1], sa_vol_r[0][2]
-        small, medium, long = sorted(pca_svalues)
-
-        aspect1 = small / medium
-        aspect2 = medium / long
-        shape_info = shape_tuple(
-            aspect1=aspect1, aspect2=aspect2, sa=sa_hull, vol=vol_hull, sa_vol=sa_vol
-        )
-        return shape_info

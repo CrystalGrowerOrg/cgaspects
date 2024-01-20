@@ -1,11 +1,7 @@
 import numpy as np
-from OpenGL.GL import GL_FLOAT, GL_UNSIGNED_INT, GL_TRIANGLES
-from PySide6.QtOpenGL import (
-    QOpenGLBuffer,
-    QOpenGLShaderProgram,
-    QOpenGLShader,
-    QOpenGLVertexArrayObject,
-)
+from OpenGL.GL import GL_FLOAT, GL_TRIANGLES, GL_UNSIGNED_INT
+from PySide6.QtOpenGL import (QOpenGLBuffer, QOpenGLShader,
+                              QOpenGLShaderProgram, QOpenGLVertexArrayObject)
 
 
 class SphereRenderer:

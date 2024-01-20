@@ -4,7 +4,14 @@ import sys
 from collections import defaultdict, namedtuple
 from pathlib import Path
 from typing import List
+
 import pandas as pd
+from natsort import natsorted
+from PySide6 import QtWidgets
+from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, Qt
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
+
 from crystalaspects.analysis.aspect_ratios import AspectRatio
 from crystalaspects.analysis.growth_rates import GrowthRate
 from crystalaspects.analysis.gui_threads import WorkerXYZ
@@ -21,11 +28,6 @@ from crystalaspects.gui.widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
 )
-from natsort import natsorted
-from PySide6 import QtWidgets
-from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, Qt
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -261,6 +263,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             folder = QFileDialog.getExistingDirectory(
                 None, "Select Folder that contains the Crystal Outputs (.XYZ)"
             )
+        if folder == "":
+            self.log_message("No folder selected", "debug")
+            return False
         if self.input_folder == folder:
             self.log_message("Same path as current location!", "info")
             return False
@@ -268,7 +273,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.log_message("Reading Images...", "info")
         xyz_files = locate_xyz_files(folder)
 
-        # Check for valid data
+        # Check for valid data, folder reinitialised as a Path object
         if (folder, xyz_files) == (None, None):
             return False
 
@@ -276,7 +281,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.input_folder = folder
         self.batch_lineEdit.setText(str(self.input_folder))
         self.actionInput_Directory.setEnabled(True)
-
+        self.log_message(f"Input path set to: {self.input_folder}", "info")
         self.log_message(f"Initial XYZ list: {xyz_files}", "debug")
 
         if folder:
@@ -285,6 +290,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     def set_visualiser(self):
+        self.actionImport_Summary_File.setEnabled(False)
+        self.summ_df = None
+        if self.simulation_variables_widget is not None:
+            self.simulation_variables_widget.deleteLater()
+            self.simulation_variables_widget = None
+
         if self.xyz_files is None:
             self.log_message(f"No XYZ files to visualise", "warning")
             return
@@ -292,29 +303,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if n_xyz == 0:
             self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
         if n_xyz > 0:
-            self.init_opengl(self.xyz_files)
+            self.init_opengl()
             result = self.get_xyz_frame_or_movie(0)
             self.init_crystal(result)
 
-            # self.simulationVariablesSelectButton.setEnabled(True)
-            self.log_message(
-                f"{len(self.xyz_files)} XYZ files set to visualiser!", "info"
-            )
             self.update_XYZ_info(self.openglwidget.xyz)
             self.set_batch_type()
             self.variablesTabWidget.setCurrentIndex(0)
+            self.actionImport_Summary_File.setEnabled(True)
 
-    def init_opengl(self, xyz_file_list):
-        from pathlib import Path
-
-        # XYZ Files
-        self.xyz_file_list = [str(path) for path in xyz_file_list]
-        tot_sims = len(self.xyz_file_list)
-        self.openglwidget.pass_XYZ_list(xyz_file_list)
+    def init_opengl(self):
+        tot_sims = len(self.xyz_files)
+        self.openglwidget.pass_XYZ_list([str(path) for path in self.xyz_files])
         self.sim_num = 0
         self.openglwidget.get_XYZ_from_list(0)
         self.xyz_fname_comboBox.clear()
-        self.xyz_fname_comboBox.addItems([Path(x).name for x in self.xyz_file_list])
+        self.xyz_fname_comboBox.addItems([x.name for x in self.xyz_files])
 
         self.xyz_spinBox.setMinimum(0)
         self.xyz_spinBox.setMaximum(tot_sims - 1)
@@ -322,6 +326,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_fname_comboBox.setEnabled(True)
         self.xyz_id_label.setEnabled(True)
         self.xyz_spinBox.setEnabled(True)
+
+        self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()
@@ -449,11 +455,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         folder = self.input_folder
         self.aspect_ratio_pushButton.setEnabled(False)
         self.growth_rate_pushButton.setEnabled(False)
-        self.actionImport_Summary_File.setEnabled(False)
-        self.summ_df = None
-        if self.simulation_variables_widget is not None:
-            self.simulation_variables_widget.deleteLater()
-            self.simulation_variables_widget = None
 
         try:
             if Path(folder).is_dir():
@@ -463,12 +464,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.growth_rate_pushButton.setEnabled(True)
                     self.growthrate.set_folder(folder=folder)
                     self.growthrate.set_information(information=information)
-                    self.actionImport_Summary_File.setEnabled(True)
+                    self.growthrate.set_xyz_files(xyz_files=self.xyz_files)
                 if information.directions:
                     self.aspect_ratio_pushButton.setEnabled(True)
                     self.aspectratio.set_folder(folder=folder)
                     self.aspectratio.set_information(information=information)
-                    self.actionImport_Summary_File.setEnabled(True)
+                    self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
                 if not (information.directions or information.size_files):
                     self.log_message(information, "error")
                     raise FileNotFoundError(
@@ -554,7 +555,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # Read Summary
     def read_summary(self, summary_file=None):
-        if not self.xyz_file_list:
+        if not self.xyz_files:
             self.log_message(
                 "XYZ files needs to be loaded first to use summary file information",
                 "warning",
@@ -671,24 +672,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def insert_info(self, result):
         self.log_message("Inserting data to GUI!", log_level="debug", gui=True)
-        aspect1 = result.aspect1
-        aspect2 = result.aspect2
-        shape_class = "Unassigned"
-
-        if aspect1 >= 2 / 3:
-            if aspect2 >= 2 / 3:
-                shape_class = "Block"
-            else:
-                shape_class = "Needle"
-        if aspect1 < 2 / 3:
-            if aspect2 < 2 / 3:
-                shape_class = "Lath"
-            else:
-                shape_class = "Plate"
-
-        self.crystal_info.aspectRatio1 = aspect1
-        self.crystal_info.aspectRatio2 = aspect2
-        self.crystal_info.shapeClass = shape_class
+        self.crystal_info.aspectRatio1 = result.aspect1
+        self.crystal_info.aspectRatio2 = result.aspect2
+        self.crystal_info.shapeClass = result.shape
         self.crystal_info.surfaceAreaVolumeRatio = result.sa_vol
         self.crystal_info.surfaceArea = result.sa
         self.crystal_info.volume = result.vol

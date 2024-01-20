@@ -8,11 +8,11 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
     QScrollArea,
     QVBoxLayout,
     QWidget,
-    QListWidget,
-    QListWidgetItem,
 )
 
 logger = logging.getLogger("CA:AspectDaliog")

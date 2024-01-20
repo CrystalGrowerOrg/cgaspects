@@ -1,11 +1,7 @@
 import numpy as np
 from OpenGL.GL import GL_FLOAT, GL_LINES
-from PySide6.QtOpenGL import (
-    QOpenGLBuffer,
-    QOpenGLShaderProgram,
-    QOpenGLShader,
-    QOpenGLVertexArrayObject,
-)
+from PySide6.QtOpenGL import (QOpenGLBuffer, QOpenGLShader,
+                              QOpenGLShaderProgram, QOpenGLVertexArrayObject)
 
 
 class AxesRenderer:

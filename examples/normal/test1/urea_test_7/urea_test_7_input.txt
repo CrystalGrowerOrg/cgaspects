@@ -1,4 +1,4 @@
-/Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_7/
+/Users/alvin/Downloads/20240120_173310/urea_test_7/
 urea_test_7
 no
 N/A
@@ -6,7 +6,7 @@ yes
 /Users/alvin/Library/CloudStorage/Dropbox/CrystalGrower_X_1_12_1/Structure_Files/Net_structures/Urea.txt
 normal
 no
-/var/folders/40/yv16rmwx08j1rn28cmknx8240000gr/T/_MEIo0eZu2/screw.txt
+/var/folders/40/yv16rmwx08j1rn28cmknx8240000gr/T/_MEI6MP3Jd/screw.txt
 1
 net
 yes
@@ -23,4 +23,4 @@ no
 1
 100000
 yes
-
+/Users/alvin/GitHub/crystalaspects/examples/normal/urea_colouring.txt

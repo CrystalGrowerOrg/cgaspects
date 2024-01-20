@@ -1,5 +1,5 @@
 import logging
-
+from itertools import permutations
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -19,7 +19,13 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
+
+
 from crystalaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
+from crystalaspects.gui.widgets.plot_axes_widget import (
+    PlotAxesComboBoxes,
+    CheckableComboBox,
+)
 
 matplotlib.use("QTAgg")
 
@@ -52,8 +58,6 @@ class PlottingDialog(QDialog):
         # Set the dialog to be non-modal
         self.setWindowModality(QtCore.Qt.NonModal)
 
-        self.create_widgets()
-        self.create_layout()
         self.annot = None
         self.trendline = None
         self.trendline_text = None
@@ -61,75 +65,63 @@ class PlottingDialog(QDialog):
 
         self.selected_plot = None
         self.plot_objects = {}
+        self.plot_types = []
+        self.directions = []
+        self.permutations = ["None"]
+        self.interaction_columns = ["None"]
 
         self.plotting_info(csv)
-        self.plot_list_combo_box.clear()
-        self.plot_list_combo_box.addItems(self.plots_list)
+        self.create_widgets()
+        self.create_layout()
 
     def plotting_info(self, csv):
         self.csv = csv
-        df = pd.read_csv(self.csv)
-        logger.debug("Dataframe read:\n%s", df)
-        plotting = ""
-        for col in df.columns:
+        self.df = pd.read_csv(self.csv)
+        logger.debug("Dataframe read:\n%s", self.df)
+        plotting = None
+        for col in self.df.columns:
             if col.startswith("Supersaturation"):
                 plotting = "Growth Rates"
         self.growth_rate = None
-        # Identify interaction columns
-        interaction_columns = [
+
+        self.interaction_columns = [
             col
-            for col in df.columns
+            for col in self.df.columns
             if col.startswith(
                 ("interaction", "tile", "temperature", "starting_delmu", "excess")
             )
         ]
-        logger.debug("Interaction energy columns: %s", interaction_columns)
+        logger.debug("Interaction energy columns: %s", self.interaction_columns)
 
         # List to store the results
-        plot_types = []
-
+        self.plot_types = []
+        self.directions = []
         # Check each column heading
-        for column in df.columns:
-            if column.startswith("OBA") and "OBA" not in plot_types:
-                plot_types.append("OBA")
-            elif column.startswith("PCA") and "PCA" not in plot_types:
-                plot_types.append("PCA")
-            elif (
-                column == "Surface Area: Volume Ratio"
-                and "Surface Area: Volume Ratio" not in plot_types
-            ):
-                plot_types.append("Surface Area: Volume Ratio")
-            elif column.startswith("M/L") and "CDA" not in plot_types:
-                plot_types.append("CDA")
-            elif column.startswith("AspectRatio") and "CDA Extended" not in plot_types:
-                plot_types.append("CDA Extended")
+        for column in self.df.columns:
+            if column in ["PC1", "PC2", "PC3"] and "Zingg" not in self.plot_types:
+                self.plot_types.append("Zingg")
+            if column == "SA:Vol Ratio" and "SA:Vol Ratio" not in self.plot_types:
+                self.plot_types.append("SA:Vol Ratio")
+            if column.startswith("Ratio"):
+                column = column.replace("Ratio_", "")
+                directions = column.split(":")
+                for direction in directions:
+                    if direction not in self.directions:
+                        self.directions.append(direction)
+                if "CDA" not in self.plot_types:
+                    self.plot_types.append("CDA")
 
-        # Get equations
-        for column in df.columns:
-            if column.startswith("CDA_Equation"):
-                equations = set(df["CDA_Equation"])
-                for equation in equations:
-                    plot_types.append(f"OBA vs CDA Equation {equation}")
-                    plot_types.append(f"PCA vs CDA Equation {equation}")
-
-        self.plots_list = []
-        for plot_type in plot_types:
-            # Add the basic plot
-            self.plots_list.append(plot_type)
-
-            # Add plots with interaction
-            for interaction_col in interaction_columns:
-                self.plots_list.append(f"{plot_type} vs {interaction_col}")
+        self.permutations = list(permutations(self.directions))
 
         if plotting == "Growth Rates":
-            self.plotting = "Scatter+Line"
             self.growth_rate = True
-            directions = []
-            for col in df.columns:
+            self.directions = []
+            for col in self.df.columns:
                 if col.startswith(" "):
-                    directions.append(col)
-            self.directions = directions
-            self.plots_list = ["Growth Rates"]
+                    self.directions.append(col)
+            self.plot_types = ["Growth Rates"]
+
+        logger.info("Default plot types found: %s", self.plot_types)
 
     def create_widgets(self):
         self.figure = Figure()
@@ -137,10 +129,39 @@ class PlottingDialog(QDialog):
         self.ax = self.figure.add_subplot(111)
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.figure.canvas.mpl_connect("button_press_event", self.on_click)
+        self.label_pointsize = QLabel("Point Size: ")
 
-        self.label_pointsize = QLabel("Point Size:")
-        self.label_plotstyle = QLabel("Plot Style:")
-        self.label_plottype = QLabel("Plot Type:")
+        # Main plotting classes
+        self.plot_types_label = QLabel("Plot: ")
+        self.plot_types_combobox = QComboBox(self)
+        self.plot_types_combobox.addItems(self.plot_types)
+
+        # self.plot_permutations_label = None
+        # self.plot_permutations_combobox = None
+        # self.label_variables = None
+        # self.variables_combobox = None
+
+        # if "CDA" in self.plot_types:
+        self.plot_permutations_label = QLabel("Permutations: ")
+        self.plot_permutations_label.setToolTip(
+            "Crystallographic face-to-face distance ratios in ascending order"
+        )
+        self.plot_permutations_combobox = QComboBox(self)
+        self.plot_permutations_combobox.addItems(self.permutations)
+
+        # if len(self.interaction_columns) > 1:
+        self.variables_label = QLabel("Colour with variable: ")
+        self.variables_combobox = QComboBox(self)
+        self.variables_combobox.addItems(self.interaction_columns)
+
+        self.default_plots_checkbox = QCheckBox(self)
+        self.custom_plots_checkbox = QCheckBox(self)
+
+        self.custom_plot_widget = PlotAxesComboBoxes()
+        self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
+        self.custom_plot_widget.y_axis_combobox.addItems(self.df.columns)
+        self.custom_plot_widget.color_combobox.addItems(self.df.columns)
+
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)
 
@@ -161,23 +182,20 @@ class PlottingDialog(QDialog):
             "motion_notify_event", lambda event: self.on_hover(event)
         )
 
-        # Create the plot type combo box
-        self.plot_type_combo_box = QComboBox()
-        self.plot_type_combo_box.addItems(["Scatter", "Line", "Scatter+Line"])
-
-        self.plot_list_combo_box = QComboBox()
-        self.plot_list_combo_box.setMaxVisibleItems(5)
-        self.plot_list_combo_box.show()
-
         self.button_save.clicked.connect(self.save)
         self.checkbox_grid.stateChanged.connect(self.toggle_grid)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
-        self.plot_type_combo_box.currentIndexChanged.connect(self.change_plot_type)
-        self.plot_list_combo_box.currentIndexChanged.connect(self.change_plot_from_list)
-
-        # Initialize the plot type
-        self.plot_type = "scatter"
+        self.default_plots_checkbox.stateChanged.connect(self.change_mode)
+        self.custom_plots_checkbox.stateChanged.connect(self.change_mode)
+        self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
+        if self.plot_permutations_combobox is not None:
+            self.plot_permutations_combobox.currentIndexChanged.connect(
+                self.trigger_plot
+            )
+        if self.variables_combobox is not None:
+            self.variables_combobox.currentIndexChanged.connect(self.trigger_plot)
+        self.custom_plot_widget.plot_button.clicked.connect(self.trigger_plot)
 
     def create_layout(self):
         layout = QVBoxLayout()
@@ -188,21 +206,32 @@ class PlottingDialog(QDialog):
         hbox1.addWidget(self.checkbox_grid)
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
-        hbox1.addWidget(self.label_plotstyle)
-        hbox1.addWidget(self.plot_type_combo_box)
-        hbox1.addWidget(self.label_plottype)
-        hbox1.addWidget(self.plot_list_combo_box)
 
         hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.button_save)
-        hbox2.addWidget(self.button_add_trendline)
+        hbox2.addWidget(self.default_plots_checkbox)
+        hbox2.addWidget(self.plot_types_label)
+        hbox2.addWidget(self.plot_types_combobox)
+        hbox2.addWidget(self.plot_permutations_label)
+        hbox2.addWidget(self.plot_permutations_combobox)
+        hbox2.addWidget(self.variables_label)
+        hbox2.addWidget(self.variables_combobox)
+
+        hbox3 = QHBoxLayout()
+        hbox3.addWidget(self.custom_plots_checkbox)
+        hbox3.addWidget(self.custom_plot_widget)
+
+        hbox4 = QHBoxLayout()
+        hbox4.addWidget(self.button_save)
+        hbox4.addWidget(self.button_add_trendline)
 
         layout.addLayout(hbox1)
         layout.addLayout(hbox2)
+        layout.addLayout(hbox3)
+        layout.addLayout(hbox4)
 
         # Set window properties
         self.setWindowTitle("Plot Window")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 800, 650)
         self.setLayout(layout)
 
     def set_point_size(self, value):
@@ -214,22 +243,14 @@ class PlottingDialog(QDialog):
     def toggle_grid(self, state):
         self.plot()
 
-    def change_plot_type(self):
-        plot_type = self.plot_type
+    def change_mode(self, state):
+        if self.sender() == self.default_plots_checkbox and state == QtCore.Qt.Checked:
+            self.custom_plots_checkbox.setChecked(False)
+        elif self.sender() == self.custom_plots_checkbox and state == QtCore.Qt.Checked:
+            self.default_plots_checkbox.setChecked(False)
 
-        if plot_type == "Scatter":
-            self.plot_type = "scatter"
-            self.plot()
-        if plot_type == "Scatter+Line":
-            self.plot_type = "scatter_line"
-            self.plot()
-        if plot_type == "Line":
-            self.plot_type = "line"
-            self.plot()
-
-    def change_plot_from_list(self):
-        self.selected_plot = self.plot_list_combo_box.currentText()
-        self.plot()
+    def trigger_plot(self):
+        pass
 
     def plot(self):
         self.figure.clear()
