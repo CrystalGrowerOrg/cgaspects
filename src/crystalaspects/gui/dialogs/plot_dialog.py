@@ -1,5 +1,6 @@
 import logging
 from itertools import permutations
+from collections import namedtuple
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
+    QWidget,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QVBoxLayout,
+    QGridLayout,
 )
 
 
@@ -64,15 +67,39 @@ class PlottingDialog(QDialog):
         self.signals = signals
 
         self.selected_plot = None
-        self.plot_objects = {}
+        self.plot_obj_tuple = namedtuple(
+            "Plot", ["line", "scatter", "colour", "interaction"]
+        )
+        self.plot_objects = ()
         self.plot_types = []
         self.directions = []
-        self.permutations = ["None"]
-        self.interaction_columns = ["None"]
+        self.permutations = []
+        self.permutation_labels = []
+        self.interaction_columns = []
+        self.plotting_mode = "default"
+
+        self.grid = None
+        self.point_size = None
+        self.plot_type = None
+        self.permutation = None
+        self.variable = None
+        self.custom_x = None
+        self.custom_y = None
+        self.custom_c = None
+
+        self.x_data = None
+        self.y_data = None
+        self.c_data = None
+        self.c_name = None
+        self.c_label = None
+        self.x_label = None
+        self.y_label = None
+        self.title = ""
 
         self.plotting_info(csv)
         self.create_widgets()
         self.create_layout()
+        self.trigger_plot()
 
     def plotting_info(self, csv):
         self.csv = csv
@@ -91,6 +118,7 @@ class PlottingDialog(QDialog):
                 ("interaction", "tile", "temperature", "starting_delmu", "excess")
             )
         ]
+        self.interaction_columns.insert(0, "None")
         logger.debug("Interaction energy columns: %s", self.interaction_columns)
 
         # List to store the results
@@ -100,8 +128,6 @@ class PlottingDialog(QDialog):
         for column in self.df.columns:
             if column in ["PC1", "PC2", "PC3"] and "Zingg" not in self.plot_types:
                 self.plot_types.append("Zingg")
-            if column == "SA:Vol Ratio" and "SA:Vol Ratio" not in self.plot_types:
-                self.plot_types.append("SA:Vol Ratio")
             if column.startswith("Ratio"):
                 column = column.replace("Ratio_", "")
                 directions = column.split(":")
@@ -110,8 +136,15 @@ class PlottingDialog(QDialog):
                         self.directions.append(direction)
                 if "CDA" not in self.plot_types:
                     self.plot_types.append("CDA")
+            if column == "SA:Vol Ratio" and "SA:Vol Ratio" not in self.plot_types:
+                self.plot_types.append("SA:Vol Ratio")
 
-        self.permutations = list(permutations(self.directions))
+        self.permutation_labels = ["None"]
+        if len(self.directions) == 3:
+            self.permutations = list(permutations(self.directions))
+            for permutation in self.permutations:
+                p_str = f"({permutation[0].strip()}) : ({permutation[1].strip()}) : ({permutation[2].strip()})"
+                self.permutation_labels.append(p_str)
 
         if plotting == "Growth Rates":
             self.growth_rate = True
@@ -122,6 +155,9 @@ class PlottingDialog(QDialog):
             self.plot_types = ["Growth Rates"]
 
         logger.info("Default plot types found: %s", self.plot_types)
+        logger.info("Directions found: %s", self.directions)
+
+        self.plot_types.append("Custom")
 
     def create_widgets(self):
         self.figure = Figure()
@@ -132,30 +168,25 @@ class PlottingDialog(QDialog):
         self.label_pointsize = QLabel("Point Size: ")
 
         # Main plotting classes
-        self.plot_types_label = QLabel("Plot: ")
+        self.plot_types_label = QLabel("Plot Type: ")
+        self.plot_types_label.setAlignment(QtCore.Qt.AlignRight)
         self.plot_types_combobox = QComboBox(self)
         self.plot_types_combobox.addItems(self.plot_types)
 
-        # self.plot_permutations_label = None
-        # self.plot_permutations_combobox = None
-        # self.label_variables = None
-        # self.variables_combobox = None
-
         # if "CDA" in self.plot_types:
         self.plot_permutations_label = QLabel("Permutations: ")
+        self.plot_permutations_label.setAlignment(QtCore.Qt.AlignRight)
         self.plot_permutations_label.setToolTip(
             "Crystallographic face-to-face distance ratios in ascending order"
         )
         self.plot_permutations_combobox = QComboBox(self)
-        self.plot_permutations_combobox.addItems(self.permutations)
+        self.plot_permutations_combobox.addItems(self.permutation_labels)
 
         # if len(self.interaction_columns) > 1:
-        self.variables_label = QLabel("Colour with variable: ")
+        self.variables_label = QLabel("Variable: ")
+        self.variables_label.setAlignment(QtCore.Qt.AlignRight)
         self.variables_combobox = QComboBox(self)
         self.variables_combobox.addItems(self.interaction_columns)
-
-        self.default_plots_checkbox = QCheckBox(self)
-        self.custom_plots_checkbox = QCheckBox(self)
 
         self.custom_plot_widget = PlotAxesComboBoxes()
         self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
@@ -165,8 +196,8 @@ class PlottingDialog(QDialog):
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)
 
+        self.button_save = QPushButton("Save")
         self.button_add_trendline = QPushButton("Add Trendline")
-        self.button_save = QPushButton("Save", parent=self)
 
         # Initialize the variables
         self.point_size = 12
@@ -183,11 +214,9 @@ class PlottingDialog(QDialog):
         )
 
         self.button_save.clicked.connect(self.save)
-        self.checkbox_grid.stateChanged.connect(self.toggle_grid)
+        self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
-        self.default_plots_checkbox.stateChanged.connect(self.change_mode)
-        self.custom_plots_checkbox.stateChanged.connect(self.change_mode)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
         if self.plot_permutations_combobox is not None:
             self.plot_permutations_combobox.currentIndexChanged.connect(
@@ -195,44 +224,59 @@ class PlottingDialog(QDialog):
             )
         if self.variables_combobox is not None:
             self.variables_combobox.currentIndexChanged.connect(self.trigger_plot)
-        self.custom_plot_widget.plot_button.clicked.connect(self.trigger_plot)
+
+        self.custom_plot_widget.x_axis_combobox.currentIndexChanged.connect(
+            self.trigger_plot
+        )
+        self.custom_plot_widget.y_axis_combobox.itemCheckedStateChanged.connect(
+            self.trigger_plot
+        )
+        self.custom_plot_widget.color_combobox.currentIndexChanged.connect(
+            self.trigger_plot
+        )
 
     def create_layout(self):
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
-        layout.addWidget(self.toolbar)
 
         hbox1 = QHBoxLayout()
+        hbox1.addWidget(self.toolbar)
         hbox1.addWidget(self.checkbox_grid)
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
+        hbox1.addWidget(self.button_add_trendline)
+        hbox1.addWidget(self.button_save)
 
-        hbox2 = QHBoxLayout()
-        hbox2.addWidget(self.default_plots_checkbox)
-        hbox2.addWidget(self.plot_types_label)
-        hbox2.addWidget(self.plot_types_combobox)
-        hbox2.addWidget(self.plot_permutations_label)
-        hbox2.addWidget(self.plot_permutations_combobox)
-        hbox2.addWidget(self.variables_label)
-        hbox2.addWidget(self.variables_combobox)
+        grid1 = QGridLayout()
+        grid1.addWidget(self.plot_types_label, 0, 0)
+        grid1.addWidget(self.plot_types_combobox, 0, 1)
+        grid1.addWidget(self.plot_permutations_label, 0, 2)
+        grid1.addWidget(self.plot_permutations_combobox, 0, 3)
+        grid1.addWidget(self.variables_label, 0, 4)
+        grid1.addWidget(self.variables_combobox, 0, 5)
+        grid1.addWidget(self.custom_plot_widget, 1, 0, 1, 6)
+        # Set alignment to right for all labels and combo boxes
+        for i in range(grid1.rowCount()):
+            for j in range(grid1.columnCount()):
+                widget = grid1.itemAtPosition(i, j).widget()
+                if widget:
+                    grid1.setAlignment(widget, QtCore.Qt.AlignRight)
 
-        hbox3 = QHBoxLayout()
-        hbox3.addWidget(self.custom_plots_checkbox)
-        hbox3.addWidget(self.custom_plot_widget)
+        # Create a QWidget to hold grid1
+        widget1 = QWidget()
+        widget1.setLayout(hbox1)
+        widget2 = QWidget()
+        widget2.setLayout(grid1)
 
-        hbox4 = QHBoxLayout()
-        hbox4.addWidget(self.button_save)
-        hbox4.addWidget(self.button_add_trendline)
+        # Add the widget containing grid1 to the main grid
+        layout.addWidget(widget1)
+        layout.addWidget(widget2)
 
-        layout.addLayout(hbox1)
-        layout.addLayout(hbox2)
-        layout.addLayout(hbox3)
-        layout.addLayout(hbox4)
-
-        # Set window properties
+        # # Set window properties
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 650)
         self.setLayout(layout)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
 
     def set_point_size(self, value):
         self.point_size = self.spin_point_size.value()
@@ -240,450 +284,147 @@ class PlottingDialog(QDialog):
             self.scatter.set_sizes([self.point_size] * len(self.scatter.get_offsets()))
         self.canvas.draw()
 
-    def toggle_grid(self, state):
-        self.plot()
+    def change_mode(self, mode):
+        if mode == "Custom":
+            self.plot_permutations_label.setEnabled(False)
+            self.plot_permutations_combobox.setEnabled(False)
+            self.plot_permutations_combobox.setCurrentIndex(0)
+            self.variables_label.setEnabled(False)
+            self.variables_combobox.setEnabled(False)
+            self.variables_combobox.setCurrentIndex(0)
+            self.custom_plot_widget.setEnabled(True)
 
-    def change_mode(self, state):
-        if self.sender() == self.default_plots_checkbox and state == QtCore.Qt.Checked:
-            self.custom_plots_checkbox.setChecked(False)
-        elif self.sender() == self.custom_plots_checkbox and state == QtCore.Qt.Checked:
-            self.default_plots_checkbox.setChecked(False)
+        if mode != "Custom":
+            self.plot_permutations_label.setEnabled(True)
+            self.plot_permutations_combobox.setEnabled(True)
+            self.variables_label.setEnabled(True)
+            self.variables_combobox.setEnabled(True)
+            self.custom_plot_widget.setEnabled(False)
 
     def trigger_plot(self):
-        pass
+        self.grid = self.checkbox_grid.isChecked()
+        self.point_size = self.spin_point_size.value()
+        self.plot_type = self.plot_types_combobox.currentText()
+        self.permutation = int(self.plot_permutations_combobox.currentIndex())
+        self.variable = self.variables_combobox.currentText()
+        (
+            self.custom_x,
+            self.custom_y,
+            self.custom_c,
+        ) = self.custom_plot_widget.get_selections()
+
+        self.change_mode(mode=self.plot_type)
+        self._set_data()
+        self._mask_with_permutation()
+        self._set_c()
+        self._set_labels()
+        self._set_c_label()
+        self.plot()
+
+    def _set_data(self):
+        if self.plot_type == "Zingg":
+            self.x_data = self.df["S:M"]
+            self.y_data = self.df["M:L"]
+        if self.plot_type == "CDA":
+            ratio_columns = [col for col in self.df.columns if col.startswith("Ratio_")]
+            self.x_data = self.df[ratio_columns[0]]
+            self.y_data = self.df[ratio_columns[1]]
+        if self.plot_type == "SA:Vol Ratio":
+            self.x_data = self.df["Surface Area"]
+            self.y_data = self.df["Volume"]
+        if self.plot_type == "Custom":
+            self.x_data = self.df[self.custom_x]
+            self.y_data = self.df[self.custom_y][-1]
+
+    def _mask_with_permutation(self):
+        if self.permutation == 0:
+            self._set_data()
+            return
+        mask = self.df["CDA_Permutation"] == int(self.permutation)
+        self.x_data = self.x_data[mask]
+        self.y_data = self.y_data[mask]
+        if self.c_data is not None:
+            self.c_data = self.c_data[mask]
+
+    def _set_labels(self):
+        if self.plot_type == "Zingg":
+            self.x_label = "S:M"
+            self.y_label = "M:L"
+            self.title = "Zingg Diagram"
+        if self.plot_type == "CDA":
+            ratio_columns = [col for col in self.df.columns if col.startswith("Ratio_")]
+            self.x_label = ratio_columns[0].replace("Ratio_", "")
+            self.y_label = ratio_columns[1].replace("Ratio_", "")
+            self.title = "Crystallographic Face-to-Face Distance Ratios"
+        if self.plot_type == "SA:Vol Ratio":
+            self.x_label = "Surface Area"
+            self.y_label = "Volume"
+            self.title = "Surface Area to Volume Ratio"
+        if self.plot_type == "Custom":
+            self.x_label = self.custom_x
+            self.y_label = self.custom_y[-1]
+            self.title = ""
+
+    def _set_c(self):
+        self.c_data = None
+        self.c_name = None
+        if self.custom_c == "None" and self.variable == "None":
+            return
+        if self.custom_c == "None":
+            self.c_data = self.df[self.variable]
+            self.c_name = self.variable
+        if self.variable == "None":
+            self.c_data = self.df[self.custom_c]
+            self.c_name = self.custom_c
+
+        if self.c_data is None:
+            return
+        # if c_data is not numerical
+        if self.c_data.dtype.kind not in "biufc":
+            self.c_data = pd.factorize(self.c_data)[0]
+
+    def _set_c_label(self):
+        variable = self.variable
+        if self.plot_type == "Custom":
+            variable = self.custom_c
+
+        self.c_label = ""
+        if variable.startswith("interaction") or variable.startswith("tile"):
+            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+        if variable.startswith("starting_delmu"):
+            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+        if variable.startswith("temperature_celcius"):
+            self.c_label = "Temperature (℃)"
+        if variable.startswith("excess"):
+            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
 
     def plot(self):
+        logger.info("Plotting called!")
+        logger.info(
+            "Plot Type: %s, Permutation: %s, Variable: %s, Custom X: %s, Custom Y: %s, Custom C: %s, Grid: %s, Point Size: %s, ",
+            self.plot_type,
+            self.permutation,
+            self.variable,
+            self.custom_x,
+            self.custom_y,
+            self.custom_c,
+            self.grid,
+            self.point_size,
+        )
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.clear()
         self.canvas.draw()
-        logger.info("Plotting called for: %s", self.selected_plot)
-        # Reading the dataframe
-        df = pd.read_csv(self.csv)
-        self.df = df
-        self.plot_objects = {}
-        # Finding interactions in data frame if there are any
-        interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction")
-            or col.startswith("tile")
-            or col.startswith("starting_delmu")
-            or col.startswith("temperature_celcius")
-            or col.startswith("excess")
-        ]
+        self.scatter = None
 
-        equation_plot = False
-        for col in df.columns:
-            if col.startswith("CDA_Equation"):
-                equations = set(df["CDA_Equation"])
-                equation_plot = True
+        self.ax.set_xlabel(self.x_label)
+        self.ax.set_ylabel(self.y_label)
+        self.ax.set_title(self.title)
 
-        for col in df.columns:
-            if col.startswith("interaction") or col.startswith("tile"):
-                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
-            if col.startswith("starting_delmu"):
-                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
-                plot_title = "Aspect Ratio vs Supersaturation"
-            if col.startswith("temperature_celcius"):
-                cbar_legend = "Temperature (℃)"
-                plot_title = "Aspect Ratio vs Temperature"
-            if col.startswith("excess"):
-                cbar_legend = r"$\Delta G_{Cryst}$ (kcal/mol)"
-                plot_title = "Aspect Ratio vs Excess Supersaturation"
-
-        if self.selected_plot == "OBA":
-            x_data = df["OBA S:M"]
-            y_data = df["OBA M:L"]
-
-            logger.info(
-                "Plotting x[ OBA S:M %s], y[ OBA M:L %s]", x_data.shape, y_data.shape
-            )
-            # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-            # When creating a scatter plot without colour data
-            self.plot_objects[f""] = (None, self.scatter, None, None)
-            self.ax.axhline(y=0.66, color="black", linestyle="--")
-            self.ax.axvline(x=0.66, color="black", linestyle="--")
-            self.ax.set_xlabel("S:M")
-            self.ax.set_ylabel("M:L")
-            self.ax.set_xlim(0, 1.0)
-            self.ax.set_ylim(0, 1.0)
-            self.ax.set_title("OBA Zingg Diagram")
-
-        if self.selected_plot == "PCA":
-            x_data = df["PCA S:M"]
-            y_data = df["PCA M:L"]
-
-            logger.info(
-                "Plotting x[ PCA S:M %s], y[ PCA M:L %s]", x_data.shape, y_data.shape
-            )
-            # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-            # When creating a scatter plot without colour data
-            self.plot_objects[f""] = (None, self.scatter, None, None)
-            self.ax.axhline(y=0.66, color="black", linestyle="--")
-            self.ax.axvline(x=0.66, color="black", linestyle="--")
-            self.ax.set_xlabel("S:M")
-            self.ax.set_ylabel("M:L")
-            self.ax.set_xlim(0, 1.0)
-            self.ax.set_ylim(0, 1.0)
-            self.ax.set_title("PCA Zingg Diagram")
-
-        if self.selected_plot == "Surface Area: Volume Ratio":
-            x_data = df["Surface Area (SA)"]
-            y_data = df["Volume (Vol)"]
-
-            logger.info(
-                "Plotting x[ Surface Area (SA) %s], y[ Volume (Vol) %s]",
-                x_data.shape,
-                y_data.shape,
-            )
-            # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-            # When creating a scatter plot without colour data
-            self.plot_objects[f""] = (None, self.scatter, None, None)
-            self.ax.set_xlabel("Surface Area (nm2)")
-            self.ax.set_ylabel("Volume (nm3)")
-            self.ax.set_title("Surface Area: Volume")
-
-        if self.selected_plot == "CDA":
-            x_data = df["S/M"]
-            y_data = df["M/L"]
-
-            logger.info("Plotting x[ S/M %s], y[ M/L %s]", x_data.shape, y_data.shape)
-            # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-            # When creating a scatter plot without colour data
-            self.plot_objects[f""] = (None, self.scatter, None, None)
-            self.ax.set_xlabel("CDA S/M")
-            self.ax.set_ylabel("CDA M/L")
-            self.ax.set_xlim(0, 1.0)
-            self.ax.set_ylim(0, 1.0)
-            self.ax.set_title("CDA Zingg Diagram")
-
-        if self.selected_plot == "CDA Extended":
-            x_data = None
-            y_data = None
-            x_column_name = None
-            y_column_name = None
-            # Counter for 'AspectRatio' columns
-            aspect_ratio_count = 0
-            for column in df.columns:
-                if column.startswith("AspectRatio"):
-                    aspect_ratio_count += 1
-                    if aspect_ratio_count == 1:
-                        x_name = column
-                        x_data = df[column]
-                        x_column_name = column
-                    elif aspect_ratio_count == 2:
-                        y_name = column
-                        y_data = df[column]
-                        y_column_name = column
-                        break
-
-            logger.info(
-                "Plotting x[ %s %s], y[ %s %s]",
-                x_name,
-                x_data.shape,
-                y_name,
-                y_data.shape,
-            )
-            # Plot the data
-            self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-            # When creating a scatter plot without colour data
-            self.plot_objects[f""] = (None, self.scatter, None, None)
-            self.ax.set_xlabel(x_column_name)
-            self.ax.set_ylabel(y_column_name)
-            self.ax.set_title("Extended CDA")
-            self.canvas.draw()
-
-        # Plotting each interaction separately
-        for interaction in interactions:
-            if self.selected_plot.startswith("OBA vs " + interaction):
-                x_data = df["OBA S:M"]
-                y_data = df["OBA M:L"]
-                logger.info(
-                    "Plotting x[ OBA S:M %s], y[ OBA M:L %s] c[ Interaction %s ]",
-                    x_data.shape,
-                    y_data.shape,
-                    interaction,
-                )
-                colour_data = df[interaction]
-                # Check if colour_data is numerical or needs conversion
-                if colour_data.dtype.kind not in "biufc":  # Check if not a number
-                    colour_data = pd.factorize(colour_data)[0]
-                # Plot the data
-                self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
-                )
-                # When creating a scatter plot with colour data
-                self.plot_objects[f"Plot {interaction}"] = (
-                    None,
-                    self.scatter,
-                    colour_data,
-                    interaction,
-                )
-                self.ax.axhline(y=0.66, color="black", linestyle="--")
-                self.ax.axvline(x=0.66, color="black", linestyle="--")
-                self.ax.set_xlabel("S:M")
-                self.ax.set_ylabel("M:L")
-                self.ax.set_xlim(0.0, 1.0)
-                self.ax.set_ylim(0.0, 1.0)
-                self.ax.set_title(f"OBA {interaction}")
-                # Add colorbar and other customizations as needed
-                cbar = self.figure.colorbar(self.scatter)
-                cbar.set_label(cbar_legend)
-                cbar.ax.set_zorder(-1)
-                self.canvas.draw()
-
-            if self.selected_plot.startswith("PCA vs " + interaction):
-                x_data = df["PCA S:M"]
-                y_data = df["PCA M:L"]
-                colour_data = df[interaction]
-                logger.info(
-                    "Plotting x[ PCA S:M %s], y[ PCA M:L %s] c[ Interaction %s ]",
-                    x_data.shape,
-                    y_data.shape,
-                    interaction,
-                )
-                # Check if colour_data is numerical or needs conversion
-                if colour_data.dtype.kind not in "biufc":  # Check if not a number
-                    colour_data = pd.factorize(colour_data)[0]
-                # Plot the data
-                self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
-                )
-                # When creating a scatter plot with colour data
-                self.plot_objects[f"Plot {interaction}"] = (
-                    None,
-                    self.scatter,
-                    colour_data,
-                    interaction,
-                )
-                self.ax.axhline(y=0.66, color="black", linestyle="--")
-                self.ax.axvline(x=0.66, color="black", linestyle="--")
-                self.ax.set_xlabel("S:M")
-                self.ax.set_ylabel("M:L")
-                self.ax.set_xlim(0.0, 1.0)
-                self.ax.set_ylim(0.0, 1.0)
-                self.ax.set_title(f"PCA {interaction}")
-                # Add colorbar and other customizations as needed
-                cbar = self.figure.colorbar(self.scatter)
-                cbar.set_label(cbar_legend)
-                cbar.ax.set_zorder(-1)
-                self.canvas.draw()
-
-            if self.selected_plot.startswith(
-                "Surface Area: Volume Ratio vs " + interaction
-            ):
-                x_data = df["Surface Area (SA)"]
-                y_data = df["Volume (Vol)"]
-                colour_data = df[interaction]
-                logger.info(
-                    "Plotting x[ Surface Area (SA) %s], y[ Volume (Vol) %s] c[ Interaction %s ]",
-                    x_data.shape,
-                    y_data.shape,
-                    interaction,
-                )
-                # Check if colour_data is numerical or needs conversion
-                if colour_data.dtype.kind not in "biufc":  # Check if not a number
-                    colour_data = pd.factorize(colour_data)[0]
-                # Plot the data
-                self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
-                )
-                # When creating a scatter plot with colour data
-                self.plot_objects[f"Plot {interaction}"] = (
-                    None,
-                    self.scatter,
-                    colour_data,
-                    interaction,
-                )
-                self.ax.set_xlabel("Surface Area (nm2)")
-                self.ax.set_ylabel("Volume (nm3)")
-                self.ax.set_title(f"Surface Area: Volume {interaction}")
-                # Add colorbar and other customizations as needed
-                cbar = self.figure.colorbar(self.scatter)
-                cbar.set_label(cbar_legend)
-                cbar.ax.set_zorder(-1)
-                self.canvas.draw()
-
-            if self.selected_plot.startswith("CDA vs " + interaction):
-                x_data = df["S/M"]
-                y_data = df["M/L"]
-                colour_data = df[interaction]
-                logger.info(
-                    "Plotting x[ CDA S/M %s], y[ CDA M/L %s] c[ Interaction %s ]",
-                    x_data.shape,
-                    y_data.shape,
-                    interaction,
-                )
-                # Check if colour_data is numerical or needs conversion
-                if colour_data.dtype.kind not in "biufc":  # Check if not a number
-                    colour_data = pd.factorize(colour_data)[0]
-                # Plot the data
-                self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
-                )
-                # When creating a scatter plot with colour data
-                self.plot_objects[f"Plot {interaction}"] = (
-                    None,
-                    self.scatter,
-                    colour_data,
-                    interaction,
-                )
-                self.ax.axhline(y=0.66, color="black", linestyle="--")
-                self.ax.axvline(x=0.66, color="black", linestyle="--")
-                self.ax.set_xlabel("CDA S/M")
-                self.ax.set_ylabel("CDA M/L")
-                self.ax.set_xlim(0.0, 1.0)
-                self.ax.set_ylim(0.0, 1.0)
-                self.ax.set_title(f"CDA {interaction}")
-                # Add colorbar and other customizations as needed
-                cbar = self.figure.colorbar(self.scatter)
-                cbar.set_label(cbar_legend)
-                cbar.ax.set_zorder(-1)
-                self.canvas.draw()
-
-            if self.selected_plot.startswith("CDA Extended vs " + interaction):
-                x_data = None
-                y_data = None
-                x_column_name = None
-                y_column_name = None
-                # Counter for 'AspectRatio' columns
-                aspect_ratio_count = 0
-                for column in df.columns:
-                    if column.startswith("AspectRatio"):
-                        aspect_ratio_count += 1
-                        if aspect_ratio_count == 1:
-                            x_name = column
-                            x_data = df[column]
-                            x_column_name = column
-                        elif aspect_ratio_count == 2:
-                            y_name = column
-                            y_data = df[column]
-                            y_column_name = column
-                            break
-
-                logger.info(
-                    "Plotting x[ %s %s], y[ %s %s] c[ Interaction %s]",
-                    x_name,
-                    x_data.shape,
-                    y_name,
-                    y_data.shape,
-                    interaction,
-                )
-                colour_data = df[interaction]
-                # Check if colour_data is numerical or needs conversion
-                if colour_data.dtype.kind not in "biufc":  # Check if not a number
-                    colour_data = pd.factorize(colour_data)[0]
-                # Plot the data
-                self.scatter = self.ax.scatter(
-                    x_data, y_data, c=colour_data, cmap="plasma", s=self.point_size
-                )
-                # When creating a scatter plot with colour data
-                self.plot_objects[f"Plot {interaction}"] = (
-                    None,
-                    self.scatter,
-                    colour_data,
-                    interaction,
-                )
-                self.ax.set_xlabel(x_column_name)
-                self.ax.set_ylabel(y_column_name)
-                self.ax.set_title(f"Extended CDA {interaction}")
-                # Add colorbar and other customizations as needed
-                cbar = self.figure.colorbar(self.scatter)
-                cbar.set_label(cbar_legend)
-                cbar.ax.set_zorder(-1)
-                self.canvas.draw()
-
-        if equation_plot:
-            for equation in equations:
-                if self.selected_plot.startswith(f"OBA vs CDA Equation {equation}"):
-                    df = df[df["CDA_Equation"] == equation]
-                    x_data = df["OBA S:M"]
-                    y_data = df["OBA M:L"]
-                    logger.info(
-                        "Plotting x[ OBA S:M %s], y[ OBA M:L %s] c[ Interaction %s ]",
-                        x_data.shape,
-                        y_data.shape,
-                        interaction,
-                    )
-                    # Plot the data
-                    self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-                    # When creating a scatter plot without colour data
-                    self.plot_objects[f""] = (None, self.scatter, None, None)
-                    self.ax.axhline(y=0.66, color="black", linestyle="--")
-                    self.ax.axvline(x=0.66, color="black", linestyle="--")
-                    self.ax.set_xlabel("S:M")
-                    self.ax.set_ylabel("M:L")
-                    self.ax.set_xlim(0.0, 1.0)
-                    self.ax.set_ylim(0.0, 1.0)
-                    self.ax.set_title(f"OBA vs CDA Equation {equation}")
-                    self.canvas.draw()
-
-                if self.selected_plot.startswith(f"PCA vs CDA Equation {equation}"):
-                    df = df[df["CDA_Equation"] == equation]
-                    x_data = df["PCA S:M"]
-                    y_data = df["PCA M:L"]
-                    logger.info(
-                        "Plotting x[ PCA S:M %s], y[ PCA M:L %s] c[ Interaction %s ]",
-                        x_data.shape,
-                        y_data.shape,
-                        interaction,
-                    )
-                    # Plot the data
-                    self.scatter = self.ax.scatter(x_data, y_data, s=self.point_size)
-                    # When creating a scatter plot without colour data
-                    self.plot_objects[f""] = (None, self.scatter, None, None)
-                    self.ax.axhline(y=0.66, color="black", linestyle="--")
-                    self.ax.axvline(x=0.66, color="black", linestyle="--")
-                    self.ax.set_xlabel("S:M")
-                    self.ax.set_ylabel("M:L")
-                    self.ax.set_xlim(0.0, 1.0)
-                    self.ax.set_ylim(0.0, 1.0)
-                    self.ax.set_title(f"PCA vs CDA Equation {equation}")
-                    self.canvas.draw()
-
-        if self.growth_rate:
-            x_data = df["Supersaturation"]
-            # Store plot objects for reference (both line and scatter)
-            self.plot_objects = {}
-
-            # Define the on_legend_click function here
-            def on_legend_click(event):
-                legline = event.artist
-                origline, origscatter, _, _ = self.plot_objects[legline.get_label()]
-                vis = not origline.get_visible()
-                origline.set_visible(vis)
-                origscatter.set_visible(vis)
-                legline.set_alpha(1.0 if vis else 0.2)
-                self.canvas.draw()
-
-            for i in self.directions:
-                self.scatter = self.ax.scatter(x_data, df[i], s=6)
-                (line,) = self.ax.plot(x_data, df[i], label=f" {i}")
-                self.plot_objects[f" {i}"] = (line, self.scatter, None, None)
-                self.ax.set_xlabel("Supersaturation (kcal/mol)")
-                self.ax.set_ylabel("Growth Rate")
-                self.ax.set_title("Growth Rates")
-
-            # Create a legend
-            legend = self.ax.legend()
-
-            for legline in legend.get_lines():
-                legline.set_picker(5)  # Enable clicking on the legend line
-                legline.figure.canvas.mpl_connect("pick_event", on_legend_click)
-
-            self.canvas.draw()
-
-        if self.colorbar:
-            cbar = self.figure.colorbar(self.scatter)
-            cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-
-        if self.checkbox_grid.isChecked():
-            self.ax.grid()
+        if self.grid:
+            self.ax.grid(True)
+        else:
+            self.ax.grid(False)
 
         self.annot = self.ax.annotate(
             "",
@@ -696,6 +437,59 @@ class PlottingDialog(QDialog):
             zorder=20,
         )
         self.annot.set_visible(False)
+
+        if self.plot_type == "Growth Rates":
+            self.x_data = self.df["Supersaturation"]
+            # Store plot objects for reference (both line and scatter)
+            self.plot_objects = {}
+
+            for i in self.directions:
+                self.scatter = self.ax.scatter(
+                    self.x_data, self.df[i], s=self.point_size
+                )
+                (line,) = self.ax.plot(self.x_data, self.df[i], label=f"[{i}]")
+                self.plot_objects[f"[{i}]"] = (line, self.scatter, None, None)
+                self.ax.set_xlabel("Supersaturation (kcal/mol)")
+                self.ax.set_ylabel("Growth Rate")
+                self.ax.set_title("Growth Rates")
+
+            # Create a legend
+            legend = self.ax.legend()
+
+            for legline in legend.get_lines():
+                legline.set_picker(5)  # Enable clicking on the legend line
+                legline.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
+
+            return
+
+        # Capture bad calls to plot
+        if self.x_data is None:
+            return
+        if self.x_data.size == 0 or self.y_data.size == 0:
+            return
+
+        # Plot the data
+        if self.c_data is not None:
+            self.scatter = self.ax.scatter(
+                self.x_data,
+                self.y_data,
+                c=self.c_data,
+                cmap="plasma",
+                s=self.point_size,
+            )
+            # Add colorbar
+            cbar = self.figure.colorbar(self.scatter)
+            cbar.set_label(self.c_label)
+            cbar.ax.set_zorder(-1)
+
+        if self.c_data is None:
+            self.scatter = self.ax.scatter(self.x_data, self.y_data, s=self.point_size)
+
+        if self.plot_type == "Zingg":
+            self.ax.axhline(y=0.66, color="black", linestyle="--")
+            self.ax.axvline(x=0.66, color="black", linestyle="--")
+            self.ax.set_xlim(0, 1.0)
+            self.ax.set_ylim(0, 1.0)
 
         self.canvas.draw()
 
@@ -717,7 +511,7 @@ class PlottingDialog(QDialog):
             color_val = colour_data[ind["ind"][0]]
             text = (
                 f"Sim Number: {_sim_id}\n"
-                f" x: {x:.2f}'\n"
+                f" x: {x:.2f}\n"
                 f" y: {y:.2f}\n"
                 f" {column_name}: {color_val:.2f}"
             )
@@ -732,18 +526,18 @@ class PlottingDialog(QDialog):
             vis = self.annot.get_visible()
         try:
             if event.inaxes == self.ax:
-                for _, plot_data in self.plot_objects.items():
-                    # Unpack the plot data
-                    line, scatter, colour_data, column_name = plot_data
-
-                    # Check if scatter plot exists and handle hover event
-                    if scatter is not None:
-                        cont, ind = scatter.contains(event)
-                        if cont:
-                            self.update_annot(scatter, colour_data, column_name, ind)
-                            self.annot.set_visible(True)
-                            self.figure.canvas.draw_idle()
-                            break
+                # Check if scatter plot exists and handle hover event
+                if self.scatter is not None:
+                    cont, ind = self.scatter.contains(event)
+                    if cont:
+                        self.update_annot(
+                            self.scatter,
+                            self.c_data,
+                            self.c_name,
+                            ind,
+                        )
+                        self.annot.set_visible(True)
+                        self.figure.canvas.draw_idle()
 
                 # Hide annotation if no scatter plot contains the event
                 if not cont and vis:
@@ -752,18 +546,21 @@ class PlottingDialog(QDialog):
         except NameError:
             pass
 
+    def on_legend_click(self, event):
+        legline = event.artist
+        origline, origscatter, _, _ = self.plot_objects[legline.get_label()]
+        vis = not origline.get_visible()
+        origline.set_visible(vis)
+        origscatter.set_visible(vis)
+        legline.set_alpha(1.0 if vis else 0.2)
+
     def on_click(self, event):
         if event.inaxes == self.ax:
-            for _, plot_data in self.plot_objects.items():
-                # Unpack the plot data
-                line, scatter, colour_data, column_name = plot_data
-
-                # Check if scatter plot exists and handle click event
-                if scatter is not None:
-                    cont, ind = scatter.contains(event)
-                    if cont:
-                        self.handle_click(scatter, colour_data, column_name, ind)
-                        break
+            # Check if scatter plot exists and handle click event
+            if self.scatter is not None:
+                cont, ind = self.scatter.contains(event)
+                if cont:
+                    self.handle_click(self.scatter, self.c_data, self.c_name, ind)
 
     def handle_click(self, scatter, colour_data, column_name, ind):
         # index of the clicked point
@@ -790,9 +587,6 @@ class PlottingDialog(QDialog):
     def toggle_trendline(self):
         if not self.trendline:
             if self.scatter is None:
-                self.statusBar().showMessage(
-                    "Error: No scatter plot to add trendline to."
-                )
                 return
 
             x = self.scatter.get_offsets()[:, 0]
