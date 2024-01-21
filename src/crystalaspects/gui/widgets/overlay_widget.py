@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QWidget, QLabel
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel, QWidget
 
 
 class TransparentOverlay(QWidget):
