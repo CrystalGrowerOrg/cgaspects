@@ -9,8 +9,8 @@ import crystalaspects.analysis.ar_dataframes as ar
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerAspectRatios
 from crystalaspects.gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
-from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
+from crystalaspects.visualisation.plot_data import Plotting
 
 logger = logging.getLogger("CA:A-Ratios")
 
@@ -21,6 +21,7 @@ class AspectRatio(QWidget):
         self.output_folder = None
         self.directions = None
         self.information = None
+        self.xyz_files: list[Path] | None = None
         self.directions = None
         self.selected_direction = None
         self.options: namedtuple | None = None
@@ -41,6 +42,9 @@ class AspectRatio(QWidget):
     def set_information(self, information):
         self.information = information
         logger.info("Information set for aspect ratio calculations")
+
+    def set_xyz_files(self, xyz_files: list[Path]):
+        self.xyz_files = xyz_files
 
     def calculate_aspect_ratio(self):
         logger.debug("Called aspect ratio method at directory: %s", self.input_folder)
@@ -97,6 +101,7 @@ class AspectRatio(QWidget):
                 options=self.options,
                 input_folder=self.input_folder,
                 output_folder=self.output_folder,
+                xyz_files=self.xyz_files,
             )
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.set_plotting)
@@ -154,19 +159,46 @@ class AspectRatio(QWidget):
 
     def run_on_same_thread(self):
         self.output_folder = fd.create_aspects_folder(self.input_folder)
-
+        self.signals.location.emit(self.output_folder)
         summary_file = self.information.summary_file
         folders = self.information.folders
 
+        if not (
+            self.options.selected_ar
+            or (
+                self.options.selected_cda
+                and self.options.checked_directions
+                and self.options.selected_directions
+            )
+        ):
+            logger.error(
+                "Condtions not met: AR AND/OR CDA (with checked AND selected directions)"
+            )
+            return
+
         if self.options.selected_ar:
-            xyz_df = ar.collect_all(folder=self.input_folder)
+            xyz_df = ar.collect_all(folder=self.input_folder, signals=self.signals)
             xyz_combine = xyz_df
             if summary_file:
                 xyz_df = fd.summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
             xyz_df_final_csv = self.output_folder / "aspectratio.csv"
             xyz_df.to_csv(xyz_df_final_csv, index=None)
             ar.get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
+            logger.info("Plotting CSV created from: PCA/OBA")
             self.plotting_csv = xyz_df_final_csv
+
+        if self.options.selected_cda and not self.options.checked_directions:
+            logger.warning(
+                "You have selected CDA option but have not checked any directions used to collect length information."
+                "Please set this and try again!"
+            )
+            return
+        if self.options.selected_cda and not self.options.selected_directions:
+            logger.warning(
+                "You have selected CDA option but have not set the three directions used for aspect ratio calculations."
+                "Please set this and try again!"
+            )
+            return
 
         if self.options.selected_cda:
             cda_df = ar.build_cda(
@@ -183,8 +215,10 @@ class AspectRatio(QWidget):
             )
             if summary_file:
                 zn_df = fd.summary_compare(summary_csv=summary_file, aspect_df=zn_df)
+
             zn_df_final_csv = self.output_folder / "cda.csv"
             zn_df.to_csv(zn_df_final_csv, index=None)
+            logger.info("Plotting CSV created from: CDA")
             self.plotting_csv = zn_df_final_csv
 
             if self.options.selected_ar and self.options.selected_cda:
@@ -194,4 +228,5 @@ class AspectRatio(QWidget):
                 ar.get_cda_shape_percentage(
                     df=combined_df, savefolder=self.output_folder
                 )
+                logger.info("Plotting CSV created from: CDA + PCA/OBA")
                 self.plotting_csv = final_cda_xyz_csv

@@ -2,8 +2,8 @@ import logging
 import os
 import re
 from collections import namedtuple
-from itertools import permutations
 from pathlib import Path
+from typing import NamedTuple
 
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
@@ -49,7 +49,7 @@ class WorkerXYZ(QRunnable):
     @Slot()
     def run(self):
         self.shape.set_xyz(xyz_array=self.xyz)
-        shape_info = self.shape.get_all()
+        shape_info = self.shape.get_zingg_analysis()
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit("Calculations Complete!")
@@ -57,15 +57,22 @@ class WorkerXYZ(QRunnable):
 
 
 class WorkerAspectRatios(QRunnable):
-    def __init__(self, information, options, input_folder, output_folder):
+    def __init__(
+        self,
+        information: NamedTuple,
+        options: NamedTuple,
+        input_folder: Path,
+        output_folder: Path,
+        xyz_files: list[Path],
+    ):
         super(WorkerAspectRatios, self).__init__()
         # Store constructor arguments (re-used for processing)
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.information = information
         self.options = options
+        self.xyz_files = xyz_files
         self.plotting_csv = None
-
         self.signals = WorkerSignals()
 
     def run(self):
@@ -88,7 +95,9 @@ class WorkerAspectRatios(QRunnable):
             return
 
         if self.options.selected_ar:
-            xyz_df = ar.collect_all(folder=self.input_folder, signals=self.signals)
+            xyz_df = ar.collect_all(
+                folder=self.input_folder, xyz_files=self.xyz_files, signals=self.signals
+            )
             xyz_combine = xyz_df
             if summary_file:
                 xyz_df = fd.summary_compare(summary_csv=summary_file, aspect_df=xyz_df)

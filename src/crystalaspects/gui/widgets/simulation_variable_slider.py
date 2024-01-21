@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QSlider, QDoubleSpinBox, QHBoxLayout, QLabel
-from PySide6.QtCore import Signal
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (QDoubleSpinBox, QHBoxLayout, QLabel, QSlider,
+                               QWidget)
 
 
 class SimulationVariableSlider(QWidget):

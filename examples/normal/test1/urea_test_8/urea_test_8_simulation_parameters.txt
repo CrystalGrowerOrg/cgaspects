@@ -1,11 +1,11 @@
 CrystalGrower code version:                       CrystalGrower_X_1_12_0.f90
-Directory for file storage:                       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/
+Directory for file storage:                       /Users/alvin/Downloads/20240120_173310/urea_test_8/
 Filename root:                                    urea_test_8
 Checkpoint load enabled:                          no
 Checkpoint load file path:                        N/A
 Checkpoint save enabled:                          yes
 File containing TOPOS input?:                     /Users/alvin/Library/CloudStorage/Dropbox/CrystalGrower_X_1_12_1/Structure_Files/Net_structures/Urea.txt
-File name for output visualisation data?:         /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_visualiser.vis
+File name for output visualisation data?:         /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_visualiser.vis
 Filetype, old, new, new_mol:                      new_mol
 normal, ordered or growth modifier:               normal
 Do you want to add screw dislocations?:           no
@@ -48,13 +48,13 @@ Do you want molecules grouped?:                   yes
     end net.txt (2)
 
 Different weighting for multiple bonds?:          no
-File name for output data:                        /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_ovito_CGvisualiser.XYZ                                                                  
-File name growth events vs time:                  /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_growth.txt                                                                              
-File name delta mu [kcal/mol] vs time:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_delmu.txt                                                                               
- File name for output of crystal size:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_size.csv                                                                                
-File name for count of each site type:            /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_count.txt                                                                               
-File name for population of each site type:       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_populations.csv                                                                         
-File name for count of crystallisation events:    /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_crystallisation_events.csv                                                              
+File name for output data:                        /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_ovito_CGvisualiser.XYZ                                                                                                                   
+File name growth events vs time:                  /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_growth.txt                                                                                                                               
+File name delta mu [kcal/mol] vs time:            /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_delmu.txt                                                                                                                                
+ File name for output of crystal size:            /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_size.csv                                                                                                                                 
+File name for count of each site type:            /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_count.txt                                                                                                                                
+File name for population of each site type:       /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_populations.csv                                                                                                                          
+File name for count of crystallisation events:    /Users/alvin/Downloads/20240120_173310/urea_test_8/urea_test_8_crystallisation_events.csv                                                                                                               
 Automatic memory calculation?:                    yes
 Maximum memory in MBytes:                         10000
 Temperature in Celsius:                           25.00
@@ -78,59 +78,31 @@ Delta mu DATA: Iteration at initial output:       1
 Delta mu DATA: iteration at final output:         100000
  
 Do you want to visualise crystal terraces?:       yes
-File read containing visualisation surfaces:      
-FIND surfaces or COLOUR surfaces?:                find
-File to store surfaces found for visualisation:   /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_facets_found.txt
-File to store extra visualisation surfaces:       /Users/alvin/GitHub/crystalaspects/src/crystalaspects/tests/cg12/normal/20240118_223939/urea_test_8/urea_test_8_facets_all.txt
+File read containing visualisation surfaces:      /Users/alvin/GitHub/crystalaspects/examples/normal/urea_colouring.txt
+FIND surfaces or COLOUR surfaces?:                colour
+ Do you want to output crystal size?:             no
  
 Size of memory allocation in a-direction:         131
-Size of memory allocation in b-direction:         129
+Size of memory allocation in b-direction:         127
 Size of memory allocation in c-direction:         227
 Total size of GRID in MBytes:                     72
  
 Size of crystal at frame output
--4 -4  0        0.0 nm
--4  4  0        0.0 nm
--3 -3  0        0.0 nm
--3 -2  0        0.0 nm
--3  3  0        0.0 nm
--2 -3  0        0.0 nm
--2 -2  0        0.0 nm
--2 -1  0        0.0 nm
--2  1  0        0.0 nm
--2  2  0        0.0 nm
--1 -2  0        0.0 nm
--1 -1  0        0.0 nm
--1  0  0        0.0 nm
--1  0  1        0.0 nm
--1  1  0        0.0 nm
--1  2  0        0.0 nm
- 0 -1 -1        0.0 nm
- 0 -1  0        0.0 nm
- 0 -1  1        0.0 nm
- 0  0 -2        0.0 nm
- 0  0 -1        0.0 nm
- 0  0  1        0.0 nm
- 0  0  2        0.0 nm
- 0  1 -1        0.0 nm
- 0  1  0        0.0 nm
- 0  1  1        0.0 nm
- 1 -2  0        0.0 nm
- 1 -1  0        0.0 nm
- 1  0 -1        0.0 nm
- 1  0  0        0.0 nm
- 1  1  0        0.0 nm
- 1  2  0        0.0 nm
- 2 -2  0        0.0 nm
- 2 -1  0        0.0 nm
- 2  1  0        0.0 nm
- 2  2  0        0.0 nm
- 2  3  0        0.0 nm
- 3 -3  0        0.0 nm
- 3  2  0        0.0 nm
- 3  3  0        0.0 nm
- 4 -4  0        0.0 nm
- 4  4  0        0.0 nm
+ 0 -1 -1       48.5 nm
+ 0 -1  1       48.2 nm
+ 0  1 -1       48.2 nm
+ 0  1  1       48.5 nm
+ 1  0 -1       48.5 nm
+-1 -1  0       10.8 nm
+-1  1  0       12.0 nm
+ 1 -1  0       12.0 nm
+ 1  1  0       10.8 nm
+ 0  0 -1       57.3 nm
+ 0  0  1       57.3 nm
+-1  0  0       15.6 nm
+ 0 -1  0       15.9 nm
+ 0  1  0       15.9 nm
+ 1  0  0       15.6 nm
  
 Total iterations completed by end of simulation (includes checkpoints):      100000
-Date 18/01/2024, Time 22:40:25
+Date 20/01/2024, Time 17:33:41

@@ -1,18 +1,8 @@
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QSlider,
-    QHBoxLayout,
-    QLabel,
-    QComboBox,
-    QToolButton,
-    QColorDialog,
-    QCheckBox,
-)
-
-from PySide6.QtGui import QPixmap, QIcon, QColor
-
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QHBoxLayout,
+                               QLabel, QSlider, QToolButton, QVBoxLayout,
+                               QWidget)
 
 MARGINS = (5, 5, 5, 5)
 

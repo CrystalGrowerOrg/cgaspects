@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -11,8 +11,8 @@ import crystalaspects.analysis.gr_dataframes as gr
 import crystalaspects.fileio.find_data as fd
 from crystalaspects.analysis.gui_threads import WorkerGrowthRates
 from crystalaspects.gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
-from crystalaspects.visualisation.plot_data import Plotting
 from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
+from crystalaspects.visualisation.plot_data import Plotting
 
 logger = logging.getLogger("CA:G-Rates")
 
@@ -23,6 +23,7 @@ class GrowthRate:
         self.output_folder = None
         self.directions = None
         self.information = None
+        self.xyz_files: list[Path] | None = None
         self.directions = None
         self.selected_direction = None
         self.signals = signals
@@ -45,6 +46,9 @@ class GrowthRate:
     def set_information(self, information):
         self.information = information
         logger.info("Information set for growth rate calculations")
+
+    def set_xyz_files(self, xyz_files: list[Path]):
+        self.xyz_files = xyz_files
 
     def calculate_growth_rates(self):
         logger.debug("Called growth rate method at directory: %s", self.input_folder)

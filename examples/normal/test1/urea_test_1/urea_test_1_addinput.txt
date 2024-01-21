@@ -2,6 +2,6 @@ yes
 no
 10000
 80000
-find
-4
+colour
+no
 no                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
