@@ -334,7 +334,7 @@ class PlottingDialog(QDialog):
             self.y_data = self.df["Volume"]
         if self.plot_type == "Custom":
             self.x_data = self.df[self.custom_x]
-            self.y_data = self.df[self.custom_y][-1]
+            self.y_data = self.df[self.custom_y[-1]]
 
     def _mask_with_permutation(self):
         if self.permutation == 0:
