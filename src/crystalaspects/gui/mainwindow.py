@@ -513,7 +513,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else:
                 # Handle the case where no folder was selected
                 self.log_message(
-                    "File selection was canceled or no file was selected.", "error"
+                    "File selection was canceled or no file was selected.", "debug"
                 )
 
         # Note: Bare Exception

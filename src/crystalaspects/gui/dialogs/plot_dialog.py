@@ -68,17 +68,20 @@ class PlottingDialog(QDialog):
 
         self.selected_plot = None
         self.plot_obj_tuple = namedtuple(
-            "Plot", ["line", "scatter", "colour", "interaction"]
+            "Plot",
+            ["scatter", "line", "trendline"],
         )
-        self.plot_objects = ()
+        self.plot_objects = {}
         self.plot_types = []
         self.directions = []
         self.permutations = []
         self.permutation_labels = []
         self.interaction_columns = []
+        self.trendline_text = []
         self.plotting_mode = "default"
 
         self.grid = None
+        self.cbar = None
         self.point_size = None
         self.plot_type = None
         self.permutation = None
@@ -182,7 +185,6 @@ class PlottingDialog(QDialog):
         self.plot_permutations_combobox = QComboBox(self)
         self.plot_permutations_combobox.addItems(self.permutation_labels)
 
-        # if len(self.interaction_columns) > 1:
         self.variables_label = QLabel("Variable: ")
         self.variables_label.setAlignment(QtCore.Qt.AlignRight)
         self.variables_combobox = QComboBox(self)
@@ -203,11 +205,10 @@ class PlottingDialog(QDialog):
         self.point_size = 12
         self.spin_point_size.setValue(self.point_size)
         self.colorbar = False
-        self.scatter = None
 
         # Initialize checkboxes
         self.checkbox_grid = QCheckBox("Show Grid")
-        self.checkbox_trendline = QCheckBox("Add Trendline")
+        self.checkbox_legend = QCheckBox("Show Legend")
 
         self.canvas.mpl_connect(
             "motion_notify_event", lambda event: self.on_hover(event)
@@ -215,9 +216,11 @@ class PlottingDialog(QDialog):
 
         self.button_save.clicked.connect(self.save)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
+        self.checkbox_legend.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
+
         if self.plot_permutations_combobox is not None:
             self.plot_permutations_combobox.currentIndexChanged.connect(
                 self.trigger_plot
@@ -241,6 +244,7 @@ class PlottingDialog(QDialog):
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(self.toolbar)
+        hbox1.addWidget(self.checkbox_legend)
         hbox1.addWidget(self.checkbox_grid)
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
@@ -280,8 +284,11 @@ class PlottingDialog(QDialog):
 
     def set_point_size(self, value):
         self.point_size = self.spin_point_size.value()
-        if self.scatter is not None:
-            self.scatter.set_sizes([self.point_size] * len(self.scatter.get_offsets()))
+        for plot in self.plot_objects.values():
+            if plot.scatter is not None:
+                plot.scatter.set_sizes(
+                    [self.point_size] * len(plot.scatter.get_offsets())
+                )
         self.canvas.draw()
 
     def change_mode(self, mode):
@@ -292,17 +299,18 @@ class PlottingDialog(QDialog):
             self.variables_label.setEnabled(False)
             self.variables_combobox.setEnabled(False)
             self.variables_combobox.setCurrentIndex(0)
-            self.custom_plot_widget.setEnabled(True)
+            self.custom_plot_widget.show()
 
         if mode != "Custom":
             self.plot_permutations_label.setEnabled(True)
             self.plot_permutations_combobox.setEnabled(True)
             self.variables_label.setEnabled(True)
             self.variables_combobox.setEnabled(True)
-            self.custom_plot_widget.setEnabled(False)
+            self.custom_plot_widget.hide()
 
     def trigger_plot(self):
         self.grid = self.checkbox_grid.isChecked()
+        self.show_legend = self.checkbox_legend.isChecked()
         self.point_size = self.spin_point_size.value()
         self.plot_type = self.plot_types_combobox.currentText()
         self.permutation = int(self.plot_permutations_combobox.currentIndex())
@@ -332,9 +340,12 @@ class PlottingDialog(QDialog):
         if self.plot_type == "SA:Vol Ratio":
             self.x_data = self.df["Surface Area"]
             self.y_data = self.df["Volume"]
+        if self.plot_type == "Growth Rates":
+            self.x_data = self.df["Supersaturation"]
+            self.y_data = self.df[self.directions]
         if self.plot_type == "Custom":
             self.x_data = self.df[self.custom_x]
-            self.y_data = self.df[self.custom_y[-1]]
+            self.y_data = self.df[self.custom_y]
 
     def _mask_with_permutation(self):
         if self.permutation == 0:
@@ -360,10 +371,14 @@ class PlottingDialog(QDialog):
             self.x_label = "Surface Area"
             self.y_label = "Volume"
             self.title = "Surface Area to Volume Ratio"
+        if self.plot_type == "Growth Rates":
+            self.x_label = "Supersaturation (kcal/mol)"
+            self.y_label = "Relative Growth Rate"
+            self.title = "Growth Rates vs supersaturation"
         if self.plot_type == "Custom":
-            self.x_label = self.custom_x
-            self.y_label = self.custom_y[-1]
             self.title = ""
+            self.x_label = self.custom_x
+            self.y_label = ""
 
     def _set_c(self):
         self.c_data = None
@@ -376,6 +391,9 @@ class PlottingDialog(QDialog):
         if self.variable == "None":
             self.c_data = self.df[self.custom_c]
             self.c_name = self.custom_c
+        if self.variable == "None" and self.plot_type != "Custom":
+            self.c_data = None
+            self.c_name = None
 
         if self.c_data is None:
             return
@@ -399,9 +417,10 @@ class PlottingDialog(QDialog):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
 
     def plot(self):
+        self.plot_objects = {}
         logger.info("Plotting called!")
         logger.info(
-            "Plot Type: %s, Permutation: %s, Variable: %s, Custom X: %s, Custom Y: %s, Custom C: %s, Grid: %s, Point Size: %s, ",
+            "Plot Called!\nType: %s, Permutation: %s, Variable: %s, \nCustom X: %s, Custom Y: %s, Custom C: %s, \nGrid: %s, Legend: %s, Point Size: %s, ",
             self.plot_type,
             self.permutation,
             self.variable,
@@ -409,16 +428,15 @@ class PlottingDialog(QDialog):
             self.custom_y,
             self.custom_c,
             self.grid,
+            self.show_legend,
             self.point_size,
         )
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.clear()
         self.canvas.draw()
-        self.scatter = None
 
         self.ax.set_xlabel(self.x_label)
-        self.ax.set_ylabel(self.y_label)
         self.ax.set_title(self.title)
 
         if self.grid:
@@ -438,30 +456,6 @@ class PlottingDialog(QDialog):
         )
         self.annot.set_visible(False)
 
-        if self.plot_type == "Growth Rates":
-            self.x_data = self.df["Supersaturation"]
-            # Store plot objects for reference (both line and scatter)
-            self.plot_objects = {}
-
-            for i in self.directions:
-                self.scatter = self.ax.scatter(
-                    self.x_data, self.df[i], s=self.point_size
-                )
-                (line,) = self.ax.plot(self.x_data, self.df[i], label=f"[{i}]")
-                self.plot_objects[f"[{i}]"] = (line, self.scatter, None, None)
-                self.ax.set_xlabel("Supersaturation (kcal/mol)")
-                self.ax.set_ylabel("Growth Rate")
-                self.ax.set_title("Growth Rates")
-
-            # Create a legend
-            legend = self.ax.legend()
-
-            for legline in legend.get_lines():
-                legline.set_picker(5)  # Enable clicking on the legend line
-                legline.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
-
-            return
-
         # Capture bad calls to plot
         if self.x_data is None:
             return
@@ -469,21 +463,15 @@ class PlottingDialog(QDialog):
             return
 
         # Plot the data
-        if self.c_data is not None:
-            self.scatter = self.ax.scatter(
-                self.x_data,
-                self.y_data,
-                c=self.c_data,
-                cmap="plasma",
-                s=self.point_size,
-            )
-            # Add colorbar
-            cbar = self.figure.colorbar(self.scatter)
-            cbar.set_label(self.c_label)
-            cbar.ax.set_zorder(-1)
-
-        if self.c_data is None:
-            self.scatter = self.ax.scatter(self.x_data, self.y_data, s=self.point_size)
+        if self.y_data.shape[1] == 1:
+            self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
+        if self.y_data.shape[1] > 1:
+            line = True if self.plot_type == "Growth Rates" else False
+            for y in self.y_data:
+                self._plot(
+                    x=self.x_data, y=self.df[y], c=self.c_data, add_line=line, label=y
+                )
+            self._set_legend() if self.show_legend else None
 
         if self.plot_type == "Zingg":
             self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -491,7 +479,45 @@ class PlottingDialog(QDialog):
             self.ax.set_xlim(0, 1.0)
             self.ax.set_ylim(0, 1.0)
 
+        # Add colorbar after plotting all data
+        if self.c_data is not None:
+            print(self.plot_objects)
+            print(self.cbar)
+            print(self.plot_objects.values())
+            # Take the frist scatter object to attach the colorbar
+            scatter = list(self.plot_objects.values())[0].scatter
+            self.cbar = self.figure.colorbar(scatter)
+            self.cbar.set_label(self.c_label)
+            self.cbar.ax.set_zorder(-1)
+
         self.canvas.draw()
+
+    def _plot(self, x, y, c=None, cmap="plasma", add_line=False, label=None):
+        cmap = None if c is None else cmap
+        label = y.iloc[:, 0].name if label is None else label
+        line = None
+
+        scatter = self.ax.scatter(
+            x=x,
+            y=y,
+            c=c,
+            cmap=cmap,
+            s=self.point_size,
+            label=label if self.plot_type != "Growth Rates" else None,
+        )
+        if add_line:
+            (line,) = self.ax.plot(x, y, label=label)
+
+        plot_object = self.plot_obj_tuple(scatter=scatter, line=line, trendline=None)
+        self.plot_objects[label] = plot_object
+
+    def _set_legend(self):
+        # Create a legend
+        legend = self.ax.legend()
+
+        for legend_line in legend.get_lines():
+            legend_line.set_picker(5)
+            legend_line.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
 
     def update_annot(self, scatter, colour_data, column_name, ind):
         pos = scatter.get_offsets()[ind["ind"][0]]
@@ -525,42 +551,60 @@ class PlottingDialog(QDialog):
         if self.annot:
             vis = self.annot.get_visible()
         try:
-            if event.inaxes == self.ax:
-                # Check if scatter plot exists and handle hover event
-                if self.scatter is not None:
-                    cont, ind = self.scatter.contains(event)
-                    if cont:
-                        self.update_annot(
-                            self.scatter,
-                            self.c_data,
-                            self.c_name,
-                            ind,
-                        )
-                        self.annot.set_visible(True)
-                        self.figure.canvas.draw_idle()
+            if event.inaxes != self.ax:
+                return
 
-                # Hide annotation if no scatter plot contains the event
-                if not cont and vis:
-                    self.annot.set_visible(False)
+            cont = False
+
+            # Function to handle hover event for a scatter plot
+            def handle_hover(scatter):
+                nonlocal cont
+                cont, ind = scatter.contains(event)
+                if cont:
+                    self.update_annot(
+                        scatter,
+                        self.c_data,
+                        self.c_name,
+                        ind,
+                    )
+                    self.annot.set_visible(True)
                     self.figure.canvas.draw_idle()
+
+            for plot in self.plot_objects.values():
+                handle_hover(scatter=plot.scatter)
+
+            # Hide annotation if no scatter plot contains the event
+            if not cont and vis:
+                self.annot.set_visible(False)
+                self.figure.canvas.draw_idle()
+
         except NameError:
             pass
 
     def on_legend_click(self, event):
-        legline = event.artist
-        origline, origscatter, _, _ = self.plot_objects[legline.get_label()]
-        vis = not origline.get_visible()
-        origline.set_visible(vis)
-        origscatter.set_visible(vis)
-        legline.set_alpha(1.0 if vis else 0.2)
+        print("Legend Clicked")
+        legend_line = event.artist
+        p = self.plot_objects[legend_line.get_label()]
+        print(p)
+        vis = not p.line.get_visible()
+        p.line.set_visible(vis)
+        p.scatter.set_visible(vis)
+        legend_line.set_alpha(1.0 if vis else 0.2)
 
     def on_click(self, event):
-        if event.inaxes == self.ax:
+        if event.inaxes != self.ax:
+            return
+        cont = False
+
+        def handle_scatter(scatter):
             # Check if scatter plot exists and handle click event
-            if self.scatter is not None:
-                cont, ind = self.scatter.contains(event)
+            if scatter is not None:
+                cont, ind = scatter.contains(event)
                 if cont:
-                    self.handle_click(self.scatter, self.c_data, self.c_name, ind)
+                    self.handle_click(scatter, self.c_data, self.c_name, ind)
+
+        for plot in self.plot_objects.values():
+            handle_scatter(scatter=plot.scatter)
 
     def handle_click(self, scatter, colour_data, column_name, ind):
         # index of the clicked point
@@ -585,40 +629,52 @@ class PlottingDialog(QDialog):
             )
 
     def toggle_trendline(self):
+        print(self.trendline_text)
         if not self.trendline:
-            if self.scatter is None:
-                return
+            for i, (name, plot) in enumerate(self.plot_objects.items()):
+                if plot.scatter is None:
+                    return
 
-            x = self.scatter.get_offsets()[:, 0]
-            y = self.scatter.get_offsets()[:, 1]
+                x = plot.scatter.get_offsets()[:, 0]
+                y = plot.scatter.get_offsets()[:, 1]
 
-            z = np.polyfit(x, y, 1)
-            p = np.poly1d(z)
-            (self.trendline,) = self.ax.plot(x, p(x), "r--")
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                (trendline,) = self.ax.plot(x, p(x), "r--")
+                self.plot_objects[name] = plot._replace(trendline=trendline)
 
-            equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}"
-            self.trendline_text = self.ax.text(  # Store the text object
-                0.05,
-                0.95,
-                equation_text,
-                transform=self.ax.transAxes,
-                fontsize=12,
-                verticalalignment="top",
-            )
+                # Calculate the Pearson correlation coefficient
+                r = np.corrcoef(x, y)[0, 1]
 
+                equation_text = f"y = {z[0]:.2f}x + {z[1]:.2f}  [R={r:.2f}]"
+
+                self.trendline_text.append(
+                    self.ax.text(
+                        0.05,
+                        1 - (0.05 * i),
+                        equation_text,
+                        transform=self.ax.transAxes,
+                        fontsize=12,
+                        verticalalignment="top",
+                    )
+                )
+            self.trendline = True
             self.canvas.draw()
             self.button_add_trendline.setText("Remove Trendline")
         else:
-            # Remove the trendline and its text from the plot
-            if self.trendline:
-                self.trendline.remove()
-                self.trendline = None
+            for name, plot in self.plot_objects.items():
+                # Remove the trendline from the plot
+                if plot.trendline:
+                    plot.trendline.remove()
+                    self.plot_objects[name] = plot._replace(trendline=None)
 
-            if hasattr(self, "trendline_text") and self.trendline_text:
-                self.trendline_text.remove()
-                self.trendline_text = None
+            # Remove the trendline text from the plot
+            for text in self.trendline_text:
+                text.remove()
+            self.trendline_text = []
 
             self.canvas.draw()
+            self.trendline = False
             self.button_add_trendline.setText("Add Trendline")
 
     def save(self):
