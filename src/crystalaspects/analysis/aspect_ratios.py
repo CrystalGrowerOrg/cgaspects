@@ -137,8 +137,7 @@ class AspectRatio(QWidget):
         plotting = Plotting()
         # Handle XYZ plotting
         if self.options.selected_ar:
-            plotting.plot_pca(csv=csv_file, folderpath=folderpath)
-            plotting.plot_oba(csv=csv_file, folderpath=folderpath)
+            plotting.plot_zingg(csv=csv_file, folderpath=folderpath)
             plotting.plot_sa_vol(csv=csv_file, folderpath=folderpath)
 
         # Handle CDA plotting
@@ -146,12 +145,10 @@ class AspectRatio(QWidget):
             plotting.plot_cda_extended(
                 csv=csv_file, folderpath=folderpath, selected=selected_directions
             )
-            plotting.plot_cda(csv=csv_file, folderpath=folderpath)
 
         # Handle combined CDA and XYZ plotting
         if self.options.selected_ar and self.options.selected_cda:
-            plotting.plot_cda_pca(csv=csv_file, folderpath=folderpath)
-            plotting.plot_cda_oba(csv=csv_file, folderpath=folderpath)
+            plotting.plot_zingg_permuations(csv=csv_file, folderpath=folderpath)
 
     def get_location(self, location):
         self.output_folder = location
