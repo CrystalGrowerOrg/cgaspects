@@ -347,6 +347,8 @@ class PlottingDialog(QDialog):
             self.x_data = self.df[self.custom_x]
             self.y_data = self.df[self.custom_y]
 
+        self.y_data = self._ensure_pd_series(self.y_data)
+
     def _mask_with_permutation(self):
         if self.permutation == 0:
             self._set_data()
@@ -456,20 +458,20 @@ class PlottingDialog(QDialog):
         )
         self.annot.set_visible(False)
 
-        # Capture bad calls to plot
-        if self.x_data is None:
-            return
-        if self.x_data.size == 0 or self.y_data.size == 0:
-            return
-
         # Plot the data
-        if self.y_data.shape[1] == 1:
+        if self.y_data.ndim == 1:
+            # 1D y_data
             self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
-        if self.y_data.shape[1] > 1:
+        if self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
+            # y_data with multiple columns
             line = True if self.plot_type == "Growth Rates" else False
             for y in self.y_data:
                 self._plot(
-                    x=self.x_data, y=self.df[y], c=self.c_data, add_line=line, label=y
+                    x=self.x_data,
+                    y=self._ensure_pd_series(self.df[y]),
+                    c=self.c_data,
+                    add_line=line,
+                    label=y,
                 )
             self._set_legend() if self.show_legend else None
 
@@ -494,9 +496,9 @@ class PlottingDialog(QDialog):
 
     def _plot(self, x, y, c=None, cmap="plasma", add_line=False, label=None):
         cmap = None if c is None else cmap
-        label = y.iloc[:, 0].name if label is None else label
+        label = y.name if label is None else label
         line = None
-
+        logger.info("X SIZE: %s    Y SIZE: %s", self.x_data.size, self.y_data.size)
         scatter = self.ax.scatter(
             x=x,
             y=y,
@@ -683,3 +685,14 @@ class PlottingDialog(QDialog):
             logger.debug("Closing PlotSaveDialog: accepted")
         else:
             logger.debug("Closing PlotSaveDialog: not accepted")
+
+    def _ensure_pd_series(self, data):
+        """
+        Ensure the data is a Pandas Series.
+        - If the input is a mutiple-column DataFrame, it's returned as is.
+        - If the input is a single-column DataFrame, it's converted to a Series.
+        - If the input is already a Series or 1D array, it's returned as is.
+        """
+        if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
+            return data.iloc[:, 0]
+        return data
