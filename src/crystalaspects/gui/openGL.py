@@ -39,6 +39,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer = None
 
         self.xyz = None
+        self.movie = None
         # self.object = 0
 
         self.colormap = "Viridis"
