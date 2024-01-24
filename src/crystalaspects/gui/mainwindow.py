@@ -641,6 +641,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setCurrentXYZIndex(self, value):
         self.sim_num = value
         self.openglwidget.get_XYZ_from_list(value=value)
+        self.movie = self.openglwidget.movie
 
         # block to prevent double updates
         with QSignalBlocker(self.xyz_fname_comboBox):
