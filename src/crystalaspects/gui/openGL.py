@@ -39,6 +39,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer = None
 
         self.xyz = None
+        self.movie = None
         # self.object = 0
 
         self.colormap = "Viridis"
@@ -86,7 +87,7 @@ class VisualisationWidget(QOpenGLWidget):
     def get_XYZ_from_list(self, value):
         if self.sim_num != value:
             self.sim_num = value
-            self.xyz, _, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
+            self.xyz, self.movie, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
             self.initGeometry()
 
             self.update()
