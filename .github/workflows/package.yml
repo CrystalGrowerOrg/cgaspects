@@ -1,9 +1,13 @@
 name: Build package
 
-on: [push, pull_request]
+on: 
+  create:
+    # This will trigger the workflow only when a new tag is created
 
 jobs:
   build:
+    # Check if the created reference is a tag
+    if: github.event.ref_type == 'tag'
 
     runs-on: ${{ matrix.os }}
     strategy:
