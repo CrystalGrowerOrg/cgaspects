@@ -88,7 +88,7 @@ CrystalAspects is distributed under the MIT License. See the accompanying LICENS
 
 ## Contributions
 
-Contributions are welcome! Please read the [contribution guidelines](https://github.com/CrystalGrowerOrg/crystalaspects/CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! Please read the [contribution guidelines](https://github.com/CrystalGrowerOrg/crystalaspects/blob/main/CONTRIBUTING.md) before submitting a pull request.
 
 ## Links
 
