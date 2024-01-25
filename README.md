@@ -4,7 +4,7 @@ CrystalAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI
 
 ## Features
 
-- **Data Analysis and Visualization**: It is designed for the analysis and visualization of crystal growth data, including aspect ratios, surface area to volume ratios, growth rates and more.
+- **Data Analysis and Visualization**: It is designed for the analysis and visualization of crystal growth data, including aspect ratios (Zingg analysis), surface area to volume ratios, growth rates and more.
 - **PySide6 GUI**: A user-friendly graphical user interface for interaction with the application.
 
 ## Installation
@@ -45,14 +45,16 @@ crystalaspects
 
 ## Building and Packaging for macOS
 
-CrystalAspects can be packaged as a standalone application for macOS using PyInstaller. Follow these steps to build and package the application:
+CrystalAspects can be packaged as a standalone application for macOS using PyInstaller. 
+
+To build and package the application:
 
 1. Install pyinstaller in your python environment:
    
     ```bash
     pip install pyinstaller
     ```
-3. Navigate to the project directory and run the PyInstaller command:
+3. Navigate to the project directory and run the provided script:
 
     ```bash
     ./scripts/mac_os_bundle.sh
@@ -74,7 +76,7 @@ CrystalAspects can be packaged as a standalone application for macOS using PyIns
 
 ## Development Status
 
-CrystalAspects is currently in Alpha stage. It is intended for science and research use, particularly in the field of computational chemistry.
+CrystalAspects is currently in Alpha stage.
 
 ## Authors
 
