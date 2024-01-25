@@ -18,7 +18,7 @@ Ensure you have Python >=3.10 installed on your system.
 3. Clone the CrystalAspects repository (shallow clone with depth 1):
 
     ```bash
-    git clone --depth=1 https://github.com/AJen01/crystalaspects.git
+    git clone --depth=1 https://github.com/CrystalGrowerOrg/crystalaspects.git
     cd crystalaspects
     ```
 
