@@ -9,18 +9,37 @@ CrystalAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI
 
 ## Installation
 
-Ensure you have Python >=3.10 installed on your system. 
-You can install CrystalAspects via pip:
+To use CrystalAspects with python, clone the repository and then install the package. 
+Ensure you have Python >=3.10 installed on your system.
 
-```
-pip install crystalaspects
-```
+1. (Optional) The repository uses Git LFS for managing large files, so make sure you have Git LFS installed before cloning.
+   Install Git LFS. You can find detailed installation instructions for different operating systems on the [Git LFS website](https://git-lfs.github.com/).
+
+3. Clone the CrystalAspects repository (shallow clone with depth 1):
+
+    ```bash
+    git clone --depth=1 https://github.com/AJen01/crystalaspects.git
+    cd crystalaspects
+    ```
+
+4. Fetch the large files with Git LFS:
+
+    ```bash
+    git lfs install
+    git lfs pull
+    ```
+
+5. Install CrystalAspects via pip:
+
+    ```bash
+    pip install .
+    ```
 
 ## Usage
 
 After installation, you can run CrystalAspects using the command:
 
-```
+```bash
 crystalaspects
 ```
 
@@ -28,17 +47,19 @@ crystalaspects
 
 CrystalAspects can be packaged as a standalone application for macOS using PyInstaller. Follow these steps to build and package the application:
 
-1. Install pyinstaller if not already present in your python environment:
-    ```
+1. Install pyinstaller in your python environment:
+   
+    ```bash
     pip install pyinstaller
     ```
-2. Navigate to your project directory and run the PyInstaller command:
+3. Navigate to the project directory and run the PyInstaller command:
 
-    ```
+    ```bash
     ./scripts/mac_os_bundle.sh
     ```
 
-3. After the build completes, the script will run an ad hoc code signing to sign the application. This will create a `.app` package in the `dist` directory, which can be distributed and run on macOS systems.
+4. After the build completes, the script will run an ad hoc code signing to sign the application.
+   This will create a `.app` package in the `dist` directory, which can be distributed and run on macOS systems.
 
 ## Dependencies
 
