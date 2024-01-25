@@ -10,7 +10,7 @@ There are many ways to contribute to CrystalAspects:
 
 2. **Contribute Code**: We welcome code contributions via pull requests. Whether it's fixing a bug, adding a new feature, or improving documentation, your help is much appreciated.
 
-3. **Improve Documentation**: Good documentation is crucial for any software. If you notice missing or incorrect documentation, please feel free to contribute.
+3. **Improve Documentation**: If you notice missing or incorrect documentation, please feel free to contribute.
 
 ## Pull Request Process
 
@@ -32,7 +32,7 @@ There are many ways to contribute to CrystalAspects:
 
 As contributors and maintainers of CrystalAspects, we pledge to respect all people who contribute through reporting issues, posting feature requests, updating documentation, submitting pull requests or patches, and other activities.
 
-We are committed to making participation in this project a harassment-free experience for everyone, regardless of level of experience, gender, gender identity and expression, sexual orientation, disability, personal appearance, body size, race, ethnicity, age, religion, or nationality.
+We are committed to making participation in this project a harassment-free experience for everyone, regardless of level of experience.
 
 ## Questions?
 
