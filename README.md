@@ -90,11 +90,13 @@ See the accompanying LICENSE.txt file for more details.
 ## Contributions
 
 Contributions are welcome! Please read the contribution guidelines before submitting a pull request.
-Links
 
-    Homepage
-    Repository
+## Links
 
-Contact
+    [Homepage](https://github.com/CrystalGrowerOrg/crystalaspects)
+    [Repository](https://github.com/CrystalGrowerOrg/crystalaspects)
+    [Submit Issues](https://github.com/CrystalGrowerOrg/crystalaspects/issues)
+
+## Contact
 
 For support or inquiries, please email the authors or create an issue in the project's issue tracker.
