@@ -78,9 +78,9 @@ CrystalAspects is currently in Alpha stage. It is intended for science and resea
 
 ## Authors
 
-    Alvin Jenner Walisinghe - jennerwalisinghe@gmail.com
-    Nathan de Bruyn - jennerwalisinghe@gmail.com
-    Peter R. Spackman - peterspackman@fastmail.com
+ Alvin Jenner Walisinghe - jennerwalisinghe@gmail.com
+ Nathan de Bruyn - jennerwalisinghe@gmail.com
+ Peter R. Spackman - peterspackman@fastmail.com
 
 ## License
 
@@ -93,9 +93,9 @@ Contributions are welcome! Please read the contribution guidelines before submit
 
 ## Links
 
-    [Homepage](https://github.com/CrystalGrowerOrg/crystalaspects)
-    [Repository](https://github.com/CrystalGrowerOrg/crystalaspects)
-    [Submit Issues](https://github.com/CrystalGrowerOrg/crystalaspects/issues)
+ [Homepage](https://github.com/CrystalGrowerOrg/crystalaspects)
+ [Repository](https://github.com/CrystalGrowerOrg/crystalaspects)
+ [Submit Issues](https://github.com/CrystalGrowerOrg/crystalaspects/issues)
 
 ## Contact
 
