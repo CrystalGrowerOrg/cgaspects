@@ -406,6 +406,10 @@ class PlottingDialog(QDialog):
             self.x_label = self.custom_x
             self.y_label = ""
 
+            if len(self.custom_y) == 1:
+                print("Yes")
+                self.y_label = self.custom_y[0]
+
     def _set_c(self):
         self.c_data = None
         self.c_name = None
@@ -468,6 +472,7 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
 
         self.ax.set_xlabel(self.x_label)
+        self.ax.set_ylabel(self.y_label)
         self.ax.set_title(self.title)
 
         if self.grid:
