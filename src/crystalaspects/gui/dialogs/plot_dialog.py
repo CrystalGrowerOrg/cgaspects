@@ -61,10 +61,10 @@ class PlottingDialog(QDialog):
         # Set the dialog to be non-modal
         self.setWindowModality(QtCore.Qt.NonModal)
 
+        self.signals = signals
         self.annot = None
         self.trendline = None
         self.trendline_text = None
-        self.signals = signals
 
         self.selected_plot = None
         self.plot_obj_tuple = namedtuple(
@@ -80,6 +80,13 @@ class PlottingDialog(QDialog):
         self.trendline_text = []
         self.plotting_mode = "default"
 
+        self.setPlotDefaults()
+        self.create_widgets()
+        self.create_layout()
+        self.setCSV(csv)
+        self.trigger_plot()
+
+    def setPlotDefaults(self):
         self.grid = None
         self.cbar = None
         self.point_size = None
@@ -98,11 +105,6 @@ class PlottingDialog(QDialog):
         self.x_label = None
         self.y_label = None
         self.title = ""
-
-        self.create_widgets()
-        self.create_layout()
-        self.setCSV(csv)
-        self.trigger_plot()
 
     def setCSV(self, csv):
         self.csv = csv
@@ -169,13 +171,17 @@ class PlottingDialog(QDialog):
         self.custom_plot_widget.color_combobox.clear()
         self.plot_permutations_combobox.clear()
         self.plot_types_combobox.clear()
+        self.variables_combobox.clear()
 
         self.plot_permutations_combobox.addItems(self.permutation_labels)
         self.plot_types_combobox.addItems(self.plot_types)
+        self.variables_combobox.addItems(self.interaction_columns)
 
         if self.df is not None:
             self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
+            self.custom_plot_widget.y_axis_combobox.addItems([""])
             self.custom_plot_widget.y_axis_combobox.addItems(self.df.columns)
+            self.custom_plot_widget.color_combobox.addItems(["None"])
             self.custom_plot_widget.color_combobox.addItems(self.df.columns)
 
     def create_widgets(self):
@@ -202,7 +208,6 @@ class PlottingDialog(QDialog):
         self.variables_label = QLabel("Variable: ")
         self.variables_label.setAlignment(QtCore.Qt.AlignRight)
         self.variables_combobox = QComboBox(self)
-        self.variables_combobox.addItems(self.interaction_columns)
 
         self.custom_plot_widget = PlotAxesComboBoxes()
 
@@ -320,6 +325,7 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.hide()
 
     def trigger_plot(self):
+        self.setPlotDefaults()
         self.grid = self.checkbox_grid.isChecked()
         self.show_legend = self.checkbox_legend.isChecked()
         self.point_size = self.spin_point_size.value()
@@ -355,8 +361,15 @@ class PlottingDialog(QDialog):
             self.x_data = self.df["Supersaturation"]
             self.y_data = self.df[self.directions]
         if self.plot_type == "Custom":
-            self.x_data = self.df[self.custom_x]
-            self.y_data = self.df[self.custom_y]
+            self.x_data = None
+            self.y_data = None
+            try:
+                self.x_data = self.df[self.custom_x]
+                self.y_data = self.df[self.custom_y]
+            except KeyError as exc:
+                logger.warning(
+                    "X and Y data not been set, invalid axis title!\n%s", exc
+                )
 
         self.y_data = self._ensure_pd_series(self.y_data)
 
@@ -396,6 +409,11 @@ class PlottingDialog(QDialog):
     def _set_c(self):
         self.c_data = None
         self.c_name = None
+        if self.plot_type != "Custom":
+            self.custom_c = "None"
+        if self.plot_type == "Custom":
+            self.variable = "None"
+
         if self.custom_c == "None" and self.variable == "None":
             return
         if self.custom_c == "None":
@@ -469,6 +487,10 @@ class PlottingDialog(QDialog):
         )
         self.annot.set_visible(False)
 
+        if self.x_data is None or self.y_data is None:
+            logger.warning("No data for plotting!")
+            return
+
         # Plot the data
         if self.y_data.ndim == 1:
             # 1D y_data
@@ -493,10 +515,7 @@ class PlottingDialog(QDialog):
             self.ax.set_ylim(0, 1.0)
 
         # Add colorbar after plotting all data
-        if self.c_data is not None:
-            print(self.plot_objects)
-            print(self.cbar)
-            print(self.plot_objects.values())
+        if self.c_data is not None and self.plot_objects:
             # Take the frist scatter object to attach the colorbar
             scatter = list(self.plot_objects.values())[0].scatter
             self.cbar = self.figure.colorbar(scatter)
