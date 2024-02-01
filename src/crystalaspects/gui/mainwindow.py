@@ -126,7 +126,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.crystalInfoChanged.connect(self.crystalInfoWidget.update)
         self.gl_vLayout.addWidget(self.openglwidget)
 
-        self.xyz_fname_comboBox.currentIndexChanged.connect(self.setCurrentXYZIndex)
+        self.xyzFilenameListWidget.currentRowChanged.connect(self.setCurrentXYZIndex)
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
 
         self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
@@ -317,13 +317,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget.pass_XYZ_list([str(path) for path in self.xyz_files])
         self.sim_num = 0
         self.openglwidget.get_XYZ_from_list(0)
-        self.xyz_fname_comboBox.clear()
-        self.xyz_fname_comboBox.addItems([x.name for x in self.xyz_files])
+        self.xyzFilenameListWidget.clear()
+        self.xyzFilenameListWidget.addItems([x.name for x in self.xyz_files])
 
         self.xyz_spinBox.setMinimum(0)
         self.xyz_spinBox.setMaximum(tot_sims - 1)
 
-        self.xyz_fname_comboBox.setEnabled(True)
+        self.xyzFilenameListWidget.setEnabled(True)
         self.xyz_id_label.setEnabled(True)
         self.xyz_spinBox.setEnabled(True)
 
@@ -551,6 +551,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     csv=self.plotting_csv, signals=self.worker_signals, parent=self
                 )
                 self.plotting_dialog.connect
+            else:
+                self.plotting_dialog.setCSV(self.plotting_csv)
+                self.plotting_dialog.trigger_plot()
+
             self.plotting_dialog.show()
 
     # Read Summary
@@ -647,8 +651,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.movie_controls_frame.show()
 
         # block to prevent double updates
-        with QSignalBlocker(self.xyz_fname_comboBox):
-            self.xyz_fname_comboBox.setCurrentIndex(value)
+        with QSignalBlocker(self.xyzFilenameListWidget):
+            self.xyzFilenameListWidget.setCurrentRow(value)
         with QSignalBlocker(self.xyz_spinBox):
             self.xyz_spinBox.setValue(value)
 

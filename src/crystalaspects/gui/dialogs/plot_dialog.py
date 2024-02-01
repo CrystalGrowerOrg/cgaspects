@@ -99,12 +99,12 @@ class PlottingDialog(QDialog):
         self.y_label = None
         self.title = ""
 
-        self.plotting_info(csv)
         self.create_widgets()
         self.create_layout()
+        self.setCSV(csv)
         self.trigger_plot()
 
-    def plotting_info(self, csv):
+    def setCSV(self, csv):
         self.csv = csv
         self.df = pd.read_csv(self.csv)
         logger.debug("Dataframe read:\n%s", self.df)
@@ -161,6 +161,22 @@ class PlottingDialog(QDialog):
         logger.info("Directions found: %s", self.directions)
 
         self.plot_types.append("Custom")
+        self.updatePlotWidgets()
+
+    def updatePlotWidgets(self):
+        self.custom_plot_widget.x_axis_combobox.clear()
+        self.custom_plot_widget.y_axis_combobox.clear()
+        self.custom_plot_widget.color_combobox.clear()
+        self.plot_permutations_combobox.clear()
+        self.plot_types_combobox.clear()
+
+        self.plot_permutations_combobox.addItems(self.permutation_labels)
+        self.plot_types_combobox.addItems(self.plot_types)
+
+        if self.df is not None:
+            self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
+            self.custom_plot_widget.y_axis_combobox.addItems(self.df.columns)
+            self.custom_plot_widget.color_combobox.addItems(self.df.columns)
 
     def create_widgets(self):
         self.figure = Figure()
@@ -174,7 +190,6 @@ class PlottingDialog(QDialog):
         self.plot_types_label = QLabel("Plot Type: ")
         self.plot_types_label.setAlignment(QtCore.Qt.AlignRight)
         self.plot_types_combobox = QComboBox(self)
-        self.plot_types_combobox.addItems(self.plot_types)
 
         # if "CDA" in self.plot_types:
         self.plot_permutations_label = QLabel("Permutations: ")
@@ -183,7 +198,6 @@ class PlottingDialog(QDialog):
             "Crystallographic face-to-face distance ratios in ascending order"
         )
         self.plot_permutations_combobox = QComboBox(self)
-        self.plot_permutations_combobox.addItems(self.permutation_labels)
 
         self.variables_label = QLabel("Variable: ")
         self.variables_label.setAlignment(QtCore.Qt.AlignRight)
@@ -191,9 +205,6 @@ class PlottingDialog(QDialog):
         self.variables_combobox.addItems(self.interaction_columns)
 
         self.custom_plot_widget = PlotAxesComboBoxes()
-        self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
-        self.custom_plot_widget.y_axis_combobox.addItems(self.df.columns)
-        self.custom_plot_widget.color_combobox.addItems(self.df.columns)
 
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)

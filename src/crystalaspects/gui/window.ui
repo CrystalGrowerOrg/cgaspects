@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>901</width>
-         <height>722</height>
+         <width>914</width>
+         <height>696</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -383,7 +383,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="variablesTab">
           <attribute name="title">
@@ -444,26 +444,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QComboBox" name="xyz_fname_comboBox">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>1</horstretch>
-                  <verstretch>1</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true"/>
-                </property>
-               </widget>
+               <widget class="QListWidget" name="xyzFilenameListWidget"/>
               </item>
               <item>
                <spacer name="verticalSpacer">
@@ -546,7 +527,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>24</height>
+     <height>43</height>
     </rect>
    </property>
    <property name="defaultUp">

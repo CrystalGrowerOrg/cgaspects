@@ -9,21 +9,20 @@
 ################################################################################
 
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-                            QMetaObject, QObject, QPoint, QRect, QSize, Qt,
-                            QTime, QUrl)
-from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient, QCursor,
-                           QFont, QFontDatabase, QGradient, QIcon, QImage,
-                           QKeySequence, QLinearGradient, QPainter, QPalette,
-                           QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
-                               QGroupBox, QHBoxLayout, QLabel, QLayout,
-                               QLineEdit, QMainWindow, QMenu, QMenuBar,
-                               QPushButton, QScrollArea, QSizePolicy, QSlider,
-                               QSpacerItem, QSpinBox, QStatusBar, QTabWidget,
-                               QToolButton, QVBoxLayout, QWidget)
-
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
+    QCursor, QFont, QFontDatabase, QGradient,
+    QIcon, QImage, QKeySequence, QLinearGradient,
+    QPainter, QPalette, QPixmap, QRadialGradient,
+    QTransform)
+from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QGroupBox,
+    QHBoxLayout, QLabel, QLayout, QLineEdit,
+    QListWidget, QListWidgetItem, QMainWindow, QMenu,
+    QMenuBar, QPushButton, QScrollArea, QSizePolicy,
+    QSlider, QSpacerItem, QSpinBox, QStatusBar,
+    QTabWidget, QToolButton, QVBoxLayout, QWidget)
 from crystalaspects.gui.utils import qticons_rc
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -168,6 +167,11 @@ class Ui_MainWindow(object):
         self.actionRender = QAction(MainWindow)
         self.actionRender.setObjectName(u"actionRender")
         self.actionRender.setEnabled(False)
+        self.actionSettings = QAction(MainWindow)
+        self.actionSettings.setObjectName(u"actionSettings")
+        self.actionSettings.setEnabled(False)
+        self.actionVariables = QAction(MainWindow)
+        self.actionVariables.setObjectName(u"actionVariables")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -185,7 +189,7 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 901, 722))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 914, 696))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
@@ -422,18 +426,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.xyzWidget)
 
-        self.xyz_fname_comboBox = QComboBox(self.simulationVariablesWidget)
-        self.xyz_fname_comboBox.setObjectName(u"xyz_fname_comboBox")
-        self.xyz_fname_comboBox.setEnabled(False)
-        sizePolicy9 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy9.setHorizontalStretch(1)
-        sizePolicy9.setVerticalStretch(1)
-        sizePolicy9.setHeightForWidth(self.xyz_fname_comboBox.sizePolicy().hasHeightForWidth())
-        self.xyz_fname_comboBox.setSizePolicy(sizePolicy9)
-        self.xyz_fname_comboBox.setMinimumSize(QSize(0, 0))
-        self.xyz_fname_comboBox.setStyleSheet(u"")
+        self.xyzFilenameListWidget = QListWidget(self.simulationVariablesWidget)
+        self.xyzFilenameListWidget.setObjectName(u"xyzFilenameListWidget")
 
-        self.verticalLayout_3.addWidget(self.xyz_fname_comboBox)
+        self.verticalLayout_3.addWidget(self.xyzFilenameListWidget)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
@@ -482,7 +478,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1280, 24))
+        self.menuBar.setGeometry(QRect(0, 0, 1280, 43))
         self.menuBar.setDefaultUp(False)
         self.menuBar.setNativeMenuBar(False)
         self.menuFile = QMenu(self.menuBar)
@@ -500,6 +496,7 @@ class Ui_MainWindow(object):
         self.menuView.addAction(self.actionInput_Directory)
         self.menuView.addAction(self.actionResults_Directory)
         self.menuView.addAction(self.actionPlotting_Dialog)
+        self.menuView.addAction(self.actionSettings)
 
         self.retranslateUi(MainWindow)
 
@@ -570,21 +567,21 @@ class Ui_MainWindow(object):
         self.action3_3.setText(QCoreApplication.translate("MainWindow", u"3", None))
         self.actionImport.setText(QCoreApplication.translate("MainWindow", u"Import", None))
 #if QT_CONFIG(tooltip)
-        self.actionImport.setToolTip(QCoreApplication.translate("MainWindow", u"Import crystalgrower output directory for visualisation and/or calculations", None))
+        self.actionImport.setToolTip(QCoreApplication.translate("MainWindow", u"Import crystalgrower output directory", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(shortcut)
         self.actionImport.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+I", None))
 #endif // QT_CONFIG(shortcut)
         self.actionResults_Directory.setText(QCoreApplication.translate("MainWindow", u"Results Directory", None))
 #if QT_CONFIG(tooltip)
-        self.actionResults_Directory.setToolTip(QCoreApplication.translate("MainWindow", u"Open the directory with results from the calculations", None))
+        self.actionResults_Directory.setToolTip(QCoreApplication.translate("MainWindow", u"Open directory with the analysed data", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(shortcut)
         self.actionResults_Directory.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+Shift+R", None))
 #endif // QT_CONFIG(shortcut)
         self.actionImport_CSV_for_Plotting.setText(QCoreApplication.translate("MainWindow", u"Import CSV for Plotting", None))
 #if QT_CONFIG(tooltip)
-        self.actionImport_CSV_for_Plotting.setToolTip(QCoreApplication.translate("MainWindow", u"Import CSV for Plotting (produced from this program)", None))
+        self.actionImport_CSV_for_Plotting.setToolTip(QCoreApplication.translate("MainWindow", u"Import CSV for Plotting", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(shortcut)
         self.actionImport_CSV_for_Plotting.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+Shift+I", None))
@@ -605,9 +602,20 @@ class Ui_MainWindow(object):
         self.actionImport_Summary_File.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+S", None))
 #endif // QT_CONFIG(shortcut)
         self.actionRender.setText(QCoreApplication.translate("MainWindow", u"Render", None))
+#if QT_CONFIG(tooltip)
+        self.actionRender.setToolTip(QCoreApplication.translate("MainWindow", u"Render current frame", None))
+#endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(shortcut)
         self.actionRender.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+E", None))
 #endif // QT_CONFIG(shortcut)
+        self.actionSettings.setText(QCoreApplication.translate("MainWindow", u"Settings", None))
+#if QT_CONFIG(tooltip)
+        self.actionSettings.setToolTip(QCoreApplication.translate("MainWindow", u"Open visualisation settings", None))
+#endif // QT_CONFIG(tooltip)
+#if QT_CONFIG(shortcut)
+        self.actionSettings.setShortcut(QCoreApplication.translate("MainWindow", u"Shift+S", None))
+#endif // QT_CONFIG(shortcut)
+        self.actionVariables.setText(QCoreApplication.translate("MainWindow", u"Variables", None))
         self.playPauseButton.setText(QCoreApplication.translate("MainWindow", u"   Play", None))
 #if QT_CONFIG(shortcut)
         self.playPauseButton.setShortcut(QCoreApplication.translate("MainWindow", u"Space", None))
@@ -616,11 +624,11 @@ class Ui_MainWindow(object):
         self.frameZeroLabel.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.frameMaxLabel.setText(QCoreApplication.translate("MainWindow", u"60", None))
 #if QT_CONFIG(tooltip)
-        self.import_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Import crystalgrower output directory for visualisation and/or calculations", None))
+        self.import_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Import crystalgrower output directory", None))
 #endif // QT_CONFIG(tooltip)
         self.import_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Import", None))
 #if QT_CONFIG(tooltip)
-        self.view_results_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Open the directory with results from the calculations", None))
+        self.view_results_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Open directory with the analysed data", None))
 #endif // QT_CONFIG(tooltip)
         self.view_results_pushButton.setText(QCoreApplication.translate("MainWindow", u"   View Results Directory", None))
         self.dataAnalysis_groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Data Analysis", None))
@@ -629,11 +637,11 @@ class Ui_MainWindow(object):
         self.batch_lineEdit.setToolTip(QCoreApplication.translate("MainWindow", u"Folder path of imported files", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
-        self.aspect_ratio_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform aspect ratio calculations on imported files", None))
+        self.aspect_ratio_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform aspect ratio calculations", None))
 #endif // QT_CONFIG(tooltip)
         self.aspect_ratio_pushButton.setText(QCoreApplication.translate("MainWindow", u"Aspect Ratios", None))
 #if QT_CONFIG(tooltip)
-        self.growth_rate_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform growth rate calculations on imported files", None))
+        self.growth_rate_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform growth rate calculations", None))
 #endif // QT_CONFIG(tooltip)
         self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
         self.plot_label.setText(QCoreApplication.translate("MainWindow", u"Plotting", None))
@@ -641,13 +649,13 @@ class Ui_MainWindow(object):
         self.plot_lineEdit.setToolTip(QCoreApplication.translate("MainWindow", u".csv filepath used for plotting", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
-        self.plot_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Open the plotting dialog using specified .csv file", None))
+        self.plot_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Open a plotting dialog using the specified .csv file", None))
 #endif // QT_CONFIG(tooltip)
         self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
         self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
         self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.variablesTab), QCoreApplication.translate("MainWindow", u"Variables", None))
 #if QT_CONFIG(tooltip)
-        self.saveframe_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Save current frame", None))
+        self.saveframe_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Render current frame", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(statustip)
         self.saveframe_pushButton.setStatusTip("")
