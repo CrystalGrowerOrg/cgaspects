@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>914</width>
-         <height>696</height>
+         <width>870</width>
+         <height>715</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -202,7 +202,7 @@
             <string>Import crystalgrower output directory</string>
            </property>
            <property name="text">
-            <string>   Import</string>
+            <string>Open Directory</string>
            </property>
            <property name="icon">
             <iconset resource="../../../res/qticons.qrc">
@@ -337,6 +337,17 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
             <item>
+             <widget class="QPushButton" name="importPlotDataPushButton">
+              <property name="text">
+               <string>Import CSV for Plotting</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../../../res/qticons.qrc">
+                <normaloff>:/material_icons/material_icons/png/chart-scatter-plot.png</normaloff>:/material_icons/material_icons/png/chart-scatter-plot.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QLineEdit" name="plot_lineEdit">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -383,7 +394,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="variablesTab">
           <attribute name="title">
@@ -481,7 +492,7 @@
               <string comment="Save Frame" extracomment="Save Frame"/>
              </property>
              <property name="text">
-              <string>Save Frame</string>
+              <string>Export graphics...</string>
              </property>
              <property name="icon">
               <iconset resource="../../../res/qticons.qrc">
@@ -527,7 +538,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>43</height>
+     <height>24</height>
     </rect>
    </property>
    <property name="defaultUp">
@@ -544,6 +555,7 @@
     <addaction name="actionImport_CSV_for_Plotting"/>
     <addaction name="actionImport_Summary_File"/>
     <addaction name="actionRender"/>
+    <addaction name="actionImportCSVClipboard"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -551,7 +563,7 @@
     </property>
     <addaction name="actionInput_Directory"/>
     <addaction name="actionResults_Directory"/>
-    <addaction name="actionPlotting_Dialog"/>
+    <addaction name="actionPlottingDialog"/>
     <addaction name="actionSettings"/>
    </widget>
    <addaction name="menuFile"/>
@@ -846,14 +858,18 @@
    </property>
   </action>
   <action name="actionImport">
+   <property name="icon">
+    <iconset resource="../../../res/qticons.qrc">
+     <normaloff>:/material_icons/material_icons/png/folder-arrow-down-custom.png</normaloff>:/material_icons/material_icons/png/folder-arrow-down-custom.png</iconset>
+   </property>
    <property name="text">
-    <string>Import</string>
+    <string>Open Directory</string>
    </property>
    <property name="toolTip">
     <string>Import crystalgrower output directory</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+I</string>
+    <string>Ctrl+O</string>
    </property>
   </action>
   <action name="actionResults_Directory">
@@ -871,6 +887,10 @@
    </property>
   </action>
   <action name="actionImport_CSV_for_Plotting">
+   <property name="icon">
+    <iconset resource="../../../res/qticons.qrc">
+     <normaloff>:/material_icons/material_icons/png/chart-scatter-plot.png</normaloff>:/material_icons/material_icons/png/chart-scatter-plot.png</iconset>
+   </property>
    <property name="text">
     <string>Import CSV for Plotting</string>
    </property>
@@ -878,10 +898,10 @@
     <string>Import CSV for Plotting</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+I</string>
+    <string>Ctrl+I</string>
    </property>
   </action>
-  <action name="actionPlotting_Dialog">
+  <action name="actionPlottingDialog">
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -921,8 +941,12 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset resource="../../../res/qticons.qrc">
+     <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
+   </property>
    <property name="text">
-    <string>Render</string>
+    <string>Export graphics...</string>
    </property>
    <property name="toolTip">
     <string>Render current frame</string>
@@ -948,6 +972,14 @@
   <action name="actionVariables">
    <property name="text">
     <string>Variables</string>
+   </property>
+  </action>
+  <action name="actionImportCSVClipboard">
+   <property name="text">
+    <string>Import CSV for Plotting from Clipboard</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+I</string>
    </property>
   </action>
  </widget>

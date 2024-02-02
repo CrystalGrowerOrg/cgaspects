@@ -13,21 +13,19 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
     QGridLayout,
 )
+from PySide6.QtGui import QIcon
 
 
 from crystalaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
 from crystalaspects.gui.widgets.plot_axes_widget import (
-    PlotAxesComboBoxes,
-    CheckableComboBox,
+    PlotAxesWidget,
 )
 
 matplotlib.use("QTAgg")
@@ -166,9 +164,9 @@ class PlottingDialog(QDialog):
         self.updatePlotWidgets()
 
     def updatePlotWidgets(self):
-        self.custom_plot_widget.x_axis_combobox.clear()
-        self.custom_plot_widget.y_axis_combobox.clear()
-        self.custom_plot_widget.color_combobox.clear()
+        self.custom_plot_widget.xAxisListWidget.clear()
+        self.custom_plot_widget.yAxisListWidget.clear()
+        self.custom_plot_widget.colorListWidget.clear()
         self.plot_permutations_combobox.clear()
         self.plot_types_combobox.clear()
         self.variables_combobox.clear()
@@ -178,11 +176,10 @@ class PlottingDialog(QDialog):
         self.variables_combobox.addItems(self.interaction_columns)
 
         if self.df is not None:
-            self.custom_plot_widget.x_axis_combobox.addItems(self.df.columns)
-            self.custom_plot_widget.y_axis_combobox.addItems([""])
-            self.custom_plot_widget.y_axis_combobox.addItems(self.df.columns)
-            self.custom_plot_widget.color_combobox.addItems(["None"])
-            self.custom_plot_widget.color_combobox.addItems(self.df.columns)
+            self.custom_plot_widget.xAxisListWidget.addItems(self.df.columns)
+            self.custom_plot_widget.yAxisListWidget.addItems(self.df.columns)
+            self.custom_plot_widget.colorListWidget.addItems(["None"])
+            self.custom_plot_widget.colorListWidget.addItems(self.df.columns)
 
     def create_widgets(self):
         self.figure = Figure()
@@ -209,12 +206,16 @@ class PlottingDialog(QDialog):
         self.variables_label.setAlignment(QtCore.Qt.AlignRight)
         self.variables_combobox = QComboBox(self)
 
-        self.custom_plot_widget = PlotAxesComboBoxes()
+        self.custom_plot_widget = PlotAxesWidget()
 
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)
 
-        self.button_save = QPushButton("Save")
+        self.button_save = QPushButton("Export...")
+        self.exportIcon = QIcon(
+            ":material_icons/material_icons/png/content-save-custom.png"
+        )
+        self.button_save.setIcon(self.exportIcon)
         self.button_add_trendline = QPushButton("Add Trendline")
 
         # Initialize the variables
@@ -244,13 +245,13 @@ class PlottingDialog(QDialog):
         if self.variables_combobox is not None:
             self.variables_combobox.currentIndexChanged.connect(self.trigger_plot)
 
-        self.custom_plot_widget.x_axis_combobox.currentIndexChanged.connect(
+        self.custom_plot_widget.xAxisListWidget.currentItemChanged.connect(
             self.trigger_plot
         )
-        self.custom_plot_widget.y_axis_combobox.itemCheckedStateChanged.connect(
+        self.custom_plot_widget.yAxisListWidget.itemCheckedStateChanged.connect(
             self.trigger_plot
         )
-        self.custom_plot_widget.color_combobox.currentIndexChanged.connect(
+        self.custom_plot_widget.colorListWidget.currentItemChanged.connect(
             self.trigger_plot
         )
 
@@ -337,6 +338,7 @@ class PlottingDialog(QDialog):
             self.custom_y,
             self.custom_c,
         ) = self.custom_plot_widget.get_selections()
+        self.custom_y = [tmp[1] for tmp in self.custom_y]
 
         self.change_mode(mode=self.plot_type)
         self._set_data()

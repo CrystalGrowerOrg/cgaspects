@@ -140,12 +140,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.setup_button_connections()
         self.setup_menubar_connections()
+        self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
         self.actionImport.triggered.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
+        self.actionImportCSVClipboard.triggered.connect(
+            lambda x: self.set_plotting(QtWidgets.QApplication.clipboard().text())
+        )
 
         self.actionImport_Summary_File.triggered.connect(
             lambda: self.read_summary(summary_file=None)
@@ -162,9 +166,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             else None
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
-        self.actionPlotting_Dialog.triggered.connect(self.replotting_called)
+        self.actionPlottingDialog.triggered.connect(self.replotting_called)
 
     def setup_button_connections(self):
+        self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)
         self.import_pushButton.clicked.connect(
             lambda: self.import_and_visualise_xyz(folder=None)
         )
@@ -498,6 +503,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
 
+    def setShowPlottingButtons(self, state=True):
+        self.actionPlottingDialog.setEnabled(state)
+        self.importPlotDataPushButton.setVisible(not state)
+        self.plot_lineEdit.setVisible(state)
+        self.plot_pushButton.setVisible(state)
+
     def browse_plot_csv(self):
         try:
             # Attempt to get the directory from the file dialog
@@ -521,7 +532,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message(f"An error occurred: {e}", "error")
 
     def set_plotting(self, value):
-        if Path(value).is_file():
+        with QSignalBlocker(self.plot_lineEdit):
+            self.plot_lineEdit.setText(value)
+
+        valid_file = Path(value).is_file()
+        self.setShowPlottingButtons(valid_file)
+        if valid_file:
             self.plotting_csv = Path(value)
             self.plot_pushButton.setEnabled(True)
             self.log_message(f"Plotting CSV set to {self.plotting_csv}", "info")
