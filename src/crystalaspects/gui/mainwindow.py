@@ -156,14 +156,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         self.actionInput_Directory.triggered.connect(
-            lambda: open_directory(path=self.input_folder)
-            if self.input_folder is not None
-            else None
+            lambda: (
+                open_directory(path=self.input_folder)
+                if self.input_folder is not None
+                else None
+            )
         )
         self.actionResults_Directory.triggered.connect(
-            lambda: open_directory(path=self.output_folder)
-            if self.output_folder is not None
-            else None
+            lambda: (
+                open_directory(path=self.output_folder)
+                if self.output_folder is not None
+                else None
+            )
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
@@ -475,23 +479,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.aspectratio.set_folder(folder=folder)
                     self.aspectratio.set_information(information=information)
                     self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
-                if not (information.directions or information.size_files):
-                    self.log_message(information, "error")
-                    raise FileNotFoundError(
-                        "No suitable CG output file found in the selected directory."
-                    )
                 if information.summary_file:
                     self.read_summary(summary_file=information.summary_file)
+
+                if not information.directions:
+                    self.log_message(
+                        f"Couldn't find any *simulation_parameters.txt files.\n{information}",
+                        "warning",
+                    )
+                    raise FileNotFoundError(
+                        "Couldn't find any *simulation_parameters.txt files."
+                    )
+                if not information.size_files:
+                    self.log_message(f"Couldn't find any *size.csv files.", "info")
+
                 self.input_folder = Path(folder)
             else:
                 raise NotADirectoryError(f"{folder} is not a valid directory.")
 
         except (FileNotFoundError, NotADirectoryError) as e:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
+            msg.setIcon(QMessageBox.Warning)
             msg.setText(
-                f"{e}\nPlease make sure the folder you have selected "
-                "contains CrystalGrower output from the simulation(s)."
+                f"{e}\nPlease make sure you have selected the"
+                "CrystalGrower output directory from the simulation(s)."
             )
             msg.setWindowTitle("Error! No CrystalGrower files detected.")
             msg.exec()

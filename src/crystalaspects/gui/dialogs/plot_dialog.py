@@ -409,7 +409,6 @@ class PlottingDialog(QDialog):
             self.y_label = ""
 
             if len(self.custom_y) == 1:
-                print("Yes")
                 self.y_label = self.custom_y[0]
             elif len(self.custom_y) <= 3:
                 self.y_label = ", ".join(self.custom_y)
@@ -642,10 +641,8 @@ class PlottingDialog(QDialog):
             pass
 
     def on_legend_click(self, event):
-        print("Legend Clicked")
         legend_line = event.artist
         p = self.plot_objects[legend_line.get_label()]
-        print(p)
         vis = not p.line.get_visible()
         p.line.set_visible(vis)
         p.scatter.set_visible(vis)
@@ -689,7 +686,7 @@ class PlottingDialog(QDialog):
             )
 
     def toggle_trendline(self):
-        print(self.trendline_text)
+        logger.info(self.trendline_text)
         if not self.trendline:
             for i, (name, plot) in enumerate(self.plot_objects.items()):
                 if plot.scatter is None:
@@ -711,10 +708,10 @@ class PlottingDialog(QDialog):
                 self.trendline_text.append(
                     self.ax.text(
                         0.05,
-                        1 - (0.05 * i),
+                        1 - (0.08 * i),
                         equation_text,
                         transform=self.ax.transAxes,
-                        fontsize=12,
+                        fontsize=10,
                         verticalalignment="top",
                     )
                 )

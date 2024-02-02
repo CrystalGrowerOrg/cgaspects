@@ -65,7 +65,7 @@ class AnalysisOptionsDialog(QDialog):
             self.combo_boxes.append(combo_box)
 
         layout.addLayout(direction_layout)
-        layout.addWidget(self.plotting_checkbox)
+        # layout.addWidget(self.plotting_checkbox)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
