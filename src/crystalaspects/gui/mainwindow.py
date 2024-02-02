@@ -544,7 +544,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.plot_pushButton.setEnabled(False)
             self.plotting_csv = None
-            self.log_message(f"Plotting CSV set to None", "debug")
+            self.log_message("Plotting CSV set to None", "debug")
 
     def set_results(self, value):
         self.plot_lineEdit.setText(str(value.csv))

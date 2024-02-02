@@ -204,6 +204,12 @@ class VisualisationWidget(QOpenGLWidget):
         if event.key() == Qt.Key_D:
             dx += 10
 
+        if event.key() == Qt.Key_C:
+            self.camera.storeOrientation()
+
+        if event.key() == Qt.Key_R:
+            self.camera.resetOrientation()
+
         self.camera.orbit(dx, dy)
         self.update()
 

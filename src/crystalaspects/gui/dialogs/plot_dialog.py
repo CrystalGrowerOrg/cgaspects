@@ -411,6 +411,10 @@ class PlottingDialog(QDialog):
             if len(self.custom_y) == 1:
                 print("Yes")
                 self.y_label = self.custom_y[0]
+            elif len(self.custom_y) <= 3:
+                self.y_label = ", ".join(self.custom_y)
+            else:
+                self.y_label = "Multiple columns..."
 
     def _set_c(self):
         self.c_data = None
@@ -498,6 +502,19 @@ class PlottingDialog(QDialog):
             logger.warning("No data for plotting!")
             return
 
+        markers = [
+            "o",  # Circle
+            "^",  # Triangle up
+            "s",  # Square
+            "D",  # Diamond
+            "v",  # Triangle down
+            "p",  # Pentagon
+            "*",  # Star
+            "h",  # Hexagon
+            "+",  # Plus
+            "x",  # Cross
+        ]
+
         # Plot the data
         if self.y_data.ndim == 1:
             # 1D y_data
@@ -505,13 +522,14 @@ class PlottingDialog(QDialog):
         if self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
             # y_data with multiple columns
             line = True if self.plot_type == "Growth Rates" else False
-            for y in self.y_data:
+            for i, y in enumerate(self.y_data):
                 self._plot(
                     x=self.x_data,
                     y=self._ensure_pd_series(self.df[y]),
                     c=self.c_data,
                     add_line=line,
                     label=y,
+                    marker=markers[i % len(markers)],
                 )
             self._set_legend() if self.show_legend else None
 
@@ -531,7 +549,9 @@ class PlottingDialog(QDialog):
 
         self.canvas.draw()
 
-    def _plot(self, x, y, c=None, cmap="plasma", add_line=False, label=None):
+    def _plot(
+        self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"
+    ):
         cmap = None if c is None else cmap
         label = y.name if label is None else label
         line = None
@@ -543,6 +563,7 @@ class PlottingDialog(QDialog):
             cmap=cmap,
             s=self.point_size,
             label=label if self.plot_type != "Growth Rates" else None,
+            marker=marker,
         )
         if add_line:
             (line,) = self.ax.plot(x, y, label=label)

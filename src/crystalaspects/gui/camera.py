@@ -25,6 +25,7 @@ class Camera:
         self.zoomSpeed = 0.02
         self.scale = 1.0
         self.distance = (self.position - self.target).length()
+        self.storeOrientation()
 
         self.perspectiveProjection = True
         self.fieldOfView = 45
@@ -67,6 +68,24 @@ class Camera:
         return (
             self.projectionMatrix(aspectRatio) * self.viewMatrix() * self.modelMatrix()
         )
+
+    def storeOrientation(self):
+        self._stored_orientation = (
+            self.position,
+            self.target,
+            self.right,
+            self.up,
+            self.scale,
+        )
+
+    def resetOrientation(self):
+        (
+            self.position,
+            self.target,
+            self.right,
+            self.up,
+            self.scale,
+        ) = self._stored_orientation
 
     def orbit(self, dx, dy):
         # Create quaternions representing the rotations
@@ -128,6 +147,7 @@ class Camera:
         self.right = QVector3D(axes[0, 0], axes[0, 1], axes[0, 2])
         self.up = QVector3D.crossProduct(self.target - self.position, self.right)
         self.scale = 1 / np.sqrt(np.max(extents))
+        self.storeOrientation()
 
     def projectionMode(self):
         return "Perspective" if self.perspectiveProjection else "Orthographic"
