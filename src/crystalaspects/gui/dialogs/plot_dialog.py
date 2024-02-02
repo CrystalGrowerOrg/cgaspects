@@ -342,8 +342,8 @@ class PlottingDialog(QDialog):
 
         self.change_mode(mode=self.plot_type)
         self._set_data()
-        self._mask_with_permutation()
         self._set_c()
+        self._mask_with_permutation()
         self._set_labels()
         self._set_c_label()
         self.plot()
