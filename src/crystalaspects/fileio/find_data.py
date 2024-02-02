@@ -7,7 +7,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from natsort import natsorted
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 logger = logging.getLogger("CA:FileIO")
 
@@ -165,39 +165,26 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     summary_cols = summary_df.columns
     aspect_cols = aspect_df.columns
 
-    try:
-        """This allows backcompatibility with
-        an older version of CrystalGrower"""
+    # This allows backcompatibility with
+    # an older version of CrystalGrower
 
-        search = summary_df.iloc[0, 0]
-        search = search.split("_")
-        start_num = int(search[-1])
-        search_string = "_".join(search[:-1])
+    search = str(summary_df.iloc[0, 0])
+    search = search.split("_")
+    start_num = int(search[-1])
+    search_string = "_".join(search[:-1])
 
-        int_cols = summary_cols[1:]
-        summary_df = summary_df.set_index(summary_cols[0])
-        compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
+    int_cols = summary_cols[1:]
+    summary_df = summary_df.set_index(summary_cols[0])
+    compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
-        for index, row in aspect_df.iterrows():
-            sim_num = int(row["Simulation Number"]) - 1 + start_num
-            num_string = f"{search_string}_{sim_num}"
-            aspect_row = row.values
-            aspect_row = np.array([aspect_row])
-            collect_row = summary_df.filter(items=[num_string], axis=0).values
-            collect_row = np.concatenate([aspect_row, collect_row], axis=1)
-            compare_array = np.append(compare_array, collect_row, axis=0)
-
-    except AttributeError:
-        int_cols = summary_cols[1:]
-        compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
-
-        for index, row in aspect_df.iterrows():
-            sim_num = int(row["Simulation Number"] - 1)
-            aspect_row = row.values
-            aspect_row = np.array([aspect_row])
-            collect_row = [summary_df.iloc[sim_num].values[1:]]
-            collect_row = np.concatenate([aspect_row, collect_row], axis=1)
-            compare_array = np.append(compare_array, collect_row, axis=0)
+    for index, row in aspect_df.iterrows():
+        sim_num = int(row["Simulation Number"]) - 1 + start_num
+        num_string = f"{search_string}_{sim_num}"
+        aspect_row = row.values
+        aspect_row = np.array([aspect_row])
+        collect_row = summary_df.filter(items=[num_string], axis=0).values
+        collect_row = np.concatenate([aspect_row, collect_row], axis=1)
+        compare_array = np.append(compare_array, collect_row, axis=0)
 
     cols = aspect_cols.append(int_cols)
     compare_df = pd.DataFrame(compare_array, columns=cols)
