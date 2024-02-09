@@ -423,8 +423,9 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Custom":
             self.variable = "None"
 
-        if self.custom_c == "None" and self.variable == "None":
+        if self.custom_c == "None" and (self.variable == "None" or (not self.variable)):
             return
+
         if self.custom_c == "None":
             self.c_data = self.df[self.variable]
             self.c_name = self.variable
@@ -576,7 +577,8 @@ class PlottingDialog(QDialog):
 
         for legend_line in legend.get_lines():
             legend_line.set_picker(5)
-            legend_line.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
+
+        legend.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
 
     def update_annot(self, scatter, colour_data, column_name, ind):
         pos = scatter.get_offsets()[ind["ind"][0]]
@@ -647,6 +649,7 @@ class PlottingDialog(QDialog):
         p.line.set_visible(vis)
         p.scatter.set_visible(vis)
         legend_line.set_alpha(1.0 if vis else 0.2)
+        self.figure.canvas.draw()
 
     def on_click(self, event):
         if event.inaxes != self.ax:

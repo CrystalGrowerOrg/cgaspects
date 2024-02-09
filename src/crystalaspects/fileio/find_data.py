@@ -12,6 +12,10 @@ from PySide6.QtWidgets import QMessageBox
 logger = logging.getLogger("CA:FileIO")
 
 
+def file_empty(x):
+    return x.stat().st_size == 0
+
+
 def locate_xyz_files(xyz_folderpath):
     # Check if the folder selection was canceled or empty and handle appropriately
     if xyz_folderpath is None:
@@ -24,7 +28,14 @@ def locate_xyz_files(xyz_folderpath):
 
     try:
         if xyz_folderpath.is_dir():
-            crystal_xyz_list = list(xyz_folderpath.rglob("*.XYZ"))
+            crystal_xyz_list = []
+
+            for filepath in Path(xyz_folderpath).rglob("*.XYZ"):
+                if file_empty(filepath):
+                    logger.info("Ignore empty XYZ file: %s", filepath)
+                else:
+                    crystal_xyz_list.append(filepath)
+
             # Check if the list is empty
             if not crystal_xyz_list:
                 raise FileNotFoundError(

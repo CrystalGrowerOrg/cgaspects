@@ -192,7 +192,13 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
             "Currently being read from %s",
             folder,
         )
-        xyz_files = list(Path(folder).rglob("*.XYZ"))
+
+        def not_empty(x):
+            return x.stat().st_size > 0
+
+        xyz_files = [
+            filepath for filepath in Path(folder).rglob("*.XYZ") if not_empty(filepath)
+        ]
 
     if not isinstance(xyz_files, list) or not all(
         isinstance(item, Path) for item in xyz_files
