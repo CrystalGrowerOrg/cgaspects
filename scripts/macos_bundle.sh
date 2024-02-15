@@ -1,8 +1,9 @@
-pyinstaller installer/CrystalAspects.py --onedir --windowed --icon=res/app_icons/CrystalAspects.icns --noconfirm
+pyinstaller installer/CGASpects.py --onedir --windowed --icon=res/app_icons/CGAspects.icns --noconfirm \
+    --exclude-module=pytest
 echo "Running ad hoc code signing"
-export APP="dist/CrystalAspects.app"
+export APP="dist/CGAspects.app"
 export CONTENTS_DIR="${APP}/Contents"
-codesign --force --deep --sign - "${CONTENTS_DIR}/MacOS/CrystalAspects"
+codesign --force --deep --sign - "${CONTENTS_DIR}/MacOS/CGAspects"
 find "${CONTENTS_DIR}/MacOS" "${CONTENTS_DIR}/Frameworks" \
      "${CONTENTS_DIR}/Resources" \
      -name '*.dylib' \
