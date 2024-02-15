@@ -1003,6 +1003,10 @@
    </property>
   </action>
   <action name="actionAboutCGAspects">
+   <property name="icon">
+    <iconset resource="../../../res/qticons.qrc">
+     <normaloff>:/app_icons/app_icons/CGAspects.png</normaloff>:/app_icons/app_icons/CGAspects.png</iconset>
+   </property>
    <property name="text">
     <string>About CGAspects...</string>
    </property>

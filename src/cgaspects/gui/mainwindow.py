@@ -781,6 +781,7 @@ def main():
     # ############# Runs the application ############## #
     # sys.argv += ['--style', 'Material.Light']
     QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QtWidgets.QApplication.setApplicationName("CGAspects")
     app = QtWidgets.QApplication(sys.argv)
     mainwindow = MainWindow()
     mainwindow.show()

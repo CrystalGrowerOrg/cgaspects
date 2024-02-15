@@ -1,4 +1,4 @@
-pyinstaller installer/CGASpects.py --onedir --windowed --icon=res/app_icons/CGAspects.icns --noconfirm \
+pyinstaller installer/CGAspects.py --onedir --windowed --icon=res/app_icons/CGAspects.icns --noconfirm \
     --exclude-module=pytest
 echo "Running ad hoc code signing"
 export APP="dist/CGAspects.app"
