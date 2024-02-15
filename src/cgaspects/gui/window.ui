@@ -249,6 +249,18 @@
        </item>
        <item>
         <widget class="QGroupBox" name="dataAnalysis_groupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>400</height>
+          </size>
+         </property>
          <property name="title">
           <string>Data Analysis</string>
          </property>
@@ -506,6 +518,18 @@
        </item>
        <item>
         <widget class="QGroupBox" name="crystalInfo_groupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>600</height>
+          </size>
+         </property>
          <property name="toolTip">
           <string>Crystal information from the current selection</string>
          </property>
@@ -540,12 +564,6 @@
      <width>1280</width>
      <height>24</height>
     </rect>
-   </property>
-   <property name="defaultUp">
-    <bool>false</bool>
-   </property>
-   <property name="nativeMenuBar">
-    <bool>false</bool>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
