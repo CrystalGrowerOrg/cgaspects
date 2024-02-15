@@ -340,7 +340,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def init_crystal(self, result):
         self.movie_controls_frame.hide()
-        logger.debug("INIT CRYSTAL %s", result)
+        logger.debug("Initializing crystal: %s", result)
         self.xyz, self.movie = result
         self.openglwidget.pass_XYZ(self.xyz)
 
@@ -757,7 +757,7 @@ def set_default_opengl_version(major, minor):
 def main():
     set_default_opengl_version(3, 3)
     # Setting taskbar icon permissions - windows
-    appid = "CNM.CrystalGrower.CrystalAspects.v1.0"
+    appid = "CrystalGrower.CGAspects.0.8.0"
     import ctypes
 
     if hasattr(ctypes, "windll"):
