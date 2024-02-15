@@ -3,7 +3,6 @@ import logging
 import numpy as np
 from matplotlib import cm
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
-from PIL import Image
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
@@ -11,13 +10,11 @@ from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
-from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.gui.axes_renderer import AxesRenderer
-from crystalaspects.gui.camera import Camera
-from crystalaspects.gui.point_cloud_renderer import SimplePointRenderer
-from crystalaspects.gui.widgets.overlay_widget import TransparentOverlay
-
-# from crystalaspects.gui.sphere_renderer import SphereRenderer
+from ..analysis.shape_analysis import CrystalShape
+from .axes_renderer import AxesRenderer
+from .camera import Camera
+from .point_cloud_renderer import SimplePointRenderer
+from .widgets.overlay_widget import TransparentOverlay
 
 
 logger = logging.getLogger("CA:OpenGL")

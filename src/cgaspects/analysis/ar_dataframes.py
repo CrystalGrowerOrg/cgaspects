@@ -3,13 +3,9 @@ import os
 import re
 from itertools import permutations
 from pathlib import Path
-from statistics import median
-
-import numpy as np
 import pandas as pd
 
-from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.fileio.find_data import *
+from .shape_analysis import CrystalShape
 
 logger = logging.getLogger("CA:AR-Dataframes")
 

@@ -5,12 +5,23 @@ from pathlib import Path
 from PySide6.QtCore import QThreadPool, Signal
 from PySide6.QtWidgets import QDialog, QWidget
 
-import crystalaspects.analysis.ar_dataframes as ar
-import crystalaspects.fileio.find_data as fd
-from crystalaspects.analysis.gui_threads import WorkerAspectRatios
-from crystalaspects.gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
-from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
-from crystalaspects.visualisation.plot_data import Plotting
+from .ar_dataframes import (
+    collect_all,
+    get_xyz_shape_percentage,
+    build_cda,
+    build_ratio_equations,
+    get_cda_shape_percentage,
+)
+from ..fileio.find_data import (
+    find_info,
+    summary_compare,
+    create_aspects_folder,
+    combine_xyz_cda,
+)
+from .gui_threads import WorkerAspectRatios
+from ..gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
+from ..gui.dialogs.plot_dialog import PlottingDialog
+from ..visualisation.plot_data import Plotting
 
 logger = logging.getLogger("CA:A-Ratios")
 
@@ -55,7 +66,7 @@ class AspectRatio(QWidget):
                     "Method called without information, looking for information now."
                 )
                 # Read the information from the selected folder
-                self.information = fd.find_info(self.input_folder)
+                self.information = find_info(self.input_folder)
             logger.info("Attempting to calculate Aspect Ratios...")
 
             """Future Note: The follwing renders the 
@@ -155,7 +166,7 @@ class AspectRatio(QWidget):
         self.signals.location.emit(location)
 
     def run_on_same_thread(self):
-        self.output_folder = fd.create_aspects_folder(self.input_folder)
+        self.output_folder = create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
         summary_file = self.information.summary_file
         folders = self.information.folders
@@ -174,13 +185,13 @@ class AspectRatio(QWidget):
             return
 
         if self.options.selected_ar:
-            xyz_df = ar.collect_all(folder=self.input_folder, signals=self.signals)
+            xyz_df = collect_all(folder=self.input_folder, signals=self.signals)
             xyz_combine = xyz_df
             if summary_file:
-                xyz_df = fd.summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
+                xyz_df = summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
             xyz_df_final_csv = self.output_folder / "aspectratio.csv"
             xyz_df.to_csv(xyz_df_final_csv, index=None)
-            ar.get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
+            get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
             logger.info("Plotting CSV created from: PCA/OBA")
             self.plotting_csv = xyz_df_final_csv
 
@@ -198,20 +209,20 @@ class AspectRatio(QWidget):
             return
 
         if self.options.selected_cda:
-            cda_df = ar.build_cda(
+            cda_df = build_cda(
                 folderpath=self.input_folder,
                 folders=folders,
                 directions=self.options.checked_directions,
                 selected=self.options.selected_directions,
                 savefolder=self.output_folder,
             )
-            zn_df = ar.build_ratio_equations(
+            zn_df = build_ratio_equations(
                 directions=self.options.selected_directions,
                 ar_df=cda_df,
                 filepath=self.output_folder,
             )
             if summary_file:
-                zn_df = fd.summary_compare(summary_csv=summary_file, aspect_df=zn_df)
+                zn_df = summary_compare(summary_csv=summary_file, aspect_df=zn_df)
 
             zn_df_final_csv = self.output_folder / "cda.csv"
             zn_df.to_csv(zn_df_final_csv, index=None)
@@ -219,11 +230,9 @@ class AspectRatio(QWidget):
             self.plotting_csv = zn_df_final_csv
 
             if self.options.selected_ar and self.options.selected_cda:
-                combined_df = fd.combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
+                combined_df = combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
                 final_cda_xyz_csv = self.output_folder / "crystalaspects.csv"
                 combined_df.to_csv(final_cda_xyz_csv, index=None)
-                ar.get_cda_shape_percentage(
-                    df=combined_df, savefolder=self.output_folder
-                )
+                get_cda_shape_percentage(df=combined_df, savefolder=self.output_folder)
                 logger.info("Plotting CSV created from: CDA + PCA/OBA")
                 self.plotting_csv = final_cda_xyz_csv

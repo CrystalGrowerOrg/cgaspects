@@ -9,22 +9,22 @@ import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, Qt
+from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
-from crystalaspects.analysis.aspect_ratios import AspectRatio
-from crystalaspects.analysis.growth_rates import GrowthRate
-from crystalaspects.analysis.gui_threads import WorkerXYZ
-from crystalaspects.analysis.shape_analysis import CrystalShape
-from crystalaspects.fileio.find_data import find_info, locate_xyz_files
-from crystalaspects.fileio.logging import setup_logging
-from crystalaspects.fileio.opendir import open_directory
-from crystalaspects.gui.crystal_info import CrystalInfo
-from crystalaspects.gui.dialogs import CrystalInfoWidget, PlottingDialog
-from crystalaspects.gui.dialogs.settings import SettingsDialog
-from crystalaspects.gui.load_ui import Ui_MainWindow
-from crystalaspects.gui.openGL import VisualisationWidget
-from crystalaspects.gui.widgets import (
+from ..analysis.aspect_ratios import AspectRatio
+from ..analysis.growth_rates import GrowthRate
+from ..analysis.gui_threads import WorkerXYZ
+from ..analysis.shape_analysis import CrystalShape
+from ..fileio.find_data import find_info, locate_xyz_files
+from ..fileio.logging import setup_logging
+from ..fileio.opendir import open_directory
+from .crystal_info import CrystalInfo
+from .dialogs import CrystalInfoWidget, PlottingDialog
+from .dialogs.settings import SettingsDialog
+from .load_ui import Ui_MainWindow
+from .openGL import VisualisationWidget
+from .widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
 )

@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QGroupBox,
     QMenuBar, QPushButton, QScrollArea, QSizePolicy,
     QSlider, QSpacerItem, QSpinBox, QStatusBar,
     QTabWidget, QToolButton, QVBoxLayout, QWidget)
-from crystalaspects.gui.utils import qticons_rc
+from cgaspects.gui.utils import qticons_rc
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -521,7 +521,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"CrystalAspects", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"CGAspects", None))
         self.actionOpen_Simulations.setText(QCoreApplication.translate("MainWindow", u"Open Simulations", None))
         self.actionOpen_XYZs.setText(QCoreApplication.translate("MainWindow", u"Open XYZs", None))
         self.actionOpen_Outputs.setText(QCoreApplication.translate("MainWindow", u"Open Outputs", None))

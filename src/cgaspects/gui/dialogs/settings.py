@@ -1,12 +1,5 @@
-from collections import namedtuple
-
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QFormLayout, QHBoxLayout, QLabel, QScrollArea,
-                               QVBoxLayout, QWidget)
-
-from crystalaspects.gui.dialogs import settings_ui
-from crystalaspects.gui.utils.py_toggle import PyToggle
+from PySide6.QtWidgets import QDialog
+from . import settings_ui
 
 
 class SettingsDialog(QDialog):
@@ -21,7 +14,7 @@ class SettingsDialog(QDialog):
         self.ui.colour_comboBox.clear()
         self.ui.pointtype_comboBox.clear()
         self.ui.bgcolour_comboBox.clear()
-        
+
         self.colour_list = [
             "Viridis",
             "Plasma",
@@ -46,6 +39,4 @@ class SettingsDialog(QDialog):
         self.ui.pointtype_comboBox.addItems(["Points", "Spheres"])
         self.ui.projection_comboBox.addItems(["Orthographic", "Perspective"])
         self.ui.colour_comboBox.addItems(self.colour_list)
-        self.ui.bgcolour_comboBox.addItems(
-            ["Black", "White"]
-        )
+        self.ui.bgcolour_comboBox.addItems(["Black", "White"])

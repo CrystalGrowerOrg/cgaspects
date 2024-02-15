@@ -23,8 +23,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon
 
 
-from crystalaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
-from crystalaspects.gui.widgets.plot_axes_widget import (
+from .plotsavedialog import PlotSaveDialog
+from ..widgets.plot_axes_widget import (
     PlotAxesWidget,
 )
 

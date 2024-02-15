@@ -1,17 +1,16 @@
 import sys
 from pathlib import Path
-from typing import List
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
-from crystalaspects.analysis.aspect_ratios import AspectRatio
-from crystalaspects.fileio.find_data import find_info
+from cgaspects.analysis.aspect_ratios import AspectRatio
+from cgaspects.fileio.find_data import find_info
 
 root_test_dir = Path(__file__).parent
 
-TEST_DIR = "src/crystalaspects/tests/simulations/morphology/energies/20231110_114217"
+TEST_DIR = "src/cgaspects/tests/simulations/morphology/energies/20231110_114217"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -30,7 +29,7 @@ def aspect_ratio():
 @pytest.fixture
 def mock_logger(monkeypatch):
     mock_logger = MagicMock()
-    monkeypatch.setattr("crystalaspects.analysis.aspect_ratios.logger", mock_logger)
+    monkeypatch.setattr("cgaspects.analysis.aspect_ratios.logger", mock_logger)
     return mock_logger
 
 
@@ -38,14 +37,14 @@ def mock_logger(monkeypatch):
 @pytest.fixture
 def mock_dialog(monkeypatch):
     mock_dialog = MagicMock()
-    monkeypatch.setattr("crystalaspects.analysis.aspect_ratios.QDialog", mock_dialog)
+    monkeypatch.setattr("cgaspects.analysis.aspect_ratios.QDialog", mock_dialog)
 
 
 # Fixture for mock Path to avoid file system interaction during tests
 @pytest.fixture
 def mock_path(monkeypatch):
     mock_path = MagicMock(spec=Path)
-    monkeypatch.setattr("crystalaspects.analysis.aspect_ratios.Path", mock_path)
+    monkeypatch.setattr("cgaspects.analysis.aspect_ratios.Path", mock_path)
     return mock_path
 
 
@@ -53,7 +52,7 @@ def mock_path(monkeypatch):
 def mock_analysis_options_dialog(monkeypatch):
     # Create a MagicMock instance for the dialog
     mock_dialog = MagicMock(
-        name="crystalaspects.gui.aspectratio_dialog.AnalysisOptionsDialog"
+        name="cgaspects.gui.aspectratio_dialog.AnalysisOptionsDialog"
     )
     mock_dialog.exec_.return_value = QDialog.Accepted
     mock_dialog.get_options.return_value = (
@@ -65,17 +64,9 @@ def mock_analysis_options_dialog(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "crystalaspects.gui.aspectratio_dialog.AnalysisOptionsDialog", mock_dialog
+        "cgaspects.gui.aspectratio_dialog.AnalysisOptionsDialog", mock_dialog
     )
     yield mock_dialog
-
-
-@pytest.fixture
-def mock_qmessagebox(monkeypatch):
-    with monkeypatch.context() as m:
-        # Mock the static methods used in your code
-        m.setattr(QMessageBox, "information", MagicMock())
-        yield
 
 
 @pytest.fixture
@@ -90,7 +81,7 @@ def mock_qmessagebox(monkeypatch):
 def mock_plotting_dialogue(monkeypatch):
     mock_instance = MagicMock()
     monkeypatch.setattr(
-        "crystalaspects.visualisation.replotting.PlottingDialog", mock_instance
+        "cgaspects.visualisation.replotting.PlottingDialog", mock_instance
     )
 
 

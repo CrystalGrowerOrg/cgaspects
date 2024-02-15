@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>CrystalAspects</string>
+   <string>CGAspects</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../../../res/qticons.qrc">

@@ -3,8 +3,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, QStandardPaths
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
-
-from crystalaspects.gui.dialogs import plotsavedialog_ui
+from . import plotsavedialog_ui
 
 logger = logging.getLogger("CA:PlotDialog")
 

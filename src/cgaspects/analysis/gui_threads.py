@@ -1,16 +1,24 @@
 import logging
-import os
-import re
 from collections import namedtuple
 from pathlib import Path
 from typing import NamedTuple
 
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
-import crystalaspects.analysis.ar_dataframes as ar
-import crystalaspects.analysis.gr_dataframes as gr
-import crystalaspects.fileio.find_data as fd
-from crystalaspects.analysis.shape_analysis import CrystalShape
+from .ar_dataframes import (
+    collect_all,
+    get_xyz_shape_percentage,
+    build_cda,
+    build_ratio_equations,
+    get_cda_shape_percentage,
+)
+from .gr_dataframes import build_growthrates
+from ..fileio.find_data import (
+    summary_compare,
+    create_aspects_folder,
+    combine_xyz_cda,
+)
+from .shape_analysis import CrystalShape
 
 logger = logging.getLogger("CA:Threads")
 
@@ -76,7 +84,7 @@ class WorkerAspectRatios(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        self.output_folder = fd.create_aspects_folder(self.input_folder)
+        self.output_folder = create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
         summary_file = self.information.summary_file
         folders = self.information.folders
@@ -95,15 +103,15 @@ class WorkerAspectRatios(QRunnable):
             return
 
         if self.options.selected_ar:
-            xyz_df = ar.collect_all(
+            xyz_df = collect_all(
                 folder=self.input_folder, xyz_files=self.xyz_files, signals=self.signals
             )
             xyz_combine = xyz_df
             if summary_file:
-                xyz_df = fd.summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
+                xyz_df = summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
             xyz_df_final_csv = self.output_folder / "aspectratio.csv"
             xyz_df.to_csv(xyz_df_final_csv, index=None)
-            ar.get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
+            get_xyz_shape_percentage(df=xyz_df, savefolder=self.output_folder)
             logger.info("Plotting CSV created from: PCA/OBA")
             self.plotting_csv = xyz_df_final_csv
 
@@ -121,20 +129,20 @@ class WorkerAspectRatios(QRunnable):
             return
 
         if self.options.selected_cda:
-            cda_df = ar.build_cda(
+            cda_df = build_cda(
                 folderpath=self.input_folder,
                 folders=folders,
                 directions=self.options.checked_directions,
                 selected=self.options.selected_directions,
                 savefolder=self.output_folder,
             )
-            zn_df = ar.build_ratio_equations(
+            zn_df = build_ratio_equations(
                 directions=self.options.selected_directions,
                 ar_df=cda_df,
                 filepath=self.output_folder,
             )
             if summary_file:
-                zn_df = fd.summary_compare(summary_csv=summary_file, aspect_df=zn_df)
+                zn_df = summary_compare(summary_csv=summary_file, aspect_df=zn_df)
 
             zn_df_final_csv = self.output_folder / "cda.csv"
             zn_df.to_csv(zn_df_final_csv, index=None)
@@ -142,12 +150,10 @@ class WorkerAspectRatios(QRunnable):
             self.plotting_csv = zn_df_final_csv
 
             if self.options.selected_ar and self.options.selected_cda:
-                combined_df = fd.combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
+                combined_df = combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
                 final_cda_xyz_csv = self.output_folder / "crystalaspects.csv"
                 combined_df.to_csv(final_cda_xyz_csv, index=None)
-                ar.get_cda_shape_percentage(
-                    df=combined_df, savefolder=self.output_folder
-                )
+                get_cda_shape_percentage(df=combined_df, savefolder=self.output_folder)
                 logger.info("Plotting CSV created from: CDA + PCA/OBA")
                 self.plotting_csv = final_cda_xyz_csv
 
@@ -163,7 +169,7 @@ class WorkerGrowthRates(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        growth_rate_df = gr.build_growthrates(
+        growth_rate_df = build_growthrates(
             size_file_list=self.information.size_files,
             supersat_list=self.information.supersats,
             directions=self.selected_directions,

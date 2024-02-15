@@ -1,16 +1,12 @@
-import sys
-from pathlib import Path
-from typing import List
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 
 import numpy as np
 import unittest
 
-from crystalaspects.analysis.shape_analysis import CrystalShape
+from cgaspects.analysis.shape_analysis import CrystalShape
 
 
 class TestCrystalShape(unittest.TestCase):
-
     def setUp(self):
         self.crystal = CrystalShape()
 
@@ -85,5 +81,4 @@ class TestCrystalShape(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

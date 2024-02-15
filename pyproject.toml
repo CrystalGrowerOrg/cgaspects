@@ -1,8 +1,8 @@
 [project]
-name = "crystalaspects"
-version = "0.7.0"
+name = "cgaspects"
+version = "0.8.0"
 requires-python = ">=3.10"
-description = "A CrsytalGrower Data Processing tool with PySide6 GUI"
+description = "An analysis tool and companion for CrystalGrower"
 
 authors = [
     { name = "Alvin Jenner Walisinghe", email = "jennerwalisinghe@gmail.com" },
@@ -40,11 +40,11 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/AJen01/crystalaspects"
-repository = "https://github.com/AJen01/crystalaspects"
+homepage = "https://github.com/CrystalGrowerOrg/cgaspects"
+repository = "https://github.com/CrystalGrowerOrg/cgaspects"
 
 [project.scripts]
-crystalaspects = "crystalaspects.gui.mainwindow:main"
+cgaspects = "cgaspects.gui.mainwindow:main"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
@@ -60,7 +60,7 @@ where = ["src"]
 minversion = "6.0"
 addopts = "-ra --doctest-modules --doctest-ignore-import-errors"
 testpaths = [
-    "src/crystalaspects/tests/pytests"
+    "src/cgaspects/tests/pytests"
 ]
 python_files = "test*.py"
 python_classes = "Test*"

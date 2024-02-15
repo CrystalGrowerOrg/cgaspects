@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
-from crystalaspects.analysis.gr_dataframes import build_growthrates
+from cgaspects.analysis.gr_dataframes import build_growthrates
 
 
 class TestBuildGrowthrates(unittest.TestCase):

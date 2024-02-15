@@ -2,17 +2,15 @@ import logging
 from collections import namedtuple
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 from PySide6.QtCore import QThreadPool, Signal
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QDialog
 
-import crystalaspects.analysis.gr_dataframes as gr
-import crystalaspects.fileio.find_data as fd
-from crystalaspects.analysis.gui_threads import WorkerGrowthRates
-from crystalaspects.gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
-from crystalaspects.gui.dialogs.plot_dialog import PlottingDialog
-from crystalaspects.visualisation.plot_data import Plotting
+from . import gr_dataframes as gr
+from ..fileio import find_data as fd
+from .gui_threads import WorkerGrowthRates
+from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
+from ..gui.dialogs.plot_dialog import PlottingDialog
+from ..visualisation.plot_data import Plotting
 
 logger = logging.getLogger("CA:G-Rates")
 

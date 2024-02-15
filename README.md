@@ -1,6 +1,6 @@
-# CrystalAspects
+# CGAspects
 
-CrystalAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI. 
+CGAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI. 
 
 ## Features
 
@@ -9,13 +9,13 @@ CrystalAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI
 
 ## Installation
 
-To use CrystalAspects with python, clone the repository and then install the package. 
+To use CGAspects with python, clone the repository and then install the package. 
 Ensure you have Python >=3.10 installed on your system.
 
 1. (Optional) The repository uses Git LFS for managing large files, so make sure you have Git LFS installed before cloning.
    Install Git LFS. You can find detailed installation instructions for different operating systems on the [Git LFS website](https://git-lfs.github.com/).
 
-3. Clone the CrystalAspects repository (shallow clone with depth 1):
+3. Clone the CGAspects repository (shallow clone with depth 1):
 
     ```bash
     git clone --depth=1 https://github.com/CrystalGrowerOrg/crystalaspects.git
@@ -29,7 +29,7 @@ Ensure you have Python >=3.10 installed on your system.
     git lfs pull
     ```
 
-5. Install CrystalAspects via pip:
+5. Install CGAspects via pip:
 
     ```bash
     pip install .
@@ -37,15 +37,15 @@ Ensure you have Python >=3.10 installed on your system.
 
 ## Usage
 
-After installation, you can run CrystalAspects using the command:
+After installation, you can run CGAspects using the command:
 
 ```bash
-crystalaspects
+cgaspects
 ```
 
 ## Building and Packaging for macOS
 
-CrystalAspects can be packaged as a standalone application for macOS using PyInstaller. 
+CGAspects can be packaged as a standalone application for macOS using PyInstaller. 
 
 To build and package the application:
 
@@ -76,7 +76,7 @@ To build and package the application:
 
 ## Development Status
 
-CrystalAspects is currently in Alpha stage.
+CGAspects is currently in Alpha stage.
 
 ## Authors
 
@@ -86,7 +86,7 @@ CrystalAspects is currently in Alpha stage.
 
 ## License
 
-CrystalAspects is distributed under the MIT License. See the accompanying LICENSE.txt file for more details.
+CGAspects is distributed under the MIT License. See the accompanying LICENSE.txt file for more details.
 
 ## Contributions
 

@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QWidget
-
-from crystalaspects.gui.dialogs import crystalinfo_ui
+from . import crystalinfo_ui
 
 
 class CrystalInfoWidget(QWidget):
