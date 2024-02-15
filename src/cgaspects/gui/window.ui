@@ -17,7 +17,7 @@
    <string>CGAspects</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../../../res/qticons.qrc">
+   <iconset>
     <normaloff>:/app_icons/app_icons/CrystalAspects.icns</normaloff>:/app_icons/app_icons/CrystalAspects.icns</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -556,6 +556,8 @@
     <addaction name="actionImport_Summary_File"/>
     <addaction name="actionRender"/>
     <addaction name="actionImportCSVClipboard"/>
+    <addaction name="separator"/>
+    <addaction name="actionAboutCGAspects"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -980,6 +982,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+I</string>
+   </property>
+  </action>
+  <action name="actionAboutCGAspects">
+   <property name="text">
+    <string>About CGAspects...</string>
    </property>
   </action>
  </widget>

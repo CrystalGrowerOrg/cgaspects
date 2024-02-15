@@ -22,6 +22,7 @@ from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
+from .dialogs.about import AboutCGDialog
 from .load_ui import Ui_MainWindow
 from .openGL import VisualisationWidget
 from .widgets import (
@@ -109,6 +110,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.simulation_variables_widget = None
         self.plotting_dialog = None
 
+        self.aboutDialog = None
+
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
         self.progressBar.hide()
@@ -171,6 +174,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
+
+        self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
+
+    def showAboutDialog(self):
+        if self.aboutDialog is None:
+            self.aboutDialog = AboutCGDialog(self)
+
+        if self.aboutDialog.isVisible():
+            self.aboutDialog.raise_()
+            self.aboutDialog.activateWindow()
+        else:
+            self.aboutDialog.show()
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)

@@ -49,6 +49,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.overlay = TransparentOverlay(self)
         self.overlay.setGeometry(self.geometry())
+        self.overlay.showIcon()
 
         self.lattice_parameters = None
 
@@ -238,6 +239,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.update()
 
     def updatePointCloudVertices(self):
+        self.overlay.setVisible(False)
         logger.debug("Loading Vertices")
         logger.debug(".XYZ shape: %s", self.xyz.shape[0])
         layers = self.xyz[:, 2]

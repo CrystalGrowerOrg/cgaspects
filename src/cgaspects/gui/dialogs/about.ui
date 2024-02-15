@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AboutCGDialog</class>
+ <widget class="QDialog" name="AboutCGDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>655</width>
+    <height>265</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="spacing">
+    <number>24</number>
+   </property>
+   <item>
+    <widget class="QToolButton" name="toolButton">
+     <property name="text">
+      <string>...</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../../../../res/qticons.qrc">
+       <normaloff>:/app_icons/app_icons/CG_Full_Colour.png</normaloff>:/app_icons/app_icons/CG_Full_Colour.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>128</width>
+       <height>128</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="aboutLabel">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:24pt; font-weight:700;&quot;&gt;CGAspects&lt;/span&gt;&lt;/p&gt;&lt;p&gt;CGAspects is part of the &lt;a href=&quot;https://crystalgrower.org/&quot;&gt;&lt;span style=&quot; font-weight:700; text-decoration: underline; color:#007af4;&quot;&gt;Crystal&lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://crystalgrower.org/&quot;&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline; color:#007af4;&quot;&gt;Grower&lt;/span&gt;&lt;/a&gt; suite of programs.&lt;/p&gt;&lt;p&gt;Authors: &lt;span style=&quot; font-weight:700;&quot;&gt;Alvin Jenner Walisinghe, Nathan de Bruyn and Peter R. Spackman&lt;/span&gt;&lt;/p&gt;&lt;p&gt;The code is publicly available on &lt;a href=&quot;https://github.com/CrystalGrowerOrg/cgaspects&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;GItHub&lt;/span&gt;&lt;/a&gt; and documentation is available at the website.&lt;/p&gt;&lt;p&gt;When using &lt;span style=&quot; font-weight:700;&quot;&gt;Crystal&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Grower&lt;/span&gt; to simulate the crystal growth of your materials,please cite it in your scientific publications as follows:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://www.nature.com/articles/nature21684&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;M. W. Anderson et al. &lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://www.nature.com/articles/nature21684&quot;&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline; color:#007af4;&quot;&gt;Nature, &lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://www.nature.com/articles/nature21684&quot;&gt;&lt;span style=&quot; font-weight:700; text-decoration: underline; color:#007af4;&quot;&gt;544&lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://www.nature.com/articles/nature21684&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;, 456–459 (2017)&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;A. R. Hill et al.. &lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract&quot;&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline; color:#007af4;&quot;&gt;Chem. Sci.&lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;, &lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract&quot;&gt;&lt;span style=&quot; font-weight:700; text-decoration: underline; color:#007af4;&quot;&gt;12&lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;, 1126–1146 (2021)&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../../../res/qticons.qrc"/>
+ </resources>
+ <connections/>
+</ui>
