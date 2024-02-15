@@ -10,55 +10,89 @@ from .shape_analysis import CrystalShape
 logger = logging.getLogger("CA:AR-Dataframes")
 
 
-def build_cda(folders, folderpath, savefolder, directions, selected, singals=None):
-    path = Path(folderpath)
+def merge_dicts(dict_list):
+    merged = {}
+
+    for d in dict_list:
+        for k, v in d.items():
+            if k in merged:
+                # If the key exists, merge values
+                if isinstance(merged[k], list) and isinstance(v, list):
+                    merged[k] += v
+                elif isinstance(merged[k], set) and isinstance(v, set):
+                    merged[k] |= v
+                else:
+                    raise TypeError(
+                        f"Unsupported types for merge: {type(merged[k])}, {type(v)}"
+                    )
+            else:
+                merged[k] = v
+
+    return merged
+
+
+def parse_simulation_parameters_file(path, directions):
+    path = Path(path)
+    lines = path.read_text().splitlines()
 
     ar_keys = ["Simulation Number"] + directions
-    logger.debug("AR_keys %s", ar_keys)
     ar_dict = {k: [] for k in ar_keys}
-    sim_num = 1
-    # The behaviour of this loop could be improved
-    for folder in folders:
-        files = os.listdir(folder)
-        for f in files:
-            f_path = path / folder / f
-            f_name = f
-            if f_name.startswith("._"):
-                continue
-            if f_name.endswith("simulation_parameters.txt"):
-                with open(f_path, "r", encoding="utf-8") as sim_file:
-                    lines = sim_file.readlines()
-                for line in lines:
-                    try:
-                        if line.startswith("Size of crystal at frame output"):
-                            frame = lines.index(line) + 1
-                            ar_dict["Simulation Number"].append(sim_num)
-                    except NameError:
-                        continue
 
-                len_info_lines = lines[frame:]
-                for len_line in len_info_lines:
-                    for direction in directions:
-                        if len_line.startswith(direction):
-                            ar_dict[direction].append(float(len_line.split(" ")[-2]))
+    for line in lines:
+        if line.startswith("Size of crystal at frame output"):
+            frame = lines.index(line) + 1
+            ar_dict["Simulation Number"].append(sim_num)
 
-        sim_num += 1
-    print_keys_and_value_lengths(ar_dict)
-    try:
-        df = pd.DataFrame.from_dict(ar_dict)
-        print(df)
-    except ValueError as v:
-        logger.error(
-            "Potential corrupted input files. Please check if simulation_parameters.txt files has all the information.\n%s",
-            v,
-        )
+        for len_line in lines[frame:]:
+            for direction in directions:
+                if len_line.startswith(direction):
+                    ar_dict[direction].append(float(len_line.split()[-2]))
+    return ar_dict
+
+
+def populate_aspect_ratios_for_selected_columns(df, selected):
     for i in range(len(selected) - 1):
         logger.debug("Aspect Ratio [%s] : [%s] : [%s]", i, selected[i], selected[i + 1])
         df[f"Ratio_{selected[i]}:{selected[i+1]}"] = (
             df[selected[i]] / df[selected[i + 1]]
         )
 
-    logger.debug("CDA Dataframe:\n%s", ar_dict)
+
+def build_cda(folders, folderpath, savefolder, directions, selected, singals=None):
+    path = Path(folderpath)
+
+    ar_keys = ["Simulation Number"] + directions
+    logger.debug("AR_keys %s", ar_keys)
+
+    simulation_parameters_files = []
+    # find all simulation_parameters.txt files
+    for folder in folders:
+        for f in Path(folder).iterdir():
+            if f.name.startswith("._"):
+                continue
+            elif f.name.endswith("simulation_parameters.txt"):
+                simulation_parameters_files.append(f)
+
+    ar_dict = merge_dicts(
+        [
+            parse_simulation_parameters_file(f, directions)
+            for f in simulation_parameters_files
+        ]
+    )
+
+    print_keys_and_value_lengths(ar_dict)
+    logger.debug("CDA data frame dictionary:\n%s", ar_dict)
+
+    try:
+        df = pd.DataFrame.from_dict(ar_dict)
+    except ValueError as v:
+        logger.error(
+            "Potential corrupted input files. Please check "
+            "if simulation_parameters.txt files has all the information.\n%s",
+            v,
+        )
+
+    populate_aspect_ratios_for_selected_columns(df, selected)
 
     return df
 

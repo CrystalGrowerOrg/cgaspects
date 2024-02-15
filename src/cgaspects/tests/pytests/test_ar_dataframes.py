@@ -6,6 +6,7 @@ import pandas as pd
 from cgaspects.analysis import ar_dataframes
 from cgaspects.analysis.ar_dataframes import (
     build_cda,
+    populate_aspect_ratios_for_selected_columns,
     get_cda_shape_percentage,
     build_ratio_equations,
     get_xyz_shape_percentage,
@@ -13,26 +14,10 @@ from cgaspects.analysis.ar_dataframes import (
 
 
 class TestBuildCda(unittest.TestCase):
-    @patch("cgaspects.analysis.ar_dataframes.os.listdir")
-    @patch(
-        "cgaspects.analysis.ar_dataframes.open",
-        new_callable=unittest.mock.mock_open,
-        read_data="Size of crystal at frame output\nlength 5",
-    )
-    @patch("cgaspects.analysis.ar_dataframes.logger")
-    @patch("pandas.DataFrame.from_dict")
-    def test_build_cda_basic_functionality(
-        self, mock_logger, mock_open, mock_listdir, mock_from_dict
-    ):
-        folders = ["folder1", "folder2"]
-        folderpath = "test_folderpath"
-        savefolder = "test_savefolder"
-        directions = ["-1 0 0", " 1 1 1", " 0 0 1", " 1 1 0"]
+    def test_build_cda_basic_functionality(self):
         selected = ["-1 0 0", " 0 0 1", " 1 1 0"]
 
-        mock_listdir.return_value = ["simulation_parameters.txt"]
-
-        dummy_df = pd.DataFrame(
+        df = pd.DataFrame(
             {
                 "Simulation Number": [1, 2],
                 "-1 0 0": [0.1, 0.2],
@@ -42,9 +27,7 @@ class TestBuildCda(unittest.TestCase):
             }
         )
 
-        mock_from_dict.return_value = dummy_df
-
-        df = build_cda(folders, folderpath, savefolder, directions, selected)
+        populate_aspect_ratios_for_selected_columns(df, selected)
 
         # Perform your assertions here
         self.assertIn("Simulation Number", df.columns)

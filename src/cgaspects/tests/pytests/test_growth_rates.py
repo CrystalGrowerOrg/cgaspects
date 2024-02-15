@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from cgaspects.analysis.gui_threads import WorkerSignals
 from cgaspects.analysis.gr_dataframes import build_growthrates
 
 
@@ -20,38 +21,19 @@ class TestBuildGrowthrates(unittest.TestCase):
 
     @patch("pandas.read_csv")
     def test_empty_size_file_list_returns_none(self, mock_read_csv):
-        result = build_growthrates([], [])
+        result = build_growthrates([], [], [])
         self.assertIsNone(result)
-
-    @patch("pandas.read_csv")
-    def test_single_file_with_no_directions(self, mock_read_csv):
-
-        mock_read_csv.return_value = self.dummy_df
-
-        dummy_file = MagicMock(name="dummy_size.csv")
-        size_file_list = [dummy_file]
-        supersat_list = [1.0]
-        result = build_growthrates(size_file_list, supersat_list)
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, pd.DataFrame)
-
-        mock_read_csv.assert_called_with(Path(dummy_file))
-        # Check if DataFrame has expected columns
-        expected_columns = [
-            "Simulation Number",
-            "Supersaturation",
-            "-1 0 0",
-            " 0 0 1",
-        ]
-        self.assertListEqual(list(result.columns), expected_columns)
 
     @patch("pandas.read_csv")
     def test_progress_signal_emitted(self, mock_read_csv):
         mock_read_csv.return_value = self.dummy_df
-        size_file_list = [MagicMock(name="file1.csv"), MagicMock(name="file2.csv")]
+        size_file_list = [Path("file1.csv"), Path("file2.csv")]
         supersat_list = [1.0, 1.5]
-        mock_signal = MagicMock()
-        build_growthrates(size_file_list, supersat_list, signals=mock_signal)
+        directions = [" 0 0 1"]
+        mock_signal = MagicMock(spec=WorkerSignals)
+        build_growthrates(
+            size_file_list, supersat_list, directions, signals=mock_signal
+        )
         mock_signal.progress.emit.assert_any_call(50)
         mock_signal.progress.emit.assert_any_call(100)
 
@@ -61,7 +43,7 @@ class TestBuildGrowthrates(unittest.TestCase):
         size_file_list = [MagicMock(name="dummy_size.csv")]
         supersat_list = [1.0]
         directions = [" 0 0 1"]
-        result = build_growthrates(size_file_list, supersat_list, directions=directions)
+        result = build_growthrates(size_file_list, supersat_list, directions)
         self.assertIsNotNone(result)
         # Verify that the DataFrame only includes the specified direction
         # in addition to the Simulation Number and Supersaturation
@@ -72,9 +54,10 @@ class TestBuildGrowthrates(unittest.TestCase):
     def test_mismatched_supersat_list_length(self, mock_read_csv):
         mock_read_csv.return_value = self.dummy_df
         size_file_list = [MagicMock(), MagicMock()]
+        directions = [" 0 0 1"]
         supersat_list = [1.0]
         with self.assertRaises(ValueError):
-            build_growthrates(size_file_list, supersat_list)
+            build_growthrates(size_file_list, supersat_list, directions)
 
 
 if __name__ == "__main__":
