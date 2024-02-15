@@ -81,4 +81,6 @@ class TestCrystalShape(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import pytest
+
+    pytest.main([__file__])

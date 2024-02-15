@@ -17,6 +17,7 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
     logger.debug("AR_keys %s", ar_keys)
     ar_dict = {k: [] for k in ar_keys}
     sim_num = 1
+    # The behaviour of this loop could be improved
     for folder in folders:
         files = os.listdir(folder)
         for f in files:
@@ -42,16 +43,15 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
                             ar_dict[direction].append(float(len_line.split(" ")[-2]))
 
         sim_num += 1
-
     print_keys_and_value_lengths(ar_dict)
     try:
         df = pd.DataFrame.from_dict(ar_dict)
+        print(df)
     except ValueError as v:
         logger.error(
             "Potential corrupted input files. Please check if simulation_parameters.txt files has all the information.\n%s",
             v,
         )
-
     for i in range(len(selected) - 1):
         logger.debug("Aspect Ratio [%s] : [%s] : [%s]", i, selected[i], selected[i + 1])
         df[f"Ratio_{selected[i]}:{selected[i+1]}"] = (
@@ -63,9 +63,10 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
     return df
 
 
-def get_cda_shape_percentage(df, savefolder):
+def get_cda_shape_percentage(df: pd.DataFrame, savefolder: str | Path):
     shape_columns = ["Shape"]
     cda_shape_data = []
+    savefolder = Path(savefolder)
 
     for shape_column in shape_columns:
         grouped = (
@@ -92,7 +93,7 @@ def get_cda_shape_percentage(df, savefolder):
     cda_shape_df.to_csv(savefolder / "shapes_permutations.csv")
 
 
-def build_ratio_equations(directions, ar_df=None, csv=None, filepath="."):
+def build_ratio_equations(directions, ar_df=None, csv=None, filepath: str | Path = "."):
     """Defining CDA aspect ratio equations depending on the selected directions from the gui.
     This means we will also need to input the selected directions into the function.
 
@@ -103,7 +104,7 @@ def build_ratio_equations(directions, ar_df=None, csv=None, filepath="."):
                     c a b
                     c b a
     """
-
+    filepath = Path(filepath)
     if ar_df is None:
         if csv is None:
             logger.error("A pandas DataFrame or a path to a CSV file must be provided.")
