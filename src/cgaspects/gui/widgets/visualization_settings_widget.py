@@ -1,8 +1,16 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPixmap
-from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QHBoxLayout,
-                               QLabel, QSlider, QToolButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QSlider,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 MARGINS = (5, 5, 5, 5)
 
@@ -216,6 +224,10 @@ class VisualizationSettingsWidget(QWidget):
 
         w = LabelledColorSelector("Background Color", QColor(Qt.white))
         self.widgets["Background Color"] = w
+        w.valueChanged.connect(self.settingsChanged)
+
+        w = LabelledComboBox("Style", ("Points", "Spheres"))
+        self.widgets["Style"] = w
         w.valueChanged.connect(self.settingsChanged)
 
         w = LabelledComboBox(

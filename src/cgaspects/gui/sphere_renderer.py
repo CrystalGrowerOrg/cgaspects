@@ -25,6 +25,7 @@ class SphereRenderer:
         out vec3 v_position;
         out vec3 v_spherePosition;
         uniform float u_pointSize;
+        uniform mat4 u_viewMat;
         uniform mat4 u_modelViewProjectionMat;
 
         void main() {
@@ -39,9 +40,9 @@ class SphereRenderer:
           mat4 normalTransform = inverse(transpose(transform));
           vec4 posTransformed = transform * vec4(vertexPosition, 1);
 
-          v_normal = normalize(mat3(normalTransform) * vertexPosition);
+          v_normal = normalize(mat3(u_viewMat) * mat3(normalTransform) * vertexPosition);
           v_position = posTransformed.xyz;
-          v_color = vec4(color + 0.1f, 1.0f);
+          v_color = vec4(color, 1.0f);
           gl_Position = u_modelViewProjectionMat * vec4(v_position, 1.0);
         }
         """
@@ -57,14 +58,15 @@ class SphereRenderer:
         out vec4 fragColor;
 
         // Hard-coded light properties
-        const vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+        const vec3 lightDir = normalize(vec3(0.2, 0.5, 1.0));
         const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
         void main() {
             vec3 norm = normalize(v_normal);
             
             // Lambertian reflectance
-            float diff = max(dot(norm, lightDir), 0.0);
+            float diff = 0.7 * max(dot(norm, lightDir), 0.0);
+            diff = min(0.3f + diff, 1.0f);
             
             // Combine diffuse lighting with vertex color
             vec3 color = diff * lightColor * v_color.rgb;

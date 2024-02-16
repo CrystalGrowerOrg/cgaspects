@@ -23,7 +23,7 @@ logger = logging.getLogger("CA:OpenGL")
 
 
 class VisualisationWidget(QOpenGLWidget):
-    style = "points"
+    style = "Points"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,6 +152,9 @@ class VisualisationWidget(QOpenGLWidget):
         if present_and_changed("Color Map", self.colormap):
             self.colormap = kwargs["Color Map"]
             needs_reinit = True
+
+        if present_and_changed("Style", self.style):
+            self.style = kwargs["Style"]
 
         if present_and_changed("Background Color", self.backgroundColor):
             color = kwargs["Background Color"]
@@ -351,7 +354,7 @@ class VisualisationWidget(QOpenGLWidget):
         axes = QMatrix4x4()
         screen_size = QVector2D(*self.screen_size)
 
-        if self.style == "points" and self.point_cloud_renderer.numberOfPoints() > 0:
+        if self.style == "Points" and self.point_cloud_renderer.numberOfPoints() > 0:
             self.point_cloud_renderer.bind()
             self.point_cloud_renderer.setUniforms(
                 **{
@@ -369,6 +372,7 @@ class VisualisationWidget(QOpenGLWidget):
             self.sphere_renderer.setUniforms(
                 gl,
                 **{
+                    "u_viewMat": view,
                     "u_modelViewProjectionMat": mvp,
                     "u_pointSize": self.point_size,
                     "u_axesMat": axes,
