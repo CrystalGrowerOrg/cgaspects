@@ -15,6 +15,7 @@ from ..fileio.xyz_file import read_XYZ
 from .axes_renderer import AxesRenderer
 from .camera import Camera
 from .point_cloud_renderer import SimplePointRenderer
+from .sphere_renderer import SphereRenderer
 from .widgets.overlay_widget import TransparentOverlay
 
 
@@ -22,6 +23,8 @@ logger = logging.getLogger("CA:OpenGL")
 
 
 class VisualisationWidget(QOpenGLWidget):
+    style = "points"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -33,7 +36,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.xyz_path_list = []
         self.sim_num = 0
         self.point_cloud_renderer = None
-        self.sphere_renderer = None
+        # self.sphere_renderer = None
         self.axes_renderer = None
 
         self.xyz = None
@@ -236,7 +239,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         varray = self.updatePointCloudVertices()
         self.point_cloud_renderer.setPoints(varray)
-        # self.sphere_renderer.setPoints(varray)
+        self.sphere_renderer.setPoints(varray)
         self.update()
 
     def updatePointCloudVertices(self):
@@ -266,6 +269,10 @@ class VisualisationWidget(QOpenGLWidget):
             if color_axis == 2:
                 min_val = 1
                 max_val = max_layers
+            elif color_axis == -1:
+                min_val = 0
+                max_val = 0
+                axis_vis = np.zeros_like(axis_vis)
             else:
                 min_val = np.nanmin(axis_vis)
                 max_val = np.nanmax(axis_vis)
@@ -323,7 +330,7 @@ class VisualisationWidget(QOpenGLWidget):
         color = self.backgroundColor
         gl = self.context().extraFunctions()
         self.point_cloud_renderer = SimplePointRenderer()
-        # self.sphere_renderer = SphereRenderer(gl)
+        self.sphere_renderer = SphereRenderer(gl)
         self.axes_renderer = AxesRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
@@ -344,7 +351,7 @@ class VisualisationWidget(QOpenGLWidget):
         axes = QMatrix4x4()
         screen_size = QVector2D(*self.screen_size)
 
-        if self.point_cloud_renderer.numberOfPoints() > 0:
+        if self.style == "points" and self.point_cloud_renderer.numberOfPoints() > 0:
             self.point_cloud_renderer.bind()
             self.point_cloud_renderer.setUniforms(
                 **{
@@ -356,6 +363,20 @@ class VisualisationWidget(QOpenGLWidget):
 
             self.point_cloud_renderer.draw(gl)
             self.point_cloud_renderer.release()
+
+        elif self.sphere_renderer.numberOfInstances() > 0:
+            self.sphere_renderer.bind(gl)
+            self.sphere_renderer.setUniforms(
+                gl,
+                **{
+                    "u_modelViewProjectionMat": mvp,
+                    "u_pointSize": self.point_size,
+                    "u_axesMat": axes,
+                },
+            )
+
+            self.sphere_renderer.draw(gl)
+            self.sphere_renderer.release()
 
         self.axes_renderer.bind()
         self.axes_renderer.setUniforms(
