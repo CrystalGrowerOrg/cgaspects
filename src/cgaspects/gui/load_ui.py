@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
         MainWindow.setEnabled(True)
         MainWindow.resize(1280, 790)
         icon = QIcon()
-        icon.addFile(u":/app_icons/app_icons/CrystalAspects.icns", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/app_icons/app_icons/CG_gray.png", QSize(), QIcon.Normal, QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.actionOpen_Simulations = QAction(MainWindow)
         self.actionOpen_Simulations.setObjectName(u"actionOpen_Simulations")
@@ -185,9 +185,7 @@ class Ui_MainWindow(object):
         self.actionImportCSVClipboard.setObjectName(u"actionImportCSVClipboard")
         self.actionAboutCGAspects = QAction(MainWindow)
         self.actionAboutCGAspects.setObjectName(u"actionAboutCGAspects")
-        icon4 = QIcon()
-        icon4.addFile(u":/app_icons/app_icons/CGAspects.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.actionAboutCGAspects.setIcon(icon4)
+        self.actionAboutCGAspects.setIcon(icon)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -231,9 +229,9 @@ class Ui_MainWindow(object):
         self.playPauseButton = QToolButton(self.movie_controls_frame)
         self.playPauseButton.setObjectName(u"playPauseButton")
         self.playPauseButton.setMinimumSize(QSize(0, 0))
-        icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.playPauseButton.setIcon(icon5)
+        icon4 = QIcon()
+        icon4.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.playPauseButton.setIcon(icon4)
 
         self.horizontalLayout_5.addWidget(self.playPauseButton)
 
@@ -312,9 +310,9 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setSizePolicy(sizePolicy4)
         self.view_results_pushButton.setMinimumSize(QSize(0, 0))
         self.view_results_pushButton.setBaseSize(QSize(0, 0))
-        icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.view_results_pushButton.setIcon(icon6)
+        icon5 = QIcon()
+        icon5.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.view_results_pushButton.setIcon(icon5)
 
         self.horizontalLayout_7.addWidget(self.view_results_pushButton)
 
@@ -401,9 +399,9 @@ class Ui_MainWindow(object):
         self.plot_pushButton = QPushButton(self.dataAnalysis_groupBox)
         self.plot_pushButton.setObjectName(u"plot_pushButton")
         self.plot_pushButton.setEnabled(False)
-        icon7 = QIcon()
-        icon7.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.plot_pushButton.setIcon(icon7)
+        icon6 = QIcon()
+        icon6.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.plot_pushButton.setIcon(icon6)
 
         self.horizontalLayout_4.addWidget(self.plot_pushButton)
 
@@ -528,7 +526,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.variablesTabWidget.setCurrentIndex(1)
+        self.variablesTabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -686,7 +684,7 @@ class Ui_MainWindow(object):
         self.plot_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Open a plotting dialog using the specified .csv file", None))
 #endif // QT_CONFIG(tooltip)
         self.plot_pushButton.setText(QCoreApplication.translate("MainWindow", u"   Plot", None))
-        self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"XYZ ID: ", None))
+        self.xyz_id_label.setText(QCoreApplication.translate("MainWindow", u"File Index", None))
         self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.variablesTab), QCoreApplication.translate("MainWindow", u"Variables", None))
 #if QT_CONFIG(tooltip)
         self.saveframe_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Render current frame", None))

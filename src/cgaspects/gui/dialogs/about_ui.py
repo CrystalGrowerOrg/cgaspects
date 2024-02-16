@@ -16,7 +16,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
-    QSizePolicy, QToolButton, QWidget)
+    QSizePolicy, QWidget)
 from cgaspects.gui.utils import qticons_rc
 
 class Ui_AboutCGDialog(object):
@@ -27,15 +27,18 @@ class Ui_AboutCGDialog(object):
         self.horizontalLayout = QHBoxLayout(AboutCGDialog)
         self.horizontalLayout.setSpacing(24)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.toolButton = QToolButton(AboutCGDialog)
-        self.toolButton.setObjectName(u"toolButton")
-        self.toolButton.setMinimumSize(QSize(150, 280))
-        icon = QIcon()
-        icon.addFile(u":/app_icons/app_icons/CG_Full_Colour.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.toolButton.setIcon(icon)
-        self.toolButton.setIconSize(QSize(128, 128))
+        self.label = QLabel(AboutCGDialog)
+        self.label.setObjectName(u"label")
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        self.label.setSizePolicy(sizePolicy)
+        self.label.setMaximumSize(QSize(161, 203))
+        self.label.setPixmap(QPixmap(u":/app_icons/app_icons/CG_Full_Colour.png"))
+        self.label.setScaledContents(True)
 
-        self.horizontalLayout.addWidget(self.toolButton)
+        self.horizontalLayout.addWidget(self.label)
 
         self.aboutLabel = QLabel(AboutCGDialog)
         self.aboutLabel.setObjectName(u"aboutLabel")
@@ -51,8 +54,8 @@ class Ui_AboutCGDialog(object):
     # setupUi
 
     def retranslateUi(self, AboutCGDialog):
-        AboutCGDialog.setWindowTitle(QCoreApplication.translate("AboutCGDialog", u"Dialog", None))
-        self.toolButton.setText(QCoreApplication.translate("AboutCGDialog", u"...", None))
+        AboutCGDialog.setWindowTitle(QCoreApplication.translate("AboutCGDialog", u"About CGAspects", None))
+        self.label.setText("")
         self.aboutLabel.setText(QCoreApplication.translate("AboutCGDialog", u"<html><head/><body><p><span style=\" font-size:24pt; font-weight:696;\">CGAspects</span></p><p>CGAspects is part of the <a href=\"https://crystalgrower.org/\"><span style=\" font-weight:696; text-decoration: underline; color:#007af4;\">Crystal</span></a><a href=\"https://crystalgrower.org/\"><span style=\" font-style:italic; text-decoration: underline; color:#007af4;\">Grower</span></a> suite of programs.</p><p>Authors: <span style=\" font-weight:696;\">Alvin Jenner Walisinghe, Nathan de Bruyn and Peter R. Spackman</span></p><p>The code is publicly available on <a href=\"https://github.com/CrystalGrowerOrg/cgaspects\"><span style=\" text-decoration: underline; color:#007af4;\">GItHub</span></a> and documentation is available at the website.</p><p>When using <span style=\" font-weight:696;\">Crystal</span><span style=\" font-style:italic;\">Grower</span> to simulate the crystal growth of your materials, please cite it in your scientific publications as follows:</p><p><a href=\"https://www.nature.com/articles/na"
                         "ture21684\"><span style=\" text-decoration: underline; color:#007af4;\">M. W. Anderson et al. </span></a><a href=\"https://www.nature.com/articles/nature21684\"><span style=\" font-style:italic; text-decoration: underline; color:#007af4;\">Nature, </span></a><a href=\"https://www.nature.com/articles/nature21684\"><span style=\" font-weight:696; text-decoration: underline; color:#007af4;\">544</span></a><a href=\"https://www.nature.com/articles/nature21684\"><span style=\" text-decoration: underline; color:#007af4;\">, 456\u2013459 (2017)</span></a></p><p><a href=\"https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract\"><span style=\" text-decoration: underline; color:#007af4;\">A. R. Hill et al.. </span></a><a href=\"https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract\"><span style=\" font-style:italic; text-decoration: underline; color:#007af4;\">Chem. Sci.</span></a><a href=\"https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract\"><"
                         "span style=\" text-decoration: underline; color:#007af4;\">, </span></a><a href=\"https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract\"><span style=\" font-weight:696; text-decoration: underline; color:#007af4;\">12</span></a><a href=\"https://pubs.rsc.org/en/content/articlelanding/2021/sc/d0sc05017b#!divAbstract\"><span style=\" text-decoration: underline; color:#007af4;\">, 1126\u20131146 (2021)</span></a></p></body></html>", None))

@@ -391,6 +391,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
             results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
+
             self.set_progressbar()
 
             def prog(val, tot):
@@ -398,6 +399,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             xyz, xyz_movie = read_XYZ(full_file_path, progress_callback=prog)
             self.clear_progressbar()
+
             result = results(xyz=xyz, xyz_movie=xyz_movie)
 
             return result
@@ -787,6 +789,23 @@ def set_default_opengl_version(major, minor):
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--no-native-menubar",
+        default=False,
+        action="store_true",
+        help="Don't use native menubar",
+    )
+    parser.add_argument(
+        "--no-dpi-scaling",
+        default=False,
+        action="store_true",
+        help="Disable High DPI scaling",
+    )
+    args = parser.parse_args()
+
     set_default_opengl_version(3, 3)
     # Setting taskbar icon permissions - windows
     appid = "CrystalGrower.CGAspects.0.8.0"
@@ -797,7 +816,12 @@ def main():
 
     # ############# Runs the application ############## #
     # sys.argv += ['--style', 'Material.Light']
-    QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, args.no_dpi_scaling)
+
+    QtWidgets.QApplication.setAttribute(
+        Qt.AA_DontUseNativeMenuBar, args.no_native_menubar
+    )
+
     QtWidgets.QApplication.setApplicationName("CGAspects")
     app = QtWidgets.QApplication(sys.argv)
     mainwindow = MainWindow()

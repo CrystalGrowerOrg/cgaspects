@@ -17,8 +17,8 @@
    <string>CGAspects</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/app_icons/app_icons/CrystalAspects.icns</normaloff>:/app_icons/app_icons/CrystalAspects.icns</iconset>
+   <iconset resource="../../../res/qticons.qrc">
+    <normaloff>:/app_icons/app_icons/CG_gray.png</normaloff>:/app_icons/app_icons/CG_gray.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -406,7 +406,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="variablesTab">
           <attribute name="title">
@@ -443,7 +443,7 @@
                     <bool>false</bool>
                    </property>
                    <property name="text">
-                    <string>XYZ ID: </string>
+                    <string>File Index</string>
                    </property>
                   </widget>
                  </item>
@@ -1005,7 +1005,7 @@
   <action name="actionAboutCGAspects">
    <property name="icon">
     <iconset resource="../../../res/qticons.qrc">
-     <normaloff>:/app_icons/app_icons/CGAspects.png</normaloff>:/app_icons/app_icons/CGAspects.png</iconset>
+     <normaloff>:/app_icons/app_icons/CG_gray.png</normaloff>:/app_icons/app_icons/CG_gray.png</iconset>
    </property>
    <property name="text">
     <string>About CGAspects...</string>

@@ -32,6 +32,8 @@ def parse_xyz_file(
         if progress_callback is not None:
             progress_callback(pos, tot)
 
+    num_frames = 1
+
     with filepath.open() as file:
         while True:
             header = file.readline()
@@ -42,9 +44,12 @@ def parse_xyz_file(
             section_line_count = int(header.strip())
 
             comment = file.readline().strip()
-            num_frames = int(comment.split("//")[1])
+            if progress_callback is not None:
+                num_frames = int(comment.split("//")[1])
+
             values = np.loadtxt(file, max_rows=section_line_count)
             frames.append((comment, np.array(values)))
+
             callback(len(frames), num_frames)
 
     return frames
@@ -62,7 +67,7 @@ def read_XYZ(filepath, progress_callback=None):
     xyz = None
     xyz_movie = {}
 
-    LOG.info("reading file from %s", filepath.name)
+    LOG.debug("reading file from %s", filepath.name)
     suffix = filepath.suffix
 
     if suffix == ".XYZ":
