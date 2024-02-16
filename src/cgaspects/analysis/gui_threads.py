@@ -189,9 +189,8 @@ class WorkerMovies(QRunnable):
         results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
 
         self.signals.message.emit("Reading XYZ file. Please wait...")
-        xyz, xyz_movie, progress = CrystalShape.read_XYZ(self.filepath)
-        print(progress, end="\r")
-        self.signals.progress.emit(progress)
+        xyz, xyz_movie = CrystalShape.read_XYZ(self.filepath)
+        self.signals.progress.emit(100.0)
 
         result = results(xyz=xyz, xyz_movie=xyz_movie)
 

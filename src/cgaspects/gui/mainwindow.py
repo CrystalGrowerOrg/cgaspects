@@ -17,6 +17,7 @@ from ..analysis.growth_rates import GrowthRate
 from ..analysis.gui_threads import WorkerXYZ
 from ..analysis.shape_analysis import CrystalShape
 from ..fileio.find_data import find_info, locate_xyz_files
+from ..fileio.xyz_file import read_XYZ
 from ..fileio.logging import setup_logging
 from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
@@ -358,6 +359,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         logger.debug("Initializing crystal: %s", result)
         self.xyz, self.movie = result
         self.openglwidget.pass_XYZ(self.xyz)
+        self.openglwidget.movie = self.movie
 
         if self.movie:
             self.playingState = False
@@ -389,7 +391,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
             results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
-            xyz, xyz_movie, progress = CrystalShape.read_XYZ(full_file_path)
+            self.set_progressbar()
+
+            def prog(val, tot):
+                self.update_progressbar(100.0 * val / tot)
+
+            xyz, xyz_movie = read_XYZ(full_file_path, progress_callback=prog)
+            self.clear_progressbar()
             result = results(xyz=xyz, xyz_movie=xyz_movie)
 
             return result
@@ -755,6 +763,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         self.log_message("THREAD COMPLETED!", "info")
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            if self.isFullScreen():
+                self.showNormal()
+            else:
+                pass
+        else:
+            super().keyPressEvent(event)
 
 
 def set_default_opengl_version(major, minor):

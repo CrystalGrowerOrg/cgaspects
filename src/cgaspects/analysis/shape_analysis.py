@@ -6,8 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import trimesh
 from scipy.spatial import ConvexHull
+from ..fileio.xyz_file import read_XYZ
 
 logger = logging.getLogger("CA:ShapeAnalysis")
 
@@ -30,7 +30,7 @@ class CrystalShape:
 
         # If a filepath is provided, read the XYZ from the file
         if filepath:
-            xyz_vals, _, _ = self.read_XYZ(filepath=filepath)
+            xyz_vals, _ = read_XYZ(filepath=filepath)
 
         # Error handling for no valid input
         if xyz_vals is None:
@@ -52,62 +52,6 @@ class CrystalShape:
         centered /= norm
 
         return centered
-
-    @staticmethod
-    def read_XYZ(filepath, progress=True):
-        """Read in shape data and generates a np arrary.
-        Supported formats:
-            .XYZ
-            .txt (.xyz format)
-            .stl
-        """
-        filepath = Path(filepath)
-        logger.debug(filepath)
-        xyz_movie = {}
-
-        try:
-            if filepath.suffix == ".XYZ":
-                logger.debug("XYZ: File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".txt":
-                logger.debug("xyz: File read!")
-                xyz = np.loadtxt(filepath, skiprows=2)
-            if filepath.suffix == ".stl":
-                logger.debug("stl: File read!")
-                xyz = trimesh.load(filepath)
-
-            progress_num = 100
-
-        except ValueError:
-            # Set to warning currently since behavious was not tested
-            # TO DO: Test and lower logging level
-            logger.warning("Looking for Video")
-            with open(filepath, "r", encoding="utf-8") as file:
-                lines = file.readlines()
-                num_frames = int(lines[1].split("//")[1])
-                logger.info("Number of Frames: %s", num_frames)
-
-            particle_num_line = 0
-            frame_line = 2
-            for frame in range(num_frames):
-                num_particles = int(lines[particle_num_line])
-                xyz = np.loadtxt(lines[frame_line : (frame_line + num_particles)])
-                xyz_movie[frame] = xyz
-                particle_num_line = frame_line + num_particles
-                frame_line = particle_num_line + 2
-
-                progress_num = ((frame + 1) / num_frames) * 100
-                # print(
-                #     f"#####\nFRAME NUMBER: {frame}\n"
-                #     f"Particle Number Line: {particle_num_line}\n"
-                #     f"Frame Start Line: {frame_line}\n"
-                #     f"Frame End Line: {frame_line + num_particles}\n"
-                #     f"Number of Particles read: {frame_line}\n",
-                #     f"Number of Particles in list: {xyz.shape[0]}\n",
-                #     end="\r",
-                # )
-
-        return (xyz, xyz_movie, progress_num)
 
     def get_sa_vol_ratio(self):
         """Returns 3D data of a crystal shape,

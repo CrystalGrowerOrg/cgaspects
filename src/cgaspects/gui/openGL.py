@@ -11,6 +11,7 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
 from ..analysis.shape_analysis import CrystalShape
+from ..fileio.xyz_file import read_XYZ
 from .axes_renderer import AxesRenderer
 from .camera import Camera
 from .point_cloud_renderer import SimplePointRenderer
@@ -85,7 +86,7 @@ class VisualisationWidget(QOpenGLWidget):
     def get_XYZ_from_list(self, value):
         if self.sim_num != value:
             self.sim_num = value
-            self.xyz, self.movie, _ = CrystalShape.read_XYZ(self.xyz_path_list[value])
+            self.xyz, self.movie = read_XYZ(self.xyz_path_list[value])
             self.initGeometry()
 
             self.update()
