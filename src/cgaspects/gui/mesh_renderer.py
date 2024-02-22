@@ -60,32 +60,21 @@ def order_and_triangulate_polygons(points, faces):
 
     return ordered, np.vstack(triangles), facet_indices
 
-
-def compute_vertex_normals(vertices, faces):
-    edge1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
-    edge2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
-
-    face_normals = np.cross(edge1, edge2)
-
-    face_normals = face_normals / np.linalg.norm(face_normals, axis=1)[:, np.newaxis]
-
-    vertex_normals = np.zeros(vertices.shape, dtype=np.float32)
-
-    np.add.at(vertex_normals, faces[:, 0], face_normals)
-    np.add.at(vertex_normals, faces[:, 1], face_normals)
-    np.add.at(vertex_normals, faces[:, 2], face_normals)
-
-    vertex_normals = (
-        vertex_normals / np.linalg.norm(vertex_normals, axis=1)[:, np.newaxis]
-    )
-
-    return vertex_normals
+def compute_area_encoded_normals(vertices):
+    edge1 = vertices[1::3] - vertices[0::3]
+    edge2 = vertices[2::3] - vertices[0::3]
+    
+    normals = np.cross(edge1, edge2)
+    # Repeat each normal 3 times for each vertex in the triangle
+    normals_repeated = np.repeat(normals, 3, axis=0)
+    return normals_repeated
 
 
 class MeshRenderer:
     faces = None
     vertices = None
     mesh = None
+    default_color = (52/255, 183/255, 235/255)
 
     def __init__(self, gl):
         self.vertex_shader_source = """
@@ -96,12 +85,23 @@ class MeshRenderer:
 
         out vec4 v_color;
         out vec3 v_normal;
+        out vec3 v_barycentric;
+        out float v_area;
         uniform mat4 u_viewMat;
         uniform mat4 u_modelViewProjectionMat;
 
+        vec3 get_barycentric_coordinate() {
+            int id = gl_VertexID % 3;
+            if (id == 0) return vec3(1, 0, 0);
+            else if (id == 1) return vec3(0, 1, 0);
+            else if (id == 2) return vec3(0, 0, 1);
+        }
+
         void main() {
+          v_area = length(normal);
           v_normal = normalize(mat3(u_viewMat) * normal);
           v_color = vec4(color, 1.0f);
+          v_barycentric = get_barycentric_coordinate();
           gl_Position = u_modelViewProjectionMat * vec4(position, 1.0);
         }
         """
@@ -111,24 +111,37 @@ class MeshRenderer:
 
         in vec4 v_color;
         in vec3 v_normal;
+        in vec3 v_barycentric;
+        in float v_area;
 
         out vec4 fragColor;
 
         // Hard-coded light properties
         const vec3 lightDir = normalize(vec3(0.2, 0.5, 1.0));
         const vec3 lightColor = vec3(1.0, 1.0, 1.0);
+        const float edgeThreshold = 0.00;
+
+        bool is_edge() {
+            float p = min(v_barycentric.x, min(v_barycentric.y, v_barycentric.z));
+            return p < (edgeThreshold / (sqrt(v_area)));
+        }
 
         void main() {
-            vec3 norm = normalize(v_normal);
-            
-            // Lambertian reflectance
-            float diff = 0.7 * max(dot(norm, lightDir), 0.0);
-            diff = min(0.3f + diff, 1.0f);
-            
-            // Combine diffuse lighting with vertex color
-            vec3 color = diff * lightColor * v_color.rgb;
-            
-            fragColor = vec4(color, v_color.a);
+            if (is_edge()) {
+                fragColor = vec4(0, 0, 0, 1); // Wireframe color
+            }
+            else {
+                vec3 norm = normalize(v_normal);
+                
+                // Lambertian reflectance
+                float diff = 0.7 * max(dot(norm, lightDir), 0.0);
+                diff = min(0.3f + diff, 1.0f);
+                
+                // Combine diffuse lighting with vertex color
+                vec3 color = diff * lightColor * v_color.rgb;
+
+                fragColor = vec4(color, v_color.a);
+            }
         }
         """
 
@@ -149,7 +162,7 @@ class MeshRenderer:
         self.vertex_buffer = QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)
         self.vertex_buffer.create()
         self.vertex_buffer.bind()
-        self.vertex_buffer.setUsagePattern(QOpenGLBuffer.StaticDraw)
+        self.vertex_buffer.setUsagePattern(QOpenGLBuffer.DynamicDraw)
 
         stride = 36
 
@@ -205,23 +218,27 @@ class MeshRenderer:
     def numberOfVertices(self):
         if self.vertices is None:
             return 0
-        return self.vertices.shape[0] // 3
+        return self.vertices.shape[0] // 9
 
-    def setMesh(self, mesh):
+    def setMesh(self, mesh, vertex_colors=None):
         self.mesh = mesh
-        self._updateBuffers()
+        self._updateBuffers(vertex_colors=vertex_colors)
 
-    def _updateBuffers(self):
+    def _updateBuffers(self, vertex_colors=None):
         self.vertex_buffer.bind()
         _, self.faces, _ = order_and_triangulate_polygons(
             self.mesh.vertices, self.mesh.faces
         )
-        normals = compute_vertex_normals(self.mesh.vertices, self.faces)
         verts_tmp = self.mesh.vertices[self.faces].reshape(-1, 3)
         self.vertices = np.empty((verts_tmp.shape[0], 9), dtype=np.float32)
         self.vertices[:, :3] = verts_tmp
-        self.vertices[:, 3:6] = normals[self.faces].reshape(-1, 3)
-        self.vertices[:, 6:9] = 0.5
+        self.vertices[:, 3:6] = compute_area_encoded_normals(verts_tmp)
+        if vertex_colors is None:
+            self.vertices[:, 6:9] = self.default_color
+        else:
+            # looks terrible, but worth keeping in case we want to set them
+            # to something meaningful
+            self.vertices[:, 6:9] = vertex_colors[self.faces, :].reshape(-1, 3)
         self.vertices = self.vertices.flatten()
         self.vertex_buffer.allocate(self.vertices.tobytes(), self.vertices.nbytes)
         self.vertex_buffer.release()

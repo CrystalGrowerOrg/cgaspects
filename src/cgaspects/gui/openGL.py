@@ -252,6 +252,7 @@ class VisualisationWidget(QOpenGLWidget):
         if self.style == "Convex Hull":
             hull = ConvexHull(varray[:, :3])
             mesh = trimesh.Trimesh(vertices=varray[:, :3], faces=hull.simplices)
+            # can pass vertex colors here, but I wouldn't
             self.mesh_renderer.setMesh(mesh)
 
         self.update()
