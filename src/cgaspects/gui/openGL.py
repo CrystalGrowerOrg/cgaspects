@@ -16,7 +16,10 @@ from .axes_renderer import AxesRenderer
 from .camera import Camera
 from .point_cloud_renderer import SimplePointRenderer
 from .sphere_renderer import SphereRenderer
+from .mesh_renderer import MeshRenderer
 from .widgets.overlay_widget import TransparentOverlay
+import trimesh
+from scipy.spatial import ConvexHull
 
 
 logger = logging.getLogger("CA:OpenGL")
@@ -36,7 +39,8 @@ class VisualisationWidget(QOpenGLWidget):
         self.xyz_path_list = []
         self.sim_num = 0
         self.point_cloud_renderer = None
-        # self.sphere_renderer = None
+        self.sphere_renderer = None
+        self.mesh_renderer = None
         self.axes_renderer = None
 
         self.xyz = None
@@ -155,6 +159,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         if present_and_changed("Style", self.style):
             self.style = kwargs["Style"]
+            needs_reinit = True
 
         if present_and_changed("Background Color", self.backgroundColor):
             color = kwargs["Background Color"]
@@ -243,6 +248,12 @@ class VisualisationWidget(QOpenGLWidget):
         varray = self.updatePointCloudVertices()
         self.point_cloud_renderer.setPoints(varray)
         self.sphere_renderer.setPoints(varray)
+
+        if self.style == "Convex Hull":
+            hull = ConvexHull(varray[:, :3])
+            mesh = trimesh.Trimesh(vertices=varray[:, :3], faces=hull.simplices)
+            self.mesh_renderer.setMesh(mesh)
+
         self.update()
 
     def updatePointCloudVertices(self):
@@ -334,6 +345,7 @@ class VisualisationWidget(QOpenGLWidget):
         gl = self.context().extraFunctions()
         self.point_cloud_renderer = SimplePointRenderer()
         self.sphere_renderer = SphereRenderer(gl)
+        self.mesh_renderer = MeshRenderer(gl)
         self.axes_renderer = AxesRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
@@ -346,6 +358,33 @@ class VisualisationWidget(QOpenGLWidget):
             message.message(),
         )
 
+    def _draw_points(self, gl, uniforms):
+        if self.point_cloud_renderer.numberOfPoints() <= 0:
+            return
+        self.point_cloud_renderer.bind()
+        self.point_cloud_renderer.setUniforms(**uniforms)
+
+        self.point_cloud_renderer.draw(gl)
+        self.point_cloud_renderer.release()
+
+    def _draw_spheres(self, gl, uniforms):
+        if self.sphere_renderer.numberOfInstances() <= 0:
+            return
+        self.sphere_renderer.bind(gl)
+        self.sphere_renderer.setUniforms(**uniforms)
+
+        self.sphere_renderer.draw(gl)
+        self.sphere_renderer.release()
+
+    def _draw_mesh(self, gl, uniforms):
+        if self.mesh_renderer.numberOfVertices() <= 0:
+            return
+        self.mesh_renderer.bind(gl)
+        self.mesh_renderer.setUniforms(**uniforms)
+
+        self.mesh_renderer.draw(gl)
+        self.mesh_renderer.release()
+
     def draw(self, gl):
         from PySide6.QtGui import QMatrix4x4, QVector2D
 
@@ -354,43 +393,23 @@ class VisualisationWidget(QOpenGLWidget):
         axes = QMatrix4x4()
         screen_size = QVector2D(*self.screen_size)
 
-        if self.style == "Points" and self.point_cloud_renderer.numberOfPoints() > 0:
-            self.point_cloud_renderer.bind()
-            self.point_cloud_renderer.setUniforms(
-                **{
-                    "u_modelViewProjectionMat": mvp,
-                    "u_pointSize": self.point_size,
-                    "u_axesMat": axes,
-                }
-            )
+        uniforms = {
+            "u_viewMat": view,
+            "u_modelViewProjectionMat": mvp,
+            "u_pointSize": self.point_size,
+            "u_axesMat": axes,
+            "u_screenSize": screen_size,
+        }
 
-            self.point_cloud_renderer.draw(gl)
-            self.point_cloud_renderer.release()
-
-        elif self.sphere_renderer.numberOfInstances() > 0:
-            self.sphere_renderer.bind(gl)
-            self.sphere_renderer.setUniforms(
-                gl,
-                **{
-                    "u_viewMat": view,
-                    "u_modelViewProjectionMat": mvp,
-                    "u_pointSize": self.point_size,
-                    "u_axesMat": axes,
-                },
-            )
-
-            self.sphere_renderer.draw(gl)
-            self.sphere_renderer.release()
+        if self.style == "Points":
+            self._draw_points(gl, uniforms)
+        elif self.style == "Spheres":
+            self._draw_spheres(gl, uniforms)
+        elif self.style == "Convex Hull":
+            self._draw_mesh(gl, uniforms)
 
         self.axes_renderer.bind()
-        self.axes_renderer.setUniforms(
-            **{
-                "u_viewMat": view,
-                "u_axesMat": axes,
-                "u_screenSize": screen_size,
-            }
-        )
-
+        self.axes_renderer.setUniforms(**uniforms)
         self.axes_renderer.draw(gl)
         self.axes_renderer.release()
 

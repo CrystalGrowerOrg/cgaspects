@@ -226,7 +226,7 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Background Color"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox("Style", ("Points", "Spheres"))
+        w = LabelledComboBox("Style", ("Points", "Spheres", "Convex Hull"))
         self.widgets["Style"] = w
         w.valueChanged.connect(self.settingsChanged)
 

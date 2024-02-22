@@ -122,7 +122,7 @@ class SphereRenderer:
         self.vao.release()
         self.program.release()
 
-    def setUniforms(self, gl, **kwargs):
+    def setUniforms(self, **kwargs):
         for k, v in kwargs.items():
             if isinstance(v, float):
                 self.program.setUniformValue1f(k, v)
