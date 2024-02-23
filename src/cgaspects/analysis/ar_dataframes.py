@@ -291,4 +291,4 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
 def print_keys_and_value_lengths(input_dict):
     for key, value in input_dict.items():
-        print(f"{key}: {len(value)}")
+        logger.info(f"{key}: {len(value)}")

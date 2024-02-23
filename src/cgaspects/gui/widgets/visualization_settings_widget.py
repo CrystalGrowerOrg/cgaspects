@@ -226,8 +226,12 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Background Color"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox("Style", ("Points", "Spheres", "Convex Hull"))
+        w = LabelledComboBox("Style", ("Spheres", "Points", "Convex Hull", ))
         self.widgets["Style"] = w
+        w.valueChanged.connect(self.settingsChanged)
+
+        w = LabelledCheckBox("Show Mesh Edges", False)
+        self.widgets["Show Mesh Edges"] = w
         w.valueChanged.connect(self.settingsChanged)
 
         w = LabelledComboBox(

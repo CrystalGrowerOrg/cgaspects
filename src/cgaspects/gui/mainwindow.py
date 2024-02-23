@@ -692,7 +692,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.simulation_variables_widget is not None:
             self.simulation_variables_widget.setValues(values)
         else:
-            print("Simulation variables widget is none")
+            logger.error("Simulation variables widget is None")
 
     def setCurrentXYZIndex(self, value):
         self.sim_num = value

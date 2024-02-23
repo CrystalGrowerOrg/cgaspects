@@ -85,23 +85,12 @@ class MeshRenderer:
 
         out vec4 v_color;
         out vec3 v_normal;
-        out vec3 v_barycentric;
-        out float v_area;
         uniform mat4 u_viewMat;
         uniform mat4 u_modelViewProjectionMat;
 
-        vec3 get_barycentric_coordinate() {
-            int id = gl_VertexID % 3;
-            if (id == 0) return vec3(1, 0, 0);
-            else if (id == 1) return vec3(0, 1, 0);
-            else if (id == 2) return vec3(0, 0, 1);
-        }
-
         void main() {
-          v_area = length(normal);
           v_normal = normalize(mat3(u_viewMat) * normal);
           v_color = vec4(color, 1.0f);
-          v_barycentric = get_barycentric_coordinate();
           gl_Position = u_modelViewProjectionMat * vec4(position, 1.0);
         }
         """
@@ -111,37 +100,24 @@ class MeshRenderer:
 
         in vec4 v_color;
         in vec3 v_normal;
-        in vec3 v_barycentric;
-        in float v_area;
 
         out vec4 fragColor;
 
         // Hard-coded light properties
         const vec3 lightDir = normalize(vec3(0.2, 0.5, 1.0));
         const vec3 lightColor = vec3(1.0, 1.0, 1.0);
-        const float edgeThreshold = 0.00;
-
-        bool is_edge() {
-            float p = min(v_barycentric.x, min(v_barycentric.y, v_barycentric.z));
-            return p < (edgeThreshold / (sqrt(v_area)));
-        }
 
         void main() {
-            if (is_edge()) {
-                fragColor = vec4(0, 0, 0, 1); // Wireframe color
-            }
-            else {
-                vec3 norm = normalize(v_normal);
-                
-                // Lambertian reflectance
-                float diff = 0.7 * max(dot(norm, lightDir), 0.0);
-                diff = min(0.3f + diff, 1.0f);
-                
-                // Combine diffuse lighting with vertex color
-                vec3 color = diff * lightColor * v_color.rgb;
+            vec3 norm = normalize(v_normal);
+            
+            // Lambertian reflectance
+            float diff = 0.7 * max(dot(norm, lightDir), 0.0);
+            diff = min(0.3f + diff, 1.0f);
+            
+            // Combine diffuse lighting with vertex color
+            vec3 color = diff * lightColor * v_color.rgb;
 
-                fragColor = vec4(color, v_color.a);
-            }
+            fragColor = vec4(color, v_color.a);
         }
         """
 
@@ -229,6 +205,7 @@ class MeshRenderer:
         _, self.faces, _ = order_and_triangulate_polygons(
             self.mesh.vertices, self.mesh.faces
         )
+
         verts_tmp = self.mesh.vertices[self.faces].reshape(-1, 3)
         self.vertices = np.empty((verts_tmp.shape[0], 9), dtype=np.float32)
         self.vertices[:, :3] = verts_tmp
@@ -242,3 +219,16 @@ class MeshRenderer:
         self.vertices = self.vertices.flatten()
         self.vertex_buffer.allocate(self.vertices.tobytes(), self.vertices.nbytes)
         self.vertex_buffer.release()
+
+    def getLines(self):
+        if self.mesh is None:
+            return []
+        edges = np.vstack([
+            self.faces[:, [0, 1]],
+            self.faces[:, [1, 2]],
+            self.faces[:, [2, 0]]
+        ])
+        return np.concatenate((
+            self.mesh.vertices[edges[:, 0], :],
+            self.mesh.vertices[edges[:, 1]]
+            ), axis=1)

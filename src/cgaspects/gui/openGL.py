@@ -17,6 +17,7 @@ from .camera import Camera
 from .point_cloud_renderer import SimplePointRenderer
 from .sphere_renderer import SphereRenderer
 from .mesh_renderer import MeshRenderer
+from .line_renderer import LineRenderer
 from .widgets.overlay_widget import TransparentOverlay
 import trimesh
 from scipy.spatial import ConvexHull
@@ -26,7 +27,8 @@ logger = logging.getLogger("CA:OpenGL")
 
 
 class VisualisationWidget(QOpenGLWidget):
-    style = "Points"
+    style = "Spheres"
+    show_mesh_edges = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -161,6 +163,10 @@ class VisualisationWidget(QOpenGLWidget):
             self.style = kwargs["Style"]
             needs_reinit = True
 
+        if present_and_changed("Show Mesh Edges", self.show_mesh_edges):
+            self.show_mesh_edges = kwargs["Show Mesh Edges"]
+            needs_reinit = True
+
         if present_and_changed("Background Color", self.backgroundColor):
             color = kwargs["Background Color"]
             self.setBackgroundColor(color)
@@ -255,6 +261,11 @@ class VisualisationWidget(QOpenGLWidget):
             # can pass vertex colors here, but I wouldn't
             self.mesh_renderer.setMesh(mesh)
 
+            if self.show_mesh_edges:
+                self.line_renderer.setLines(
+                    self.mesh_renderer.getLines()
+                )
+
         self.update()
 
     def updatePointCloudVertices(self):
@@ -347,6 +358,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.point_cloud_renderer = SimplePointRenderer()
         self.sphere_renderer = SphereRenderer(gl)
         self.mesh_renderer = MeshRenderer(gl)
+        self.line_renderer = LineRenderer(gl)
         self.axes_renderer = AxesRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
@@ -386,11 +398,23 @@ class VisualisationWidget(QOpenGLWidget):
         self.mesh_renderer.draw(gl)
         self.mesh_renderer.release()
 
+    def _draw_lines(self, gl, uniforms):
+        if self.line_renderer.numberOfVertices() <= 0:
+            return
+        self.line_renderer.bind(gl)
+        self.line_renderer.setUniforms(**uniforms)
+
+        self.line_renderer.draw(gl)
+        self.line_renderer.release()
+
+
     def draw(self, gl):
         from PySide6.QtGui import QMatrix4x4, QVector2D
 
         mvp = self.camera.modelViewProjectionMatrix(self.aspect_ratio)
         view = self.camera.viewMatrix()
+        proj = self.camera.projectionMatrix(self.aspect_ratio)
+        modelView = self.camera.modelViewMatrix()
         axes = QMatrix4x4()
         screen_size = QVector2D(*self.screen_size)
 
@@ -400,6 +424,10 @@ class VisualisationWidget(QOpenGLWidget):
             "u_pointSize": self.point_size,
             "u_axesMat": axes,
             "u_screenSize": screen_size,
+            "u_projectionMat": proj,
+            "u_modelViewMat": modelView,
+            "u_scale": self.camera.scale,
+            "u_lineScale": 2.0,
         }
 
         if self.style == "Points":
@@ -408,6 +436,8 @@ class VisualisationWidget(QOpenGLWidget):
             self._draw_spheres(gl, uniforms)
         elif self.style == "Convex Hull":
             self._draw_mesh(gl, uniforms)
+            if self.show_mesh_edges:
+                self._draw_lines(gl, uniforms)
 
         self.axes_renderer.bind()
         self.axes_renderer.setUniforms(**uniforms)

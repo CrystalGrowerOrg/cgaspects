@@ -1,6 +1,8 @@
 import numpy as np
 from PySide6.QtGui import QMatrix4x4, QQuaternion, QVector3D
+import logging
 
+LOG = logging.getLogger("CGA:Camera")
 
 def pca(vertices):
     "returns the magnitudes and the principle axes"
@@ -44,6 +46,9 @@ class Camera:
         view = QMatrix4x4()
         view.lookAt(self.position, self.target, self.up)
         return view
+
+    def modelViewMatrix(self):
+        return self.viewMatrix() * self.modelMatrix()
 
     def projectionMatrix(self, aspectRatio):
         projection = QMatrix4x4()
@@ -140,7 +145,7 @@ class Camera:
         elif kind.lower() == "perspective":
             self.perspectiveProjection = True
         else:
-            print("unknown projection mode", kind)
+            LOG.error("unknown projection mode", kind)
 
     def fitToObject(self, points):
         extents, axes = pca(points)
