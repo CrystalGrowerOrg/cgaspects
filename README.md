@@ -15,18 +15,11 @@ Ensure you have Python >=3.10 installed on your system.
 1. Clone the CGAspects repository (shallow clone with depth 1):
 
     ```bash
-    git clone --depth=1 https://github.com/CrystalGrowerOrg/crystalaspects.git
-    cd crystalaspects
+    git clone --depth=1 https://github.com/CrystalGrowerOrg/cgaspects.git
+    cd cgaspects
     ```
 
-2. Fetch the large files with Git LFS:
-
-    ```bash
-    git lfs install
-    git lfs pull
-    ```
-
-3. Install CGAspects via pip:
+2. Install CGAspects via pip:
 
     ```bash
     pip install .
@@ -81,19 +74,15 @@ CGAspects is currently in Alpha stage.
 - **Nathan de Bruyn** - [nathan.debruyn@manchester.ac.uk](mailto:nathan.debruyn@manchester.ac.uk)
 - **Peter R. Spackman** - [peterspackman@fastmail.com](mailto:peterspackman@fastmail.com)
 
-## License
-
-CGAspects is distributed under the MIT License. See the accompanying LICENSE.txt file for more details.
-
 ## Contributions
 
-Contributions are welcome! Please read the [contribution guidelines](https://github.com/CrystalGrowerOrg/crystalaspects/blob/main/CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! Please read the [contribution guidelines](https://github.com/CrystalGrowerOrg/cgaspects/blob/main/CONTRIBUTING.md) before submitting a pull request.
 
 ## Links
 
-- [Homepage](https://github.com/CrystalGrowerOrg/crystalaspects)
-- [Repository](https://github.com/CrystalGrowerOrg/crystalaspects)
-- [Submit Issues](https://github.com/CrystalGrowerOrg/crystalaspects/issues)
+- [Homepage](https://github.com/CrystalGrowerOrg/cgaspects)
+- [Repository](https://github.com/CrystalGrowerOrg/cgaspects)
+- [Submit Issues](https://github.com/CrystalGrowerOrg/cgaspects/issues)
 
 ## Contact
 
