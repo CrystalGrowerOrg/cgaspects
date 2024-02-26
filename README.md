@@ -12,24 +12,21 @@ CGAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI.
 To use CGAspects with python, clone the repository and then install the package. 
 Ensure you have Python >=3.10 installed on your system.
 
-1. (Optional) The repository uses Git LFS for managing large files, so make sure you have Git LFS installed before cloning.
-   Install Git LFS. You can find detailed installation instructions for different operating systems on the [Git LFS website](https://git-lfs.github.com/).
-
-3. Clone the CGAspects repository (shallow clone with depth 1):
+1. Clone the CGAspects repository (shallow clone with depth 1):
 
     ```bash
     git clone --depth=1 https://github.com/CrystalGrowerOrg/crystalaspects.git
     cd crystalaspects
     ```
 
-4. Fetch the large files with Git LFS:
+2. Fetch the large files with Git LFS:
 
     ```bash
     git lfs install
     git lfs pull
     ```
 
-5. Install CGAspects via pip:
+3. Install CGAspects via pip:
 
     ```bash
     pip install .
@@ -54,13 +51,13 @@ To build and package the application:
     ```bash
     pip install pyinstaller
     ```
-3. Navigate to the project directory and run the provided script:
+2. Navigate to the project directory and run the provided script:
 
     ```bash
     ./scripts/mac_os_bundle.sh
     ```
 
-4. After the build completes, the script will run an ad hoc code signing to sign the application.
+3. After the build completes, the script will run an ad hoc code signing to sign the application.
    This will create a `.app` package in the `dist` directory, which can be distributed and run on macOS systems.
 
 ## Dependencies
