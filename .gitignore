@@ -140,4 +140,5 @@ cython_debug/
 simulations/
 examples/normal/test1/crystalaspects/*/*
 examples/movies/test1/crystalaspects/*/*
+tags
 
