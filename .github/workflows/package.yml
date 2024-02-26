@@ -5,8 +5,6 @@ on: [push, pull_request]
 jobs:
   build:
     # Check if the created reference is a tag
-    if: github.event.ref_type == 'tag'
-
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 4
@@ -14,6 +12,7 @@ jobs:
         os: [macos-latest]
         python-version: ['3.11']
 
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
