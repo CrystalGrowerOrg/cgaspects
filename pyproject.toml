@@ -6,7 +6,7 @@ description = "An analysis tool and companion for CrystalGrower"
 
 authors = [
     { name = "Alvin Jenner Walisinghe", email = "jennerwalisinghe@gmail.com" },
-    { name = "Nathan de Bruyn", email = "jennerwalisinghe@gmail.com" },
+    { name = "Nathan de Bruyn"},
     { name = "Peter R. Spackman", email = "peterspackman@fastmail.com" },
 ]
 readme = "README.md"
