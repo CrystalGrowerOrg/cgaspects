@@ -1,3 +1,10 @@
-# use pyinstaller 5.13.2, for some reason 6.3 is flagging the bundle as malicious
-# TODO check for workarounds involving flagging as safe
-pyinstaller .\installer\CrystalAspects.py --onedir --icon=.\res\app_icons\CrystalAspects.png --noconfirm --windowed
+$ErrorActionPreference = "Stop"
+
+$ARCH = if ($env:ARCH) { $env:ARCH } else { "x86_64" }
+$PLATFORM = "windows-${ARCH}"
+
+pyinstaller .installer\CrystalAspects.py --onefile --windowed --name=CGAspects `
+    --icon=.res\app_icons\CrystalAspects.png `
+    --noconfirm --exclude-module=pytest 
+
+Write-Host "Build completed successfully."
