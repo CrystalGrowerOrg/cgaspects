@@ -44,13 +44,11 @@ jobs:
         python -m pip install pyinstaller
     - name: Build the project
       env:
-        GH_TOKEN: ${{ secrets.CG_RELEASE_TOKEN }}
         ARCH: ${{ matrix.arch }}
       run: ${{ matrix.build_script }}
       
     - name: Package the project
       env:
-        GH_TOKEN: ${{ secrets.CG_RELEASE_TOKEN }}
         ARCH: ${{ matrix.arch }}
       run: ${{ matrix.package_script }}
       
