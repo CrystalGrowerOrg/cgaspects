@@ -4,7 +4,7 @@ $ARCH = if ($env:ARCH) { $env:ARCH } else { "x86_64" }
 $PLATFORM = "windows-${ARCH}"
 
 # Variables
-$APP_PATH = "dist\CGAspects.exe"
+$APP_PATH = "dist\CGAspects"
 $ZIP_FILE_PATH = "CGAspects-${PLATFORM}.zip"
 
 # Create a temporary folder
