@@ -31,22 +31,25 @@ def merge_dicts(dict_list):
     return merged
 
 
-def parse_simulation_parameters_file(path, directions):
+def parse_simulation_parameters_file(path, directions, sim_num):
     path = Path(path)
     lines = path.read_text().splitlines()
 
     ar_keys = ["Simulation Number"] + directions
     ar_dict = {k: [] for k in ar_keys}
-
+    frame: int | None = None
     for line in lines:
         if line.startswith("Size of crystal at frame output"):
             frame = lines.index(line) + 1
-            ar_dict["Simulation Number"].append(sim_num)
-
-        for len_line in lines[frame:]:
-            for direction in directions:
-                if len_line.startswith(direction):
-                    ar_dict[direction].append(float(len_line.split()[-2]))
+    if frame is None:
+        raise ValueError(
+            f"The line 'Size of crystal at frame output' was not found in the file\nFile: {path}."
+        )
+    ar_dict["Simulation Number"].append(sim_num + 1)
+    for len_line in lines[frame:]:
+        for direction in directions:
+            if len_line.startswith(direction):
+                ar_dict[direction].append(float(len_line.split()[-2]))
     return ar_dict
 
 
@@ -75,8 +78,8 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
 
     ar_dict = merge_dicts(
         [
-            parse_simulation_parameters_file(f, directions)
-            for f in simulation_parameters_files
+            parse_simulation_parameters_file(f, directions, i)
+            for i, f in enumerate(simulation_parameters_files)
         ]
     )
 
