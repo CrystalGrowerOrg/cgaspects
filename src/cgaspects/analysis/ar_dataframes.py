@@ -252,7 +252,10 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
     data_list = []
     i = 1
     for file in xyz_files:
-        sim_num = re.findall(r"\d+", file.name)[-1]
+        try:
+            sim_num = re.findall(r"\d+", file.name)[-1]
+        except IndexError:
+            sim_num = file.name.split("_")[0]
         try:
             shape.set_xyz(filepath=file)
             crystal_info = shape.get_zingg_analysis()

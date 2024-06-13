@@ -189,7 +189,14 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
     for index, row in aspect_df.iterrows():
-        sim_num = int(row["Simulation Number"]) - 1 + start_num
+        sim_num = None
+        try:
+            sim_num = int(row["Simulation Number"]) - 1 + start_num
+        except TypeError:
+            sim_num = row["Simulation Number"]
+        except KeyError:
+            sim_num = row.iloc[0]
+
         num_string = f"{search_string}_{sim_num}"
         aspect_row = row.values
         aspect_row = np.array([aspect_row])

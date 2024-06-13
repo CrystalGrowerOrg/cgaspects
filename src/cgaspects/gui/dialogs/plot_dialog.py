@@ -591,19 +591,21 @@ class PlottingDialog(QDialog):
             try:
                 _sim_id = int(row_data["Simulation Number"] - 1)
             except KeyError:
-                _sim_id = "N/A"
+                _sim_id = row_data.iloc[0]
+            except TypeError:
+                _sim_id = row_data["Simulation Number"]
 
         # Check if colour_data is available
         if colour_data is not None:
             color_val = colour_data[ind["ind"][0]]
             text = (
-                f"Sim Number: {_sim_id}\n"
+                f"Index: {_sim_id}\n"
                 f" x: {x:.2f}\n"
                 f" y: {y:.2f}\n"
                 f" {column_name}: {color_val:.2f}"
             )
         else:
-            text = f"Sim Number: {_sim_id}\n" f" x: {x:.2f}\n" f" y: {y:.2f}"
+            text = f"Index: {_sim_id}\n" f" x: {x:.2f}\n" f" y: {y:.2f}"
 
         self.annot.set_text(text)
         self.annot.get_bbox_patch().set_alpha(0.4)
