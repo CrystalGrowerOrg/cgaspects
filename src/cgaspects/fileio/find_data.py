@@ -77,82 +77,88 @@ def create_aspects_folder(path):
 
 def find_info(path):
     """The method returns the crystallographic directions,
-    supersations, and the size_file paths from a CG simulation folder"""
+    supersaturation, and the size file paths from a CG simulation folder."""
     logger.debug("find_info called at: %s", path)
     path = Path(path)
-    contents = natsorted(path.iterdir())  # Directly sort the Path objects
-    folders: List[Path] = []
-    summary_file = None
-    growth_mod = None
 
-    for item_path in contents:
-        if item_path.name.startswith("._"):
-            continue
-        if item_path.name.endswith("summary.csv"):
-            summary_file = item_path
-        if item_path.is_dir() and not any(
-            item_path.name.endswith(suffix)
-            for suffix in [
-                "XYZ_files",
-                "CrystalAspects",
-                "CrystalMaps",
-                "crystalaspects",
-            ]
-        ):
-            folders.append(item_path)
-
-    size_files = []
-    supersats = []
-    directions = []
-    get_facets = True
     file_info = namedtuple(
         "file_info",
         "supersats, size_files, directions, growth_mod, folders, summary_file",
     )
 
-    for folder in folders:
-        for f_path in folder.iterdir():
-            f_name = f_path.name
-            if f_name.startswith("._"):
-                continue
-            if f_name.endswith("size.csv"):
-                if f_path.stat().st_size != 0:
-                    size_files.append(f_path)
-                    growth_rates = True
+    supersats, directions = [], []
+    folders = []
+    exclude_suffixes = {"XYZ_files", "CrystalAspects", "CrystalMaps", "crystalaspects"}
 
-            if f_name.endswith("simulation_parameters.txt"):
-                with open(f_path, "r", encoding="utf-8") as sim_file:
-                    lines = sim_file.readlines()
+    # Initialize list containers for files found within directories
+    size_files = []
+    found_simparam_files = False
+    summary_file = None
+    growth_mod = None
 
-                for line in lines:
-                    if line.startswith("Starting delta mu value (kcal/mol):"):
-                        supersat = float(line.split()[-1])
-                        supersats.append(supersat)
-                    if line.startswith("normal, ordered or growth modifier"):
-                        selected_mode = line.split("               ")[-1]
-                        if selected_mode == "growth_modifier\n":
-                            growth_mod = True
-                        else:
-                            growth_mod = False
+    # Check the root directory for the summary file
+    summary_file = next(path.glob("*summary.csv"), None)
 
-                    if line.startswith("Size of crystal") and get_facets:
-                        frame = lines.index(line) + 1
-                        # From starting point - read facet information
-                        for n in range(frame, len(lines)):
-                            line = lines[n]
-                            if line in [" \n", "\n"]:
-                                get_facets = False
-                                break
-                            else:
-                                facet = line.split("      ")[0]
-                                if len(facet) <= 8:
-                                    directions.append(facet)
+    # Process directories and files within them
+    _folders = natsorted(path.iterdir())
+    for entry in _folders:
+        if not entry.is_dir() and entry.name not in exclude_suffixes:
+            continue
+        folders.append(entry)
+        # Search for size and parameter files within the approved folders
+        for file in entry.glob("*"):
+            if file.name.endswith("size.csv") and file.stat().st_size > 0:
+                size_files.append(file)
+            elif file.name.endswith("simulation_parameters.txt"):
+                found_simparam_files = True
+                with open(file, "r", encoding="utf-8") as file:
+                    lines = file.readlines()
+                growth_mod = process_simulation_parameters(
+                    lines, supersats, directions, growth_mod
+                )
 
-    information = file_info(
+    # Process parameter files if present
+    if not found_simparam_files:
+        logger.warning("No simulation parameter files found.")
+
+    # Log if size files are not found
+    if not size_files:
+        logger.warning("No size files found.")
+
+    if not found_simparam_files and size_files:
+        QMessageBox.warning(
+            None,
+            "Missing Data",
+            "No simulation parameter and size files found in the directory.\n"
+            "Please make sure you've selected a valid CrystalGrower output directory.",
+        )
+
+    return file_info(
         supersats, size_files, directions, growth_mod, folders, summary_file
     )
 
-    return information
+
+def process_simulation_parameters(
+    lines: list, supersats: list, directions: list, growth_mod
+):
+    get_facets = True
+    for line in lines:
+        if line.startswith("Starting delta mu value (kcal/mol):"):
+            supersat = float(line.split()[-1])
+            supersats.append(supersat)
+        if line.startswith("normal, ordered or growth modifier"):
+            growth_mod = line.endswith("growth_modifier\n")
+        if line.startswith("Size of crystal") and get_facets:
+            frame = lines.index(line) + 1
+            for n in range(frame, len(lines)):
+                line = lines[n]
+                if line in [" \n", "\n"]:
+                    get_facets = False
+                    break
+                facet = line.split("      ")[0]
+                if len(facet) <= 8:
+                    directions.append(facet)
+    return growth_mod
 
 
 def find_growth_directions(csv):

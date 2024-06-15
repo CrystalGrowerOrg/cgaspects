@@ -81,16 +81,31 @@ class AspectRatio(QWidget):
         self.directions = self.information.directions
         logger.debug("All Directions: %s", self.directions)
 
-        # Create the analysis options dialog
-        dialog = AnalysisOptionsDialog(directions=self.directions)
+        if self.directions:
 
-        if dialog.exec() != QDialog.Accepted:
-            logger.warning("Selecting aspect ratio options cancelled")
-            return
+            # Create the analysis options dialog
+            dialog = AnalysisOptionsDialog(directions=self.directions)
 
-        # if dialog.exec() == QDialog.Accepted:
-        # Retrieve the selected options
-        self.options = dialog.get_options()
+            if dialog.exec() != QDialog.Accepted:
+                logger.warning("Selecting aspect ratio options cancelled")
+                return
+
+            # if dialog.exec() == QDialog.Accepted:
+            # Retrieve the selected options
+            self.options = dialog.get_options()
+        else:
+            options = namedtuple(
+                "Options",
+                [
+                    "selected_ar",
+                    "selected_cda",
+                    "checked_directions",
+                    "selected_directions",
+                    "plotting",
+                ],
+            )
+            self.options = options(True, False, [], [], False)
+
         logger.info(
             "Options:: AR: %s  CDA: %s  Checked: %s   Selected: %s   Auto Plot: %s",
             self.options.selected_ar,

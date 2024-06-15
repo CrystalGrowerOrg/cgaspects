@@ -333,6 +333,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.init_crystal(result)
 
             self.update_XYZ_info(self.openglwidget.xyz)
+            self.aspect_ratio_pushButton.setEnabled(True)
             self.set_batch_type()
             self.variablesTabWidget.setCurrentIndex(0)
             self.actionImport_Summary_File.setEnabled(True)
@@ -487,51 +488,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_batch_type(self):
         folder = self.input_folder
-        self.aspect_ratio_pushButton.setEnabled(False)
+        # Initially disable buttons that depend on the data
         self.growth_rate_pushButton.setEnabled(False)
 
-        try:
-            if Path(folder).is_dir():
-                self.input_folder = folder
-                information = find_info(folder)
-                if information.size_files and information.directions:
-                    self.growth_rate_pushButton.setEnabled(True)
-                    self.growthrate.set_folder(folder=folder)
-                    self.growthrate.set_information(information=information)
-                    self.growthrate.set_xyz_files(xyz_files=self.xyz_files)
-                if information.directions:
-                    self.aspect_ratio_pushButton.setEnabled(True)
-                    self.aspectratio.set_folder(folder=folder)
-                    self.aspectratio.set_information(information=information)
-                    self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
-                if information.summary_file:
-                    self.read_summary(summary_file=information.summary_file)
-
-                if not information.directions:
-                    self.log_message(
-                        f"Couldn't find any *simulation_parameters.txt files.\n{information}",
-                        "warning",
-                    )
-                    raise FileNotFoundError(
-                        "Couldn't find any *simulation_parameters.txt files."
-                    )
-                if not information.size_files:
-                    self.log_message(f"Couldn't find any *size.csv files.", "info")
-
-                self.input_folder = Path(folder)
-            else:
-                raise NotADirectoryError(f"{folder} is not a valid directory.")
-
-        except (FileNotFoundError, NotADirectoryError) as e:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            msg.setText(
-                f"{e}\nPlease make sure you have selected the"
-                "CrystalGrower output directory from the simulation(s)."
+        if not Path(folder).is_dir():
+            QMessageBox.warning(
+                None, "Directory Error", f"{folder} is not a valid directory."
             )
-            msg.setWindowTitle("Error! No CrystalGrower files detected.")
-            msg.exec()
-            return (None, None)
+            return
+
+        self.input_folder = folder
+        information = find_info(folder)
+
+        # Enable buttons and set data based on available information
+        if information.size_files and information.directions:
+            self.growth_rate_pushButton.setEnabled(True)
+            self.growthrate.set_folder(folder=folder)
+            self.growthrate.set_information(information=information)
+            self.growthrate.set_xyz_files(xyz_files=self.xyz_files)
+        else:
+            if not information.size_files:
+                logger.warning("No size files were found in the directory!")
+
+        # Set Aspect Ratio information
+        self.aspectratio.set_folder(folder=folder)
+        self.aspectratio.set_information(information=information)
+        self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
+
+        if not information.directions:
+            QMessageBox.warning(
+                None,
+                "Data Incomplete",
+                "No crystallographic direction data found in the simulation parameters output.\n"
+                "Please make sure this data is available if Crystal Directional Analysis (CDA) is required.",
+            )
+
+        if information.summary_file:
+            self.read_summary(summary_file=information.summary_file)
+        else:
+            QMessageBox.warning(None, "Data Incomplete", "Summary file not found.")
+
+        self.input_folder = Path(folder)
 
     def calculate_aspect_ratio(self):
         self.aspectratio.calculate_aspect_ratio()

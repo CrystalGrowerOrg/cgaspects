@@ -42,6 +42,7 @@ class AnalysisOptionsDialog(QDialog):
 
         # Initialise Checkboxes
         self.aspect_ratio_checkbox = QCheckBox("Aspect Ratio, Surface Area, Volume...")
+        self.aspect_ratio_checkbox.setCheckState(Qt.CheckState.Checked)
 
         self.cda_checkbox = QCheckBox("Crystallographic Directions")
         self.plotting_checkbox = QCheckBox("Auto-Generate Plots")
