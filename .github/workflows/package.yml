@@ -58,7 +58,7 @@ jobs:
       run: ${{ matrix.package_script }}
       
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist-${{ matrix.os }}
         path: |
@@ -76,22 +76,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Download macOS arm64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: dist/
           name: dist-macos-latest
       - name: Download macOS x86_64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: dist/
           name: dist-macos-13
       - name: Download Windows Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: dist/
           name: dist-windows-latest
       - name: Download Linux Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: dist/
           name: dist-ubuntu-latest
