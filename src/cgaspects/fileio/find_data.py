@@ -9,6 +9,8 @@ import pandas as pd
 from natsort import natsorted
 from PySide6.QtWidgets import QMessageBox
 
+from ..utils.data_structures import file_info_tuple
+
 logger = logging.getLogger("CA:FileIO")
 
 
@@ -81,11 +83,6 @@ def find_info(path):
     logger.debug("find_info called at: %s", path)
     path = Path(path)
 
-    file_info = namedtuple(
-        "file_info",
-        "supersats, size_files, directions, growth_mod, folders, summary_file",
-    )
-
     supersats, directions = [], []
     folders = []
     exclude_suffixes = {"XYZ_files", "CrystalAspects", "CrystalMaps", "crystalaspects"}
@@ -133,7 +130,7 @@ def find_info(path):
             "Please make sure you've selected a valid CrystalGrower output directory.",
         )
 
-    return file_info(
+    return file_info_tuple(
         supersats, size_files, directions, growth_mod, folders, summary_file
     )
 

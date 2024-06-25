@@ -30,6 +30,7 @@ from .widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
 )
+from ..utils.data_structures import xyz_tuple
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -391,7 +392,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if 0 <= index < len(self.xyz_files):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
-            results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
+            results = xyz_tuple
 
             self.set_progressbar()
 

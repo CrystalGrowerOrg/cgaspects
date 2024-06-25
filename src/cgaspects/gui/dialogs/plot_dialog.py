@@ -27,6 +27,7 @@ from .plotsavedialog import PlotSaveDialog
 from ..widgets.plot_axes_widget import (
     PlotAxesWidget,
 )
+from ...utils.data_structures import plot_obj_tuple
 
 matplotlib.use("QTAgg")
 
@@ -65,10 +66,7 @@ class PlottingDialog(QDialog):
         self.trendline_text = None
 
         self.selected_plot = None
-        self.plot_obj_tuple = namedtuple(
-            "Plot",
-            ["scatter", "line", "trendline"],
-        )
+        self.plot_obj_tuple = plot_obj_tuple
         self.plot_objects = {}
         self.plot_types = []
         self.directions = []

@@ -22,6 +22,7 @@ from .gui_threads import WorkerAspectRatios
 from ..gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
 from ..gui.dialogs.plot_dialog import PlottingDialog
 from ..visualisation.plot_data import Plotting
+from ..utils.data_structures import results_tuple, ar_selection_tuple
 
 logger = logging.getLogger("CA:A-Ratios")
 
@@ -38,7 +39,7 @@ class AspectRatio(QWidget):
         self.options: namedtuple | None = None
         self.threadpool = None
         self.threadpool = QThreadPool()
-        self.result_tuple = namedtuple("Result", ["csv", "selected", "folder"])
+        self.result_tuple = results_tuple
 
         self.signals = signals
         self.plotting_csv = None
@@ -94,17 +95,8 @@ class AspectRatio(QWidget):
             # Retrieve the selected options
             self.options = dialog.get_options()
         else:
-            options = namedtuple(
-                "Options",
-                [
-                    "selected_ar",
-                    "selected_cda",
-                    "checked_directions",
-                    "selected_directions",
-                    "plotting",
-                ],
-            )
-            self.options = options(True, False, [], [], False)
+
+            self.options = ar_selection_tuple(True, False, [], [], False)
 
         logger.info(
             "Options:: AR: %s  CDA: %s  Checked: %s   Selected: %s   Auto Plot: %s",
