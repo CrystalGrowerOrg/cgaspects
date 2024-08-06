@@ -1,10 +1,13 @@
 # Standard library imports
 import logging
 from pathlib import Path
+from typing import List, Literal
+import math
 
 # Third-party library imports
 import matplotlib
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
 
@@ -143,55 +146,6 @@ class Plotting(QDialog):
             logger.info("Plotting CDA (extended) FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
-
-    # def plot_cda(self, csv="", df="", folderpath="./outputs", i_plot=False):
-    #     if csv != "":
-    #         folderpath = Path(csv).parents[0]
-    #         df = pd.read_csv(csv)
-
-    #     zn_df = df
-    #     savefolder = self.create_plots_folder(folderpath)
-
-    #     x_data = zn_df["S:M"]
-    #     y_data = zn_df["M:L"]
-
-    #     plt.figure()
-    #     plt.scatter(x_data, y_data, s=1.2)
-    #     plt.xlabel("S:M")
-    #     plt.ylabel("M:L")
-    #     savepath = savefolder / "cda_zingg"
-    #     logger.info("Plotting CDA FIG")
-    #     plt.savefig(savepath, dpi=300)
-    #     plt.close()
-
-    #     interactions = [
-    #         col
-    #         for col in df.columns
-    #         if col.startswith("interaction") or col.startswith("tile")
-    #     ]
-
-    #     for interaction in interactions:
-    #         plt.figure()
-    #         c_df = df[interaction]
-    #         colour = list(set(c_df))
-    #         textstr = interaction
-    #         props = dict(boxstyle="square", facecolor="white")
-
-    #         plt.figure()
-    #         plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
-    #         plt.axhline(y=0.66, color="black", linestyle="--")
-    #         plt.axvline(x=0.66, color="black", linestyle="--")
-    #         plt.title(textstr)
-    #         plt.xlabel("S:M")
-    #         plt.ylabel("M:L")
-    #         plt.xlim(0.0, 1.0)
-    #         plt.ylim(0.0, 1.0)
-    #         cbar = plt.colorbar(ticks=colour)
-    #         cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
-    #         savepath = savefolder / f"cda_zingg_{interaction}"
-    #         logger.info("Plotting CDA FIG for %s", interaction)
-    #         plt.savefig(savepath, dpi=300)
-    #         plt.close()
 
     def plot_zingg_permuations(
         self, csv="", df="", folderpath="./outputs", i_plot=False
@@ -343,3 +297,131 @@ class Plotting(QDialog):
             plt.tight_layout()
         logger.info("Plotting dissolution rates (zoomed)")
         plt.savefig(savepath / "dissolution_rates_zoomed", dpi=300)
+
+    ################################
+    # Plotting Solvents            #
+    ################################
+
+    def plot_corr_matrix(
+        df: pd.DataFrame,
+        name="",
+        selected: List[str] = None,
+        *,
+        savepath: str | Path = None,
+        method: Literal["pearson", "spearman"] = "pearson",
+        show=False,
+    ):
+        if name is None:
+            name == "corr"
+        if savepath is not None:
+            savepath = Path(savepath)
+
+        df = df.corr(method=method, numeric_only=True)
+
+        logger.info(f"{method.upper()} CORRELATION MATRIX:\n%s", df.round(2))
+        # Plotting the correlation matrix
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(
+            df,
+            annot=True,
+            fmt=".2f",
+            cmap="coolwarm",
+            square=True,
+            cbar=True,
+            linewidths=0.5,
+        )
+        plt.title(f"{method.capitalize()} Correlation Matrix")
+        if savepath is not None:
+            plt.savefig(savepath / f"corr_peason_{name}.png")
+        plt.clf()
+
+    def plot_solvent_zingg(
+        df: pd.DataFrame,
+        x_name: str = "ar1",
+        y_name: str = "ar2",
+        name: str = "",
+        c: list = None,
+        *,
+        savepath: str | Path = None,
+        show: bool = False,
+    ):
+        if c is None:
+            c = [None]
+            vmin = None
+            cmap = None
+
+        n_rows, n_cols = get_rows_cols(len(c))
+        print(f"ROWS: {n_rows}, COLS: {n_cols}")
+        # Create subplots
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))
+        fig.suptitle(
+            f"Zingg Plots Colored by Different Parameters [{name}]", fontsize=16
+        )
+
+        # Iterate through subplot axes and subplot titles
+        for ax, param_title in zip(axes.flat, c):
+            if param_title is not None:
+                param_data = pd.to_numeric(df[param_title])
+                # Handling the case of water
+                vmin = 0 if param_data.min() == -1 else None
+                cmap = "viridis"
+                if param_title == "solubility":
+                    param_title = "log[solubility (g/L)]"
+                else:
+                    param_title = param_title.capitalize()
+
+                fig.colorbar(scatter, ax=ax, label=param_title)
+                ax.set_title(f"{param_title.capitalize()}")
+
+            scatter = ax.scatter(
+                df["ar1"], df["ar2"], c=param_data, cmap=cmap, vmin=vmin
+            )
+            ax.axhline(y=2 / 3, color="blue", linestyle="--", label="2/3")
+            ax.axvline(x=2 / 3, color="blue", linestyle="--", label="2/3")
+            ax.set_xlim([0, 1])
+            ax.set_ylim([0, 1])
+            ax.set_xlabel("S:M")
+            ax.set_ylabel("M:L")
+
+        plt.tight_layout()
+        if savepath is not None and Path(savepath).exists():
+            plt.savefig(savepath / f"ZinggParams_{name}.png")
+
+    def add_labels(
+        solvents_to_show: List[str], ax, df: pd.DataFrame, x_name="ar1", y_name="ar2"
+    ):
+        # Add labels for selected solvents
+        print("SOLVENTS TO SHOW: ", solvents_to_show)
+        n = len(solvents_to_show)
+        half = n // 2
+        i = 0
+        x = df[x_name]
+        y = df[y_name]
+        for index, row in df.iterrows():
+            if not (solvents_to_show and row["solvent"] in solvents_to_show):
+                continue
+
+            ax.annotate(
+                row["solvent"],
+                (x.iloc[index], y.iloc[index]),
+                xytext=(-100, -100),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                bbox=dict(boxstyle="round,pad=0.2", fc="yellow", alpha=0.3),
+                arrowprops=dict(
+                    arrowstyle="->",
+                    connectionstyle="arc,angleA=90,angleB=0,armA=0,armB=-100,rad=0",
+                    color="red",
+                ),
+            )
+
+            i += 1
+
+    def get_rows_cols(self, n):
+        # Calculate the number of columns (n_cols) using square root of n
+        n_cols = int(math.ceil(math.sqrt(n)))
+
+        # Calculate the number of rows (n_rows)
+        n_rows = int(math.ceil(n / n_cols))
+        return n_rows, n_cols

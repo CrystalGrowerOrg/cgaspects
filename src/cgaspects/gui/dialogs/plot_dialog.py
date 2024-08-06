@@ -1,4 +1,5 @@
 import logging
+import sys
 from itertools import permutations
 from collections import namedtuple
 import matplotlib
@@ -7,8 +8,11 @@ import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
+import seaborn as sns
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
+    QApplication,
+    QSplitter,
     QWidget,
     QCheckBox,
     QComboBox,
@@ -23,11 +27,11 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon
 
 
-from .plotsavedialog import PlotSaveDialog
-from ..widgets.plot_axes_widget import (
+from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
+from cgaspects.gui.widgets.plot_axes_widget import (
     PlotAxesWidget,
 )
-from ...utils.data_structures import plot_obj_tuple
+from cgaspects.utils.data_structures import plot_obj_tuple
 
 matplotlib.use("QTAgg")
 
@@ -104,7 +108,11 @@ class PlottingDialog(QDialog):
 
     def setCSV(self, csv):
         self.csv = csv
-        self.df = pd.read_csv(self.csv)
+        if isinstance(self.csv, pd.DataFrame):
+            self.df = self.csv
+        else:
+            self.df = pd.read_csv(self.csv)
+
         logger.debug("Dataframe read:\n%s", self.df)
         plotting = None
         for col in self.df.columns:
@@ -224,6 +232,8 @@ class PlottingDialog(QDialog):
         # Initialize checkboxes
         self.checkbox_grid = QCheckBox("Show Grid")
         self.checkbox_legend = QCheckBox("Show Legend")
+        self.checkbox_zingg = QCheckBox("Zingg")
+        self.checkbox_corr_mat = QCheckBox("Correlation Matix")
 
         self.canvas.mpl_connect(
             "motion_notify_event", lambda event: self.on_hover(event)
@@ -232,6 +242,12 @@ class PlottingDialog(QDialog):
         self.button_save.clicked.connect(self.save)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.checkbox_legend.stateChanged.connect(self.trigger_plot)
+        self.checkbox_zingg.stateChanged.connect(
+            lambda: self._handle_plot_checkboxes(self.checkbox_zingg)
+        )
+        self.checkbox_corr_mat.stateChanged.connect(
+            lambda: self._handle_plot_checkboxes(self.checkbox_corr_mat)
+        )
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
@@ -254,8 +270,20 @@ class PlottingDialog(QDialog):
         )
 
     def create_layout(self):
-        layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
+        main_layout = QVBoxLayout()
+
+        # Create a splitter
+        splitter = QSplitter(QtCore.Qt.Vertical)
+
+        # Canvas widget
+        canvas_widget = QWidget()
+        canvas_layout = QVBoxLayout(canvas_widget)
+        canvas_layout.addWidget(self.canvas)
+        canvas_widget.setMinimumHeight(400)  # Set a minimum height for the canvas
+
+        # Controls widget
+        controls_widget = QWidget()
+        controls_layout = QVBoxLayout(controls_widget)
 
         hbox1 = QHBoxLayout()
         hbox1.addWidget(self.toolbar)
@@ -273,28 +301,33 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.plot_permutations_combobox, 0, 3)
         grid1.addWidget(self.variables_label, 0, 4)
         grid1.addWidget(self.variables_combobox, 0, 5)
-        grid1.addWidget(self.custom_plot_widget, 1, 0, 1, 6)
+        grid1.addWidget(self.checkbox_zingg, 0, 6)
+        grid1.addWidget(self.checkbox_corr_mat, 0, 7)
+        grid1.addWidget(self.custom_plot_widget, 1, 0, 1, 8)
+
         # Set alignment to right for all labels and combo boxes
         for i in range(grid1.rowCount()):
             for j in range(grid1.columnCount()):
-                widget = grid1.itemAtPosition(i, j).widget()
-                if widget:
-                    grid1.setAlignment(widget, QtCore.Qt.AlignRight)
+                item = grid1.itemAtPosition(i, j)
+                if item and item.widget():
+                    grid1.setAlignment(item.widget(), QtCore.Qt.AlignRight)
 
-        # Create a QWidget to hold grid1
-        widget1 = QWidget()
-        widget1.setLayout(hbox1)
-        widget2 = QWidget()
-        widget2.setLayout(grid1)
+        controls_layout.addLayout(hbox1)
+        controls_layout.addLayout(grid1)
 
-        # Add the widget containing grid1 to the main grid
-        layout.addWidget(widget1)
-        layout.addWidget(widget2)
+        # Add widgets to splitter
+        splitter.addWidget(canvas_widget)
+        splitter.addWidget(controls_widget)
 
-        # # Set window properties
+        # Set initial sizes (70% canvas, 30% controls)
+        splitter.setSizes([700, 300])
+
+        main_layout.addWidget(splitter)
+
+        # Set window properties
         self.setWindowTitle("Plot Window")
-        self.setGeometry(100, 100, 800, 650)
-        self.setLayout(layout)
+        self.setGeometry(100, 100, 850, 1000)
+        self.setLayout(main_layout)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
 
     def set_point_size(self, value):
@@ -315,6 +348,8 @@ class PlottingDialog(QDialog):
             self.variables_combobox.setEnabled(False)
             self.variables_combobox.setCurrentIndex(0)
             self.custom_plot_widget.show()
+            self.checkbox_corr_mat.show()
+            self.checkbox_zingg.show()
 
         if mode != "Custom":
             self.plot_permutations_label.setEnabled(True)
@@ -322,11 +357,17 @@ class PlottingDialog(QDialog):
             self.variables_label.setEnabled(True)
             self.variables_combobox.setEnabled(True)
             self.custom_plot_widget.hide()
+            self.checkbox_zingg.setChecked(False)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_corr_mat.hide()
+            self.checkbox_zingg.hide()
 
     def trigger_plot(self):
         self.setPlotDefaults()
         self.grid = self.checkbox_grid.isChecked()
         self.show_legend = self.checkbox_legend.isChecked()
+        self.zingg = self.checkbox_zingg.isChecked()
+        self.covmat = self.checkbox_corr_mat.isChecked()
         self.point_size = self.spin_point_size.value()
         self.plot_type = self.plot_types_combobox.currentText()
         self.permutation = int(self.plot_permutations_combobox.currentIndex())
@@ -547,13 +588,40 @@ class PlottingDialog(QDialog):
 
         self.canvas.draw()
 
+    # def _plot(
+    #     self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"
+    # ):
+    #     cmap = None if c is None else cmap
+    #     label = y.name if label is None else label
+    #     line = None
+    #     logger.info("X SIZE: %s    Y SIZE: %s", self.x_data.size, self.y_data.size)
+    #     scatter = self.ax.scatter(
+    #         x=x,
+    #         y=y,
+    #         c=c,
+    #         cmap=cmap,
+    #         s=self.point_size,
+    #         label=label if self.plot_type != "Growth Rates" else None,
+    #         marker=marker,
+    #     )
+    #     if add_line:
+    #         (line,) = self.ax.plot(x, y, label=label)
+
+    #     plot_object = self.plot_obj_tuple(scatter=scatter, line=line, trendline=None)
+    #     self.plot_objects[label] = plot_object
+
     def _plot(
         self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"
     ):
-        cmap = None if c is None else cmap
         label = y.name if label is None else label
-        line = None
-        logger.info("X SIZE: %s    Y SIZE: %s", self.x_data.size, self.y_data.size)
+
+        if self.covmat:
+            self._plot_covmat()
+        else:
+            self._plot_scatter(x, y, c, cmap, add_line, label, marker)
+
+    def _plot_scatter(self, x, y, c, cmap, add_line, label, marker):
+        cmap = None if c is None else cmap
         scatter = self.ax.scatter(
             x=x,
             y=y,
@@ -563,11 +631,71 @@ class PlottingDialog(QDialog):
             label=label if self.plot_type != "Growth Rates" else None,
             marker=marker,
         )
+        line = None
         if add_line:
             (line,) = self.ax.plot(x, y, label=label)
 
+        if self.zingg:
+            # Zingg specific modifications: dashed lines at 2/3 on both axes
+            self.ax.axhline(y=2 / 3, color="gray", linestyle="--", linewidth=1)
+            self.ax.axvline(x=2 / 3, color="gray", linestyle="--", linewidth=1)
+            # Set x and y limits for the Zingg plot
+            self.ax.set_xlim(0, 1)
+            self.ax.set_ylim(0, 1)
+
         plot_object = self.plot_obj_tuple(scatter=scatter, line=line, trendline=None)
         self.plot_objects[label] = plot_object
+
+    def _plot_covmat(self):
+
+        # Calculate correlation matrix for the interactions
+        vals = self.df[self.custom_y]
+        try:
+            corr_matrix = vals.corr()
+            logger.info("Correlation matrix:\n%s", corr_matrix)
+        except ValueError as ve:
+            logger.error("Make sure a valid data set is provided, Encountered: %s", ve)
+            return
+
+        # Clear existing plot
+        self.ax.clear()
+
+        # Plot correlation matrix as a heatmap
+        im = self.ax.imshow(corr_matrix, cmap="coolwarm", aspect="auto")
+
+        # Add colorbar if it doesn't exist
+        if self.cbar is None:
+            self.cbar = self.figure.colorbar(im, ax=self.ax)
+            self.cbar.set_label("Correlation")
+        else:
+            self.cbar.update_normal(im)
+
+        # Set ticks and labels
+        tick_positions = np.arange(len(self.custom_y))
+        self.ax.set_xticks(tick_positions)
+        self.ax.set_yticks(tick_positions)
+        self.ax.set_xticklabels(self.custom_y, rotation=45, ha="right")
+        self.ax.set_yticklabels(self.custom_y)
+
+        # Add text annotations
+        for i in range(len(self.custom_y)):
+            for j in range(len(self.custom_y)):
+                self.ax.text(
+                    j,
+                    i,
+                    f"{corr_matrix.iloc[i, j]:.2f}",
+                    ha="center",
+                    va="center",
+                    color="black",
+                )
+
+        # Set title
+        self.ax.set_title("Correlation Matrix")
+
+        # Adjust layout to prevent clipping of tick-labels
+        self.figure.tight_layout()
+
+        return im
 
     def _set_legend(self):
         # Create a legend
@@ -577,6 +705,15 @@ class PlottingDialog(QDialog):
             legend_line.set_picker(5)
 
         legend.figure.canvas.mpl_connect("pick_event", self.on_legend_click)
+
+    def _handle_plot_checkboxes(self, checkbox):
+        if checkbox.isChecked():
+            print(checkbox)
+            if checkbox == self.checkbox_zingg:
+                self.checkbox_corr_mat.setChecked(False)
+            else:
+                self.checkbox_zingg.setChecked(False)
+        self.trigger_plot()
 
     def update_annot(self, scatter, colour_data, column_name, ind):
         pos = scatter.get_offsets()[ind["ind"][0]]
@@ -754,3 +891,27 @@ class PlottingDialog(QDialog):
         if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
             return data.iloc[:, 0]
         return data
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    # Create a sample CSV data
+    # csv_data = pd.DataFrame(
+    #     {"x": [1, 2, 3, 4, 5], "y": [2, 4, 6, 8, 10], "c": ["A", "B", "A", "B", "A"]}
+    # )
+    csv_data = (
+        "/Users/alvin/CrystalGrower/CrystalSystems/SolventMaps/Xemium/form1/full.csv"
+    )
+
+    # Create an instance of PlottingDialog
+    dialog = PlottingDialog(csv_data)
+
+    # Show the dialog
+    dialog.show()
+    # Start the event loop
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

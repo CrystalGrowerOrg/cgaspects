@@ -262,9 +262,7 @@ class VisualisationWidget(QOpenGLWidget):
             self.mesh_renderer.setMesh(mesh)
 
             if self.show_mesh_edges:
-                self.line_renderer.setLines(
-                    self.mesh_renderer.getLines()
-                )
+                self.line_renderer.setLines(self.mesh_renderer.getLines())
 
         self.update()
 
@@ -406,7 +404,6 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.line_renderer.draw(gl)
         self.line_renderer.release()
-
 
     def draw(self, gl):
         from PySide6.QtGui import QMatrix4x4, QVector2D
