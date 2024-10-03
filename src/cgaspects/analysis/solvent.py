@@ -8,15 +8,18 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..analysis.shape_analysis import CrystalShape
-from ..utils.cg_net import CGNet
-from ..utils.data_structures import shape_info_tuple
+from cgaspects.analysis.shape_analysis import CrystalShape
+from cgaspects.utils.cg_net import CGNet
+from cgaspects.utils.data_structures import shape_info_tuple
+from cgaspects.fileio.logging import setup_logging
 
 LOG = logging.getLogger("SOL-MAP")
+log_dict = {"basic": "DEBUG", "console": "INFO"}
+setup_logging(**log_dict)
 
 
 class SolventScreen:
-    def __init__(self, folderpath: Path, solvent_dict: dict, lmax=20):
+    def __init__(self, folderpath: Path, solvent_dict: Path, lmax=20):
         self.folderpath = Path(folderpath)
         self.read_shapes(self.folderpath)
 
@@ -27,11 +30,20 @@ class SolventScreen:
         self.owf_info = None
 
         self.lmax = lmax
-        self.crystal = CrystalShape(l_max=50)
+        self.crystal: CrystalShape = CrystalShape()
         self.solvent_dict = solvent_dict
         self.csv = None
 
-    def read_shapes(self, folderpath: Path):
+        self.set_xyz_info()
+        self.set_occ_info()
+        # self.set_owf_info()
+        # self.set_wulff_info()
+
+    def read_shapes(self, folderpath: Path = None):
+
+        if folderpath is None:
+            folderpath = self.folderpath
+
         self.xyz_list = list(folderpath.rglob("*.XYZ"))
         self.wulff_list = list(folderpath.rglob("SHAPE*"))
         self.cda_list = list(folderpath.rglob("*simulation_parameters.txt"))
@@ -65,17 +77,19 @@ class SolventScreen:
                     solubility.append(float(line.split()[-1]))
 
             if solubility:
-                LOG.info("Solubility in %s: %s", solvent, solubility)
+                LOG.debug("Solubility in %s: %s", solvent, solubility)
                 self.occ_info[solvent].append(solubility)
             else:
                 LOG.warning("Solubility was not found for %s!", solvent)
+
+        LOG.info("Solvent Information successfully read!\n%s", self.occ_info)
 
     def set_owf_info(self):
         self.owf_info = defaultdict(list)
 
         for owf in self.owf_list:
             solubility = []
-            output = Path(output)
+            output = Path(owf)
             solvent = output.name.split(".")[-2]
             LOG.debug("OWF for form: %s", solvent)
             with open(output, "r", encoding="utf-8") as f:
@@ -128,12 +142,10 @@ class SolventScreen:
                 netfile = Path(cda).parent / "net.txt"
                 net = CGNet(netfile)
                 net.parse()
-                energies = net.unique_energies_arr
+                energies = net.unique_energies
 
                 print(f"{netfile.parent.name:>50s}  --> {len(energies)}")
                 for i, energy in enumerate(energies):
-                    if not add:
-                        continue
                     i += 1
                     if np.isnan(energy):
                         continue
@@ -187,8 +199,11 @@ class SolventScreen:
             sol_dict = json.load(f)
 
         for shape in shapes:
+            print(shape)
             shape = Path(shape)
-            name_split = str(shape.parent).rsplit("_", maxsplit=1)
+            self.crystal.set_xyz(shape)
+            name_split = str(shape.parent.name).rsplit("_", maxsplit=1)
+            print(name_split)
             solvent = name_split[-1] if name_split[0] == "solvent" else None
             if shape.name.startswith("SHAPE"):
                 with open(shape, "r", encoding="utf-8") as s:
@@ -216,9 +231,8 @@ class SolventScreen:
                 continue
 
             LOG.info("%s : %s", solvent, shape)
-            xyz = self.crystal.set_xyz(filepath=shape)
 
-            analysis: shape_info_tuple = self.crystal.get_zingg_analysis(xyz_vals=xyz)
+            analysis: shape_info_tuple = self.crystal.get_zingg_analysis()
             shape_info["solvent"].append(solvent)
             shape_info["ar1"].append(analysis.aspect1)
             shape_info["ar2"].append(analysis.aspect2)
@@ -239,8 +253,7 @@ class SolventScreen:
                 netfile = shape.parent / "net.txt"
                 net = CGNet(netfile)
                 net.parse()
-                energies = net.unique_energies_arr
-                energies = np.array(energies.values()).flatten()
+                energies = net.unique_energies_arr.flatten()
 
                 print(f"{netfile.parent.name:>50s}  --> {len(energies)}")
                 for i, energy in enumerate(energies):
@@ -254,4 +267,9 @@ class SolventScreen:
 
 
 if __name__ == "__main__":
-    pass
+
+    path = Path("/Volumes/AlvinSSD/Crystal_Systems/Xemium/form1")
+    sol_path = Path(
+        "/Users/alvin/GitHub/crystalopt/src/crystalopt/solvent/solvent.json"
+    )
+    sol_screen = SolventScreen(path, solvent_dict=sol_path)

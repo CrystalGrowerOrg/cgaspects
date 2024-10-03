@@ -162,8 +162,8 @@ class Molecule:
             if interaction.id == lowest_unoccipied_id:
                 interaction.add_energy(energy)
 
-        if not assigned:
-            LOG.warning("No interaction required energy assignment")
+        # if not assigned:
+        #     LOG.warning("No interaction required energy assignment")
 
     def group_interactions(self, using="r"):
         grouping_dict = {}

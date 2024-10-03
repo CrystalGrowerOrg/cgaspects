@@ -21,21 +21,16 @@ class CrystalShape:
         self.xyz = None
         self.shape_tuple = shape_info_tuple
 
-    def set_xyz(
-        self, xyz_array: np.ndarray | None = None, filepath: str | Path | None = None
-    ):
-        xyz_vals = None
-        # Check if the xyz_array is provided and is not None
-        if xyz_array is not None:
-            xyz_vals = np.array(xyz_array)
+    def set_xyz(self, xyz: str | Path | np.ndarray | list):
 
-        # If a filepath is provided, read the XYZ from the file
-        if filepath:
-            xyz_vals, _ = read_XYZ(filepath=filepath)
-
-        # Error handling for no valid input
-        if xyz_vals is None:
-            raise ValueError("Provide XYZ as either an array or a filepath.")
+        if isinstance(xyz, (str, Path)):
+            xyz_vals, _ = read_XYZ(filepath=xyz)
+        elif isinstance(xyz, (np.ndarray, list)):
+            xyz_vals = np.array(xyz)
+        else:
+            raise ValueError(
+                f"Expected a coordinates file or coordinates array. Recieved {xyz}"
+            )
 
         if xyz_vals.shape[1] == 3:
             xyz_vals = xyz_vals

@@ -721,14 +721,31 @@ class PlottingDialog(QDialog):
         x, y = pos
 
         _sim_id = "N/A"
-        if self.df is not None and ind["ind"][0] < len(self.df):
-            row_data = self.df.iloc[ind["ind"][0]]
-            try:
-                _sim_id = int(row_data["Simulation Number"] - 1)
-            except KeyError:
-                _sim_id = row_data.iloc[0]
-            except TypeError:
-                _sim_id = row_data["Simulation Number"]
+
+        if not (self.df is not None and ind["ind"][0] < len(self.df)):
+            return
+
+        row_data = self.df.iloc[ind["ind"][0]]
+        print(self.df.columns)
+
+        _sim_id = "N/A"
+        # Determine the correct index based on column presence
+        if "solvent" in self.df.columns:
+            index_key = "solvent"
+        elif "Solvent" in self.df.columns:
+            index_key = "Solvent"
+        else:
+            index_key = "Simulation Number"
+
+        # Attempt to handle the simulation ID based on the index_key
+        try:
+            _sim_id = int(row_data[index_key] - 1)
+        except KeyError:
+            # Fallback to the first column if index_key is not found
+            _sim_id = row_data.iloc[0]
+        except TypeError:
+            # Handle cases where subtraction is not possible due to data type issues
+            _sim_id = row_data[index_key]
 
         # Check if colour_data is available
         if colour_data is not None:
