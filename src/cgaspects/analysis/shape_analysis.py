@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
 from ..fileio.xyz_file import read_XYZ
+from ..utils.data_structures import shape_info_tuple
+
 
 logger = logging.getLogger("CA:ShapeAnalysis")
 
@@ -17,24 +19,18 @@ class CrystalShape:
         self,
     ):
         self.xyz = None
-        self.shape_tuple = namedtuple(
-            "shape_info",
-            "x, y, z, pc1, pc2, pc3, aspect1, aspect2, sa, vol, sa_vol, shape",
-        )
+        self.shape_tuple = shape_info_tuple
 
-    def set_xyz(self, xyz_array=None, filepath=None):
-        xyz_vals = None
-        # Check if the xyz_array is provided and is not None
-        if xyz_array is not None:
-            xyz_vals = np.array(xyz_array)
+    def set_xyz(self, xyz: str | Path | np.ndarray | list):
 
-        # If a filepath is provided, read the XYZ from the file
-        if filepath:
-            xyz_vals, _ = read_XYZ(filepath=filepath)
-
-        # Error handling for no valid input
-        if xyz_vals is None:
-            raise ValueError("Provide XYZ as either an array or a filepath.")
+        if isinstance(xyz, (str, Path)):
+            xyz_vals, _ = read_XYZ(filepath=xyz)
+        elif isinstance(xyz, (np.ndarray, list)):
+            xyz_vals = np.array(xyz)
+        else:
+            raise ValueError(
+                f"Expected a coordinates file or coordinates array. Recieved {xyz}"
+            )
 
         if xyz_vals.shape[1] == 3:
             xyz_vals = xyz_vals
@@ -58,12 +54,16 @@ class CrystalShape:
         Volume:
         Surface Area:
         SA:Vol."""
-        hull = ConvexHull(self.xyz)
-        vol_hull = hull.volume
-        sa_hull = hull.area
-        sa_vol = sa_hull / vol_hull
+        try:
+            hull = ConvexHull(self.xyz)
+            vol_hull = hull.volume
+            sa_hull = hull.area
+            sa_vol = sa_hull / vol_hull
 
-        sa_vol_ratio_array = np.array([sa_hull, vol_hull, sa_vol])
+            sa_vol_ratio_array = np.array([sa_hull, vol_hull, sa_vol])
+        except ValueError as ve:
+            logger.error("Encountered:  %s\nHull information will be set to -1.", ve)
+            sa_vol_ratio_array = np.array([-1, -1, -1])
 
         return sa_vol_ratio_array
 
@@ -85,7 +85,7 @@ class CrystalShape:
 
         return shapes.get(aspects, "unknown")
 
-    def get_zingg_analysis(self, get_sa_vol=True):
+    def get_zingg_analysis(self, get_sa_vol=True) -> shape_info_tuple:
         """
         Crystal is aligned in so that the
         first principal component is aligned

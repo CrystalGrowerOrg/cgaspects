@@ -257,7 +257,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
         except IndexError:
             sim_num = file.name.split("_")[0]
         try:
-            shape.set_xyz(filepath=file)
+            shape.set_xyz(file)
             crystal_info = shape.get_zingg_analysis()
 
             # Extract values from the namedtuple and add to the list

@@ -1,0 +1,11 @@
+{
+    "python.analysis.typeCheckingMode": "off",
+    "name": "Python: Current File",
+    "type": "python",
+    "request": "launch",
+    "program": "${file}",
+    "cwd": "${workspaceFolder}",
+    "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+    }
+  }

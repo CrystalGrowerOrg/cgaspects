@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ...utils.data_structures import ar_selection_tuple
+
 logger = logging.getLogger("CA:AspectDaliog")
 
 
@@ -45,9 +47,11 @@ class AnalysisOptionsDialog(QDialog):
         self.aspect_ratio_checkbox.setCheckState(Qt.CheckState.Checked)
 
         self.cda_checkbox = QCheckBox("Crystallographic Directions")
-        self.plotting_checkbox = QCheckBox("Auto-Generate Plots")
+        self.solvent_checkbox = QCheckBox("Solvent Screen")
+        # self.plotting_checkbox = QCheckBox("Auto-Generate Plots")
         layout.addWidget(self.aspect_ratio_checkbox)
         layout.addWidget(self.cda_checkbox)
+        layout.addWidget(self.solvent_checkbox)
 
         self.listWidget = QListWidget(parent=self)
         layout.addWidget(self.listWidget)
@@ -120,23 +124,13 @@ class AnalysisOptionsDialog(QDialog):
             selected_combo_values.append(combo_box.currentText())
         return selected_combo_values
 
-    def get_options(self):
+    def get_options(self) -> ar_selection_tuple:
         selected_aspect_ratio = self.aspect_ratio_checkbox.isChecked()
         selected_cda = self.cda_checkbox.isChecked()
+        selected_solvent_screen = self.solvent_checkbox.isChecked()
         checked_directions = self.checked_directions
         selected_directions = []
-        plotting = self.plotting_checkbox.isChecked()
-
-        options = namedtuple(
-            "Options",
-            [
-                "selected_ar",
-                "selected_cda",
-                "checked_directions",
-                "selected_directions",
-                "plotting",
-            ],
-        )
+        plotting = False
 
         for i in range(3):
             selected_direction = self.combo_boxes[i].currentText()
@@ -146,9 +140,10 @@ class AnalysisOptionsDialog(QDialog):
             ):
                 selected_directions.append(selected_direction)
 
-        return options(
+        return ar_selection_tuple(
             selected_ar=selected_aspect_ratio,
             selected_cda=selected_cda,
+            selected_solvent_screen=selected_solvent_screen,
             checked_directions=checked_directions,
             selected_directions=selected_directions,
             plotting=plotting,

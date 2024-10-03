@@ -19,6 +19,7 @@ from ..fileio.find_data import (
     combine_xyz_cda,
 )
 from .shape_analysis import CrystalShape
+from ..utils.data_structures import xyz_tuple
 
 logger = logging.getLogger("CA:Threads")
 
@@ -56,7 +57,7 @@ class WorkerXYZ(QRunnable):
 
     @Slot()
     def run(self):
-        self.shape.set_xyz(xyz_array=self.xyz)
+        self.shape.set_xyz(self.xyz)
         shape_info = self.shape.get_zingg_analysis()
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
@@ -157,6 +158,9 @@ class WorkerAspectRatios(QRunnable):
                 logger.info("Plotting CSV created from: CDA + PCA/OBA")
                 self.plotting_csv = final_cda_xyz_csv
 
+        if self.options.selected_solvent_screen:
+            raise NotImplementedError("Currently in progress.")
+
         self.signals.result.emit(self.plotting_csv)
 
 
@@ -186,13 +190,12 @@ class WorkerMovies(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        results = namedtuple("CrystalXYZ", ("xyz", "xyz_movie"))
 
         self.signals.message.emit("Reading XYZ file. Please wait...")
         xyz, xyz_movie = CrystalShape.read_XYZ(self.filepath)
         self.signals.progress.emit(100.0)
 
-        result = results(xyz=xyz, xyz_movie=xyz_movie)
+        result = xyz_tuple(xyz=xyz, xyz_movie=xyz_movie)
 
         self.signals.result.emit(result)
         self.signals.message.emit("Reading XYZ Complete!")

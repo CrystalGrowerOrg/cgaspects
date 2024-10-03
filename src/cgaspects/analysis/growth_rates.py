@@ -11,6 +11,7 @@ from .gui_threads import WorkerGrowthRates
 from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
 from ..gui.dialogs.plot_dialog import PlottingDialog
 from ..visualisation.plot_data import Plotting
+from ..utils.data_structures import results_tuple
 
 logger = logging.getLogger("CA:G-Rates")
 
@@ -28,7 +29,7 @@ class GrowthRate:
         self.threadpool = None
         self.threadpool = QThreadPool()
 
-        self.result_tuple = namedtuple("Result", ["csv", "selected", "folder"])
+        self.result_tuple = results_tuple
 
         self.progress_updated = Signal(int)
         self.circular_progress = None

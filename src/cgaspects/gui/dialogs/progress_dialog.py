@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..utils.circular_progress import PyCircularProgress
+from ...utils.data_structures import ar_selection_tuple
 
 
 class CircularProgress(QDialog):
@@ -38,7 +39,7 @@ class CircularProgress(QDialog):
     def set_value(self, value):
         self.circular_progress.set_value(value)
 
-    def update_options(self, options: namedtuple):
+    def update_options(self, options: ar_selection_tuple):
         # Format the options into a bullet-point style string
         options_text = f"""Calculating...
 With Selected Options:
