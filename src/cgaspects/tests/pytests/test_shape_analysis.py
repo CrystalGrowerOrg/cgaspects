@@ -16,18 +16,18 @@ class TestCrystalShape(unittest.TestCase):
 
     def test_set_xyz_with_array(self):
         test_array = np.array([[1, 2, 3], [4, 5, 6]])
-        self.crystal.set_xyz(xyz_array=test_array)
+        self.crystal.set_xyz(test_array)
         np.testing.assert_array_equal(self.crystal.xyz, test_array)
 
     def test_set_xyz_with_filepath(self):
         test_array = np.array([[1, 2, 3], [4, 5, 6]])
         with patch("numpy.loadtxt", return_value=test_array) as mock_loadtxt:
-            self.crystal.set_xyz(filepath="fakepath.txt")
+            self.crystal.set_xyz("fakepath.txt")
             np.testing.assert_array_equal(self.crystal.xyz, test_array)
             mock_loadtxt.assert_called_once()
 
     def test_set_xyz_raises_value_error(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             self.crystal.set_xyz()
 
     def test_normalise_verts(self):

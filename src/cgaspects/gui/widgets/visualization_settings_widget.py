@@ -226,7 +226,14 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Background Color"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox("Style", ("Spheres", "Points", "Convex Hull", ))
+        w = LabelledComboBox(
+            "Style",
+            (
+                "Spheres",
+                "Points",
+                "Convex Hull",
+            ),
+        )
         self.widgets["Style"] = w
         w.valueChanged.connect(self.settingsChanged)
 
@@ -244,6 +251,12 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Projection"] = w
         w.valueChanged.connect(self.settingsChanged)
 
+        w = LabelledDoubleSlider("Frame Rate", vrange=(0, 100.0), steps=50, parent=self)
+        w.setValue(15)
+
+        self.widgets["Frame Rate"] = w
+        w.valueChanged.connect(self.settingsChanged)
+
         for w in self.widgets.values():
             layout.addWidget(w)
 
@@ -251,6 +264,10 @@ class VisualizationSettingsWidget(QWidget):
 
     def values(self):
         return {"Point Size": self.pointSizeSlider.value}
+
+    def fps(self):
+        print(self.widgets["Frame Rate"].value)
+        return self.widgets["Frame Rate"].value
 
     def setAvailableOptions(self, key, options):
         if key not in self.widgets:

@@ -57,7 +57,7 @@ class WorkerXYZ(QRunnable):
 
     @Slot()
     def run(self):
-        self.shape.set_xyz(xyz_array=self.xyz)
+        self.shape.set_xyz(self.xyz)
         shape_info = self.shape.get_zingg_analysis()
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
