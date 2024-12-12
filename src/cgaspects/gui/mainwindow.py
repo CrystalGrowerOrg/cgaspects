@@ -25,7 +25,7 @@ from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
 from .load_ui import Ui_MainWindow
-from .openGL import VisualisationWidget
+from .visualisation.openGL import VisualisationWidget
 from .widgets import (
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
@@ -444,7 +444,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.frame_list:
             return
 
-        if self.playingState and self.fps == 0.0:
+        if self.playingState:
             # pause playing
             self.playPauseButton.setIcon(self.playIcon)
             self.frame_timer.stop()
@@ -720,7 +720,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def handleVisualizationSettingsChange(self):
         self.openglwidget.updateSettings(**self.visualizationSettings.settings())
-        self.fps = self.visualizationSettings.fps()
+        fps = self.visualizationSettings.fps()
+        if self.fps != fps:
+            self.frame_timer.start(1000 // self.fps)
+            self.fps = fps
 
     # Utility function to clear a layout of all its widgets
     def clear_layout(self, layout):

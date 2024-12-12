@@ -8,7 +8,6 @@ import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
-import seaborn as sns
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
     QApplication,

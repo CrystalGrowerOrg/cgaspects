@@ -7,7 +7,7 @@ import pandas as pd
 
 from .shape_analysis import CrystalShape
 
-logger = logging.getLogger("CA:AR-Dataframes")
+LOG = logging.getLogger("CA:AR-Dataframes")
 
 
 def merge_dicts(dict_list):
@@ -55,7 +55,7 @@ def parse_simulation_parameters_file(path, directions, sim_num):
 
 def populate_aspect_ratios_for_selected_columns(df, selected):
     for i in range(len(selected) - 1):
-        logger.debug("Aspect Ratio [%s] : [%s] : [%s]", i, selected[i], selected[i + 1])
+        LOG.debug("Aspect Ratio [%s] : [%s] : [%s]", i, selected[i], selected[i + 1])
         df[f"Ratio_{selected[i]}:{selected[i+1]}"] = (
             df[selected[i]] / df[selected[i + 1]]
         )
@@ -65,7 +65,7 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
     path = Path(folderpath)
 
     ar_keys = ["Simulation Number"] + directions
-    logger.debug("AR_keys %s", ar_keys)
+    LOG.debug("AR_keys %s", ar_keys)
 
     simulation_parameters_files = []
     # find all simulation_parameters.txt files
@@ -83,13 +83,17 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
         ]
     )
 
+    ar_dict = treat_inconsistent_dict(ar_dict)
     print_keys_and_value_lengths(ar_dict)
-    logger.debug("CDA data frame dictionary:\n%s", ar_dict)
+
+
+    LOG.debug("CDA data frame dictionary:\n%s", ar_dict)
+    print(ar_dict)
 
     try:
         df = pd.DataFrame.from_dict(ar_dict)
     except ValueError as v:
-        logger.error(
+        LOG.error(
             "Potential corrupted input files. Please check "
             "if simulation_parameters.txt files has all the information.\n%s",
             v,
@@ -144,10 +148,10 @@ def build_ratio_equations(directions, ar_df=None, csv=None, filepath: str | Path
     filepath = Path(filepath)
     if ar_df is None:
         if csv is None:
-            logger.error("A pandas DataFrame or a path to a CSV file must be provided.")
+            LOG.error("A pandas DataFrame or a path to a CSV file must be provided.")
         ar_df = pd.read_csv(Path(csv))
     if not isinstance(ar_df, pd.DataFrame):
-        logger.error("Dataframe not found AR_DF: %s CSV: ", type(ar_df), type(csv))
+        LOG.error("Dataframe not found AR_DF: %s CSV: ", type(ar_df), type(csv))
     if len(directions) != 3:
         raise ValueError("Directions should be a list of three elements.")
 
@@ -215,13 +219,13 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
     if xyz_files is None:
         if folder is None:
-            logger.error(
+            LOG.error(
                 "Received no folder or xyz files" "Folder: %s XYZ-files: %s",
                 folder,
                 xyz_files,
             )
             return
-        logger.warning(
+        LOG.warning(
             "XYZ files were not passed to calculations thread"
             "Currently being read from %s",
             folder,
@@ -237,13 +241,13 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
     if not isinstance(xyz_files, list) or not all(
         isinstance(item, Path) for item in xyz_files
     ):
-        logger.error(
+        LOG.error(
             "XYZ files as type %s expected, got %s", type(list[Path]), type(xyz_files)
         )
 
     n_xyzs = len(xyz_files)
     if n_xyzs < 1:
-        logger.error(
+        LOG.error(
             "No XYZ files found in directory/subdirectories of [%s]", str(folder)
         )
         return
@@ -288,7 +292,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
         df = pd.DataFrame(data_list, columns=col_headings)
         return df
     else:
-        logger.warning(
+        LOG.warning(
             "Couldn't create Aspect Ratio Dataframe."
             "Please check the XYZ files provided."
         )
@@ -297,4 +301,59 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
 def print_keys_and_value_lengths(input_dict):
     for key, value in input_dict.items():
-        logger.info(f"{key}: {len(value)}")
+        if isinstance(value, list):
+            l = len(value)
+        elif isinstance(value, (int, str, float)):
+            l = 1
+        else:
+            raise TypeError(
+                "Expected a list of values or a single value of type int, str, or float."
+                f" Recieved: {value} Type[{value.__class__}]"
+            )
+        
+        LOG.info(f"{key}: {l}")
+
+def treat_inconsistent_dict(input_dict: dict):
+    """
+    Attempts to recover the last length 
+    from a dictionary that is potentially a result 
+    of multiple lenght entries (a movie)
+
+    Parameters:
+        - input_dict (dict): Dictionary with direction lengths
+
+    Raises:
+        ValueError: When inconsistency is not due to multiple frames
+    """
+
+    index_col = None
+    for col in input_dict.keys():
+        if col.lower() in {"simulation number" or "solvent"}:
+            index_col = col
+        
+    if index_col is None:
+        index_col = input_dict.keys()[0]
+        LOG.warning(
+            "'Simulation Number' or 'Solvent' not found as indexing columns. "
+            "Using the first column: %s", index_col
+        )
+    
+    nsims = len(input_dict[index_col])
+
+    last_values = dict()
+    for key, values in input_dict.items():
+        if key == index_col:
+            last_values[key] = values
+        elif key != index_col and len(values) % nsims == 0:
+            last_values[key] = values[-1]
+        else:
+            raise ValueError(
+                "Found inconsistencies in the AR dictionary."
+                f" Length of values ({len(values)}) not "
+                f"divisioble by the number of simulations found: {nsims}"
+            )
+    return last_values
+
+
+
+

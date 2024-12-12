@@ -251,7 +251,7 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Projection"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledDoubleSlider("Frame Rate", vrange=(0, 100.0), steps=50, parent=self)
+        w = LabelledDoubleSlider("Frame Rate", vrange=(1, 100), steps=50, parent=self)
         w.setValue(15)
 
         self.widgets["Frame Rate"] = w
@@ -266,7 +266,6 @@ class VisualizationSettingsWidget(QWidget):
         return {"Point Size": self.pointSizeSlider.value}
 
     def fps(self):
-        print(self.widgets["Frame Rate"].value)
         return self.widgets["Frame Rate"].value
 
     def setAvailableOptions(self, key, options):

@@ -153,7 +153,7 @@ def process_simulation_parameters(
                     get_facets = False
                     break
                 facet = line.split("      ")[0]
-                if len(facet) <= 8:
+                if len(facet) <= 8 and facet not in directions:
                     directions.append(facet)
     return growth_mod
 

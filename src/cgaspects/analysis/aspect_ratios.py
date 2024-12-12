@@ -21,7 +21,7 @@ from ..fileio.find_data import (
 from .gui_threads import WorkerAspectRatios
 from ..gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
 from ..gui.dialogs.plot_dialog import PlottingDialog
-from ..visualisation.plot_data import Plotting
+from ..plot.plot_data import Plotting
 from ..utils.data_structures import results_tuple, ar_selection_tuple
 
 logger = logging.getLogger("CA:A-Ratios")

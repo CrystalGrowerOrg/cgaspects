@@ -10,7 +10,7 @@ from ..fileio import find_data as fd
 from .gui_threads import WorkerGrowthRates
 from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
 from ..gui.dialogs.plot_dialog import PlottingDialog
-from ..visualisation.plot_data import Plotting
+from ..plot.plot_data import Plotting
 from ..utils.data_structures import results_tuple
 
 logger = logging.getLogger("CA:G-Rates")
