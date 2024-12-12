@@ -7,7 +7,15 @@ from typing import List
 import numpy as np
 import pandas as pd
 from natsort import natsorted
-from PySide6.QtWidgets import QMessageBox
+
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QVBoxLayout,
+    QListWidget,
+    QPushButton,
+    QMessageBox,
+)
 
 from ..utils.data_structures import file_info_tuple
 
@@ -18,8 +26,75 @@ def file_empty(x):
     return x.stat().st_size == 0
 
 
+def filter_xyz_files(crystal_xyz_list):
+    class FileSelectionDialog(QDialog):
+        def __init__(self, unique_suffixes):
+            super().__init__()
+            self.setWindowTitle("Select XYZ File Types")
+            self.selected_suffixes = []
+
+            layout = QVBoxLayout()
+
+            # Create a QListWidget for selection
+            self.list_widget = QListWidget()
+            for suffix in unique_suffixes:
+                self.list_widget.addItem(suffix)
+            self.list_widget.setSelectionMode(QListWidget.MultiSelection)
+
+            layout.addWidget(self.list_widget)
+
+            # Add OK and Cancel buttons
+            self.ok_button = QPushButton("OK")
+            self.ok_button.clicked.connect(self.accept_selection)
+            layout.addWidget(self.ok_button)
+
+            self.setLayout(layout)
+
+        def accept_selection(self):
+            selected_items = self.list_widget.selectedItems()
+            self.selected_suffixes = [item.text() for item in selected_items]
+            self.accept()
+
+    # Get unique suffixes from file names
+    suffixes = {Path(f).stem.split("_")[-1] for f in crystal_xyz_list}
+    suffixes = natsorted(suffixes)
+
+    if len(suffixes) == 1:
+        return [
+            f
+            for f in crystal_xyz_list
+            if Path(f).stem.split("_")[-1] in suffixes
+            and not Path(f).name.startswith("._")
+        ]
+
+    if len(suffixes) < 1:
+        raise NameError("Expected NAME_SUFFIX.XYZ, but no suffixes were identified.")
+
+    # Show the dialog for user selection
+    app = QApplication.instance() or QApplication([])
+    dialog = FileSelectionDialog(suffixes)
+    if dialog.exec() == QDialog.Accepted:
+        selected_suffixes = dialog.selected_suffixes
+        if not selected_suffixes:
+            QMessageBox.warning(
+                None,
+                "No Selection",
+                "No file types were selected. Returning all files.",
+            )
+        else:
+            # Filter files based on selected suffixes
+            return [
+                f
+                for f in crystal_xyz_list
+                if Path(f).stem.split("_")[-1] in selected_suffixes
+                and not Path(f).name.startswith("._")
+            ]
+
+    return crystal_xyz_list
+
+
+# Incorporate the filter step into the main function
 def locate_xyz_files(xyz_folderpath):
-    # Check if the folder selection was canceled or empty and handle appropriately
     if xyz_folderpath is None:
         logger.debug("Folder selection was canceled or no folder was selected.")
         return None
@@ -30,15 +105,12 @@ def locate_xyz_files(xyz_folderpath):
 
     try:
         if xyz_folderpath.is_dir():
-            crystal_xyz_list = []
-
             for filepath in Path(xyz_folderpath).rglob("*.XYZ"):
                 if file_empty(filepath):
                     logger.info("Ignore empty XYZ file: %s", filepath)
                 else:
                     crystal_xyz_list.append(filepath)
 
-            # Check if the list is empty
             if not crystal_xyz_list:
                 raise FileNotFoundError(
                     "No .XYZ files found in the selected directory."
@@ -46,21 +118,20 @@ def locate_xyz_files(xyz_folderpath):
         else:
             raise NotADirectoryError(f"{xyz_folderpath} is not a valid directory.")
 
-        # Remove files that are not desired (e.g., ._DStore)
-        crystal_xyz_list = [
-            item for item in crystal_xyz_list if not Path(item).name.startswith("._")
-        ]
-
+        # Natural sort
         crystal_xyz_list = natsorted(crystal_xyz_list)
 
-    except (FileNotFoundError, NotADirectoryError) as e:
+        # Allow user to filter files
+        crystal_xyz_list = filter_xyz_files(crystal_xyz_list)
+
+    except (FileNotFoundError, NotADirectoryError, NameError) as e:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText(
             f"{e}\nPlease make sure the folder you have selected "
-            "contains .XYZ files from the simulation(s)."
+            "contains valid .XYZ files from the simulation(s)."
         )
-        msg.setWindowTitle("Error! No XYZ files detected.")
+        msg.setWindowTitle("Error! No valid XYZ files detected.")
         msg.exec()
         return None
 
@@ -185,13 +256,13 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     search = str(summary_df.iloc[0, 0])
     search = search.split("_")
     start_num = int(search[-1])
-    search_string = "_".join(search[:-1])
+    search_string = "_".join(search[:-1]) if len(search) > 1 else None
 
     int_cols = summary_cols[1:]
     summary_df = summary_df.set_index(summary_cols[0])
     compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
-    for index, row in aspect_df.iterrows():
+    for _, row in aspect_df.iterrows():
         sim_num = None
         try:
             sim_num = int(row["Simulation Number"]) - 1 + start_num
@@ -200,7 +271,9 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
         except KeyError:
             sim_num = row.iloc[0]
 
-        num_string = f"{search_string}_{sim_num}"
+        num_string = (
+            f"{search_string}_{sim_num}" if search_string is not None else str(sim_num)
+        )
         aspect_row = row.values
         aspect_row = np.array([aspect_row])
         collect_row = summary_df.filter(items=[num_string], axis=0).values
