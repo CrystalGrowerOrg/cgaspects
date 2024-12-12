@@ -96,7 +96,7 @@ class AspectRatio(QWidget):
             self.options = dialog.get_options()
         else:
 
-            self.options = ar_selection_tuple(True, False, [], [], False)
+            self.options = ar_selection_tuple(True, False, [], [], False, False)
 
         logger.info(
             "Options:: AR: %s  CDA: %s  Checked: %s   Selected: %s   Auto Plot: %s",

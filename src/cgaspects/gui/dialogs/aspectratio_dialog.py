@@ -47,11 +47,11 @@ class AnalysisOptionsDialog(QDialog):
         self.aspect_ratio_checkbox.setCheckState(Qt.CheckState.Checked)
 
         self.cda_checkbox = QCheckBox("Crystallographic Directions")
-        self.solvent_checkbox = QCheckBox("Solvent Screen")
+        # self.solvent_checkbox = QCheckBox("Solvent Screen")
         # self.plotting_checkbox = QCheckBox("Auto-Generate Plots")
         layout.addWidget(self.aspect_ratio_checkbox)
         layout.addWidget(self.cda_checkbox)
-        layout.addWidget(self.solvent_checkbox)
+        # layout.addWidget(self.solvent_checkbox)
 
         self.listWidget = QListWidget(parent=self)
         layout.addWidget(self.listWidget)
@@ -127,7 +127,8 @@ class AnalysisOptionsDialog(QDialog):
     def get_options(self) -> ar_selection_tuple:
         selected_aspect_ratio = self.aspect_ratio_checkbox.isChecked()
         selected_cda = self.cda_checkbox.isChecked()
-        selected_solvent_screen = self.solvent_checkbox.isChecked()
+        # selected_solvent_screen = self.solvent_checkbox.isChecked()
+        selected_solvent_screen = False
         checked_directions = self.checked_directions
         selected_directions = []
         plotting = False
