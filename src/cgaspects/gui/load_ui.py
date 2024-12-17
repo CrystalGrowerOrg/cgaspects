@@ -471,9 +471,12 @@ class Ui_MainWindow(object):
         self.saveframe_pushButton.setObjectName(u"saveframe_pushButton")
         self.saveframe_pushButton.setEnabled(False)
         self.saveframe_pushButton.setIcon(icon3)
-
         self.verticalLayout_6.addWidget(self.saveframe_pushButton)
-
+        self.renderVideoButton = QPushButton(self.visualizationTab)
+        self.renderVideoButton.setObjectName(u"renderVideoButton") 
+        self.renderVideoButton.setEnabled(False)
+        self.renderVideoButton.setIcon(icon3)
+        self.verticalLayout_6.addWidget(self.renderVideoButton)
         self.variablesTabWidget.addTab(self.visualizationTab, "")
 
         self.verticalLayout.addWidget(self.variablesTabWidget)
@@ -693,6 +696,9 @@ class Ui_MainWindow(object):
         self.saveframe_pushButton.setStatusTip("")
 #endif // QT_CONFIG(statustip)
         self.saveframe_pushButton.setText(QCoreApplication.translate("MainWindow", u"Export graphics...", None))
+        self.renderVideoButton.setText(QCoreApplication.translate("MainWindow", u"Render Video", None))
+        self.renderVideoButton.setToolTip(QCoreApplication.translate("MainWindow", u"Render video from current frames", None))
+        self.renderVideoButton.setStatusTip(QCoreApplication.translate("MainWindow", u"Render video from current frames", None))
         self.variablesTabWidget.setTabText(self.variablesTabWidget.indexOf(self.visualizationTab), QCoreApplication.translate("MainWindow", u"Visualization", None))
 #if QT_CONFIG(tooltip)
         self.crystalInfo_groupBox.setToolTip(QCoreApplication.translate("MainWindow", u"Crystal information from the current selection", None))
