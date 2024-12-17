@@ -27,7 +27,7 @@ class GrowthRate:
         self.selected_direction = None
         self.signals = signals
         self.threadpool = None
-        self.threadpool = QThreadPool()
+        #self.threadpool = QThreadPool()
 
         self.result_tuple = results_tuple
 

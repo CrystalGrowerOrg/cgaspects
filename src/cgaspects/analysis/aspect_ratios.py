@@ -38,7 +38,7 @@ class AspectRatio(QWidget):
         self.selected_direction = None
         self.options: namedtuple | None = None
         self.threadpool = None
-        self.threadpool = QThreadPool()
+        #self.threadpool = QThreadPool()
         self.result_tuple = results_tuple
 
         self.signals = signals

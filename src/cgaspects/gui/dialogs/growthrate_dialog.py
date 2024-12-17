@@ -24,10 +24,10 @@ class GrowthRateAnalysisDialogue(QDialog):
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(scroll)
 
-        # plotting_checkbox = QCheckBox("Auto-Generate Plots")
+        plotting_checkbox = QCheckBox("Auto-Generate Plots")
 
         self.selected_directions = []
-        # self.plotting_checkbox = plotting_checkbox
+        self.plotting_checkbox = plotting_checkbox
 
         """if select_all.isChecked():
             for direction in directions:
