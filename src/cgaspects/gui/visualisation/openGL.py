@@ -37,6 +37,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.lastMousePosition = QtCore.QPoint()
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.camera = Camera()
+        self.restrict_axis = None
 
         self.xyz_path_list = []
         self.sim_num = 0
@@ -210,6 +211,9 @@ class VisualisationWidget(QOpenGLWidget):
 
     def keyPressEvent(self, event):
         dx, dy = 0, 0
+        self.restrict_axis = None
+        modifiers = event.modifiers()
+
         if event.key() == Qt.Key_W:
             dy -= 10
         if event.key() == Qt.Key_S:
@@ -226,16 +230,41 @@ class VisualisationWidget(QOpenGLWidget):
         if event.key() == Qt.Key_R:
             self.camera.resetOrientation()
 
+        # Check for Shift + X, Y, or Z
+        if modifiers & Qt.ShiftModifier:
+            if event.key() == Qt.Key_X:
+                self.restrict_axis = "shift_x"
+            elif event.key() == Qt.Key_Y:
+                self.restrict_axis = "shift_y"
+            elif event.key() == Qt.Key_Z:
+                self.restrict_axis = "shift_z"
+        else:
+            # Regular X, Y, Z without Shift
+            if event.key() == Qt.Key_X:
+                self.restrict_axis = "x"
+            elif event.key() == Qt.Key_Y:
+                self.restrict_axis = "y"
+            elif event.key() == Qt.Key_Z:
+                self.restrict_axis = "z"
+        super().keyPressEvent(event)
+
         self.camera.orbit(dx, dy)
         self.update()
+
+    def keyReleaseEvent(self, event):
+        if event.key() in (Qt.Key_X, Qt.Key_Y, Qt.Key_Z):
+            self.restrict_axis = None
+        super().keyReleaseEvent(event)
 
     def mouseMoveEvent(self, event):
         dx = event.x() - self.lastMousePosition.x()
         dy = event.y() - self.lastMousePosition.y()
 
         if event.buttons() & QtCore.Qt.LeftButton:
-            # Rotation logic
-            self.camera.orbit(dx, dy)
+            if self.restrict_axis in {"x", "y", "z"}:
+                self.rotatePointCloud(dx, self.restrict_axis)
+            else:
+                self.camera.orbit(dx, dy, self.restrict_axis)
 
         elif self.rightMouseButtonPressed:
             self.camera.pan(-dx, dy)  # Negate dx to get correct direction
@@ -246,6 +275,35 @@ class VisualisationWidget(QOpenGLWidget):
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
             self.rightMouseButtonPressed = False
+
+    def rotatePointCloud(self, dx, axis):
+
+        angle = np.radians(dx * self.camera.rotationSpeed)
+        cos_a, sin_a = np.cos(angle), np.sin(angle)
+
+        # Define rotation matrices for X, Y, and Z axes
+        if axis == "x":
+            rotation_matrix = np.array(
+                [[1, 0, 0], [0, cos_a, -sin_a], [0, sin_a, cos_a]], dtype=np.float32
+            )
+        elif axis == "y":
+            rotation_matrix = np.array(
+                [[cos_a, 0, sin_a], [0, 1, 0], [-sin_a, 0, cos_a]], dtype=np.float32
+            )
+        elif axis == "z":
+            rotation_matrix = np.array(
+                [[cos_a, -sin_a, 0], [sin_a, cos_a, 0], [0, 0, 1]], dtype=np.float32
+            )
+        else:
+            return
+
+        # Apply rotation to the XYZ points
+        points = self.xyz[:, 3:6]
+        rotated_points = points @ rotation_matrix.T
+
+        # Update the point cloud with rotated points
+        self.xyz[:, 3:6] = rotated_points
+        self.initGeometry()
 
     def initGeometry(self):
         if self.point_cloud_renderer is None:

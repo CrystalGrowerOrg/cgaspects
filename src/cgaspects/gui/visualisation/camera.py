@@ -1,8 +1,9 @@
 import numpy as np
-from PySide6.QtGui import QMatrix4x4, QQuaternion, QVector3D
+from PySide6.QtGui import QMatrix4x4, QQuaternion, QVector3D, QVector4D
 import logging
 
 LOG = logging.getLogger("CGA:Camera")
+
 
 def pca(vertices):
     "returns the magnitudes and the principle axes"
@@ -92,10 +93,16 @@ class Camera:
             self.scale,
         ) = self._stored_orientation
 
-    def orbit(self, dx, dy):
+    def orbit(self, dx, dy, restrict_axis=None):
+
         # Create quaternions representing the rotations
         q_pitch = QQuaternion.fromAxisAndAngle(self.right, dy * self.rotationSpeed)
         q_yaw = QQuaternion.fromAxisAndAngle(self.up, -dx * self.rotationSpeed)
+        # Apply axis restriction
+        if restrict_axis == "shift_x":
+            q_yaw = QQuaternion()
+        elif restrict_axis == "shift_y":
+            q_pitch = QQuaternion()
 
         # Rotate the position around the target
         direction = self.position - self.target
