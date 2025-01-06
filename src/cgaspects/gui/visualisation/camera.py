@@ -23,6 +23,7 @@ class Camera:
         self.target = target
         self.up = QVector3D(0, 1, 0)
         self.right = QVector3D(1, 0, 0)
+        self.screen = QVector3D(0, 0, 1)
 
         self.rotationSpeed = 1.0
         self.zoomSpeed = 0.02
@@ -99,15 +100,22 @@ class Camera:
         q_pitch = QQuaternion.fromAxisAndAngle(self.right, dy * self.rotationSpeed)
         q_yaw = QQuaternion.fromAxisAndAngle(self.up, -dx * self.rotationSpeed)
         # Apply axis restriction
+
         if restrict_axis == "shift_x":
             q_yaw = QQuaternion()
         elif restrict_axis == "shift_y":
             q_pitch = QQuaternion()
+        elif restrict_axis == "shift_z":
+            q_yaw = QQuaternion()
+            q_pitch = QQuaternion()
+            q_roll = QQuaternion.fromAxisAndAngle(self.screen, -dx * self.rotationSpeed)
 
         # Rotate the position around the target
         direction = self.position - self.target
         direction = q_pitch.rotatedVector(direction)
         direction = q_yaw.rotatedVector(direction)
+        if restrict_axis == "shift_z":
+            direction = q_roll.rotatedVector(direction)
 
         self.position = self.target + direction
 

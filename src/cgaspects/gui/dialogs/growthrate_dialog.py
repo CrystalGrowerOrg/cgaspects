@@ -1,5 +1,12 @@
-from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox,
-                               QHBoxLayout, QScrollArea, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class GrowthRateAnalysisDialogue(QDialog):
@@ -44,7 +51,7 @@ class GrowthRateAnalysisDialogue(QDialog):
             )
 
         direction_layout = QHBoxLayout()
-        direction_layout.addWidget(plotting_checkbox)
+        # direction_layout.addWidget(plotting_checkbox)
         layout.addLayout(direction_layout)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
