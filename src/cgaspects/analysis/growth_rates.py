@@ -78,7 +78,7 @@ class GrowthRate:
 
         # if growth_rate_dialog.exec() == QDialog.Accepted:
         self.selected_directions = growth_rate_dialog.selected_directions
-        self.auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
+        # self.auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
@@ -126,10 +126,10 @@ class GrowthRate:
                     csv=growth_rate_csv, signals=self.signals
                 )
                 PlottingDialogs.show()
-                if self.auto_plotting:
-                    plot = Plotting()
-                    plot.plot_growth_rates(
-                        plotting_csv, self.selected_directions, self.output_folder
-                    )
+                # if self.auto_plotting:
+                #     plot = Plotting()
+                #     plot.plot_growth_rates(
+                #         plotting_csv, self.selected_directions, self.output_folder
+                #     )
             else:
                 logger.warning("The DataFrame is empty. No calculated growth rates.")
