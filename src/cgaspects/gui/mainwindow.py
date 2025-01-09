@@ -299,9 +299,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.log_message("Reading Images...", "info")
         xyz_files = locate_xyz_files(folder)
+        print(xyz_files)
 
         # Check for valid data, folder reinitialised as a Path object
-        if (folder, xyz_files) == (None, None):
+        if xyz_files == None:
             return False
 
         self.xyz_files = xyz_files

@@ -94,13 +94,17 @@ class Camera:
             self.scale,
         ) = self._stored_orientation
 
-    def orbit(self, dx, dy, restrict_axis=None):
+    def compute_relative_mouse_pos(self, event_pos):
+        mouse_x = (self.right * event_pos.windowPos().x()).normalized()
+        mouse_y = (self.up * event_pos.windowPos().y()).normalized()
+        return (mouse_x + mouse_y).normalized()
 
+    def orbit(self, dx, dy, restrict_axis=None, event_pos=QVector3D(0, 0, 0)):
         # Create quaternions representing the rotations
         q_pitch = QQuaternion.fromAxisAndAngle(self.right, dy * self.rotationSpeed)
         q_yaw = QQuaternion.fromAxisAndAngle(self.up, -dx * self.rotationSpeed)
-        # Apply axis restriction
 
+        # Apply axis restriction
         if restrict_axis == "shift_x":
             q_yaw = QQuaternion()
         elif restrict_axis == "shift_y":
@@ -108,24 +112,30 @@ class Camera:
         elif restrict_axis == "shift_z":
             q_yaw = QQuaternion()
             q_pitch = QQuaternion()
-            q_roll = QQuaternion.fromAxisAndAngle(self.screen, -dx * self.rotationSpeed)
+
+            # Calculate roll magnitude based on tangential movement
+            # Cross product of position vector and movement vector gives roll direction
+            pos_vec = QVector3D(event_pos.x(), event_pos.y(), 0).normalized()
+            move_vec = QVector3D(dx, dy, 0).normalized()
+            roll_direction = QVector3D.crossProduct(pos_vec, move_vec).z()
+            roll_magnitude = np.sqrt(dx**2 + dy**2) * self.rotationSpeed
+            q_roll = QQuaternion.fromAxisAndAngle(
+                self.screen, -roll_direction * roll_magnitude
+            )
 
         # Rotate the position around the target
         direction = self.position - self.target
         direction = q_pitch.rotatedVector(direction)
         direction = q_yaw.rotatedVector(direction)
-        if restrict_axis == "shift_z":
-            direction = q_roll.rotatedVector(direction)
-
         self.position = self.target + direction
 
-        self.right = QVector3D.crossProduct(
-            self.up, self.target - self.position
-        ).normalized()
+        # Update view vectors
+        self.screen = (self.target - self.position).normalized()
+        self.right = QVector3D.crossProduct(self.up, self.screen).normalized()
 
-        self.up = QVector3D.crossProduct(
-            self.target - self.position, self.right
-        ).normalized()
+        if restrict_axis == "shift_z":
+            self.right = q_roll.rotatedVector(self.right)
+        self.up = QVector3D.crossProduct(self.screen, self.right).normalized()
 
         # Recalculate the distance in case of zooming
         self.distance = (self.position - self.target).length()
