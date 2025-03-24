@@ -11,7 +11,7 @@ import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
-from PySide6.QtGui import QIcon, Qt
+from PySide6.QtGui import QIcon, Qt, QImage
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
 from ..analysis.aspect_ratios import AspectRatio
@@ -367,6 +367,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz, self.movie = result
         self.openglwidget.pass_XYZ(self.xyz)
         self.openglwidget.movie = self.movie
+        self.renderVideoButton.setEnabled(False)
 
         if self.movie:
             self.playingState = False
@@ -384,12 +385,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.frame_spinBox.setMinimum(0)
             self.frame_spinBox.setMaximum(num_frames - 1)
             self.frameMaxLabel.setText(f"{num_frames - 1}")
+            self.renderVideoButton.setEnabled(True)
 
         try:
             self.openglwidget.initGeometry()
             self.actionRender.setEnabled(True)
             self.saveframe_pushButton.setEnabled(True)
-            self.renderVideoButton.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
@@ -783,7 +784,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 pass
         else:
             super().keyPressEvent(event)
-    
+
     def render_video(self):
         # Get the selected framerate from the visualization settings
         fps = self.visualizationSettings.fps()
@@ -801,7 +802,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Initialize the video writer
         width = self.openglwidget.width()
         height = self.openglwidget.height()
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(file_name, fourcc, fps, (width, height))
 
         # Render each frame and write it to the video
@@ -812,10 +813,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Update frame counter widget
             self.frame_slider.setValue(frame)
             self.frame_spinBox.setValue(frame)
-            image = self.openglwidget.grabFramebuffer()
-            frame_data = bytes(image.bits())  # This converts the memoryview to bytes
-            frame_array = np.frombuffer(frame_data, dtype=np.uint8).reshape((height, width, 4))
-            frame_bgr = cv2.cvtColor(frame_array, cv2.COLOR_RGBA2BGR)
+            image = self.openglwidget.grabFramebuffer().convertToFormat(
+                QImage.Format_RGB888
+            )
+            width = image.width()
+            height = image.height()
+            bytes_per_line = image.bytesPerLine()
+
+            ptr = image.bits()
+            buf = ptr[: height * bytes_per_line]  # Safe slice of memoryview
+            frame_array = np.frombuffer(buf, dtype=np.uint8).reshape(
+                (height, bytes_per_line // 3, 3)
+            )
+            frame_array = frame_array[:, :width, :]  # Trim padding
+            frame_bgr = cv2.cvtColor(frame_array, cv2.COLOR_RGB2BGR)
             video_writer.write(frame_bgr)
 
         # Release the video writer

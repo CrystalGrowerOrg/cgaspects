@@ -1,5 +1,5 @@
 import numpy as np
-from OpenGL.GL import GL_FLOAT, GL_TRIANGLES, GL_UNSIGNED_INT
+from OpenGL.GL import GL_FLOAT, GL_TRIANGLES
 from PySide6.QtOpenGL import (
     QOpenGLBuffer,
     QOpenGLShader,
@@ -143,7 +143,9 @@ class SphereRenderer(QOpenGLExtraFunctions):
         self.program.release()
 
     def draw(self, gl):
-        self.glDrawArraysInstanced(GL_TRIANGLES, 0, self.numberOfVertices(), self.numberOfInstances())
+        self.glDrawArraysInstanced(
+            GL_TRIANGLES, 0, self.numberOfVertices(), self.numberOfInstances()
+        )
 
     def numberOfInstances(self):
         if self.instances is None:

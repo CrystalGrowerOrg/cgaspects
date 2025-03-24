@@ -2,6 +2,8 @@ import logging
 
 import numpy as np
 from matplotlib import cm
+import trimesh
+from scipy.spatial import ConvexHull
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
@@ -10,7 +12,6 @@ from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog
 
-from ...analysis.shape_analysis import CrystalShape
 from ...fileio.xyz_file import read_XYZ
 from .axes_renderer import AxesRenderer
 from .camera import Camera
@@ -19,8 +20,6 @@ from .sphere_renderer import SphereRenderer
 from .mesh_renderer import MeshRenderer
 from .line_renderer import LineRenderer
 from ..widgets.overlay_widget import TransparentOverlay
-import trimesh
-from scipy.spatial import ConvexHull
 
 
 logger = logging.getLogger("CA:OpenGL")
@@ -121,10 +120,10 @@ class VisualisationWidget(QOpenGLWidget):
                 self, "Save File", "", "Images (*.png)"
             )
             if file_name:
-                if '.' in file_name:
-                    file_name = file_name.rsplit('.', 1)[0]
+                if "." in file_name:
+                    file_name = file_name.rsplit(".", 1)[0]
                     logger.info("File extension incorrect, changed to .png")
-                self.saveRender(file_name+".png", resolution)
+                self.saveRender(file_name + ".png", resolution)
 
     def renderToImage(self, scale):
         self.makeCurrent()
