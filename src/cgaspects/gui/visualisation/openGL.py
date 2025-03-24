@@ -121,7 +121,10 @@ class VisualisationWidget(QOpenGLWidget):
                 self, "Save File", "", "Images (*.png)"
             )
             if file_name:
-                self.saveRender(file_name, resolution)
+                if '.' in file_name:
+                    file_name = file_name.rsplit('.', 1)[0]
+                    logger.info("File extension incorrect, changed to .png")
+                self.saveRender(file_name+".png", resolution)
 
     def renderToImage(self, scale):
         self.makeCurrent()
@@ -142,6 +145,7 @@ class VisualisationWidget(QOpenGLWidget):
         return result
 
     def saveRender(self, file_name, resolution):
+        logger.info("Rendering %s with resolution %s", file_name, resolution)
         image = self.renderToImage(float(resolution[0]))
         image.save(file_name)
 

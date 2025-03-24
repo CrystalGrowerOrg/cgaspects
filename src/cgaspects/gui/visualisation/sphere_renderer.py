@@ -6,14 +6,17 @@ from PySide6.QtOpenGL import (
     QOpenGLShaderProgram,
     QOpenGLVertexArrayObject,
 )
+from PySide6.QtGui import QOpenGLExtraFunctions
 
 
-class SphereRenderer:
+class SphereRenderer(QOpenGLExtraFunctions):
     faces = None
     vertices = None
     instances = None
 
     def __init__(self, gl):
+        super().__init__()
+        self.initializeOpenGLFunctions()
         self.vertex_shader_source = """
         #version 330 core
         layout(location = 0) in vec3 vertexPosition;
@@ -140,16 +143,7 @@ class SphereRenderer:
         self.program.release()
 
     def draw(self, gl):
-        import ctypes
-
-        ptr = ctypes.c_void_p(0)
-
-        gl.glDrawArraysInstanced(
-            GL_TRIANGLES,
-            0,
-            self.numberOfVertices(),
-            self.numberOfInstances(),
-        )
+        self.glDrawArraysInstanced(GL_TRIANGLES, 0, self.numberOfVertices(), self.numberOfInstances())
 
     def numberOfInstances(self):
         if self.instances is None:

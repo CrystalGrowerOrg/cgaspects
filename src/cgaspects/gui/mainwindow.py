@@ -1,6 +1,8 @@
 import logging
 import os
 import sys
+import cv2
+import numpy as np
 from collections import defaultdict, namedtuple
 from pathlib import Path
 from typing import List
@@ -135,6 +137,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
 
         self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
+        self.renderVideoButton.clicked.connect(self.render_video)
 
         self.visualizationSettings = VisualizationSettingsWidget(parent=self)
         self.visualizationSettings.setEnabled(enabled=True)
@@ -386,6 +389,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.initGeometry()
             self.actionRender.setEnabled(True)
             self.saveframe_pushButton.setEnabled(True)
+            self.renderVideoButton.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
@@ -723,8 +727,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget.updateSettings(**self.visualizationSettings.settings())
         fps = self.visualizationSettings.fps()
         if self.fps != fps:
-            self.frame_timer.start(1000 // self.fps)
             self.fps = fps
+        if self.playingState:
+            self.frame_timer.start(1000 // self.fps)
 
     # Utility function to clear a layout of all its widgets
     def clear_layout(self, layout):
@@ -778,6 +783,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 pass
         else:
             super().keyPressEvent(event)
+    
+    def render_video(self):
+        # Get the selected framerate from the visualization settings
+        fps = self.visualizationSettings.fps()
+
+        # Ask the user for the output file name
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Save Video", "", "Videos (*.mp4)"
+        )
+        if not file_name:
+            return
+
+        if not file_name.endswith(".mp4"):
+            file_name += ".mp4"
+
+        # Initialize the video writer
+        width = self.openglwidget.width()
+        height = self.openglwidget.height()
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(file_name, fourcc, fps, (width, height))
+
+        # Render each frame and write it to the video
+        for frame in range(len(self.frame_list)):
+            self.update_frame(frame)
+            self.openglwidget.update()
+            QtWidgets.QApplication.processEvents()
+            # Update frame counter widget
+            self.frame_slider.setValue(frame)
+            self.frame_spinBox.setValue(frame)
+            image = self.openglwidget.grabFramebuffer()
+            frame_data = bytes(image.bits())  # This converts the memoryview to bytes
+            frame_array = np.frombuffer(frame_data, dtype=np.uint8).reshape((height, width, 4))
+            frame_bgr = cv2.cvtColor(frame_array, cv2.COLOR_RGBA2BGR)
+            video_writer.write(frame_bgr)
+
+        # Release the video writer
+        video_writer.release()
+        QMessageBox.information(self, "Video Rendered", f"Video saved to {file_name}")
 
 
 def set_default_opengl_version(major, minor):

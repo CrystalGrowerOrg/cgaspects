@@ -145,30 +145,34 @@ class LabelledDoubleSlider(QWidget):
         self.steps = steps
 
         self.slider = QSlider(Qt.Horizontal)
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(self.steps)
-        self.slider.setSingleStep(self.step)
+        self.slider.setMinimum(self.minimum)
+        self.slider.setMaximum(self.maximum)
+        self.slider.setSingleStep(1)
+
+        self.valueLabel = QLabel(f"{self.value}")
 
         # Connect signals to slots
-        self.slider.valueChanged.connect(self.valueChanged)
+        self.slider.valueChanged.connect(self.updateValue)
 
         # Layout
         layout = QHBoxLayout()
         layout.setContentsMargins(*MARGINS)
         layout.addWidget(self.label)
         layout.addWidget(self.slider)
+        layout.addWidget(self.valueLabel)
         self.setLayout(layout)
-
-    @property
-    def step(self):
-        return (self.maximum - self.minimum) / self.steps
 
     def setValue(self, value):
         self.slider.setValue(value)
+        self.updateValue()
 
     @property
     def value(self):
-        return self.minimum + self.slider.value() * self.step
+        return self.slider.value()
+
+    def updateValue(self):
+        self.valueLabel.setText(f"{self.value}")
+        self.valueChanged.emit()
 
 
 class VisualizationSettingsWidget(QWidget):

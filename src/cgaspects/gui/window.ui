@@ -511,6 +511,22 @@
                <normaloff>:/material_icons/material_icons/png/content-save-custom.png</normaloff>:/material_icons/material_icons/png/content-save-custom.png</iconset>
              </property>
             </widget>
+            <widget class="QPushButton" name="renderVideoButton">
+              <property name="enabled">
+                  <bool>true</bool>
+              </property>
+              <property name="toolTip">
+                  <string>Render video of all frames</string>
+              </property>
+              <property name="text">
+                  <string>Render Video</string>
+              </property>
+              <property name="icon">
+                  <iconset resource="../../../res/qticons.qrc">
+                      <normaloff>:/material_icons/material_icons/png/video-camera.png</normaloff>
+                  </iconset>
+              </property>
+            </widget>
            </item>
           </layout>
          </widget>
