@@ -1,14 +1,15 @@
 import logging
+from pathlib import Path
 
 import numpy as np
 from matplotlib import cm
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtWidgets import QFileDialog, QInputDialog
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 from ...analysis.shape_analysis import CrystalShape
 from ...fileio.xyz_file import read_XYZ
@@ -122,6 +123,37 @@ class VisualisationWidget(QOpenGLWidget):
             )
             if file_name:
                 self.saveRender(file_name, resolution)
+
+    def saveRenderDialog(self):
+        options = ["1x", "2x", "4x"]
+        resolution, ok = QInputDialog.getItem(
+            self, "Select Resolution", "Resolution:", options, 0, False
+        )
+
+        if ok:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self, "Save File", "", "Images (*.png)"
+            )
+            if file_name:
+                self.saveRender(file_name, resolution)
+
+                # Confirmation dialog
+                msgBox = QMessageBox(self)
+                msgBox.setWindowTitle("Render Saved")
+                msgBox.setText(f"Image saved to:\n{file_name}")
+                msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Cancel)
+                msgBox.setDefaultButton(QMessageBox.Open)
+
+                open_folder_button = msgBox.addButton(
+                    "Open Folder", QMessageBox.ActionRole
+                )
+
+                result = msgBox.exec_()
+
+                if result == QMessageBox.Open:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
+                elif msgBox.clickedButton() == open_folder_button:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(Path(file_name).parent))
 
     def renderToImage(self, scale):
         self.makeCurrent()
