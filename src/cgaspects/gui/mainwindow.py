@@ -15,9 +15,8 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBa
 from ..analysis.aspect_ratios import AspectRatio
 from ..analysis.growth_rates import GrowthRate
 from ..analysis.gui_threads import WorkerXYZ
-from ..analysis.shape_analysis import CrystalShape
 from ..fileio.find_data import find_info, locate_xyz_files
-from ..fileio.xyz_file import read_XYZ
+from ..fileio.xyz_file import CrystalCloud
 from ..fileio.logging import setup_logging
 from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
@@ -138,9 +137,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.visualizationSettings = VisualizationSettingsWidget(parent=self)
         self.visualizationSettings.setEnabled(enabled=True)
-        self.visualizationSettings.settingsChanged.connect(
-            self.handleVisualizationSettingsChange
-        )
+        self.visualizationSettings.settingsChanged.connect(self.handleVisualizationSettingsChange)
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
         self.fps = self.visualizationSettings.fps()
 
@@ -149,9 +146,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
-        self.actionImport.triggered.connect(
-            lambda: self.import_and_visualise_xyz(folder=None)
-        )
+        self.actionImport.triggered.connect(lambda: self.import_and_visualise_xyz(folder=None))
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
         self.actionImportCSVClipboard.triggered.connect(
             lambda x: self.set_plotting(QtWidgets.QApplication.clipboard().text())
@@ -163,16 +158,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.actionInput_Directory.triggered.connect(
             lambda: (
-                open_directory(path=self.input_folder)
-                if self.input_folder is not None
-                else None
+                open_directory(path=self.input_folder) if self.input_folder is not None else None
             )
         )
         self.actionResults_Directory.triggered.connect(
             lambda: (
-                open_directory(path=self.output_folder)
-                if self.output_folder is not None
-                else None
+                open_directory(path=self.output_folder) if self.output_folder is not None else None
             )
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
@@ -192,9 +183,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)
-        self.import_pushButton.clicked.connect(
-            lambda: self.import_and_visualise_xyz(folder=None)
-        )
+        self.import_pushButton.clicked.connect(lambda: self.import_and_visualise_xyz(folder=None))
         self.batch_lineEdit.returnPressed.connect(
             lambda: self.import_and_visualise_xyz(folder=self.batch_lineEdit.text())
         )
@@ -325,15 +314,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.simulation_variables_widget = None
 
         if self.xyz_files is None:
-            self.log_message(f"No XYZ files to visualise", "warning")
+            self.log_message("No XYZ files to visualise", "warning")
             return
         n_xyz = len(self.xyz_files)
         if n_xyz == 0:
             self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
         if n_xyz > 0:
             self.init_opengl()
-            result = self.get_xyz_frame_or_movie(0)
-            self.init_crystal(result)
+            self.crystal = self.get_crystal(0)
+            self.init_crystal()
 
             self.update_XYZ_info(self.openglwidget.xyz)
             self.aspect_ratio_pushButton.setEnabled(True)
@@ -358,18 +347,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.log_message(f"{len(self.xyz_files)} XYZ files set to visualiser!", "info")
 
-    def init_crystal(self, result):
+    def init_crystal(self):
         self.movie_controls_frame.hide()
-        logger.debug("Initializing crystal: %s", result)
-        self.xyz, self.movie = result
-        self.openglwidget.pass_XYZ(self.xyz)
-        self.openglwidget.movie = self.movie
+        logger.debug("Initializing crystal!")
+        self.openglwidget.pass_XYZ(self.crystal.get_raw_frame_coords(0))
 
-        if self.movie:
+        if len(self.crystal) > 1:
             self.playingState = False
             self.frame_timer.stop()
             self.movie_controls_frame.show()
-            self.frame_list = self.movie.keys()
+            self.frame_list = list(range(1, len(self.crystal) + 1))
             self.frame = 0
             logger.debug("Frames: %s", self.frame_list)
 
@@ -389,24 +376,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
-    def get_xyz_frame_or_movie(self, index):
+    def get_crystal(self, index):
         folder = self.input_folder
         if 0 <= index < len(self.xyz_files):
             file_name = self.xyz_files[index]
             full_file_path = os.path.join(folder, file_name)
-            results = xyz_tuple
 
             self.set_progressbar()
 
             def prog(val, tot):
                 self.update_progressbar(100.0 * val / tot)
 
-            xyz, xyz_movie = read_XYZ(full_file_path, progress_callback=prog)
+            self.crystal = CrystalCloud.from_file(full_file_path, progress_callback=prog)
             self.clear_progressbar()
 
-            result = results(xyz=xyz, xyz_movie=xyz_movie)
-
-            return result
+            return self.crystal
 
     def update_XYZ_info(self, xyz):
         if xyz is None:
@@ -495,9 +479,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.growth_rate_pushButton.setEnabled(False)
 
         if not Path(folder).is_dir():
-            QMessageBox.warning(
-                None, "Directory Error", f"{folder} is not a valid directory."
-            )
+            QMessageBox.warning(None, "Directory Error", f"{folder} is not a valid directory.")
             return
 
         self.input_folder = folder
@@ -559,9 +541,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.plot_lineEdit.setText(str(plotting_csv))
             else:
                 # Handle the case where no folder was selected
-                self.log_message(
-                    "File selection was canceled or no file was selected.", "debug"
-                )
+                self.log_message("File selection was canceled or no file was selected.", "debug")
 
         # Note: Bare Exception
         except Exception as e:
@@ -587,9 +567,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.log_message(f"Accepting incoming result to GUI {value}", "debug")
         if value.selected:
             self.selected_directions = value.selected
-            self.log_message(
-                f"Selected Directions set to: {self.selected_directions}", "debug"
-            )
+            self.log_message(f"Selected Directions set to: {self.selected_directions}", "debug")
         if value.folder:
             self.output_folder = value.folder
             self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
@@ -634,9 +612,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
             self.summ_df = self.summ_df.iloc[:, 1:]
-        self.log_message(
-            f"Summary data succesfully read! [SHAPE {self.summ_df.shape}]", "info"
-        )
+        self.log_message(f"Summary data succesfully read! [SHAPE {self.summ_df.shape}]", "info")
 
         column_names = list(self.summ_df)
         self.log_message(f"Summary Column Name: {column_names}", "debug")
@@ -662,9 +638,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.simulation_variables_widget = widget
             layout.addWidget(self.simulation_variables_widget)
 
-        self.simulation_variables_widget.variableCombinationChanged.connect(
-            self.summary_change
-        )
+        self.simulation_variables_widget.variableCombinationChanged.connect(self.summary_change)
 
         self.statusBar().showMessage("Complete: Summary file read in!")
 
@@ -678,9 +652,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         if len(filtered_df.index) > 1:
-            self.log_message(
-                "Set of values have selected more than one row/simulation", "warning"
-            )
+            self.log_message("Set of values have selected more than one row/simulation", "warning")
             return
 
         # self.update_variables(values=values)
@@ -697,9 +669,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setCurrentXYZIndex(self, value):
         self.sim_num = value
         self.openglwidget.get_XYZ_from_list(value=value)
-        self.movie = self.openglwidget.movie
         self.movie_controls_frame.hide()
-        if self.movie:
+        if len(self.crystal) > 1:
             self.movie_controls_frame.show()
 
         # block to prevent double updates
@@ -739,16 +710,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.crystal_info.aspectRatio1 = result.aspect1
         self.crystal_info.aspectRatio2 = result.aspect2
         self.crystal_info.shapeClass = result.shape
-        self.crystal_info.surfaceAreaVolumeRatio = result.sa_vol
-        self.crystal_info.surfaceArea = result.sa
-        self.crystal_info.volume = result.vol
+        self.crystal_info.surfaceAreaVolumeRatio = result.surface_area_to_volume_ratio
+        self.crystal_info.surfaceArea = result.surface_area
+        self.crystal_info.volume = result.volume
 
         self.crystalInfoChanged.emit(self.crystal_info)
 
     def update_frame(self, frame):
         self.frame = frame
-        self.xyz = self.movie[frame]
-        self.openglwidget.pass_XYZ(self.xyz)
+        self.openglwidget.pass_XYZ(self.crystal.get_raw_frame_coords(frame))
         self.update_XYZ_info(self.openglwidget.xyz)
         try:
             self.openglwidget.initGeometry()
@@ -822,9 +792,7 @@ def main():
     # sys.argv += ['--style', 'Material.Light']
     QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, args.no_dpi_scaling)
 
-    QtWidgets.QApplication.setAttribute(
-        Qt.AA_DontUseNativeMenuBar, args.no_native_menubar
-    )
+    QtWidgets.QApplication.setAttribute(Qt.AA_DontUseNativeMenuBar, args.no_native_menubar)
 
     QtWidgets.QApplication.setApplicationName("CGAspects")
     app = QtWidgets.QApplication(sys.argv)

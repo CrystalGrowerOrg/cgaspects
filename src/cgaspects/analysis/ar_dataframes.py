@@ -5,7 +5,8 @@ from itertools import permutations
 from pathlib import Path
 import pandas as pd
 
-from .shape_analysis import CrystalShape
+from .shape_analysis import ShapeAnalyser
+from ..fileio.xyz_file import CrystalCloud
 
 LOG = logging.getLogger("CA:AR-Dataframes")
 
@@ -22,9 +23,7 @@ def merge_dicts(dict_list):
                 elif isinstance(merged[k], set) and isinstance(v, set):
                     merged[k] |= v
                 else:
-                    raise TypeError(
-                        f"Unsupported types for merge: {type(merged[k])}, {type(v)}"
-                    )
+                    raise TypeError(f"Unsupported types for merge: {type(merged[k])}, {type(v)}")
             else:
                 merged[k] = v
 
@@ -56,9 +55,7 @@ def parse_simulation_parameters_file(path, directions, sim_num):
 def populate_aspect_ratios_for_selected_columns(df, selected):
     for i in range(len(selected) - 1):
         LOG.debug("Aspect Ratio [%s] : [%s] : [%s]", i, selected[i], selected[i + 1])
-        df[f"Ratio_{selected[i]}:{selected[i+1]}"] = (
-            df[selected[i]] / df[selected[i + 1]]
-        )
+        df[f"Ratio_{selected[i]}:{selected[i + 1]}"] = df[selected[i]] / df[selected[i + 1]]
 
 
 def build_cda(folders, folderpath, savefolder, directions, selected, singals=None):
@@ -86,7 +83,6 @@ def build_cda(folders, folderpath, savefolder, directions, selected, singals=Non
     ar_dict = treat_inconsistent_dict(ar_dict)
     print_keys_and_value_lengths(ar_dict)
 
-
     LOG.debug("CDA data frame dictionary:\n%s", ar_dict)
     print(ar_dict)
 
@@ -110,11 +106,7 @@ def get_cda_shape_percentage(df: pd.DataFrame, savefolder: str | Path):
     savefolder = Path(savefolder)
 
     for shape_column in shape_columns:
-        grouped = (
-            df.groupby(["CDA_Permutation", shape_column])
-            .size()
-            .reset_index(name="Count")
-        )
+        grouped = df.groupby(["CDA_Permutation", shape_column]).size().reset_index(name="Count")
         for cda_permutation, group in grouped.groupby("CDA_Permutation"):
             for shape, count in zip(group[shape_column], group["Count"]):
                 source = "OBA" if shape_column == "OBA Shape" else "PCA"
@@ -127,9 +119,7 @@ def get_cda_shape_percentage(df: pd.DataFrame, savefolder: str | Path):
                     }
                 )
 
-    cda_shape_df = pd.concat(
-        [pd.DataFrame([data]) for data in cda_shape_data], ignore_index=True
-    )
+    cda_shape_df = pd.concat([pd.DataFrame([data]) for data in cda_shape_data], ignore_index=True)
     cda_shape_df.sort_values("CDA_Permutation", inplace=True)
     cda_shape_df.to_csv(savefolder / "shapes_permutations.csv")
 
@@ -164,9 +154,7 @@ def build_ratio_equations(directions, ar_df=None, csv=None, filepath: str | Path
 
     # Iterate over the permutations and dynamically assign number
     for i, perm in enumerate(d_perms, 1):
-        condition = (ar_df[perm[0]] <= ar_df[perm[1]]) & (
-            ar_df[perm[1]] <= ar_df[perm[2]]
-        )
+        condition = (ar_df[perm[0]] <= ar_df[perm[1]]) & (ar_df[perm[1]] <= ar_df[perm[2]])
         ar_df.loc[condition, "CDA_Permutation"] = str(i)
 
     return ar_df
@@ -195,12 +183,12 @@ def get_xyz_shape_percentage(df, savefolder):
 
 
 def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None):
-    shape = CrystalShape()
     """
-    This collects all the crystalaspects
+    This collects all the crystal shape
     information from each of the relevant functions
     and congregates that into the final DataFrame
     """
+
     col_headings = [
         "Simulation Number",
         "PC1",
@@ -220,66 +208,60 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
     if xyz_files is None:
         if folder is None:
             LOG.error(
-                "Received no folder or xyz files" "Folder: %s XYZ-files: %s",
+                "Received no folder or xyz filesFolder: %s XYZ-files: %s",
                 folder,
                 xyz_files,
             )
             return
         LOG.warning(
-            "XYZ files were not passed to calculations thread"
-            "Currently being read from %s",
+            "XYZ files were not passed to calculations threadCurrently being read from %s",
             folder,
         )
 
         def not_empty(x):
             return x.stat().st_size > 0
 
-        xyz_files = [
-            filepath for filepath in Path(folder).rglob("*.XYZ") if not_empty(filepath)
-        ]
+        xyz_files = [filepath for filepath in Path(folder).rglob("*.XYZ") if not_empty(filepath)]
 
-    if not isinstance(xyz_files, list) or not all(
-        isinstance(item, Path) for item in xyz_files
-    ):
-        LOG.error(
-            "XYZ files as type %s expected, got %s", type(list[Path]), type(xyz_files)
-        )
+    if not isinstance(xyz_files, list) or not all(isinstance(item, Path) for item in xyz_files):
+        LOG.error("XYZ files as type %s expected, got %s", type(list[Path]), type(xyz_files))
 
     n_xyzs = len(xyz_files)
     if n_xyzs < 1:
-        LOG.error(
-            "No XYZ files found in directory/subdirectories of [%s]", str(folder)
-        )
+        LOG.error("No XYZ files found in directory/subdirectories of [%s]", str(folder))
         return
 
     # List for collecting data
     data_list = []
     i = 1
+    shape_analyser = ShapeAnalyser()
+
     for file in xyz_files:
         try:
             sim_num = re.findall(r"\d+", file.name)[-1]
         except IndexError:
             sim_num = file.name.split("_")[0]
         try:
-            shape.set_xyz(file)
-            crystal_info = shape.get_zingg_analysis()
+            crystal = CrystalCloud.from_file(file)
+            shape_analyser.analyse_crystal(crystal, frame_idx=None)
 
-            # Extract values from the namedtuple and add to the list
-            data_row = [
-                sim_num,
-                crystal_info.pc1,
-                crystal_info.pc2,
-                crystal_info.pc3,
-                crystal_info.x,
-                crystal_info.y,
-                crystal_info.z,
-                crystal_info.aspect1,
-                crystal_info.aspect2,
-                crystal_info.shape,
-                crystal_info.sa,
-                crystal_info.vol,
-                crystal_info.sa_vol,
-            ]
+            for frame_idx, metrics in shape_analyser.get_all_frame_metrics().items():
+                data_row = [
+                    sim_num,
+                    frame_idx,
+                    metrics.pc1,
+                    metrics.pc2,
+                    metrics.pc3,
+                    metrics.x,
+                    metrics.y,
+                    metrics.z,
+                    metrics.aspect1,
+                    metrics.aspect2,
+                    metrics.shape,
+                    metrics.surface_area,
+                    metrics.volume,
+                    metrics.surface_area_to_volume_ratio,
+                ]
             data_list.append(data_row)
             if signals:
                 signals.progress.emit(int((i / n_xyzs) * 100))
@@ -292,10 +274,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
         df = pd.DataFrame(data_list, columns=col_headings)
         return df
     else:
-        LOG.warning(
-            "Couldn't create Aspect Ratio Dataframe."
-            "Please check the XYZ files provided."
-        )
+        LOG.warning("Couldn't create Aspect Ratio Dataframe.Please check the XYZ files provided.")
         return
 
 
@@ -310,13 +289,14 @@ def print_keys_and_value_lengths(input_dict):
                 "Expected a list of values or a single value of type int, str, or float."
                 f" Recieved: {value} Type[{value.__class__}]"
             )
-        
+
         LOG.info(f"{key}: {l}")
+
 
 def treat_inconsistent_dict(input_dict: dict):
     """
-    Attempts to recover the last length 
-    from a dictionary that is potentially a result 
+    Attempts to recover the last length
+    from a dictionary that is potentially a result
     of multiple lenght entries (a movie)
 
     Parameters:
@@ -330,14 +310,15 @@ def treat_inconsistent_dict(input_dict: dict):
     for col in input_dict.keys():
         if col.lower() in {"simulation number" or "solvent"}:
             index_col = col
-        
+
     if index_col is None:
         index_col = input_dict.keys()[0]
         LOG.warning(
             "'Simulation Number' or 'Solvent' not found as indexing columns. "
-            "Using the first column: %s", index_col
+            "Using the first column: %s",
+            index_col,
         )
-    
+
     nsims = len(input_dict[index_col])
 
     last_values = dict()
@@ -353,7 +334,3 @@ def treat_inconsistent_dict(input_dict: dict):
                 f"divisioble by the number of simulations found: {nsims}"
             )
     return last_values
-
-
-
-

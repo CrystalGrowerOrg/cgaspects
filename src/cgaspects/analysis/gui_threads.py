@@ -1,5 +1,4 @@
 import logging
-from collections import namedtuple
 from pathlib import Path
 from typing import NamedTuple
 
@@ -18,8 +17,8 @@ from ..fileio.find_data import (
     create_aspects_folder,
     combine_xyz_cda,
 )
-from .shape_analysis import CrystalShape
-from ..utils.data_structures import xyz_tuple
+from .shape_analysis import ShapeAnalyser
+from ..fileio.xyz_file import CrystalCloud
 
 logger = logging.getLogger("CA:Threads")
 
@@ -53,12 +52,11 @@ class WorkerXYZ(QRunnable):
         # Store constructor arguments (re-used for processing)
         self.xyz = xyz
         self.signals = WorkerSignals()
-        self.shape = CrystalShape()
+        self.analyser = ShapeAnalyser()
 
     @Slot()
     def run(self):
-        self.shape.set_xyz(self.xyz)
-        shape_info = self.shape.get_zingg_analysis()
+        shape_info = self.analyser.shape_info(self.xyz[:, 3:6])
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit("Calculations Complete!")
@@ -98,9 +96,7 @@ class WorkerAspectRatios(QRunnable):
                 and self.options.selected_directions
             )
         ):
-            logger.error(
-                "Condtions not met: AR AND/OR CDA (with checked AND selected directions)"
-            )
+            logger.error("Condtions not met: AR AND/OR CDA (with checked AND selected directions)")
             return
 
         if self.options.selected_ar:
@@ -181,22 +177,3 @@ class WorkerGrowthRates(QRunnable):
         )
 
         self.signals.result.emit(growth_rate_df)
-
-
-class WorkerMovies(QRunnable):
-    def __init__(self, filepath):
-        super(WorkerMovies, self).__init__()
-        self.filepath = filepath
-        self.signals = WorkerSignals()
-
-    def run(self):
-
-        self.signals.message.emit("Reading XYZ file. Please wait...")
-        xyz, xyz_movie = CrystalShape.read_XYZ(self.filepath)
-        self.signals.progress.emit(100.0)
-
-        result = xyz_tuple(xyz=xyz, xyz_movie=xyz_movie)
-
-        self.signals.result.emit(result)
-        self.signals.message.emit("Reading XYZ Complete!")
-        self.signals.finished.emit()

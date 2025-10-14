@@ -36,8 +36,8 @@ class TestPlottingDialog(unittest.TestCase):
         # Test if the geometry is set correctly
         self.assertEqual(dialog.geometry().topLeft().x(), 100)
         self.assertEqual(dialog.geometry().topLeft().y(), 100)
-        self.assertEqual(dialog.geometry().width(), 800)
-        self.assertEqual(dialog.geometry().height(), 650)
+        self.assertEqual(dialog.geometry().width(), 850)
+        self.assertEqual(dialog.geometry().height(), 1000)
 
         # Test if the dialog is non-modal
         self.assertEqual(dialog.windowModality(), Qt.NonModal)

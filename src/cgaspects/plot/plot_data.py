@@ -8,28 +8,10 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 import pandas as pd
 
 # PySide6 imports
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QFileDialog,
-    QGridLayout,
-    QHBoxLayout,
-    QInputDialog,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QSizePolicy,
-    QSpinBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QDialog
 
 matplotlib.use("QT5Agg")
 
@@ -52,9 +34,7 @@ class Plotting(QDialog):
         savefolder = self.create_plots_folder(folderpath)
 
         interactions = [
-            col
-            for col in df.columns
-            if col.startswith("interaction") or col.startswith("tile")
+            col for col in df.columns if col.startswith("interaction") or col.startswith("tile")
         ]
         x_data = df["S:M"]
         y_data = df["M:L"]
@@ -77,7 +57,7 @@ class Plotting(QDialog):
             c_df = df[interaction]
             colour = list(set(c_df))
             textstr = interaction
-            props = dict(boxstyle="square", facecolor="white")
+            # props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
@@ -95,9 +75,7 @@ class Plotting(QDialog):
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def plot_cda_extended(
-        self, csv="", df="", folderpath="./outputs", selected="", i_plot=False
-    ):
+    def plot_cda_extended(self, csv="", df="", folderpath="./outputs", selected="", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -107,12 +85,12 @@ class Plotting(QDialog):
 
         i = 0
         plt.figure()
-        x_data = extended_df[f"Ratio_{selected[i]}:{selected[i+1]}"]
-        y_data = extended_df[f"Ratio_{selected[i+1]}:{selected[i+2]}"]
+        x_data = extended_df[f"Ratio_{selected[i]}:{selected[i + 1]}"]
+        y_data = extended_df[f"Ratio_{selected[i + 1]}:{selected[i + 2]}"]
         plt.scatter(x_data, y_data, s=1.2)
-        plt.xlabel(f"Ratio_{selected[i]}:{selected[i+1]}")
-        plt.ylabel(f"Ratio_{selected[i+1]}:{selected[i+2]}")
-        savepath = savefolder / f"ratio_{selected[i]}_{selected[i+1]}_[{selected[i+2]}"
+        plt.xlabel(f"Ratio_{selected[i]}:{selected[i + 1]}")
+        plt.ylabel(f"Ratio_{selected[i + 1]}:{selected[i + 2]}")
+        savepath = savefolder / f"ratio_{selected[i]}_{selected[i + 1]}_[{selected[i + 2]}"
         logger.info("Plotting CDA (extended) FIG")
         plt.savefig(savepath, dpi=300)
         plt.close()
@@ -128,28 +106,26 @@ class Plotting(QDialog):
             c_df = extended_df[interaction]
             colour = list(set(c_df))
             textstr = interaction
-            props = dict(boxstyle="square", facecolor="white")
+            # props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
             plt.title(textstr)
-            plt.xlabel(f"Ratio_{selected[i]}:{selected[i+1]}")
-            plt.ylabel(f"Ratio_{selected[i+1]}:{selected[i+2]}")
+            plt.xlabel(f"Ratio_{selected[i]}:{selected[i + 1]}")
+            plt.ylabel(f"Ratio_{selected[i + 1]}:{selected[i + 2]}")
             plt.xlim(0.0)
             plt.ylim(0.0)
             cbar = plt.colorbar(ticks=colour)
             cbar.set_label(r"$\Delta G_{Cryst}$ (kcal/mol)")
             savepath = (
                 savefolder
-                / f"aspect_{selected[i]}_{selected[i+1]}_{selected[i+2]}_{interaction}"
+                / f"aspect_{selected[i]}_{selected[i + 1]}_{selected[i + 2]}_{interaction}"
             )
             logger.info("Plotting CDA (extended) FIG for %s", interaction)
             plt.savefig(savepath, dpi=300)
             plt.close()
 
-    def plot_zingg_permuations(
-        self, csv="", df="", folderpath="./outputs", i_plot=False
-    ):
+    def plot_zingg_permuations(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
             df = pd.read_csv(csv)
@@ -205,8 +181,8 @@ class Plotting(QDialog):
         for interaction in interactions:
             c_df = sa_vol_ratio_df[interaction]
             colour = list(set(c_df))
-            textstr = interaction
-            props = dict(boxstyle="square", facecolor="white")
+            # textstr = interaction
+            # props = dict(boxstyle="square", facecolor="white")
 
             plt.figure()
             plt.scatter(x_data, y_data, c=c_df, cmap="plasma", s=1.2)
@@ -274,9 +250,7 @@ class Plotting(QDialog):
         plt.clf()
         plt.figure(figsize=(7, 5))
         for i in lengths:
-            plt.scatter(
-                dissolution_data["Supersaturation"], dissolution_data[i], label=i, s=1.2
-            )
+            plt.scatter(dissolution_data["Supersaturation"], dissolution_data[i], label=i, s=1.2)
             plt.legend()
             plt.xlabel("Supersaturation (kcal/mol)")
             plt.ylabel("Dissolution Rate")
@@ -303,6 +277,7 @@ class Plotting(QDialog):
     ################################
 
     def plot_corr_matrix(
+        self,
         df: pd.DataFrame,
         name="",
         selected: List[str] = None,
@@ -336,6 +311,7 @@ class Plotting(QDialog):
         plt.clf()
 
     def plot_solvent_zingg(
+        self,
         df: pd.DataFrame,
         x_name: str = "ar1",
         y_name: str = "ar2",
@@ -350,15 +326,14 @@ class Plotting(QDialog):
             vmin = None
             cmap = None
 
-        n_rows, n_cols = get_rows_cols(len(c))
+        n_rows, n_cols = self.get_rows_cols(len(c))
         print(f"ROWS: {n_rows}, COLS: {n_cols}")
         # Create subplots
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))
-        fig.suptitle(
-            f"Zingg Plots Colored by Different Parameters [{name}]", fontsize=16
-        )
+        fig.suptitle(f"Zingg Plots Colored by Different Parameters [{name}]", fontsize=16)
 
         # Iterate through subplot axes and subplot titles
+        scatter = None
         for ax, param_title in zip(axes.flat, c):
             if param_title is not None:
                 param_data = pd.to_numeric(df[param_title])
@@ -370,12 +345,11 @@ class Plotting(QDialog):
                 else:
                     param_title = param_title.capitalize()
 
-                fig.colorbar(scatter, ax=ax, label=param_title)
                 ax.set_title(f"{param_title.capitalize()}")
+                if scatter is not None:
+                    fig.colorbar(scatter, ax=ax, label=param_title)
 
-            scatter = ax.scatter(
-                df["ar1"], df["ar2"], c=param_data, cmap=cmap, vmin=vmin
-            )
+            scatter = ax.scatter(df["ar1"], df["ar2"], c=param_data, cmap=cmap, vmin=vmin)
             ax.axhline(y=2 / 3, color="blue", linestyle="--", label="2/3")
             ax.axvline(x=2 / 3, color="blue", linestyle="--", label="2/3")
             ax.set_xlim([0, 1])
@@ -387,13 +361,11 @@ class Plotting(QDialog):
         if savepath is not None and Path(savepath).exists():
             plt.savefig(savepath / f"ZinggParams_{name}.png")
 
-    def add_labels(
-        solvents_to_show: List[str], ax, df: pd.DataFrame, x_name="ar1", y_name="ar2"
-    ):
+    def add_labels(solvents_to_show: List[str], ax, df: pd.DataFrame, x_name="ar1", y_name="ar2"):
         # Add labels for selected solvents
         print("SOLVENTS TO SHOW: ", solvents_to_show)
-        n = len(solvents_to_show)
-        half = n // 2
+        # n = len(solvents_to_show)
+        # half = n // 2
         i = 0
         x = df[x_name]
         y = df[y_name]

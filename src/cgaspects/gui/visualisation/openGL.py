@@ -11,8 +11,7 @@ from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
-from ...analysis.shape_analysis import CrystalShape
-from ...fileio.xyz_file import read_XYZ
+from ...fileio.xyz_file import CrystalCloud
 from .axes_renderer import AxesRenderer
 from .camera import Camera
 from .point_cloud_renderer import SimplePointRenderer
@@ -52,7 +51,6 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer = None
 
         self.xyz = None
-        self.movie = None
         # self.object = 0
 
         self.colormap = "Viridis"
@@ -101,9 +99,9 @@ class VisualisationWidget(QOpenGLWidget):
     def get_XYZ_from_list(self, value):
         if self.sim_num != value:
             self.sim_num = value
-            self.xyz, self.movie = read_XYZ(self.xyz_path_list[value])
+            self.crystal = CrystalCloud.from_file(self.xyz_path_list[value])
+            self.xyz = self.crystal.get_raw_frame_coords(0)
             self.initGeometry()
-
             self.update()
 
     def saveRenderDialog(self):
@@ -118,9 +116,7 @@ class VisualisationWidget(QOpenGLWidget):
         file_name = None
 
         if ok:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Save File", "", "Images (*.png)"
-            )
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Images (*.png)")
             if file_name:
                 self.saveRender(file_name, resolution)
 
@@ -131,9 +127,7 @@ class VisualisationWidget(QOpenGLWidget):
         )
 
         if ok:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Save File", "", "Images (*.png)"
-            )
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Images (*.png)")
             if file_name:
                 self.saveRender(file_name, resolution)
 
@@ -144,9 +138,7 @@ class VisualisationWidget(QOpenGLWidget):
                 msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Cancel)
                 msgBox.setDefaultButton(QMessageBox.Open)
 
-                open_folder_button = msgBox.addButton(
-                    "Open Folder", QMessageBox.ActionRole
-                )
+                open_folder_button = msgBox.addButton("Open Folder", QMessageBox.ActionRole)
 
                 result = msgBox.exec_()
 
@@ -161,9 +153,7 @@ class VisualisationWidget(QOpenGLWidget):
         h = self.height() * scale
         gl = self.context().functions()
         gl.glViewport(0, 0, w, h)
-        fbo = QOpenGLFramebufferObject(
-            w, h, QOpenGLFramebufferObject.CombinedDepthStencil
-        )
+        fbo = QOpenGLFramebufferObject(w, h, QOpenGLFramebufferObject.CombinedDepthStencil)
 
         fbo.bind()
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -321,7 +311,6 @@ class VisualisationWidget(QOpenGLWidget):
             self.rightMouseButtonPressed = False
 
     def rotatePointCloud(self, dx, axis):
-
         if self.xyz is None:
             return
 
@@ -411,9 +400,7 @@ class VisualisationWidget(QOpenGLWidget):
 
             normalized_axis_vis = (axis_vis - min_val) / range_val
 
-            pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[
-                :, 0:3
-            ]
+            pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[:, 0:3]
 
             return (pcd_points, pcd_colors)
 
@@ -442,9 +429,7 @@ class VisualisationWidget(QOpenGLWidget):
             return
 
     def initializeGL(self):
-        logger.debug(
-            "Initialized OpenGL, version info: %s", self.context().format().version()
-        )
+        logger.debug("Initialized OpenGL, version info: %s", self.context().format().version())
         debug = False
         if debug:
             self.logger = QOpenGLDebugLogger(self.context())
@@ -452,9 +437,7 @@ class VisualisationWidget(QOpenGLWidget):
                 self.logger.messageLogged.connect(self.handleLoggedMessage)
             else:
                 ext = self.context().hasExtension(QtCore.QByteArray("GL_KHR_debug"))
-                logger.debug(
-                    "Debug logger not initialized, have extension GL_KHR_debug: %s", ext
-                )
+                logger.debug("Debug logger not initialized, have extension GL_KHR_debug: %s", ext)
 
         color = self.backgroundColor
         gl = self.context().extraFunctions()
