@@ -23,11 +23,16 @@ class PlotAxesWidget(QWidget):
         grid.addWidget(self.x_axis_label, 0, 0)
         grid.addWidget(self.xAxisListWidget, 1, 0)
 
-        # Y-axis ComboBox (ListView with checkboxes)
+        # Y-axis ComboBox (ListView with checkboxes for Custom mode)
         self.y_axis_label = QLabel("Y-axis (check multiple)", self)
         self.yAxisListWidget = CheckableListWidget()
         grid.addWidget(self.y_axis_label, 0, 1)
         grid.addWidget(self.yAxisListWidget, 1, 1)
+
+        # Y-axis single selection (for Heatmap mode)
+        self.yAxisListWidget_single = QListWidget(self)
+        grid.addWidget(self.yAxisListWidget_single, 1, 1)
+        self.yAxisListWidget_single.hide()  # Hidden by default
 
         # Color ComboBox
         self.color_label = QLabel("Color By (select one)", self)
@@ -42,7 +47,14 @@ class PlotAxesWidget(QWidget):
         x_item = self.xAxisListWidget.currentItem()
         x_selection = x_item.text() if x_item else None
 
-        y_selections = self.yAxisListWidget.checkedItems()
+        # Check which Y-axis widget is visible
+        if self.yAxisListWidget_single.isVisible():
+            # Single selection mode (Heatmap)
+            y_item = self.yAxisListWidget_single.currentItem()
+            y_selections = [(0, y_item.text())] if y_item else []
+        else:
+            # Multiple selection mode (Custom)
+            y_selections = self.yAxisListWidget.checkedItems()
 
         color_item = self.colorListWidget.currentItem()
         color_selection = color_item.text() if color_item else "None"

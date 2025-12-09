@@ -191,6 +191,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
     col_headings = [
         "Simulation Number",
+        "Frame Index",
         "PC1",
         "PC2",
         "PC3",
@@ -271,6 +272,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
     # Convert data to a DataFrame if not empty
     if data_list:
+        print(col_headings)
         df = pd.DataFrame(data_list, columns=col_headings)
         return df
     else:

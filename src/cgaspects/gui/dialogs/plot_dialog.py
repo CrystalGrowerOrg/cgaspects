@@ -165,12 +165,14 @@ class PlottingDialog(QDialog):
         logger.info("Default plot types found: %s", self.plot_types)
         logger.info("Directions found: %s", self.directions)
 
+        self.plot_types.append("Heatmap")
         self.plot_types.append("Custom")
         self.updatePlotWidgets()
 
     def updatePlotWidgets(self):
         self.custom_plot_widget.xAxisListWidget.clear()
         self.custom_plot_widget.yAxisListWidget.clear()
+        self.custom_plot_widget.yAxisListWidget_single.clear()
         self.custom_plot_widget.colorListWidget.clear()
         self.plot_permutations_combobox.clear()
         self.plot_types_combobox.clear()
@@ -183,6 +185,7 @@ class PlottingDialog(QDialog):
         if self.df is not None:
             self.custom_plot_widget.xAxisListWidget.addItems(self.df.columns)
             self.custom_plot_widget.yAxisListWidget.addItems(self.df.columns)
+            self.custom_plot_widget.yAxisListWidget_single.addItems(self.df.columns)
             self.custom_plot_widget.colorListWidget.addItems(["None"])
             self.custom_plot_widget.colorListWidget.addItems(self.df.columns)
 
@@ -264,6 +267,9 @@ class PlottingDialog(QDialog):
         self.custom_plot_widget.yAxisListWidget.itemCheckedStateChanged.connect(
             self.trigger_plot
         )
+        self.custom_plot_widget.yAxisListWidget_single.currentItemChanged.connect(
+            self.trigger_plot
+        )
         self.custom_plot_widget.colorListWidget.currentItemChanged.connect(
             self.trigger_plot
         )
@@ -339,7 +345,7 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
 
     def change_mode(self, mode):
-        if mode == "Custom":
+        if mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
             self.plot_permutations_combobox.setCurrentIndex(0)
@@ -347,19 +353,55 @@ class PlottingDialog(QDialog):
             self.variables_combobox.setEnabled(False)
             self.variables_combobox.setCurrentIndex(0)
             self.custom_plot_widget.show()
+
+            # Disable checkboxes in Heatmap mode
+            self.checkbox_corr_mat.setEnabled(False)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_zingg.setEnabled(False)
+            self.checkbox_zingg.setChecked(False)
+
+            # Show single selection Y-axis widget, hide checkable one
+            self.custom_plot_widget.yAxisListWidget.hide()
+            self.custom_plot_widget.yAxisListWidget_single.show()
+            self.custom_plot_widget.y_axis_label.setText("Y-axis (select one)")
+            self.custom_plot_widget.color_label.setText("Value (select one)")
+
+        elif mode == "Custom":
+            self.plot_permutations_label.setEnabled(False)
+            self.plot_permutations_combobox.setEnabled(False)
+            self.plot_permutations_combobox.setCurrentIndex(0)
+            self.variables_label.setEnabled(False)
+            self.variables_combobox.setEnabled(False)
+            self.variables_combobox.setCurrentIndex(0)
+            self.custom_plot_widget.show()
+
+            # Enable checkboxes in Custom mode
+            self.checkbox_corr_mat.setEnabled(True)
             self.checkbox_corr_mat.show()
+            self.checkbox_zingg.setEnabled(True)
             self.checkbox_zingg.show()
 
-        if mode != "Custom":
+            # Show checkable Y-axis widget, hide single selection one
+            self.custom_plot_widget.yAxisListWidget.show()
+            self.custom_plot_widget.yAxisListWidget_single.hide()
+            self.custom_plot_widget.y_axis_label.setText("Y-axis (check multiple)")
+            self.custom_plot_widget.color_label.setText("Color By (select one)")
+
+        else:
             self.plot_permutations_label.setEnabled(True)
             self.plot_permutations_combobox.setEnabled(True)
             self.variables_label.setEnabled(True)
             self.variables_combobox.setEnabled(True)
             self.custom_plot_widget.hide()
+            self.checkbox_zingg.setEnabled(True)
             self.checkbox_zingg.setChecked(False)
+            self.checkbox_corr_mat.setEnabled(True)
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_corr_mat.hide()
             self.checkbox_zingg.hide()
+            # Ensure checkable widget is shown when hiding custom widget
+            self.custom_plot_widget.yAxisListWidget.show()
+            self.custom_plot_widget.yAxisListWidget_single.hide()
 
     def trigger_plot(self):
         self.setPlotDefaults()
@@ -400,6 +442,27 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Growth Rates":
             self.x_data = self.df["Supersaturation"]
             self.y_data = self.df[self.directions]
+        if self.plot_type == "Heatmap":
+            # For heatmap: X and Y are axes, C (color) is the value to display
+            self.x_data = None
+            self.y_data = None
+            try:
+                # Set defaults: S:M for X, Supersaturation for Y if available, Frame Index for value
+                if self.custom_x:
+                    self.x_data = self.df[self.custom_x]
+                elif "S:M" in self.df.columns:
+                    self.x_data = self.df["S:M"]
+                    self.custom_x = "S:M"
+
+                if self.custom_y and len(self.custom_y) > 0:
+                    self.y_data = self.df[self.custom_y[0]]
+                elif "Supersaturation" in self.df.columns:
+                    self.y_data = self.df["Supersaturation"]
+                    self.custom_y = ["Supersaturation"]
+            except KeyError as exc:
+                logger.warning(
+                    "X or Y data not been set, invalid axis title!\n%s", exc
+                )
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
@@ -411,7 +474,8 @@ class PlottingDialog(QDialog):
                     "X and Y data not been set, invalid axis title!\n%s", exc
                 )
 
-        self.y_data = self._ensure_pd_series(self.y_data)
+        if self.plot_type != "Heatmap":
+            self.y_data = self._ensure_pd_series(self.y_data)
 
     def _mask_with_permutation(self):
         if self.permutation == 0:
@@ -441,6 +505,10 @@ class PlottingDialog(QDialog):
             self.x_label = "Supersaturation (kcal/mol)"
             self.y_label = "Relative Growth Rate"
             self.title = "Growth Rates vs supersaturation"
+        if self.plot_type == "Heatmap":
+            self.title = "Heatmap"
+            self.x_label = self.custom_x if self.custom_x else ""
+            self.y_label = self.custom_y[0] if self.custom_y and len(self.custom_y) > 0 else ""
         if self.plot_type == "Custom":
             self.title = ""
             self.x_label = self.custom_x
@@ -456,23 +524,25 @@ class PlottingDialog(QDialog):
     def _set_c(self):
         self.c_data = None
         self.c_name = None
-        if self.plot_type != "Custom":
+        if self.plot_type == "Heatmap":
+            # For heatmap, use custom_c as the value, default to Frame Index
+            if self.custom_c and self.custom_c != "None":
+                self.c_data = self.df[self.custom_c]
+                self.c_name = self.custom_c
+            elif "Frame Index" in self.df.columns:
+                self.c_data = self.df["Frame Index"]
+                self.c_name = "Frame Index"
+                self.custom_c = "Frame Index"
+        elif self.plot_type != "Custom":
             self.custom_c = "None"
-        if self.plot_type == "Custom":
+            if self.variable != "None" and self.variable:
+                self.c_data = self.df[self.variable]
+                self.c_name = self.variable
+        elif self.plot_type == "Custom":
             self.variable = "None"
-
-        if self.custom_c == "None" and (self.variable == "None" or (not self.variable)):
-            return
-
-        if self.custom_c == "None":
-            self.c_data = self.df[self.variable]
-            self.c_name = self.variable
-        if self.variable == "None":
-            self.c_data = self.df[self.custom_c]
-            self.c_name = self.custom_c
-        if self.variable == "None" and self.plot_type != "Custom":
-            self.c_data = None
-            self.c_name = None
+            if self.custom_c != "None" and self.custom_c:
+                self.c_data = self.df[self.custom_c]
+                self.c_name = self.custom_c
 
         if self.c_data is None:
             return
@@ -536,40 +606,47 @@ class PlottingDialog(QDialog):
         )
         self.annot.set_visible(False)
 
-        if self.x_data is None or self.y_data is None:
-            logger.warning("No data for plotting!")
-            return
+        # Handle Heatmap plot type separately
+        if self.plot_type == "Heatmap":
+            if self.x_data is None or self.y_data is None or self.c_data is None:
+                logger.warning("No data for heatmap plotting!")
+                return
+            self._plot_heatmap()
+        else:
+            if self.x_data is None or self.y_data is None:
+                logger.warning("No data for plotting!")
+                return
 
-        markers = [
-            "o",  # Circle
-            "^",  # Triangle up
-            "s",  # Square
-            "D",  # Diamond
-            "v",  # Triangle down
-            "p",  # Pentagon
-            "*",  # Star
-            "h",  # Hexagon
-            "+",  # Plus
-            "x",  # Cross
-        ]
+            markers = [
+                "o",  # Circle
+                "^",  # Triangle up
+                "s",  # Square
+                "D",  # Diamond
+                "v",  # Triangle down
+                "p",  # Pentagon
+                "*",  # Star
+                "h",  # Hexagon
+                "+",  # Plus
+                "x",  # Cross
+            ]
 
-        # Plot the data
-        if self.y_data.ndim == 1:
-            # 1D y_data
-            self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
-        if self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
-            # y_data with multiple columns
-            line = True if self.plot_type == "Growth Rates" else False
-            for i, y in enumerate(self.y_data):
-                self._plot(
-                    x=self.x_data,
-                    y=self._ensure_pd_series(self.df[y]),
-                    c=self.c_data,
-                    add_line=line,
-                    label=y,
-                    marker=markers[i % len(markers)],
-                )
-            self._set_legend() if self.show_legend else None
+            # Plot the data
+            if self.y_data.ndim == 1:
+                # 1D y_data
+                self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
+            if self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
+                # y_data with multiple columns
+                line = True if self.plot_type == "Growth Rates" else False
+                for i, y in enumerate(self.y_data):
+                    self._plot(
+                        x=self.x_data,
+                        y=self._ensure_pd_series(self.df[y]),
+                        c=self.c_data,
+                        add_line=line,
+                        label=y,
+                        marker=markers[i % len(markers)],
+                    )
+                self._set_legend() if self.show_legend else None
 
         if self.plot_type == "Zingg":
             self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -616,6 +693,8 @@ class PlottingDialog(QDialog):
 
         if self.covmat:
             self._plot_covmat()
+        elif self.plot_type == "Heatmap":
+            self._plot_heatmap()
         else:
             self._plot_scatter(x, y, c, cmap, add_line, label, marker)
 
@@ -692,6 +771,73 @@ class PlottingDialog(QDialog):
         self.ax.set_title("Correlation Matrix")
 
         # Adjust layout to prevent clipping of tick-labels
+        self.figure.tight_layout()
+
+        return im
+
+    def _plot_heatmap(self):
+        """Plot a 2D grid heatmap with x, y axes and c as the color value."""
+        if self.x_data is None or self.y_data is None or self.c_data is None:
+            logger.warning("Insufficient data for heatmap!")
+            return
+
+        # Clear existing plot
+        self.ax.clear()
+
+        # Create a DataFrame for pivoting
+        heatmap_df = pd.DataFrame({
+            'x': self.x_data,
+            'y': self.y_data,
+            'value': self.c_data
+        })
+
+        # Create pivot table for heatmap
+        try:
+            pivot_table = heatmap_df.pivot_table(
+                values='value',
+                index='y',
+                columns='x',
+                aggfunc='mean'  # Use mean if there are duplicate x,y pairs
+            )
+        except Exception as e:
+            logger.error("Failed to create pivot table for heatmap: %s", e)
+            return
+
+        # Plot heatmap using imshow
+        im = self.ax.imshow(pivot_table, cmap="viridis", aspect="auto", origin="lower")
+
+        # Set ticks and labels
+        x_ticks = np.arange(len(pivot_table.columns))
+        y_ticks = np.arange(len(pivot_table.index))
+
+        # Show every nth tick to avoid crowding
+        n_xticks = min(10, len(x_ticks))
+        n_yticks = min(10, len(y_ticks))
+        x_tick_indices = np.linspace(0, len(x_ticks) - 1, n_xticks, dtype=int)
+        y_tick_indices = np.linspace(0, len(y_ticks) - 1, n_yticks, dtype=int)
+
+        self.ax.set_xticks(x_tick_indices)
+        self.ax.set_yticks(y_tick_indices)
+        self.ax.set_xticklabels([f"{pivot_table.columns[i]:.2f}" for i in x_tick_indices], rotation=45, ha="right")
+        self.ax.set_yticklabels([f"{pivot_table.index[i]:.2f}" for i in y_tick_indices])
+
+        # Add colorbar
+        if self.cbar is None:
+            self.cbar = self.figure.colorbar(im, ax=self.ax)
+            self.cbar.set_label(self.c_name if self.c_name else "Value")
+        else:
+            self.cbar.update_normal(im)
+            self.cbar.set_label(self.c_name if self.c_name else "Value")
+
+        # Set labels and title
+        self.ax.set_xlabel(self.x_label)
+        self.ax.set_ylabel(self.y_label)
+        self.ax.set_title(self.title)
+
+        if self.grid:
+            self.ax.grid(True, color='white', linewidth=0.5)
+
+        # Adjust layout
         self.figure.tight_layout()
 
         return im
