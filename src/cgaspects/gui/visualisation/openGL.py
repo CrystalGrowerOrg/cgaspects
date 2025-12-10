@@ -105,47 +105,51 @@ class VisualisationWidget(QOpenGLWidget):
             self.update()
 
     def saveRenderDialog(self):
-        # Create a list of options for the dropdown menu
-        options = ["1x", "2x", "4x"]
+        # First ask user what type of export they want
+        export_options = ["2D Image (PNG)", "3D Mesh"]
 
-        # Show the input dialog and get the index of the selected item
-        resolution, ok = QInputDialog.getItem(
-            self, "Select Resolution", "Resolution:", options, 0, False
+        # Only allow 3D mesh export if not in Points mode
+        if self.style == "Points":
+            export_options = ["2D Image (PNG)"]
+
+        export_type, ok = QInputDialog.getItem(
+            self, "Select Export Type", "Export as:", export_options, 0, False
         )
 
-        file_name = None
+        if not ok:
+            return
 
-        if ok:
-            file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Images (*.png)")
-            if file_name:
-                self.saveRender(file_name, resolution)
+        if export_type == "2D Image (PNG)":
+            # Original image export workflow
+            options = ["1x", "2x", "4x"]
+            resolution, ok = QInputDialog.getItem(
+                self, "Select Resolution", "Resolution:", options, 0, False
+            )
 
-    def saveRenderDialog(self):
-        options = ["1x", "2x", "4x"]
-        resolution, ok = QInputDialog.getItem(
-            self, "Select Resolution", "Resolution:", options, 0, False
-        )
+            if ok:
+                file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Images (*.png)")
+                if file_name:
+                    self.saveRender(file_name, resolution)
 
-        if ok:
-            file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Images (*.png)")
-            if file_name:
-                self.saveRender(file_name, resolution)
+                    # Confirmation dialog
+                    msgBox = QMessageBox(self)
+                    msgBox.setWindowTitle("Render Saved")
+                    msgBox.setText(f"Image saved to:\n{file_name}")
+                    msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Cancel)
+                    msgBox.setDefaultButton(QMessageBox.Open)
 
-                # Confirmation dialog
-                msgBox = QMessageBox(self)
-                msgBox.setWindowTitle("Render Saved")
-                msgBox.setText(f"Image saved to:\n{file_name}")
-                msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Cancel)
-                msgBox.setDefaultButton(QMessageBox.Open)
+                    open_folder_button = msgBox.addButton("Open Folder", QMessageBox.ActionRole)
 
-                open_folder_button = msgBox.addButton("Open Folder", QMessageBox.ActionRole)
+                    result = msgBox.exec_()
 
-                result = msgBox.exec_()
+                    if result == QMessageBox.Open:
+                        QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
+                    elif msgBox.clickedButton() == open_folder_button:
+                        QDesktopServices.openUrl(QUrl.fromLocalFile(Path(file_name).parent))
 
-                if result == QMessageBox.Open:
-                    QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
-                elif msgBox.clickedButton() == open_folder_button:
-                    QDesktopServices.openUrl(QUrl.fromLocalFile(Path(file_name).parent))
+        elif export_type == "3D Mesh":
+            # 3D mesh export workflow
+            self.saveMeshDialog()
 
     def renderToImage(self, scale):
         self.makeCurrent()
@@ -166,6 +170,124 @@ class VisualisationWidget(QOpenGLWidget):
     def saveRender(self, file_name, resolution):
         image = self.renderToImage(float(resolution[0]))
         image.save(file_name)
+
+    def saveMeshDialog(self):
+        # Ask user for mesh file format
+        mesh_formats = [".obj", ".stl", ".ply", ".glb", ".off"]
+        file_format, ok = QInputDialog.getItem(
+            self, "Select Mesh Format", "Format:", mesh_formats, 0, False
+        )
+
+        if not ok:
+            return
+
+        # Get file name from user
+        filter_str = f"3D Mesh (*{file_format})"
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Mesh", "", filter_str)
+
+        if file_name:
+            # Ensure file has correct extension
+            if not file_name.endswith(file_format):
+                file_name += file_format
+
+            try:
+                self.saveMesh(file_name)
+
+                # Confirmation dialog
+                msgBox = QMessageBox(self)
+                msgBox.setWindowTitle("Mesh Saved")
+                msgBox.setText(f"3D mesh saved to:\n{file_name}")
+                msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Cancel)
+                msgBox.setDefaultButton(QMessageBox.Open)
+
+                open_folder_button = msgBox.addButton("Open Folder", QMessageBox.ActionRole)
+
+                result = msgBox.exec_()
+
+                if result == QMessageBox.Open:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
+                elif msgBox.clickedButton() == open_folder_button:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(Path(file_name).parent))
+
+            except Exception as e:
+                logger.error("Failed to save mesh: %s", e)
+                msgBox = QMessageBox(self)
+                msgBox.setIcon(QMessageBox.Critical)
+                msgBox.setWindowTitle("Export Failed")
+                msgBox.setText(f"Failed to export mesh:\n{str(e)}")
+                msgBox.exec_()
+
+    def saveMesh(self, file_name):
+        """Export the current visualization as a 3D mesh file"""
+        mesh = None
+
+        if self.style == "Spheres":
+            # Generate mesh from sphere instances with colors
+            mesh = self._generateSphereMesh()
+        elif self.style == "Convex Hull":
+            # Use the existing convex hull mesh (without colors)
+            mesh = self.mesh_renderer.mesh
+
+        if mesh is None:
+            raise ValueError(f"Cannot export mesh in '{self.style}' mode")
+
+        # Export using trimesh
+        mesh.export(file_name)
+        logger.info("Mesh exported to %s", file_name)
+
+    def _generateSphereMesh(self):
+        """Generate a combined mesh from all sphere instances with colors"""
+        if self.sphere_renderer.numberOfInstances() <= 0:
+            raise ValueError("No spheres to export")
+
+        # Get the point cloud data (positions and colors)
+        varray = self.updatePointCloudVertices()
+        if varray is None or len(varray) == 0:
+            raise ValueError("No point cloud data available")
+
+        # Create base sphere mesh
+        from trimesh.creation import icosphere
+        base_sphere = icosphere(subdivisions=2, radius=1.0)
+
+        # Scale the sphere by point size (matching the shader: u_pointSize * 0.2)
+        scale_factor = self.point_size * 0.2
+
+        all_vertices = []
+        all_faces = []
+        all_vertex_colors = []
+        vertex_offset = 0
+
+        # For each point, create a transformed sphere with its color
+        for point_data in varray:
+            position = point_data[:3]
+            color = point_data[3:6]
+
+            # Transform sphere vertices to this position
+            transformed_vertices = base_sphere.vertices * scale_factor + position
+
+            # Create color array for all vertices of this sphere (same color for all vertices)
+            num_vertices = len(base_sphere.vertices)
+            vertex_colors = np.tile(color, (num_vertices, 1))
+
+            all_vertices.append(transformed_vertices)
+            all_faces.append(base_sphere.faces + vertex_offset)
+            all_vertex_colors.append(vertex_colors)
+            vertex_offset += num_vertices
+
+        # Combine all meshes
+        combined_vertices = np.vstack(all_vertices)
+        combined_faces = np.vstack(all_faces)
+        combined_colors = np.vstack(all_vertex_colors)
+
+        # Convert colors from [0,1] float to [0,255] uint8 for better compatibility
+        combined_colors_uint8 = (combined_colors * 255).astype(np.uint8)
+
+        mesh = trimesh.Trimesh(
+            vertices=combined_vertices,
+            faces=combined_faces,
+            vertex_colors=combined_colors_uint8
+        )
+        return mesh
 
     def setBackgroundColor(self, color):
         self.backgroundColor = QColor(color)
