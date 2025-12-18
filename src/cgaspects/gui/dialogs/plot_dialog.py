@@ -110,7 +110,7 @@ class PlottingDialog(QDialog):
         if isinstance(self.csv, pd.DataFrame):
             self.df = self.csv
         else:
-            self.df = pd.read_csv(self.csv)
+            self.df = pd.read_csv(self.csv, encoding="utf-8", encoding_errors="replace")
 
         logger.debug("Dataframe read:\n%s", self.df)
         plotting = None

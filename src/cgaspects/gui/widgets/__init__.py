@@ -6,6 +6,7 @@ from .visualization_settings_widget import (
 )
 from .checkablelistwidget import CheckableListWidget
 from .plot_axes_widget import PlotAxesWidget
+from .text_file_viewer import TextFileViewer
 
 __all__ = [
     CheckableListWidget,
@@ -13,4 +14,5 @@ __all__ = [
     SimulationVariableSlider,
     SimulationVariablesWidget,
     VisualizationSettingsWidget,
+    TextFileViewer,
 ]

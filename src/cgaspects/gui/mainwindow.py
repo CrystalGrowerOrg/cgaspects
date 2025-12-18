@@ -17,7 +17,7 @@ from ..analysis.growth_rates import GrowthRate
 from ..analysis.gui_threads import WorkerXYZ
 from ..fileio.find_data import find_info, locate_xyz_files
 from ..fileio.xyz_file import CrystalCloud
-from ..fileio.logging import setup_logging
+from ..fileio.logging import setup_logging, get_log_file_path
 from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
@@ -27,6 +27,7 @@ from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
     SimulationVariablesWidget,
+    TextFileViewer,
     VisualizationSettingsWidget,
 )
 from ..utils.data_structures import xyz_tuple
@@ -112,6 +113,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotting_dialog = None
 
         self.aboutDialog = None
+        self.text_file_viewer = None
 
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
@@ -143,6 +145,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.setup_button_connections()
         self.setup_menubar_connections()
+        self.setup_log_menu_actions()
         self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
@@ -170,6 +173,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
 
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
+
+    def setup_log_menu_actions(self):
+        from PySide6.QtGui import QAction
+
+        # Create Open Log File action
+        self.actionOpenLogFile = QAction("Open Log File", self)
+        self.actionOpenLogFile.setShortcut("Ctrl+L")
+        self.actionOpenLogFile.setToolTip("Open the application log file")
+        self.actionOpenLogFile.triggered.connect(self.open_log_file)
+
+        # Create Clear Log File action
+        self.actionClearLogFile = QAction("Clear Log File", self)
+        self.actionClearLogFile.setToolTip("Clear the application log file")
+        self.actionClearLogFile.triggered.connect(self.clear_log_file)
+
+        # Add actions to View menu
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionOpenLogFile)
+        self.menuView.addAction(self.actionClearLogFile)
 
     def showAboutDialog(self):
         if self.aboutDialog is None:
@@ -607,7 +629,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Select summary file and read in as a Dataframe
         self.log_message(f"Summary File Found at: {summary_file}", "debug")
-        self.summ_df = pd.read_csv(summary_file)
+        self.summ_df = pd.read_csv(summary_file, encoding="utf-8", encoding_errors="replace")
         if list(self.summ_df.columns)[-1].startswith("Unnamed"):
             self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
@@ -739,6 +761,88 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         self.log_message("THREAD COMPLETED!", "info")
+
+    def open_log_file(self):
+        """Open the log file in the text file viewer widget."""
+        log_file = get_log_file_path()
+        if log_file.exists():
+            try:
+                # Create or show the text file viewer
+                if self.text_file_viewer is None:
+                    self.text_file_viewer = TextFileViewer(
+                        file_path=log_file,
+                        parent=self,
+                        auto_refresh=False,
+                        refresh_interval=2000
+                    )
+                    # Set window size
+                    self.text_file_viewer.resize(800, 600)
+                else:
+                    # Update the file path if viewer already exists
+                    self.text_file_viewer.set_file(log_file)
+
+                # Show and raise the viewer window
+                self.text_file_viewer.show()
+                self.text_file_viewer.raise_()
+                self.text_file_viewer.activateWindow()
+
+                self.log_message(f"Opening log file: {log_file}", "info")
+            except Exception as e:
+                self.log_message(f"Failed to open log file: {e}", "error")
+                QMessageBox.warning(
+                    self,
+                    "Error Opening Log File",
+                    f"Could not open the log file:\n{log_file}\n\nError: {e}"
+                )
+        else:
+            self.log_message("Log file does not exist yet", "warning")
+            QMessageBox.information(
+                self,
+                "Log File Not Found",
+                f"The log file has not been created yet:\n{log_file}\n\n"
+                "It will be created automatically when the application logs messages."
+            )
+
+    def clear_log_file(self):
+        """Clear the contents of the log file after user confirmation."""
+        log_file = get_log_file_path()
+
+        # Confirm with user before clearing
+        reply = QMessageBox.question(
+            self,
+            "Clear Log File",
+            f"Are you sure you want to clear the log file?\n\n{log_file}\n\n"
+            "This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                if log_file.exists():
+                    # Open in write mode to truncate the file
+                    with open(log_file, 'w') as f:
+                        pass
+                    self.log_message("Log file cleared successfully", "info")
+                    QMessageBox.information(
+                        self,
+                        "Log File Cleared",
+                        "The log file has been cleared successfully."
+                    )
+                else:
+                    self.log_message("Log file does not exist", "warning")
+                    QMessageBox.information(
+                        self,
+                        "Log File Not Found",
+                        "The log file does not exist yet."
+                    )
+            except Exception as e:
+                self.log_message(f"Failed to clear log file: {e}", "error")
+                QMessageBox.warning(
+                    self,
+                    "Error Clearing Log File",
+                    f"Could not clear the log file:\n{log_file}\n\nError: {e}"
+                )
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:

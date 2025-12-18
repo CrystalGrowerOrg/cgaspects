@@ -30,7 +30,7 @@ class Plotting(QDialog):
     def plot_zingg(self, csv="", df="", folderpath="./outputs"):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
         savefolder = self.create_plots_folder(folderpath)
 
         interactions = [
@@ -78,7 +78,7 @@ class Plotting(QDialog):
     def plot_cda_extended(self, csv="", df="", folderpath="./outputs", selected="", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
 
         savefolder = self.create_plots_folder(folderpath)
         extended_df = df
@@ -128,7 +128,7 @@ class Plotting(QDialog):
     def plot_zingg_permuations(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
 
         zn_df = df
         savefolder = self.create_plots_folder(folderpath)
@@ -162,7 +162,7 @@ class Plotting(QDialog):
     def plot_sa_vol(self, csv="", df="", folderpath="./outputs", i_plot=False):
         if csv != "":
             folderpath = Path(csv).parents[0]
-            df = pd.read_csv(csv)
+            df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
 
         sa_vol_ratio_df = df
 

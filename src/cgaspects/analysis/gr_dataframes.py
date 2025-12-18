@@ -25,7 +25,21 @@ def build_growthrates(
 
     for i, f in enumerate(size_file_list):
         f = Path(f)
-        lt_df = pd.read_csv(f)
+        lt_df = pd.read_csv(f, encoding="utf-8", encoding_errors="replace")
+
+        # Validate that the DataFrame has the required columns
+        if "time" not in lt_df.columns:
+            logger.warning("Skipping file %s: missing 'time' column", f.name)
+            continue
+
+        # Check if all required directions are present
+        missing_directions = [d for d in directions if d not in lt_df.columns]
+        if missing_directions:
+            logger.warning(
+                "Skipping file %s: missing direction columns %s", f.name, missing_directions
+            )
+            continue
+
         x_data = lt_df["time"]
         tokens = re.findall(r"\d+", f.name)
         sim_num = int(tokens[-1])

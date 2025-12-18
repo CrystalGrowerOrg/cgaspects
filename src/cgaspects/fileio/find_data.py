@@ -179,7 +179,7 @@ def find_info(path):
                 size_files.append(file)
             elif file.name.endswith("simulation_parameters.txt"):
                 found_simparam_files = True
-                with open(file, "r", encoding="utf-8") as file:
+                with open(file, "r", encoding="utf-8", errors="replace") as file:
                     lines = file.readlines()
                 growth_mod = process_simulation_parameters(
                     lines, supersats, directions, growth_mod
@@ -231,7 +231,7 @@ def process_simulation_parameters(
 
 def find_growth_directions(csv):
     """Returns the lenghts from a size_file"""
-    lt_df = pd.read_csv(csv)
+    lt_df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
     columns = lt_df.columns
     directions = []
     for col in columns:
@@ -242,10 +242,10 @@ def find_growth_directions(csv):
 
 
 def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
-    summary_df = pd.read_csv(summary_csv)
+    summary_df = pd.read_csv(summary_csv, encoding="utf-8", encoding_errors="replace")
 
     if aspect_csv:
-        aspect_df = pd.read_csv(aspect_csv)
+        aspect_df = pd.read_csv(aspect_csv, encoding="utf-8", encoding_errors="replace")
 
     summary_cols = summary_df.columns
     aspect_cols = aspect_df.columns
