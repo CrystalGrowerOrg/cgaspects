@@ -23,6 +23,7 @@ from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
+from .dialogs.lattice_dialog import LatticeParametersDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
@@ -31,6 +32,7 @@ from .widgets import (
     VisualizationSettingsWidget,
 )
 from ..utils.data_structures import xyz_tuple
+from .utils.crystallography import Crystallography
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -188,10 +190,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionClearLogFile.setToolTip("Clear the application log file")
         self.actionClearLogFile.triggered.connect(self.clear_log_file)
 
+        # Create Set Lattice Parameters action
+        self.actionSetLatticeParameters = QAction("Set Lattice Parameters...", self)
+        self.actionSetLatticeParameters.setToolTip("Set lattice parameters to convert axes to fractional coordinates")
+        self.actionSetLatticeParameters.triggered.connect(self.show_lattice_parameters_dialog)
+
+        # Create Toggle Axes action (starts disabled until lattice params are set)
+        self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
+        self.actionToggleAxes.setShortcut("Ctrl+Shift+A")
+        self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
+        self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
+        self.actionToggleAxes.triggered.connect(self.toggle_axes)
+
+        # Track current axes state
+        self.current_axes_type = "cartesian"
+        self.crystallography = None
+
         # Add actions to View menu
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionOpenLogFile)
         self.menuView.addAction(self.actionClearLogFile)
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionSetLatticeParameters)
+        self.menuView.addAction(self.actionToggleAxes)
 
     def showAboutDialog(self):
         if self.aboutDialog is None:
@@ -202,6 +223,50 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aboutDialog.activateWindow()
         else:
             self.aboutDialog.show()
+
+    def show_lattice_parameters_dialog(self):
+        """Show dialog to enter lattice parameters for fractional axes."""
+        dialog = LatticeParametersDialog(self)
+
+        if dialog.exec():
+            cell = dialog.get_cell()
+            if cell is not None:
+                # Create and store Crystallography object from the cell
+                self.crystallography = Crystallography(cell)
+
+                # Enable the toggle axes action
+                self.actionToggleAxes.setEnabled(True)
+
+                # Switch to fractional axes
+                self.current_axes_type = "fractional"
+                self.openglwidget.set_fractional_axes(self.crystallography)
+                self.actionToggleAxes.setText("Switch to Cartesian Axes")
+
+                self.log_message(
+                    f"Axes converted to fractional coordinates using lattice parameters: "
+                    f"a={cell.a:.4f}, b={cell.b:.4f}, c={cell.c:.4f}, "
+                    f"α={cell.alpha:.3f}°, β={cell.beta:.3f}°, γ={cell.gamma:.3f}°",
+                    "info"
+                )
+
+    def toggle_axes(self):
+        """Toggle between Cartesian and fractional axes."""
+        if self.crystallography is None:
+            self.log_message("No lattice parameters set. Please set them first.", "warning")
+            return
+
+        if self.current_axes_type == "cartesian":
+            # Switch to fractional
+            self.openglwidget.set_fractional_axes(self.crystallography)
+            self.current_axes_type = "fractional"
+            self.actionToggleAxes.setText("Switch to Cartesian Axes")
+            self.log_message("Axes switched to fractional coordinates", "info")
+        else:
+            # Switch to Cartesian
+            self.openglwidget.set_cartesian_axes()
+            self.current_axes_type = "cartesian"
+            self.actionToggleAxes.setText("Switch to Fractional Axes")
+            self.log_message("Axes switched to Cartesian coordinates", "info")
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)

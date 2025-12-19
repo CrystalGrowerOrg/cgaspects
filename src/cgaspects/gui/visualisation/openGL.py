@@ -104,6 +104,20 @@ class VisualisationWidget(QOpenGLWidget):
             self.initGeometry()
             self.update()
 
+    def set_fractional_axes(self, crystallography):
+        """Set the axes to fractional coordinates using the provided crystallography object."""
+        if self.axes_renderer is not None:
+            self.axes_renderer.set_crystallography(crystallography)
+            self.update()
+            logger.info("Axes set to fractional coordinates")
+
+    def set_cartesian_axes(self):
+        """Reset the axes to Cartesian coordinates."""
+        if self.axes_renderer is not None:
+            self.axes_renderer.set_cartesian()
+            self.update()
+            logger.info("Axes reset to Cartesian coordinates")
+
     def saveRenderDialog(self):
         # First ask user what type of export they want
         export_options = ["2D Image (PNG)", "3D Mesh"]

@@ -15,14 +15,18 @@ class Cell:
     beta: float
     gamma: float
 
+    @property
+    def flatten(self):
+        return np.array([self.a, self.b, self.c, self.alpha, self.beta, self.gamma])
+
 
 class Crystallography:
     def __init__(self, cell: Cell = None) -> None:
         self.cell: Cell = cell
 
-        self.a: float = cell
-        self.b: float = cell
-        self.c: float = cell
+        self.a: float = None
+        self.b: float = None
+        self.c: float = None
         self.alpha_rad: float = None
         self.beta_rad: float = None
         self.gamma_rad: float = None
@@ -37,17 +41,18 @@ class Crystallography:
             self.set_cryst(cell)
 
     def set_cryst(self, cell: list):
-        self.cell = cell
-
+        self.a = self.cell.a
+        self.b = self.cell.b
+        self.c = self.cell.c
         self.alpha_rad = np.deg2rad(self.cell.alpha)
         self.beta_rad = np.deg2rad(self.cell.beta)
         self.gamma_rad = np.deg2rad(self.cell.gamma)
 
         LOG.debug(
             "Cell Parameters Set to: \n    a: %s  b: %s  c: %s\n    α  %.2f  β  %.2f  γ  %.2f \n",
-            self.cell.a,
-            self.cell.b,
-            self.cell.a,
+            self.a,
+            self.b,
+            self.a,
             self.alpha_rad,
             self.beta_rad,
             self.gamma_rad,
@@ -55,7 +60,7 @@ class Crystallography:
 
         self.alpha_star_rad = self.alpha_star(self.alpha_rad, self.beta_rad, self.gamma_rad)
 
-        self.volume = self.get_volume(self.cell)
+        self.volume = self.get_volume(self.cell.flatten)
         self.set_tranformation_matrix()
 
     def __repr__(self) -> str:
