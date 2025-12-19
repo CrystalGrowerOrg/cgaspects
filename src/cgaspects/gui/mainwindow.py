@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBa
 
 from ..analysis.aspect_ratios import AspectRatio
 from ..analysis.growth_rates import GrowthRate
+from ..analysis.site_analysis import SiteAnalysis
 from ..analysis.gui_threads import WorkerXYZ
 from ..fileio.find_data import find_info, locate_xyz_files
 from ..fileio.xyz_file import CrystalCloud
@@ -96,6 +97,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals = GUIWorkerSignals()
         self.aspectratio = AspectRatio(signals=self.worker_signals)
         self.growthrate = GrowthRate(signals=self.worker_signals)
+        self.siteanalysis = SiteAnalysis(signals=self.worker_signals)
         self.worker_signals.location.connect(self.set_output_folder)
         self.worker_signals.result.connect(self.set_results)
         self.worker_signals.started.connect(self.set_progressbar)
@@ -280,6 +282,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
+        self.site_analysis_pushButton.clicked.connect(self.calculate_site_analysis)
 
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
@@ -564,6 +567,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         folder = self.input_folder
         # Initially disable buttons that depend on the data
         self.growth_rate_pushButton.setEnabled(False)
+        self.site_analysis_pushButton.setEnabled(False)
 
         if not Path(folder).is_dir():
             QMessageBox.warning(None, "Directory Error", f"{folder} is not a valid directory.")
@@ -587,6 +591,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectratio.set_information(information=information)
         self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
 
+        # Enable and set Site Analysis information if relevant files are found
+        if information.crystallisation_files or information.population_files:
+            self.site_analysis_pushButton.setEnabled(True)
+            self.siteanalysis.set_folder(folder=folder)
+            self.siteanalysis.set_information(information=information)
+            self.siteanalysis.set_xyz_files(xyz_files=self.xyz_files)
+            self.siteanalysis.set_site_files(
+                crystallisation_files=information.crystallisation_files,
+                population_files=information.population_files
+            )
+            logger.info(f"Found {len(information.crystallisation_files)} crystallisation files and "
+                       f"{len(information.population_files)} population files")
+        else:
+            logger.info("No crystallisation events or population files found for site analysis")
+
         if not information.directions:
             QMessageBox.warning(
                 None,
@@ -607,6 +626,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
+
+    def calculate_site_analysis(self):
+        self.siteanalysis.calculate_site_analysis()
 
     def setShowPlottingButtons(self, state=True):
         self.actionPlottingDialog.setEnabled(state)

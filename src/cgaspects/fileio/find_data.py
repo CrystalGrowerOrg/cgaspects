@@ -163,6 +163,8 @@ def find_info(path):
     found_simparam_files = False
     summary_file = None
     growth_mod = None
+    crystallisation_files = []
+    population_files = []
 
     # Check the root directory for the summary file
     summary_file = next(path.glob("*summary.csv"), None)
@@ -177,6 +179,10 @@ def find_info(path):
         for file in entry.glob("*"):
             if file.name.endswith("size.csv") and file.stat().st_size > 0:
                 size_files.append(file)
+            elif file.name.endswith("_crystallisation_events.csv") and file.stat().st_size > 0:
+                crystallisation_files.append(file)
+            elif file.name.endswith("_populations.csv") and file.stat().st_size > 0:
+                population_files.append(file)
             elif file.name.endswith("simulation_parameters.txt"):
                 found_simparam_files = True
                 with open(file, "r", encoding="utf-8", errors="replace") as file:
@@ -202,7 +208,8 @@ def find_info(path):
         )
 
     return file_info_tuple(
-        supersats, size_files, directions, growth_mod, folders, summary_file
+        supersats, size_files, directions, growth_mod, folders, summary_file,
+        crystallisation_files, population_files
     )
 
 

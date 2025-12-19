@@ -169,6 +169,11 @@ class PlottingDialog(QDialog):
         self.plot_types.append("Custom")
         self.updatePlotWidgets()
 
+        # Set default plot type to "Custom"
+        custom_index = self.plot_types_combobox.findText("Custom")
+        if custom_index >= 0:
+            self.plot_types_combobox.setCurrentIndex(custom_index)
+
     def updatePlotWidgets(self):
         self.custom_plot_widget.xAxisListWidget.clear()
         self.custom_plot_widget.yAxisListWidget.clear()

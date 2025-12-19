@@ -23,7 +23,7 @@ shape_info_tuple = namedtuple(
 
 file_info_tuple = namedtuple(
     "file_info",
-    "supersats, size_files, directions, growth_mod, folders, summary_file",
+    "supersats, size_files, directions, growth_mod, folders, summary_file, crystallisation_files, population_files",
 )
 
 plot_obj_tuple = namedtuple(

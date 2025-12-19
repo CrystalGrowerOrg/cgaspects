@@ -78,14 +78,14 @@ class LatticeParametersDialog(QDialog):
         file_layout = QVBoxLayout()
 
         file_info_label = QLabel(
-            "Select a CrystalGrower structure file.\n"
-            "Lattice parameters will be extracted from the 'Non primitive data' section."
+            "Select a structure file (CIF or CrystalGrower format).\n"
+            "Lattice parameters will be extracted automatically."
         )
         file_info_label.setWordWrap(True)
 
         file_button_layout = QHBoxLayout()
         self.file_path_edit = QLineEdit()
-        self.file_path_edit.setPlaceholderText("Path to CrystalGrower structure file...")
+        self.file_path_edit.setPlaceholderText("Path to CIF or CrystalGrower Structure File...")
         self.file_path_edit.setReadOnly(True)
 
         self.browse_button = QPushButton("Browse...")
@@ -122,17 +122,21 @@ class LatticeParametersDialog(QDialog):
         self.setLayout(layout)
 
     def browse_file(self):
-        """Open file dialog to select CrystalGrower structure file."""
+        """Open file dialog to select CrystalGrower structure file or CIF file."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select CrystalGrower Structure File",
+            "Select Structure File",
             "",
-            "All Files (*)"
+            "All Files (*);;CIF Files (*.cif);;CrystalGrower Files (*)"
         )
 
         if file_path:
             self.file_path_edit.setText(file_path)
-            self.parse_structure_file(file_path)
+            # Auto-detect file type and parse accordingly
+            if file_path.lower().endswith('.cif'):
+                self.parse_cif_file(file_path)
+            else:
+                self.parse_structure_file(file_path)
 
     def parse_structure_file(self, file_path: str):
         """
@@ -190,6 +194,99 @@ class LatticeParametersDialog(QDialog):
             self.file_info_display.setStyleSheet("color: red;")
             logger.error(error_msg)
             QMessageBox.warning(self, "Parse Error", error_msg)
+
+    def parse_cif_file(self, file_path: str):
+        """
+        Parse CIF file to extract lattice parameters.
+
+        Looks for the following CIF tags:
+        _cell_length_a, _cell_length_b, _cell_length_c
+        _cell_angle_alpha, _cell_angle_beta, _cell_angle_gamma
+        """
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+
+            # Initialize parameters
+            a = b = c = None
+            alpha = beta = gamma = None
+
+            # Parse CIF file line by line
+            for line in lines:
+                line = line.strip()
+
+                # Skip comments and empty lines
+                if not line or line.startswith('#'):
+                    continue
+
+                # Split on whitespace
+                parts = line.split()
+                if len(parts) < 2:
+                    continue
+
+                # Extract lattice parameters
+                if parts[0] == '_cell_length_a':
+                    a = self._parse_cif_value(parts[1])
+                elif parts[0] == '_cell_length_b':
+                    b = self._parse_cif_value(parts[1])
+                elif parts[0] == '_cell_length_c':
+                    c = self._parse_cif_value(parts[1])
+                elif parts[0] == '_cell_angle_alpha':
+                    alpha = self._parse_cif_value(parts[1])
+                elif parts[0] == '_cell_angle_beta':
+                    beta = self._parse_cif_value(parts[1])
+                elif parts[0] == '_cell_angle_gamma':
+                    gamma = self._parse_cif_value(parts[1])
+
+            # Check if all parameters were found
+            if None in [a, b, c, alpha, beta, gamma]:
+                missing = []
+                if a is None: missing.append('a')
+                if b is None: missing.append('b')
+                if c is None: missing.append('c')
+                if alpha is None: missing.append('alpha')
+                if beta is None: missing.append('beta')
+                if gamma is None: missing.append('gamma')
+                raise ValueError(f"Missing lattice parameters in CIF file: {', '.join(missing)}")
+
+            # Update the manual entry fields
+            self.a_edit.setText(str(a))
+            self.b_edit.setText(str(b))
+            self.c_edit.setText(str(c))
+            self.alpha_edit.setText(str(alpha))
+            self.beta_edit.setText(str(beta))
+            self.gamma_edit.setText(str(gamma))
+
+            # Display info
+            info_text = (
+                f"Lattice parameters extracted from CIF:\n"
+                f"a = {a:.4f} Å, b = {b:.4f} Å, c = {c:.4f} Å\n"
+                f"α = {alpha:.3f}°, β = {beta:.3f}°, γ = {gamma:.3f}°"
+            )
+            self.file_info_display.setText(info_text)
+            self.file_info_display.setStyleSheet("color: green;")
+
+            logger.info(f"Parsed lattice parameters from CIF file: {file_path}")
+
+        except Exception as e:
+            error_msg = f"Error parsing CIF file: {str(e)}"
+            self.file_info_display.setText(error_msg)
+            self.file_info_display.setStyleSheet("color: red;")
+            logger.error(error_msg)
+            QMessageBox.warning(self, "Parse Error", error_msg)
+
+    def _parse_cif_value(self, value_str: str) -> float:
+        """
+        Parse a CIF value, handling uncertainty notation.
+
+        CIF values may include uncertainty in parentheses, e.g., "13.532(1)"
+        This method extracts just the numeric value.
+        """
+        # Remove uncertainty notation if present (e.g., "13.532(1)" -> "13.532")
+        if '(' in value_str:
+            value_str = value_str.split('(')[0]
+
+        return float(value_str)
 
     def accept_parameters(self):
         """Validate and accept the entered parameters."""
