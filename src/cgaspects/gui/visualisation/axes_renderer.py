@@ -13,39 +13,95 @@ class AxesRenderer:
         layout(location = 0) in vec3 position;
         layout(location = 1) in vec3 color;
 
-        out vec4 v_color;
-
-        uniform mat4 u_viewMat;  // Uniform for the view matrix
-        uniform vec2 u_screenSize; // Uniform for screen size
+        out GS_IN {
+            vec3 color;
+        } gs_in;
 
         void main() {
-            vec3 rotatedPos = mat3(u_viewMat) * position * 0.1;
-
-            vec2 screenPos = vec2(0.8, 0.8); // Bottom left corner
-            rotatedPos.xy -= screenPos;
-
-            gl_Position = vec4(rotatedPos, 1.0);
-            v_color = vec4(color, 1.0);
+            gs_in.color = color;
+            gl_Position = vec4(position, 1.0);
         }
 
+        """
+
+        self.geometry_shader_source = """
+        #version 330 core
+        layout(lines) in;
+        layout(triangle_strip, max_vertices = 4) out;
+
+        uniform mat4 u_viewMat;
+        uniform vec2 u_screenSize;
+        uniform float u_axesThickness;
+
+        in GS_IN {
+            vec3 color;
+        } gs_in[];
+
+        out vec4 f_color;
+
+        void main() {
+            // Apply view matrix rotation to positions
+            vec3 rotatedStart = mat3(u_viewMat) * gl_in[0].gl_Position.xyz * 0.1;
+            vec3 rotatedEnd = mat3(u_viewMat) * gl_in[1].gl_Position.xyz * 0.1;
+
+            // Offset to corner
+            vec2 screenPos = vec2(0.8, 0.8);
+            rotatedStart.xy -= screenPos;
+            rotatedEnd.xy -= screenPos;
+
+            vec4 clipStart = vec4(rotatedStart, 1.0);
+            vec4 clipEnd = vec4(rotatedEnd, 1.0);
+
+            vec2 ndcStart = clipStart.xy;
+            vec2 ndcEnd = clipEnd.xy;
+
+            vec2 dir = normalize(ndcEnd - ndcStart);
+            vec2 perpDir = vec2(-dir.y, dir.x);
+
+            // Calculate line width in NDC
+            float ndcThickness = u_axesThickness / u_screenSize.y * 2.0;
+
+            vec2 offset = perpDir * ndcThickness / 2.0;
+            gl_Position = vec4((ndcStart + offset), clipStart.zw);
+            f_color = vec4(gs_in[0].color, 1.0);
+            EmitVertex();
+
+            gl_Position = vec4((ndcStart - offset), clipStart.zw);
+            f_color = vec4(gs_in[0].color, 1.0);
+            EmitVertex();
+
+            gl_Position = vec4((ndcEnd + offset), clipEnd.zw);
+            f_color = vec4(gs_in[1].color, 1.0);
+            EmitVertex();
+
+            gl_Position = vec4((ndcEnd - offset), clipEnd.zw);
+            f_color = vec4(gs_in[1].color, 1.0);
+            EmitVertex();
+
+            EndPrimitive();
+        }
         """
 
         self.fragment_shader_source = """
         #version 330 core
 
-        in vec4 v_color;
+        in vec4 f_color;
         out vec4 fragColor;
 
         void main() {
-            fragColor = v_color;
+            fragColor = f_color;
         }
         """
 
         self.points = None
         self.crystallography = None  # Store crystallography object for fractional coords
+        self.axes_thickness = 2.0  # Default thickness
         self.program = QOpenGLShaderProgram()
         self.program.addShaderFromSourceCode(
             QOpenGLShader.Vertex, self.vertex_shader_source
+        )
+        self.program.addShaderFromSourceCode(
+            QOpenGLShader.Geometry, self.geometry_shader_source
         )
         self.program.addShaderFromSourceCode(
             QOpenGLShader.Fragment, self.fragment_shader_source
@@ -133,6 +189,10 @@ class AxesRenderer:
         self.crystallography = None
         self._initialize_axes('cartesian')
 
+    def set_axes_thickness(self, thickness):
+        """Set the thickness of the axes lines."""
+        self.axes_thickness = thickness
+
     def setUniforms(self, **kwargs):
         for k, v in kwargs.items():
             if isinstance(v, float):
@@ -141,6 +201,8 @@ class AxesRenderer:
                 self.program.setUniformValue1i(k, v)
             else:
                 self.program.setUniformValue(k, v)
+        # Always set axes thickness
+        self.program.setUniformValue1f("u_axesThickness", self.axes_thickness)
 
     def bind(self):
         self.program.bind()

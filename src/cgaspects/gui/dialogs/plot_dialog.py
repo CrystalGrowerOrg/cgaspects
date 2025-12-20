@@ -1281,6 +1281,19 @@ class PlottingDialog(QDialog):
         # Access the row in the self.df
         if self.df is not None and point_index < len(self.df):
             row_data = self.df.iloc[point_index]
+
+            # Handle Site Analysis plot clicks
+            if self.plot_type == "Site Analysis" and hasattr(self, "_site_analysis_df"):
+                if point_index < len(self._site_analysis_df):
+                    site_row = self._site_analysis_df.iloc[point_index]
+                    site_num = site_row["site_number"]
+                    logger.info(f"Clicked on Site Analysis point: site {site_num}")
+
+                    # Emit signal to highlight this site in the visualization
+                    if self.signals and hasattr(self.signals, "highlight_site"):
+                        self.signals.highlight_site.emit(int(site_num))
+                    return
+
             try:
                 _sim_id = int(row_data["Simulation Number"] - 1)
             except KeyError:

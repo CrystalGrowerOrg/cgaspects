@@ -88,6 +88,10 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.availableColumns = {}
 
+        # Site highlighting - support multiple groups
+        self.highlight_groups = []  # List of (site_set, color) tuples
+        self.background_color_override = None  # Background color for non-highlighted sites
+
     def pass_XYZ(self, xyz):
         self.xyz = xyz
         logger.debug("XYZ coordinates passed on OpenGL widget")
@@ -117,6 +121,55 @@ class VisualisationWidget(QOpenGLWidget):
             self.axes_renderer.set_cartesian()
             self.update()
             logger.info("Axes reset to Cartesian coordinates")
+
+    def highlight_sites(self, site_numbers, color=None):
+        """Highlight specific sites with a given color (legacy method for single group).
+
+        Args:
+            site_numbers: List or set of site numbers to highlight
+            color: RGB color as numpy array or list [r, g, b] in range [0, 1]
+                   If None, uses red color
+        """
+        if color is None:
+            color = [1.0, 0.0, 0.0]  # Red by default
+
+        # Use the new multiple highlights method with a single group
+        self.highlight_sites_multiple([(site_numbers, color)])
+
+    def highlight_sites_multiple(self, highlight_groups, background_color=None):
+        """Highlight multiple groups of sites with different colors.
+
+        Args:
+            highlight_groups: List of (site_numbers, color) tuples
+                             Each color is RGB array or list [r, g, b] in range [0, 1]
+            background_color: RGB color for non-highlighted sites [r, g, b] in range [0, 1]
+                            If None, uses original coloring
+        """
+        self.highlight_groups = []
+        for site_numbers, color in highlight_groups:
+            site_set = set(site_numbers) if not isinstance(site_numbers, set) else site_numbers
+            color_array = np.array(color, dtype=np.float32)
+            self.highlight_groups.append((site_set, color_array))
+
+        if background_color is not None:
+            self.background_color_override = np.array(background_color, dtype=np.float32)
+        else:
+            self.background_color_override = None
+
+        total_sites = sum(len(sites) for sites, _ in self.highlight_groups)
+        logger.info(f"Highlighting {len(self.highlight_groups)} groups with {total_sites} total sites")
+
+        # Re-initialize geometry to apply the highlighting
+        self.initGeometry()
+        self.update()
+
+    def clear_highlighted_sites(self):
+        """Clear all highlighted sites."""
+        self.highlight_groups.clear()
+        self.background_color_override = None
+        logger.info("Cleared all highlighted sites")
+        self.initGeometry()
+        self.update()
 
     def saveRenderDialog(self):
         # First ask user what type of export they want
@@ -377,6 +430,10 @@ class VisualisationWidget(QOpenGLWidget):
         if present_and_changed("Projection", self.camera.projectionMode()):
             self.camera.setProjectionMode(kwargs["Projection"])
 
+        if "Axes Thickness" in kwargs:
+            if self.axes_renderer is not None:
+                self.axes_renderer.set_axes_thickness(float(kwargs["Axes Thickness"]))
+
         if needs_reinit:
             self.initGeometry()
 
@@ -581,6 +638,21 @@ class VisualisationWidget(QOpenGLWidget):
 
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")
+
+        # Apply site highlighting if any groups are defined
+        if self.highlight_groups and self.xyz.shape[1] > 6:
+            # Column 6 is Site Number (0-indexed)
+            site_numbers = self.xyz[:, 6]
+
+            # First, apply background color override to all sites if specified
+            if self.background_color_override is not None:
+                colors[:] = self.background_color_override
+
+            # Then apply highlight colors for each group (later groups override earlier ones)
+            for site_set, highlight_color in self.highlight_groups:
+                for i, site_num in enumerate(site_numbers):
+                    if site_num in site_set:
+                        colors[i] = highlight_color
 
         try:
             attributes = np.concatenate((points, colors), axis=1)

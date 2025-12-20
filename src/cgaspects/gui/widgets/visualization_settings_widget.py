@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPushButton,
     QSlider,
     QToolButton,
     QVBoxLayout,
@@ -255,6 +257,12 @@ class VisualizationSettingsWidget(QWidget):
         w.setValue(15)
 
         self.widgets["Frame Rate"] = w
+        w.valueChanged.connect(self.settingsChanged)
+
+        w = LabelledDoubleSlider("Axes Thickness", vrange=(1.0, 10.0), steps=18, parent=self)
+        w.setValue(2.0)
+
+        self.widgets["Axes Thickness"] = w
         w.valueChanged.connect(self.settingsChanged)
 
         for w in self.widgets.values():

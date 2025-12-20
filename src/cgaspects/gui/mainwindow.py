@@ -58,6 +58,7 @@ class GUIWorkerSignals(QObject):
     started = Signal()
     finished = Signal()
     sim_id = Signal(int)
+    highlight_site = Signal(int)  # Signal for highlighting a site in visualization
     error = Signal(tuple)
     result = Signal(object)
     location = Signal(object)
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals.progress.connect(self.update_progressbar)
         self.worker_signals.message.connect(self.set_message)
         self.worker_signals.sim_id.connect(self.update_sim_id)
+        self.worker_signals.highlight_site.connect(self.highlight_site_in_visualization)
         # Other self variables
         self.sim_num: int | None = None
         self.input_folder: Path | None = None
@@ -147,6 +149,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
         self.fps = self.visualizationSettings.fps()
 
+        # Create site highlighting dialog
+        from .dialogs.site_highlight_dialog import SiteHighlightDialog
+        self.site_highlight_dialog = SiteHighlightDialog(parent=self)
+        self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
+        self.site_highlight_dialog.clearHighlights.connect(self.handle_clear_highlights)
+
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
@@ -177,6 +185,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
 
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
+
+        # Add Site Highlighting action to View menu
+        from PySide6.QtGui import QAction
+        self.actionSiteHighlighting = QAction("Site Highlighting...", self)
+        self.actionSiteHighlighting.setShortcut("Ctrl+H")
+        self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
+        self.menuView.addAction(self.actionSiteHighlighting)
 
     def setup_log_menu_actions(self):
         from PySide6.QtGui import QAction
@@ -308,12 +323,62 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.input_folder is not None:
             self.setCurrentXYZIndex(value=value)
 
+    def highlight_site_in_visualization(self, site_number):
+        """Highlight a specific site in the 3D visualization (from plot click)."""
+        if hasattr(self, 'openglwidget') and self.openglwidget is not None:
+            # Highlight just this one site
+            self.openglwidget.highlight_sites([site_number])
+            logger.info(f"Highlighted site {site_number} in visualization")
+
+    def handle_highlights_changed(self, highlight_data):
+        """Handle site highlighting changes from the dialog.
+
+        Args:
+            highlight_data: List of (site_numbers, color) tuples, with last item being ("background", color)
+        """
+        if not hasattr(self, 'openglwidget') or self.openglwidget is None:
+            return
+
+        if not highlight_data:
+            self.openglwidget.clear_highlighted_sites()
+            return
+
+        # Extract background color (last item)
+        bg_color = None
+        highlight_groups = []
+
+        for item in highlight_data:
+            if len(item) == 2:
+                sites, color = item
+                if sites == "background":
+                    bg_color = [color.redF(), color.greenF(), color.blueF()]
+                else:
+                    # Convert QColor to RGB array [0.0-1.0]
+                    rgb_color = [color.redF(), color.greenF(), color.blueF()]
+                    highlight_groups.append((sites, rgb_color))
+
+        # Apply highlights with background color
+        self.openglwidget.highlight_sites_multiple(highlight_groups, background_color=bg_color)
+        total_sites = sum(len(sites) for sites, _ in highlight_groups)
+        logger.info(f"Applied {len(highlight_groups)} highlight group(s) with {total_sites} total sites")
+
+    def handle_clear_highlights(self):
+        """Handle clearing site highlights from the visualization settings widget."""
+        if hasattr(self, 'openglwidget') and self.openglwidget is not None:
+            self.openglwidget.clear_highlighted_sites()
+            logger.info("Cleared all site highlights")
+
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
 
     def show_settings(self):
         self.settings_dialog.show()
         self.settings_dialog.raise_()
+
+    def show_site_highlighting_dialog(self):
+        """Show the site highlighting dialog."""
+        self.site_highlight_dialog.show()
+        self.site_highlight_dialog.raise_()
 
     def welcome_message(self):
         self.log_message(
