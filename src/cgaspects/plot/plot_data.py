@@ -397,3 +397,106 @@ class Plotting(QDialog):
         # Calculate the number of rows (n_rows)
         n_rows = int(math.ceil(n / n_cols))
         return n_rows, n_cols
+
+    def plot_site_analysis(
+        self,
+        site_data: List[dict] = None,
+        json_path: str | Path = None,
+        *,
+        savepath: str | Path = None,
+        show: bool = False,
+        cmap: str = "viridis",
+        vmin: float = None,
+        vmax: float = None,
+    ):
+        """
+        Plot site analysis results.
+
+        The main plot shows:
+        - X-axis: TOTAL EVENTS (positive for ungrown, negative for grown)
+        - Y-axis: Energies
+        - Color: Coordination number
+        - Hover: Site number and details
+
+        Args:
+            site_data: List of site analysis dictionaries (from merged_results)
+            json_path: Path to site_analysis_data.json file
+            savepath: Directory to save plots
+            show: Whether to show the plot interactively
+            cmap: Colormap to use for the plot (default: "viridis")
+            vmin: Minimum value for color scale (default: None, auto)
+            vmax: Maximum value for color scale (default: None, auto)
+        """
+        import json
+
+        # Load data from JSON if provided
+        if json_path is not None:
+            with open(json_path, 'r') as f:
+                site_data = json.load(f)
+
+        if site_data is None:
+            logger.error("No site data provided for plotting")
+            return
+
+        # Convert site data to DataFrame for easier plotting
+        rows = []
+        for dataset in site_data:
+            file_prefix = dataset.get("file_prefix", "unknown")
+
+            for site_num, site_info in dataset.get("sites", {}).items():
+                if site_info.get("total_events") is None or site_info.get("energy") is None:
+                    continue
+
+                # Apply sign based on occupation (True = grown -> negative, False = ungrown -> positive)
+                signed_events = -site_info["total_events"] if site_info.get("occupation") else site_info["total_events"]
+
+                rows.append({
+                    "file_prefix": file_prefix,
+                    "site_number": int(site_num),
+                    "signed_total_events": signed_events,
+                    "energy": site_info["energy"],
+                    "coordination": site_info.get("coordination"),
+                    "total_events": site_info["total_events"],
+                    "occupation": site_info.get("occupation"),
+                })
+
+        if not rows:
+            logger.warning("No valid site data to plot")
+            return
+
+        df = pd.DataFrame(rows)
+
+        # Create the plot
+        plt.figure(figsize=(10, 8))
+        scatter = plt.scatter(
+            df["signed_total_events"],
+            df["energy"],
+            c=df["coordination"],
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            s=50,
+            alpha=0.6,
+        )
+
+        plt.xlabel("Total Events (- = grown, + = ungrown)")
+        plt.ylabel("Energy")
+        plt.title("Site Analysis: Total Events vs Energy")
+        plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+        plt.grid(True, alpha=0.3)
+
+        # Add colorbar
+        cbar = plt.colorbar(scatter)
+        cbar.set_label("Coordination Number")
+
+        plt.tight_layout()
+
+        if savepath is not None:
+            savepath = Path(savepath)
+            plt.savefig(savepath / "site_analysis_events_vs_energy.png", dpi=300)
+            logger.info(f"Saved site analysis plot to {savepath / 'site_analysis_events_vs_energy.png'}")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()

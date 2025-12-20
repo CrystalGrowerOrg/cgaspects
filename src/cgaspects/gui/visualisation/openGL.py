@@ -195,6 +195,26 @@ class VisualisationWidget(QOpenGLWidget):
         if not ok:
             return
 
+        # Ask user for mesh resolution (sphere subdivision level)
+        resolution_options = {
+            "Low (Fast)": 1,
+            "Medium (Balanced)": 2,
+            "High (Detailed)": 3,
+            "Ultra (Slow)": 4
+        }
+        resolution_choice, ok = QInputDialog.getItem(
+            self, "Select Mesh Resolution",
+            "Resolution (sphere detail):",
+            list(resolution_options.keys()),
+            1,  # Default to "Medium"
+            False
+        )
+
+        if not ok:
+            return
+
+        subdivision_level = resolution_options[resolution_choice]
+
         # Get file name from user
         filter_str = f"3D Mesh (*{file_format})"
         file_name, _ = QFileDialog.getSaveFileName(self, "Save Mesh", "", filter_str)
@@ -205,7 +225,7 @@ class VisualisationWidget(QOpenGLWidget):
                 file_name += file_format
 
             try:
-                self.saveMesh(file_name)
+                self.saveMesh(file_name, subdivision_level=subdivision_level)
 
                 # Confirmation dialog
                 msgBox = QMessageBox(self)
@@ -231,13 +251,18 @@ class VisualisationWidget(QOpenGLWidget):
                 msgBox.setText(f"Failed to export mesh:\n{str(e)}")
                 msgBox.exec_()
 
-    def saveMesh(self, file_name):
-        """Export the current visualization as a 3D mesh file"""
+    def saveMesh(self, file_name, subdivision_level=2):
+        """Export the current visualization as a 3D mesh file
+
+        Args:
+            file_name: Path to save the mesh file
+            subdivision_level: Level of sphere subdivision detail (1-4, default 2)
+        """
         mesh = None
 
         if self.style == "Spheres":
             # Generate mesh from sphere instances with colors
-            mesh = self._generateSphereMesh()
+            mesh = self._generateSphereMesh(subdivision_level=subdivision_level)
         elif self.style == "Convex Hull":
             # Use the existing convex hull mesh (without colors)
             mesh = self.mesh_renderer.mesh
@@ -247,10 +272,18 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Export using trimesh
         mesh.export(file_name)
-        logger.info("Mesh exported to %s", file_name)
+        logger.info("Mesh exported to %s with subdivision level %d", file_name, subdivision_level)
 
-    def _generateSphereMesh(self):
-        """Generate a combined mesh from all sphere instances with colors"""
+    def _generateSphereMesh(self, subdivision_level=2):
+        """Generate a combined mesh from all sphere instances with colors
+
+        Args:
+            subdivision_level: Level of icosphere subdivision (1-4)
+                1 = 42 vertices (low detail, fast)
+                2 = 162 vertices (medium detail)
+                3 = 642 vertices (high detail)
+                4 = 2562 vertices (ultra detail, slow)
+        """
         if self.sphere_renderer.numberOfInstances() <= 0:
             raise ValueError("No spheres to export")
 
@@ -261,7 +294,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Create base sphere mesh
         from trimesh.creation import icosphere
-        base_sphere = icosphere(subdivisions=2, radius=1.0)
+        base_sphere = icosphere(subdivisions=subdivision_level, radius=1.0)
 
         # Scale the sphere by point size (matching the shader: u_pointSize * 0.2)
         scale_factor = self.point_size * 0.2

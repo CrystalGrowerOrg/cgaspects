@@ -2,10 +2,12 @@
 Site Analysis module for processing crystallisation events and population data.
 """
 
+import json
 import logging
 from pathlib import Path
 from typing import List, Optional
 
+import numpy as np
 from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QDialog
 
@@ -138,10 +140,14 @@ class SiteAnalysis:
             summary_path = self.output_folder / "site_analysis_summary.txt"
             self._save_summary(merged_results, summary_path)
 
+            # Save parsed data as JSON for plotting
+            json_path = self.output_folder / "site_analysis_data.json"
+            self._save_json(merged_results, json_path)
+
             logger.info(f"Site analysis complete. Results saved to {self.output_folder}")
 
             result = self.result_tuple(
-                csv=summary_path,
+                csv=json_path,
                 selected=None,
                 folder=self.output_folder
             )
@@ -208,3 +214,26 @@ class SiteAnalysis:
                     f.write(f"  ... and {len(result['sites']) - 10} more sites\n")
 
                 f.write("\n" + "=" * 80 + "\n\n")
+
+    def _save_json(self, merged_results: List[dict], output_path: Path):
+        """Save the merged parsed data as JSON for plotting."""
+
+        def convert_to_serializable(obj):
+            """Convert numpy types to Python native types for JSON serialization."""
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.integer, np.floating)):
+                return obj.item()
+            elif isinstance(obj, dict):
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            return obj
+
+        # Convert the results to JSON-serializable format
+        serializable_results = convert_to_serializable(merged_results)
+
+        with open(output_path, 'w') as f:
+            json.dump(serializable_results, f, indent=2)
+
+        logger.info(f"Saved site analysis data to {output_path}")

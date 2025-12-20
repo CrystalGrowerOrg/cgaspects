@@ -1,7 +1,7 @@
 import logging
 import sys
 from itertools import permutations
-from collections import namedtuple
+
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -9,27 +9,26 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6 import QtCore
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
-    QSplitter,
-    QWidget,
     QCheckBox,
     QComboBox,
     QDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QSpinBox,
+    QSplitter,
     QVBoxLayout,
-    QGridLayout,
+    QWidget,
 )
-from PySide6.QtGui import QIcon
 
-
+from cgaspects.gui.dialogs.data_filter_dialog import DataFilterDialog
+from cgaspects.gui.dialogs.label_customization_dialog import LabelCustomizationDialog
 from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
-from cgaspects.gui.widgets.plot_axes_widget import (
-    PlotAxesWidget,
-)
+from cgaspects.gui.widgets.plot_axes_widget import PlotAxesWidget
 from cgaspects.utils.data_structures import plot_obj_tuple
 
 matplotlib.use("QTAgg")
@@ -45,8 +44,7 @@ class NavigationToolbar(NavigationToolbar2QT):
         (None, None, None, None),
         (
             "Pan",
-            "Left button pans, Right button zooms\n"
-            "x/y fixes axis, CTRL fixes aspect",
+            "Left button pans, Right button zooms\nx/y fixes axis, CTRL fixes aspect",
             "move",
             "pan",
         ),
@@ -105,12 +103,38 @@ class PlottingDialog(QDialog):
         self.y_label = None
         self.title = ""
 
+        # Custom labels from dialog (empty means use defaults)
+        self.custom_title = ""
+        self.custom_xlabel = ""
+        self.custom_ylabel = ""
+        self.custom_cbar_label = ""
+
+        # Colormap settings (universal across all modes)
+        self.cmap = "viridis"
+
+        # Data filtering
+        self.data_filters = []  # List of filter configurations
+
     def setCSV(self, csv):
         self.csv = csv
+        self.site_analysis_data = None
+
         if isinstance(self.csv, pd.DataFrame):
+            self.df_original = self.csv.copy()
             self.df = self.csv
         else:
-            self.df = pd.read_csv(self.csv, encoding="utf-8", encoding_errors="replace")
+            # Check if this is a site analysis JSON file
+            if str(csv).endswith("site_analysis_data.json"):
+                import json
+
+                with open(csv, "r") as f:
+                    self.site_analysis_data = json.load(f)
+                # Convert to DataFrame for plotting
+                self.df = self._convert_site_analysis_to_df(self.site_analysis_data)
+                self.df_original = self.df.copy()
+            else:
+                self.df = pd.read_csv(self.csv, encoding="utf-8", encoding_errors="replace")
+                self.df_original = self.df.copy()
 
         logger.debug("Dataframe read:\n%s", self.df)
         plotting = None
@@ -122,10 +146,22 @@ class PlottingDialog(QDialog):
         self.interaction_columns = [
             col
             for col in self.df.columns
-            if col.startswith(
-                ("interaction", "tile", "temperature", "starting_delmu", "excess")
-            )
+            if col.startswith(("interaction", "tile", "temperature", "starting_delmu", "excess"))
         ]
+
+        # Add site analysis specific columns if present
+        site_analysis_columns = [
+            "tile_type",
+            "energy",
+            "occupation",
+            "coordination",
+            "total_events",
+            "total_population",
+        ]
+        for col in site_analysis_columns:
+            if col in self.df.columns and col not in self.interaction_columns:
+                self.interaction_columns.append(col)
+
         self.interaction_columns.insert(0, "None")
         logger.debug("Interaction energy columns: %s", self.interaction_columns)
 
@@ -162,6 +198,10 @@ class PlottingDialog(QDialog):
                     self.directions.append(col)
             self.plot_types = ["Growth Rates"]
 
+        # Check if this is site analysis data
+        if self.site_analysis_data is not None:
+            self.plot_types.append("Site Analysis")
+
         logger.info("Default plot types found: %s", self.plot_types)
         logger.info("Directions found: %s", self.directions)
 
@@ -169,10 +209,40 @@ class PlottingDialog(QDialog):
         self.plot_types.append("Custom")
         self.updatePlotWidgets()
 
-        # Set default plot type to "Custom"
-        custom_index = self.plot_types_combobox.findText("Custom")
-        if custom_index >= 0:
-            self.plot_types_combobox.setCurrentIndex(custom_index)
+        # Set default plot type to "Custom" or "Site Analysis" if available
+        if self.site_analysis_data is not None:
+            site_analysis_index = self.plot_types_combobox.findText("Site Analysis")
+            if site_analysis_index >= 0:
+                self.plot_types_combobox.setCurrentIndex(site_analysis_index)
+        else:
+            custom_index = self.plot_types_combobox.findText("Custom")
+            if custom_index >= 0:
+                self.plot_types_combobox.setCurrentIndex(custom_index)
+
+    def _convert_site_analysis_to_df(self, site_data_list):
+        """Convert site analysis JSON data to a pandas DataFrame for plotting."""
+        rows = []
+
+        for dataset in site_data_list:
+            file_prefix = dataset.get("file_prefix", "unknown")
+
+            for site_num, site_data in dataset.get("sites", {}).items():
+                # Create a row for each site
+                row = {
+                    "file_prefix": file_prefix,
+                    "site_number": int(site_num),
+                    "tile_type": site_data.get("tile_type"),
+                    "energy": site_data.get("energy"),
+                    "occupation": site_data.get("occupation"),
+                    "coordination": site_data.get("coordination"),
+                    "total_events": site_data.get("total_events"),
+                    "total_population": site_data.get("total_population"),
+                }
+                rows.append(row)
+
+        df = pd.DataFrame(rows)
+        logger.info(f"Converted site analysis data to DataFrame with {len(df)} rows")
+        return df
 
     def updatePlotWidgets(self):
         self.custom_plot_widget.xAxisListWidget.clear()
@@ -225,11 +295,12 @@ class PlottingDialog(QDialog):
         self.spin_point_size.setRange(1, 100)
 
         self.button_save = QPushButton("Export...")
-        self.exportIcon = QIcon(
-            ":material_icons/material_icons/png/content-save-custom.png"
-        )
+        self.exportIcon = QIcon(":material_icons/material_icons/png/content-save-custom.png")
         self.button_save.setIcon(self.exportIcon)
         self.button_add_trendline = QPushButton("Add Trendline")
+        self.button_customize_labels = QPushButton("Customize Labels...")
+        self.button_filter_data = QPushButton("Filter Data...")
+        self.button_filter_data.setToolTip("Filter the data shown in the plot")
 
         # Initialize the variables
         self.point_size = 12
@@ -242,11 +313,33 @@ class PlottingDialog(QDialog):
         self.checkbox_zingg = QCheckBox("Zingg")
         self.checkbox_corr_mat = QCheckBox("Correlation Matix")
 
-        self.canvas.mpl_connect(
-            "motion_notify_event", lambda event: self.on_hover(event)
+        # Colormap controls (universal across all modes)
+        self.cmap_label = QLabel("Colormap:")
+        self.cmap_label.setAlignment(QtCore.Qt.AlignRight)
+        self.cmap_combobox = QComboBox(self)
+        self.cmap_combobox.addItems(
+            [
+                "viridis",
+                "plasma",
+                "inferno",
+                "magma",
+                "cividis",
+                "coolwarm",
+                "seismic",
+                "RdYlBu",
+                "RdYlGn",
+                "Spectral",
+                "jet",
+                "rainbow",
+                "turbo",
+            ]
         )
 
+        self.canvas.mpl_connect("motion_notify_event", lambda event: self.on_hover(event))
+
         self.button_save.clicked.connect(self.save)
+        self.button_customize_labels.clicked.connect(self.open_label_customization_dialog)
+        self.button_filter_data.clicked.connect(self.open_filter_dialog)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.checkbox_legend.stateChanged.connect(self.trigger_plot)
         self.checkbox_zingg.stateChanged.connect(
@@ -259,25 +352,18 @@ class PlottingDialog(QDialog):
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
 
+        # Colormap controls
+        self.cmap_combobox.currentIndexChanged.connect(self.trigger_plot)
+
         if self.plot_permutations_combobox is not None:
-            self.plot_permutations_combobox.currentIndexChanged.connect(
-                self.trigger_plot
-            )
+            self.plot_permutations_combobox.currentIndexChanged.connect(self.trigger_plot)
         if self.variables_combobox is not None:
             self.variables_combobox.currentIndexChanged.connect(self.trigger_plot)
 
-        self.custom_plot_widget.xAxisListWidget.currentItemChanged.connect(
-            self.trigger_plot
-        )
-        self.custom_plot_widget.yAxisListWidget.itemCheckedStateChanged.connect(
-            self.trigger_plot
-        )
-        self.custom_plot_widget.yAxisListWidget_single.currentItemChanged.connect(
-            self.trigger_plot
-        )
-        self.custom_plot_widget.colorListWidget.currentItemChanged.connect(
-            self.trigger_plot
-        )
+        self.custom_plot_widget.xAxisListWidget.currentItemChanged.connect(self.trigger_plot)
+        self.custom_plot_widget.yAxisListWidget.itemCheckedStateChanged.connect(self.trigger_plot)
+        self.custom_plot_widget.yAxisListWidget_single.currentItemChanged.connect(self.trigger_plot)
+        self.custom_plot_widget.colorListWidget.currentItemChanged.connect(self.trigger_plot)
 
     def create_layout(self):
         main_layout = QVBoxLayout()
@@ -302,6 +388,8 @@ class PlottingDialog(QDialog):
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
         hbox1.addWidget(self.button_add_trendline)
+        hbox1.addWidget(self.button_filter_data)
+        hbox1.addWidget(self.button_customize_labels)
         hbox1.addWidget(self.button_save)
 
         grid1 = QGridLayout()
@@ -313,7 +401,12 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.variables_combobox, 0, 5)
         grid1.addWidget(self.checkbox_zingg, 0, 6)
         grid1.addWidget(self.checkbox_corr_mat, 0, 7)
-        grid1.addWidget(self.custom_plot_widget, 1, 0, 1, 8)
+
+        # Add colormap controls row (universal across all modes)
+        grid1.addWidget(self.cmap_label, 1, 0)
+        grid1.addWidget(self.cmap_combobox, 1, 1)
+
+        grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
 
         # Set alignment to right for all labels and combo boxes
         for i in range(grid1.rowCount()):
@@ -340,17 +433,29 @@ class PlottingDialog(QDialog):
         self.setLayout(main_layout)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
 
-    def set_point_size(self, value):
+    def set_point_size(self):
+        """Update point size for all scatter plots."""
         self.point_size = self.spin_point_size.value()
         for plot in self.plot_objects.values():
             if plot.scatter is not None:
-                plot.scatter.set_sizes(
-                    [self.point_size] * len(plot.scatter.get_offsets())
-                )
+                plot.scatter.set_sizes([self.point_size] * len(plot.scatter.get_offsets()))
         self.canvas.draw()
 
     def change_mode(self, mode):
-        if mode == "Heatmap":
+        if mode == "Site Analysis":
+            # Disable permutation controls for Site Analysis
+            self.plot_permutations_label.setEnabled(False)
+            self.plot_permutations_combobox.setEnabled(False)
+            self.plot_permutations_combobox.setCurrentIndex(0)
+            # Enable variable controls for Site Analysis
+            self.variables_label.setEnabled(True)
+            self.variables_combobox.setEnabled(True)
+            self.custom_plot_widget.hide()
+            self.checkbox_corr_mat.setEnabled(False)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_zingg.setEnabled(False)
+            self.checkbox_zingg.setChecked(False)
+        elif mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
             self.plot_permutations_combobox.setCurrentIndex(0)
@@ -404,12 +509,134 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_corr_mat.hide()
             self.checkbox_zingg.hide()
+
             # Ensure checkable widget is shown when hiding custom widget
             self.custom_plot_widget.yAxisListWidget.show()
             self.custom_plot_widget.yAxisListWidget_single.hide()
 
+    def open_label_customization_dialog(self):
+        """Open the label customization dialog."""
+        current_labels = {
+            "title": self.custom_title,
+            "xlabel": self.custom_xlabel,
+            "ylabel": self.custom_ylabel,
+            "cbar_label": self.custom_cbar_label,
+        }
+
+        dialog = LabelCustomizationDialog(current_labels, parent=self)
+        if dialog.exec() == QDialog.Accepted:
+            labels = dialog.get_labels()
+            self.custom_title = labels["title"]
+            self.custom_xlabel = labels["xlabel"]
+            self.custom_ylabel = labels["ylabel"]
+            self.custom_cbar_label = labels["cbar_label"]
+            logger.info("Custom labels updated: %s", labels)
+            # Replot with new labels
+            self.trigger_plot()
+
+    def open_filter_dialog(self):
+        """Open the data filter dialog."""
+        # Use the original unfiltered dataframe for the filter dialog
+        original_df = self._get_original_df()
+
+        dialog = DataFilterDialog(original_df, current_filters=self.data_filters, parent=self)
+        if dialog.exec() == QDialog.Accepted:
+            self.data_filters = dialog.get_filters()
+            logger.info("Data filters updated: %s", self.data_filters)
+
+            # Update button text to indicate active filters
+            if self.data_filters:
+                self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+            else:
+                self.button_filter_data.setText("Filter Data...")
+
+            # Replot with filtered data
+            self.trigger_plot()
+
+    def _get_original_df(self):
+        """Get the original unfiltered dataframe."""
+        return self.df_original if hasattr(self, "df_original") else self.df
+
+    def _apply_data_filters(self):
+        """Apply data filters to the dataframe."""
+        if not self.data_filters:
+            self.df = self.df_original.copy()
+            return
+
+        filtered_df = self.df_original.copy()
+
+        for filter_config in self.data_filters:
+            column = filter_config["column"]
+            operator = filter_config["operator"]
+            value_str = filter_config["value"]
+
+            if column not in filtered_df.columns:
+                logger.warning(f"Column '{column}' not found in dataframe")
+                continue
+
+            try:
+                # Try to convert value to numeric if the column is numeric
+                if pd.api.types.is_numeric_dtype(filtered_df[column]):
+                    value = pd.to_numeric(value_str)
+                else:
+                    value = value_str
+
+                # Apply the filter based on operator
+                if operator == "==":
+                    mask = filtered_df[column] == value
+                elif operator == "!=":
+                    mask = filtered_df[column] != value
+                elif operator == ">":
+                    mask = filtered_df[column] > value
+                elif operator == ">=":
+                    mask = filtered_df[column] >= value
+                elif operator == "<":
+                    mask = filtered_df[column] < value
+                elif operator == "<=":
+                    mask = filtered_df[column] <= value
+                elif operator == "contains":
+                    mask = filtered_df[column].astype(str).str.contains(str(value), case=False)
+                elif operator == "not contains":
+                    mask = ~filtered_df[column].astype(str).str.contains(str(value), case=False)
+                else:
+                    logger.warning(f"Unknown operator: {operator}")
+                    continue
+
+                filtered_df = filtered_df[mask]
+
+            except Exception as e:
+                logger.error(f"Error applying filter {filter_config}: {e}")
+                continue
+
+        self.df = filtered_df
+        logger.info(f"Applied {len(self.data_filters)} filters: {len(self.df)} rows remaining from {len(self.df_original)} original rows")
+
     def trigger_plot(self):
+        # Store custom labels before resetting
+        custom_title = self.custom_title
+        custom_xlabel = self.custom_xlabel
+        custom_ylabel = self.custom_ylabel
+        custom_cbar_label = self.custom_cbar_label
+        data_filters = self.data_filters  # Store filters before resetting
+
         self.setPlotDefaults()
+
+        # Apply data filters
+        self.data_filters = data_filters
+        self._apply_data_filters()
+
+        # Update filter button text
+        if self.data_filters:
+            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        else:
+            self.button_filter_data.setText("Filter Data...")
+
+        # Restore custom labels
+        self.custom_title = custom_title
+        self.custom_xlabel = custom_xlabel
+        self.custom_ylabel = custom_ylabel
+        self.custom_cbar_label = custom_cbar_label
+
         self.grid = self.checkbox_grid.isChecked()
         self.show_legend = self.checkbox_legend.isChecked()
         self.zingg = self.checkbox_zingg.isChecked()
@@ -424,6 +651,9 @@ class PlottingDialog(QDialog):
             self.custom_c,
         ) = self.custom_plot_widget.get_selections()
         self.custom_y = [tmp[1] for tmp in self.custom_y]
+
+        # Get colormap settings
+        self.cmap = self.cmap_combobox.currentText()
 
         self.change_mode(mode=self.plot_type)
         self._set_data()
@@ -447,6 +677,25 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Growth Rates":
             self.x_data = self.df["Supersaturation"]
             self.y_data = self.df[self.directions]
+        if self.plot_type == "Site Analysis":
+            # X-axis: TOTAL EVENTS (positive for ungrown, negative for grown)
+            # Y-axis: energies
+            # We need to handle None values
+            df_filtered = self.df[
+                self.df["total_events"].notna() & self.df["energy"].notna()
+            ].copy()
+
+            # Apply sign based on occupation (True = grown, False = ungrown)
+            df_filtered["signed_total_events"] = df_filtered.apply(
+                lambda row: -row["total_events"] if row["occupation"] else row["total_events"],
+                axis=1,
+            )
+
+            self.x_data = df_filtered["signed_total_events"]
+            self.y_data = df_filtered["energy"]
+
+            # Store the filtered dataframe for hover info
+            self._site_analysis_df = df_filtered
         if self.plot_type == "Heatmap":
             # For heatmap: X and Y are axes, C (color) is the value to display
             self.x_data = None
@@ -465,9 +714,7 @@ class PlottingDialog(QDialog):
                     self.y_data = self.df["Supersaturation"]
                     self.custom_y = ["Supersaturation"]
             except KeyError as exc:
-                logger.warning(
-                    "X or Y data not been set, invalid axis title!\n%s", exc
-                )
+                logger.warning("X or Y data not been set, invalid axis title!\n%s", exc)
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
@@ -475,9 +722,7 @@ class PlottingDialog(QDialog):
                 self.x_data = self.df[self.custom_x]
                 self.y_data = self.df[self.custom_y]
             except KeyError as exc:
-                logger.warning(
-                    "X and Y data not been set, invalid axis title!\n%s", exc
-                )
+                logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
 
         if self.plot_type != "Heatmap":
             self.y_data = self._ensure_pd_series(self.y_data)
@@ -510,6 +755,10 @@ class PlottingDialog(QDialog):
             self.x_label = "Supersaturation (kcal/mol)"
             self.y_label = "Relative Growth Rate"
             self.title = "Growth Rates vs supersaturation"
+        if self.plot_type == "Site Analysis":
+            self.x_label = "Total Events (- = grown, + = ungrown)"
+            self.y_label = "Energy"
+            self.title = "Site Analysis: Total Events vs Energy"
         if self.plot_type == "Heatmap":
             self.title = "Heatmap"
             self.x_label = self.custom_x if self.custom_x else ""
@@ -529,7 +778,22 @@ class PlottingDialog(QDialog):
     def _set_c(self):
         self.c_data = None
         self.c_name = None
-        if self.plot_type == "Heatmap":
+        if self.plot_type == "Site Analysis":
+            # Use variable dropdown to control color for Site Analysis
+            if self.variable != "None" and self.variable and hasattr(self, "_site_analysis_df"):
+                # Map the variable to the correct column in the filtered dataframe
+                if self.variable in self._site_analysis_df.columns:
+                    self.c_data = self._site_analysis_df[self.variable]
+                    self.c_name = self.variable
+                elif self.variable in self.df.columns:
+                    # Handle case where variable is in original df but not in filtered df
+                    # Need to filter it the same way as _site_analysis_df
+                    df_filtered = self.df[
+                        self.df["total_events"].notna() & self.df["energy"].notna()
+                    ].copy()
+                    self.c_data = df_filtered[self.variable]
+                    self.c_name = self.variable
+        elif self.plot_type == "Heatmap":
             # For heatmap, use custom_c as the value, default to Frame Index
             if self.custom_c and self.custom_c != "None":
                 self.c_data = self.df[self.custom_c]
@@ -559,16 +823,27 @@ class PlottingDialog(QDialog):
         variable = self.variable
         if self.plot_type == "Custom":
             variable = self.custom_c
+        elif self.plot_type == "Heatmap":
+            # For Heatmap, use the c_name (value column name)
+            self.c_label = self.c_name if self.c_name else ""
+            return
 
         self.c_label = ""
-        if variable.startswith("interaction") or variable.startswith("tile"):
+        if (
+            variable
+            and variable.startswith("interaction")
+            or (variable and variable.startswith("tile"))
+        ):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
-        if variable.startswith("starting_delmu"):
+        elif variable and variable.startswith("starting_delmu"):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
-        if variable.startswith("temperature_celcius"):
+        elif variable and variable.startswith("temperature_celcius"):
             self.c_label = "Temperature (℃)"
-        if variable.startswith("excess"):
+        elif variable and variable.startswith("excess"):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+        elif variable and variable != "None":
+            # For other variables, use the variable name as the label
+            self.c_label = variable
 
     def plot(self):
         self.plot_objects = {}
@@ -590,9 +865,14 @@ class PlottingDialog(QDialog):
         self.ax.clear()
         self.canvas.draw()
 
-        self.ax.set_xlabel(self.x_label)
-        self.ax.set_ylabel(self.y_label)
-        self.ax.set_title(self.title)
+        # Apply custom labels if set, otherwise use default labels
+        xlabel = self.custom_xlabel if self.custom_xlabel else self.x_label
+        ylabel = self.custom_ylabel if self.custom_ylabel else self.y_label
+        title = self.custom_title if self.custom_title else self.title
+
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+        self.ax.set_title(title)
 
         if self.grid:
             self.ax.grid(True)
@@ -664,7 +944,9 @@ class PlottingDialog(QDialog):
             # Take the frist scatter object to attach the colorbar
             scatter = list(self.plot_objects.values())[0].scatter
             self.cbar = self.figure.colorbar(scatter)
-            self.cbar.set_label(self.c_label)
+            # Apply custom colorbar label if set, otherwise use default
+            cbar_label = self.custom_cbar_label if self.custom_cbar_label else self.c_label
+            self.cbar.set_label(cbar_label)
             self.cbar.ax.set_zorder(-1)
 
         self.canvas.draw()
@@ -691,9 +973,7 @@ class PlottingDialog(QDialog):
     #     plot_object = self.plot_obj_tuple(scatter=scatter, line=line, trendline=None)
     #     self.plot_objects[label] = plot_object
 
-    def _plot(
-        self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"
-    ):
+    def _plot(self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"):
         label = y.name if label is None else label
 
         if self.covmat:
@@ -704,16 +984,24 @@ class PlottingDialog(QDialog):
             self._plot_scatter(x, y, c, cmap, add_line, label, marker)
 
     def _plot_scatter(self, x, y, c, cmap, add_line, label, marker):
-        cmap = None if c is None else cmap
-        scatter = self.ax.scatter(
-            x=x,
-            y=y,
-            c=c,
-            cmap=cmap,
-            s=self.point_size,
-            label=label if self.plot_type != "Growth Rates" else None,
-            marker=marker,
-        )
+        # Use universal colormap if color data is present
+        if c is not None:
+            cmap = self.cmap
+        else:
+            cmap = None
+
+        # Prepare scatter arguments
+        scatter_kwargs = {
+            "x": x,
+            "y": y,
+            "c": c,
+            "cmap": cmap,
+            "s": self.point_size,
+            "label": label if self.plot_type != "Growth Rates" else None,
+            "marker": marker,
+        }
+
+        scatter = self.ax.scatter(**scatter_kwargs)
         line = None
         if add_line:
             (line,) = self.ax.plot(x, y, label=label)
@@ -730,7 +1018,6 @@ class PlottingDialog(QDialog):
         self.plot_objects[label] = plot_object
 
     def _plot_covmat(self):
-
         # Calculate correlation matrix for the interactions
         vals = self.df[self.custom_y]
         try:
@@ -790,19 +1077,15 @@ class PlottingDialog(QDialog):
         self.ax.clear()
 
         # Create a DataFrame for pivoting
-        heatmap_df = pd.DataFrame({
-            'x': self.x_data,
-            'y': self.y_data,
-            'value': self.c_data
-        })
+        heatmap_df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "value": self.c_data})
 
         # Create pivot table for heatmap
         try:
             pivot_table = heatmap_df.pivot_table(
-                values='value',
-                index='y',
-                columns='x',
-                aggfunc='mean'  # Use mean if there are duplicate x,y pairs
+                values="value",
+                index="y",
+                columns="x",
+                aggfunc="mean",  # Use mean if there are duplicate x,y pairs
             )
         except Exception as e:
             logger.error("Failed to create pivot table for heatmap: %s", e)
@@ -823,7 +1106,9 @@ class PlottingDialog(QDialog):
 
         self.ax.set_xticks(x_tick_indices)
         self.ax.set_yticks(y_tick_indices)
-        self.ax.set_xticklabels([f"{pivot_table.columns[i]:.2f}" for i in x_tick_indices], rotation=45, ha="right")
+        self.ax.set_xticklabels(
+            [f"{pivot_table.columns[i]:.2f}" for i in x_tick_indices], rotation=45, ha="right"
+        )
         self.ax.set_yticklabels([f"{pivot_table.index[i]:.2f}" for i in y_tick_indices])
 
         # Add colorbar
@@ -840,7 +1125,7 @@ class PlottingDialog(QDialog):
         self.ax.set_title(self.title)
 
         if self.grid:
-            self.ax.grid(True, color='white', linewidth=0.5)
+            self.ax.grid(True, color="white", linewidth=0.5)
 
         # Adjust layout
         self.figure.tight_layout()
@@ -858,7 +1143,7 @@ class PlottingDialog(QDialog):
 
     def _handle_plot_checkboxes(self, checkbox):
         if checkbox.isChecked():
-            print(checkbox)
+            # print(checkbox)
             if checkbox == self.checkbox_zingg:
                 self.checkbox_corr_mat.setChecked(False)
             else:
@@ -872,11 +1157,32 @@ class PlottingDialog(QDialog):
 
         _sim_id = "N/A"
 
+        # Handle Site Analysis plots differently
+        if self.plot_type == "Site Analysis" and hasattr(self, "_site_analysis_df"):
+            if ind["ind"][0] < len(self._site_analysis_df):
+                row_data = self._site_analysis_df.iloc[ind["ind"][0]]
+                site_num = row_data["site_number"]
+                coordination = row_data["coordination"]
+                energy = row_data["energy"]
+                total_events = row_data["total_events"]
+                occupation_status = "Grown" if row_data["occupation"] else "Ungrown"
+
+                text = (
+                    f"Site Number: {site_num}\n"
+                    f"Total Events: {total_events}\n"
+                    f"Energy: {energy:.2f}\n"
+                    f"Coordination: {coordination}\n"
+                    f"Status: {occupation_status}"
+                )
+                self.annot.set_text(text)
+                self.annot.get_bbox_patch().set_alpha(0.4)
+            return
+
         if not (self.df is not None and ind["ind"][0] < len(self.df)):
             return
 
         row_data = self.df.iloc[ind["ind"][0]]
-        print(self.df.columns)
+        # print(self.df.columns)
 
         _sim_id = "N/A"
         # Determine the correct index based on column presence
@@ -900,14 +1206,9 @@ class PlottingDialog(QDialog):
         # Check if colour_data is available
         if colour_data is not None:
             color_val = colour_data[ind["ind"][0]]
-            text = (
-                f"Index: {_sim_id}\n"
-                f" x: {x:.2f}\n"
-                f" y: {y:.2f}\n"
-                f" {column_name}: {color_val:.2f}"
-            )
+            text = f"Index: {_sim_id}\n x: {x:.2f}\n y: {y:.2f}\n {column_name}: {color_val:.2f}"
         else:
-            text = f"Index: {_sim_id}\n" f" x: {x:.2f}\n" f" y: {y:.2f}"
+            text = f"Index: {_sim_id}\n x: {x:.2f}\n y: {y:.2f}"
 
         self.annot.set_text(text)
         self.annot.get_bbox_patch().set_alpha(0.4)
@@ -958,19 +1259,19 @@ class PlottingDialog(QDialog):
     def on_click(self, event):
         if event.inaxes != self.ax:
             return
-        cont = False
 
         def handle_scatter(scatter):
             # Check if scatter plot exists and handle click event
             if scatter is not None:
-                cont, ind = scatter.contains(event)
-                if cont:
+                is_contained, ind = scatter.contains(event)
+                if is_contained:
                     self.handle_click(scatter, self.c_data, self.c_name, ind)
 
         for plot in self.plot_objects.values():
             handle_scatter(scatter=plot.scatter)
 
-    def handle_click(self, scatter, colour_data, column_name, ind):
+    def handle_click(self, scatter, _colour_data, _column_name, ind):
+        """Handle click event on scatter plot points."""
         # index of the clicked point
         point_index = ind["ind"][0]
 
@@ -988,9 +1289,7 @@ class PlottingDialog(QDialog):
                 self.signals.sim_id.emit(_sim_id)
             logger.info(f"Clicked on row {point_index}: {row_data}")
         else:
-            logger.debug(
-                f"Clicked on point {point_index} with coordinates (x={x}, y={y})"
-            )
+            logger.debug(f"Clicked on point {point_index} with coordinates (x={x}, y={y})")
 
     def toggle_trendline(self):
         logger.info(self.trendline_text)
@@ -1067,9 +1366,7 @@ def main():
     # csv_data = pd.DataFrame(
     #     {"x": [1, 2, 3, 4, 5], "y": [2, 4, 6, 8, 10], "c": ["A", "B", "A", "B", "A"]}
     # )
-    csv_data = (
-        "/Users/alvin/CrystalGrower/CrystalSystems/SolventMaps/Xemium/form1/full.csv"
-    )
+    csv_data = "/Users/alvin/CrystalGrower/CrystalSystems/SolventMaps/Xemium/form1/full.csv"
 
     # Create an instance of PlottingDialog
     dialog = PlottingDialog(csv_data)
