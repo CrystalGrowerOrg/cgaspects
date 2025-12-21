@@ -29,6 +29,7 @@ from cgaspects.gui.dialogs.data_filter_dialog import DataFilterDialog
 from cgaspects.gui.dialogs.label_customization_dialog import LabelCustomizationDialog
 from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
 from cgaspects.gui.widgets.plot_axes_widget import PlotAxesWidget
+from cgaspects.gui.widgets.time_series_widget import TimeSeriesWidget
 from cgaspects.utils.data_structures import plot_obj_tuple
 
 matplotlib.use("QTAgg")
@@ -250,6 +251,13 @@ class PlottingDialog(QDialog):
                     "total_events": site_data.get("total_events"),
                     "total_population": site_data.get("total_population"),
                 }
+
+                # Store time-series data if available
+                if site_data.get("events") is not None:
+                    row["events_series"] = site_data["events"]
+                if site_data.get("population") is not None:
+                    row["population_series"] = site_data["population"]
+
                 rows.append(row)
 
         df = pd.DataFrame(rows)
@@ -302,6 +310,10 @@ class PlottingDialog(QDialog):
         self.variables_combobox = QComboBox(self)
 
         self.custom_plot_widget = PlotAxesWidget()
+
+        # Time-series widget for site analysis mode
+        self.time_series_widget = TimeSeriesWidget()
+        self.time_series_widget.hide()  # Hidden by default
 
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)
@@ -377,6 +389,10 @@ class PlottingDialog(QDialog):
         self.custom_plot_widget.yAxisListWidget_single.currentItemChanged.connect(self.trigger_plot)
         self.custom_plot_widget.colorListWidget.currentItemChanged.connect(self.trigger_plot)
 
+        # Connect time-series widget signals
+        self.time_series_widget.time_point_changed.connect(self.trigger_plot)
+        self.time_series_widget.plotting_mode_changed.connect(self.trigger_plot)
+
     def create_layout(self):
         main_layout = QVBoxLayout()
 
@@ -419,6 +435,9 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.cmap_combobox, 1, 3)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
+
+        # Add time-series widget (for Site Analysis mode)
+        grid1.addWidget(self.time_series_widget, 3, 0, 1, 8)
 
         # Set alignment to right for labels only
         for i in range(grid1.rowCount()):
@@ -467,6 +486,9 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            # Show time-series widget for Site Analysis
+            self.time_series_widget.show()
+            self._initialize_time_series_widget()
         elif mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
@@ -487,6 +509,9 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.yAxisListWidget_single.show()
             self.custom_plot_widget.y_axis_label.setText("Y-axis (select one)")
             self.custom_plot_widget.color_label.setText("Value (select one)")
+
+            # Hide time-series widget
+            self.time_series_widget.hide()
 
         elif mode == "Custom":
             self.plot_permutations_label.setEnabled(False)
@@ -509,6 +534,9 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.y_axis_label.setText("Y-axis (check multiple)")
             self.custom_plot_widget.color_label.setText("Color By (select one)")
 
+            # Hide time-series widget
+            self.time_series_widget.hide()
+
         else:
             self.plot_permutations_label.setEnabled(True)
             self.plot_permutations_combobox.setEnabled(True)
@@ -525,6 +553,30 @@ class PlottingDialog(QDialog):
             # Ensure checkable widget is shown when hiding custom widget
             self.custom_plot_widget.yAxisListWidget.show()
             self.custom_plot_widget.yAxisListWidget_single.hide()
+
+            # Hide time-series widget
+            self.time_series_widget.hide()
+
+    def _initialize_time_series_widget(self):
+        """Initialize the time-series widget with site analysis data."""
+        if self.site_analysis_data is None:
+            logger.warning("No site analysis data available for time-series widget")
+            return
+
+        # Get the first dataset to extract time-series parameters
+        first_dataset = next(iter(self.site_analysis_data.values()), None)
+        if first_dataset is None:
+            logger.warning("No datasets found in site analysis data")
+            return
+
+        # Extract time-series arrays
+        supersaturation = first_dataset.get("supersaturation")
+        time = first_dataset.get("time")
+        iterations = first_dataset.get("iterations")
+
+        # Set the time-series data in the widget
+        self.time_series_widget.set_time_data(supersaturation, time, iterations)
+        logger.debug("Initialized time-series widget with data")
 
     def open_label_customization_dialog(self):
         """Open the label customization dialog."""
@@ -719,21 +771,99 @@ class PlottingDialog(QDialog):
             self.x_data = self.df["Supersaturation"]
             self.y_data = self.df[self.directions]
         if self.plot_type == "Site Analysis":
-            # X-axis: TOTAL EVENTS (positive for ungrown, negative for grown)
-            # Y-axis: energies
-            # We need to handle None values
-            df_filtered = self.df[
-                self.df["total_events"].notna() & self.df["energy"].notna()
-            ].copy()
+            # Get current plotting mode and time point from time-series widget
+            plotting_mode = self.time_series_widget.get_plotting_mode()
+            _, _, time_index = self.time_series_widget.get_current_time_point()
 
-            # Apply sign based on occupation (True = grown, False = ungrown)
-            # Grown sites should be positive (+), ungrown sites should be negative (-)
-            df_filtered["signed_total_events"] = df_filtered.apply(
-                lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
-                axis=1,
-            )
+            # Check if we have time-series data
+            has_events_series = "events_series" in self.df.columns
+            has_population_series = "population_series" in self.df.columns
 
-            self.x_data = df_filtered["signed_total_events"]
+            # Determine which mode we're in
+            if plotting_mode == "Total Events":
+                # Use total_events data
+                df_filtered = self.df[
+                    self.df["total_events"].notna() & self.df["energy"].notna()
+                ].copy()
+
+                df_filtered["signed_total_events"] = df_filtered.apply(
+                    lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
+                    axis=1,
+                )
+                self.x_data = df_filtered["signed_total_events"]
+
+            elif plotting_mode == "Total Population":
+                # Use total_population data
+                df_filtered = self.df[
+                    self.df["total_population"].notna() & self.df["energy"].notna()
+                ].copy()
+
+                df_filtered["signed_total_population"] = df_filtered.apply(
+                    lambda row: row["total_population"] if row["occupation"] else -row["total_population"],
+                    axis=1,
+                )
+                self.x_data = df_filtered["signed_total_population"]
+
+            elif plotting_mode == "Events per Step":
+                # Use events time-series data at selected time point
+                if has_events_series:
+                    df_filtered = self.df[
+                        self.df["events_series"].notna() & self.df["energy"].notna()
+                    ].copy()
+
+                    # Extract value at time_index for each site
+                    df_filtered["current_events"] = df_filtered["events_series"].apply(
+                        lambda x: x[time_index] if isinstance(x, list) and time_index < len(x) else 0
+                    )
+
+                    # Apply sign based on occupation
+                    df_filtered["signed_events"] = df_filtered.apply(
+                        lambda row: row["current_events"] if row["occupation"] else -row["current_events"],
+                        axis=1,
+                    )
+                    self.x_data = df_filtered["signed_events"]
+                else:
+                    # Fallback to total events if no time-series data
+                    df_filtered = self.df[
+                        self.df["total_events"].notna() & self.df["energy"].notna()
+                    ].copy()
+
+                    df_filtered["signed_total_events"] = df_filtered.apply(
+                        lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
+                        axis=1,
+                    )
+                    self.x_data = df_filtered["signed_total_events"]
+
+            elif plotting_mode == "Population per Step":
+                # Use population time-series data at selected time point
+                if has_population_series:
+                    df_filtered = self.df[
+                        self.df["population_series"].notna() & self.df["energy"].notna()
+                    ].copy()
+
+                    # Extract value at time_index for each site
+                    df_filtered["current_population"] = df_filtered["population_series"].apply(
+                        lambda x: x[time_index] if isinstance(x, list) and time_index < len(x) else 0
+                    )
+
+                    # Apply sign based on occupation
+                    df_filtered["signed_population"] = df_filtered.apply(
+                        lambda row: row["current_population"] if row["occupation"] else -row["current_population"],
+                        axis=1,
+                    )
+                    self.x_data = df_filtered["signed_population"]
+                else:
+                    # Fallback to total population if no time-series data
+                    df_filtered = self.df[
+                        self.df["total_population"].notna() & self.df["energy"].notna()
+                    ].copy()
+
+                    df_filtered["signed_total_population"] = df_filtered.apply(
+                        lambda row: row["total_population"] if row["occupation"] else -row["total_population"],
+                        axis=1,
+                    )
+                    self.x_data = df_filtered["signed_total_population"]
+
             self.y_data = df_filtered["energy"]
 
             # Store the filtered dataframe for hover info
@@ -798,9 +928,40 @@ class PlottingDialog(QDialog):
             self.y_label = "Relative Growth Rate"
             self.title = "Growth Rates vs supersaturation"
         if self.plot_type == "Site Analysis":
-            self.x_label = "Total Events (Grown (+), Ungrown (-))"
+            # Get current plotting mode
+            plotting_mode = self.time_series_widget.get_plotting_mode()
+            param_name, param_value, time_index = self.time_series_widget.get_current_time_point()
+
+            # Determine labels based on mode
+            if plotting_mode == "Total Events":
+                data_type = "Events"
+                self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
+                self.title = f"Site Analysis: Total {data_type} vs Energy"
+
+            elif plotting_mode == "Total Population":
+                data_type = "Population"
+                self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
+                self.title = f"Site Analysis: Total {data_type} vs Energy"
+
+            elif plotting_mode == "Events per Step":
+                data_type = "Events"
+                if param_value is not None:
+                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                    self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                else:
+                    self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
+                    self.title = f"Site Analysis: {data_type} vs Energy"
+
+            elif plotting_mode == "Population per Step":
+                data_type = "Population"
+                if param_value is not None:
+                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                    self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                else:
+                    self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
+                    self.title = f"Site Analysis: {data_type} vs Energy"
+
             self.y_label = "Energy"
-            self.title = "Site Analysis: Total Events Vs Energy"
         if self.plot_type == "Heatmap":
             self.title = "Heatmap"
             self.x_label = format_label(self.custom_x) if self.custom_x else ""
@@ -1210,16 +1371,84 @@ class PlottingDialog(QDialog):
                 site_num = row_data["site_number"]
                 coordination = row_data["coordination"]
                 energy = row_data["energy"]
-                total_events = row_data["total_events"]
                 occupation_status = "Grown" if row_data["occupation"] else "Ungrown"
 
-                text = (
-                    f"Site Number: {site_num}\n"
-                    f"Total Events: {total_events}\n"
-                    f"Energy: {energy:.2f}\n"
-                    f"Coordination: {coordination}\n"
-                    f"Status: {occupation_status}"
-                )
+                # Get current plotting mode and time point info
+                plotting_mode = self.time_series_widget.get_plotting_mode()
+                param_name, param_value, time_index = self.time_series_widget.get_current_time_point()
+
+                # Determine which data to show based on mode
+                if plotting_mode == "Total Events":
+                    current_value = row_data.get("total_events", 0)
+                    total_value = current_value
+                    data_label = "Total Events"
+                    text = (
+                        f"Site Number: {site_num}\n"
+                        f"{data_label}: {current_value}\n"
+                        f"Energy: {energy:.2f}\n"
+                        f"Coordination: {coordination}\n"
+                        f"Status: {occupation_status}"
+                    )
+                elif plotting_mode == "Total Population":
+                    current_value = row_data.get("total_population", 0)
+                    total_value = current_value
+                    data_label = "Total Population"
+                    text = (
+                        f"Site Number: {site_num}\n"
+                        f"{data_label}: {current_value}\n"
+                        f"Energy: {energy:.2f}\n"
+                        f"Coordination: {coordination}\n"
+                        f"Status: {occupation_status}"
+                    )
+                elif plotting_mode == "Events per Step":
+                    if "current_events" in row_data:
+                        current_value = row_data["current_events"]
+                        total_value = row_data.get("total_events", "N/A")
+                        data_label = "Events"
+                        text = (
+                            f"Site Number: {site_num}\n"
+                            f"{data_label} (t={time_index}): {current_value}\n"
+                            f"Total {data_label}: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    else:
+                        current_value = row_data.get("total_events", 0)
+                        total_value = current_value
+                        data_label = "Events"
+                        text = (
+                            f"Site Number: {site_num}\n"
+                            f"Total {data_label}: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                elif plotting_mode == "Population per Step":
+                    if "current_population" in row_data:
+                        current_value = row_data["current_population"]
+                        total_value = row_data.get("total_population", "N/A")
+                        data_label = "Population"
+                        text = (
+                            f"Site Number: {site_num}\n"
+                            f"{data_label} (t={time_index}): {current_value}\n"
+                            f"Total {data_label}: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    else:
+                        current_value = row_data.get("total_population", 0)
+                        total_value = current_value
+                        data_label = "Population"
+                        text = (
+                            f"Site Number: {site_num}\n"
+                            f"Total {data_label}: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+
                 self.annot.set_text(text)
                 self.annot.get_bbox_patch().set_alpha(0.4)
             return
