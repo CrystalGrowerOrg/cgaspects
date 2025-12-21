@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from pathlib import Path
 from typing import List
 
@@ -9,7 +9,7 @@ import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
-from PySide6.QtGui import QIcon, Qt
+from PySide6.QtGui import QIcon, Qt, QAction
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
 from ..analysis.aspect_ratios import AspectRatio
@@ -25,6 +25,7 @@ from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
 from .dialogs.lattice_dialog import LatticeParametersDialog
+from .dialogs.site_highlight_dialog import SiteHighlightDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
@@ -32,7 +33,6 @@ from .widgets import (
     TextFileViewer,
     VisualizationSettingsWidget,
 )
-from ..utils.data_structures import xyz_tuple
 from .utils.crystallography import Crystallography
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
@@ -150,7 +150,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.fps = self.visualizationSettings.fps()
 
         # Create site highlighting dialog
-        from .dialogs.site_highlight_dialog import SiteHighlightDialog
         self.site_highlight_dialog = SiteHighlightDialog(parent=self)
         self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
         self.site_highlight_dialog.clearHighlights.connect(self.handle_clear_highlights)
@@ -187,15 +186,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
 
         # Add Site Highlighting action to View menu
-        from PySide6.QtGui import QAction
-        self.actionSiteHighlighting = QAction("Site Highlighting...", self)
-        self.actionSiteHighlighting.setShortcut("Ctrl+H")
+        self.actionSiteHighlighting = QAction("Highlight Sites", self)
+        self.actionSiteHighlighting.setShortcut("Ctrl+Shift+S")
         self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
         self.menuView.addAction(self.actionSiteHighlighting)
 
     def setup_log_menu_actions(self):
-        from PySide6.QtGui import QAction
-
         # Create Open Log File action
         self.actionOpenLogFile = QAction("Open Log File", self)
         self.actionOpenLogFile.setShortcut("Ctrl+L")
@@ -208,8 +204,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionClearLogFile.triggered.connect(self.clear_log_file)
 
         # Create Set Lattice Parameters action
-        self.actionSetLatticeParameters = QAction("Set Lattice Parameters...", self)
-        self.actionSetLatticeParameters.setToolTip("Set lattice parameters to convert axes to fractional coordinates")
+        self.actionSetLatticeParameters = QAction("Set Lattice Parameters", self)
+        self.actionSetLatticeParameters.setToolTip(
+            "Set lattice parameters to convert axes to fractional coordinates"
+        )
         self.actionSetLatticeParameters.triggered.connect(self.show_lattice_parameters_dialog)
 
         # Create Toggle Axes action (starts disabled until lattice params are set)
@@ -263,7 +261,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     f"Axes converted to fractional coordinates using lattice parameters: "
                     f"a={cell.a:.4f}, b={cell.b:.4f}, c={cell.c:.4f}, "
                     f"α={cell.alpha:.3f}°, β={cell.beta:.3f}°, γ={cell.gamma:.3f}°",
-                    "info"
+                    "info",
                 )
 
     def toggle_axes(self):
@@ -325,18 +323,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def highlight_site_in_visualization(self, site_number):
         """Highlight a specific site in the 3D visualization (from plot click)."""
-        if hasattr(self, 'openglwidget') and self.openglwidget is not None:
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            # Check if a crystal is loaded before trying to highlight
+            if self.openglwidget.xyz is None:
+                logger.debug(
+                    f"Cannot highlight site {site_number} - no crystal loaded in visualizer"
+                )
+                return
             # Highlight just this one site
-            self.openglwidget.highlight_sites([site_number])
+            self.openglwidget.highlight_sites([(site_number, None)])
             logger.info(f"Highlighted site {site_number} in visualization")
 
     def handle_highlights_changed(self, highlight_data):
         """Handle site highlighting changes from the dialog.
 
         Args:
-            highlight_data: List of (site_numbers, color) tuples, with last item being ("background", color)
+            highlight_data: List of (site_numbers, color) tuples, with last item being ("background", color or None)
         """
-        if not hasattr(self, 'openglwidget') or self.openglwidget is None:
+        if not hasattr(self, "openglwidget") or self.openglwidget is None:
             return
 
         if not highlight_data:
@@ -351,20 +355,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if len(item) == 2:
                 sites, color = item
                 if sites == "background":
-                    bg_color = [color.redF(), color.greenF(), color.blueF()]
+                    # Handle None case - keep bg_color as None to use existing coloring
+                    if color is not None:
+                        bg_color = [color.redF(), color.greenF(), color.blueF()]
+                    else:
+                        bg_color = None
                 else:
                     # Convert QColor to RGB array [0.0-1.0]
                     rgb_color = [color.redF(), color.greenF(), color.blueF()]
                     highlight_groups.append((sites, rgb_color))
 
         # Apply highlights with background color
-        self.openglwidget.highlight_sites_multiple(highlight_groups, background_color=bg_color)
+        self.openglwidget.highlight_sites(highlight_groups, background_color=bg_color)
         total_sites = sum(len(sites) for sites, _ in highlight_groups)
-        logger.info(f"Applied {len(highlight_groups)} highlight group(s) with {total_sites} total sites")
+        logger.info(
+            f"Applied {len(highlight_groups)} highlight group(s) with {total_sites} total sites"
+        )
 
     def handle_clear_highlights(self):
         """Handle clearing site highlights from the visualization settings widget."""
-        if hasattr(self, 'openglwidget') and self.openglwidget is not None:
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
             self.openglwidget.clear_highlighted_sites()
             logger.info("Cleared all site highlights")
 
@@ -664,10 +674,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.siteanalysis.set_xyz_files(xyz_files=self.xyz_files)
             self.siteanalysis.set_site_files(
                 crystallisation_files=information.crystallisation_files,
-                population_files=information.population_files
+                population_files=information.population_files,
             )
-            logger.info(f"Found {len(information.crystallisation_files)} crystallisation files and "
-                       f"{len(information.population_files)} population files")
+            logger.info(
+                f"Found {len(information.crystallisation_files)} crystallisation files and "
+                f"{len(information.population_files)} population files"
+            )
         else:
             logger.info("No crystallisation events or population files found for site analysis")
 
@@ -705,7 +717,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             # Attempt to get the directory from the file dialog
             plotting_csv = QFileDialog.getOpenFileName(
-                self, "Select CSV File", "./", "CSV Files (*.csv);;All Files (*)"
+                self,
+                "Select CSV File",
+                "./",
+                "CSV Files (*.csv);;JSON Files (*.json);;All Files (*)",
             )[0]
 
             # Check if the folder selection was canceled or empty and handle appropriately
@@ -922,10 +937,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 # Create or show the text file viewer
                 if self.text_file_viewer is None:
                     self.text_file_viewer = TextFileViewer(
-                        file_path=log_file,
-                        parent=self,
-                        auto_refresh=False,
-                        refresh_interval=2000
+                        file_path=log_file, parent=self, auto_refresh=False, refresh_interval=2000
                     )
                     # Set window size
                     self.text_file_viewer.resize(800, 600)
@@ -944,7 +956,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QMessageBox.warning(
                     self,
                     "Error Opening Log File",
-                    f"Could not open the log file:\n{log_file}\n\nError: {e}"
+                    f"Could not open the log file:\n{log_file}\n\nError: {e}",
                 )
         else:
             self.log_message("Log file does not exist yet", "warning")
@@ -952,7 +964,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self,
                 "Log File Not Found",
                 f"The log file has not been created yet:\n{log_file}\n\n"
-                "It will be created automatically when the application logs messages."
+                "It will be created automatically when the application logs messages.",
             )
 
     def clear_log_file(self):
@@ -966,34 +978,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             f"Are you sure you want to clear the log file?\n\n{log_file}\n\n"
             "This action cannot be undone.",
             QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.No,
         )
 
         if reply == QMessageBox.Yes:
             try:
                 if log_file.exists():
                     # Open in write mode to truncate the file
-                    with open(log_file, 'w') as f:
+                    with open(log_file, "w") as f:
                         pass
                     self.log_message("Log file cleared successfully", "info")
                     QMessageBox.information(
-                        self,
-                        "Log File Cleared",
-                        "The log file has been cleared successfully."
+                        self, "Log File Cleared", "The log file has been cleared successfully."
                     )
                 else:
                     self.log_message("Log file does not exist", "warning")
                     QMessageBox.information(
-                        self,
-                        "Log File Not Found",
-                        "The log file does not exist yet."
+                        self, "Log File Not Found", "The log file does not exist yet."
                     )
             except Exception as e:
                 self.log_message(f"Failed to clear log file: {e}", "error")
                 QMessageBox.warning(
                     self,
                     "Error Clearing Log File",
-                    f"Could not clear the log file:\n{log_file}\n\nError: {e}"
+                    f"Could not clear the log file:\n{log_file}\n\nError: {e}",
                 )
 
     def keyPressEvent(self, event):

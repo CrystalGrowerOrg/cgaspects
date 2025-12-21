@@ -400,7 +400,7 @@ class Plotting(QDialog):
 
     def plot_site_analysis(
         self,
-        site_data: List[dict] = None,
+        site_data: dict[str, dict] = None,
         json_path: str | Path = None,
         *,
         savepath: str | Path = None,
@@ -419,7 +419,7 @@ class Plotting(QDialog):
         - Hover: Site number and details
 
         Args:
-            site_data: List of site analysis dictionaries (from merged_results)
+            site_data: Dict of site analysis dictionaries (from merged_results), keyed by file prefix
             json_path: Path to site_analysis_data.json file
             savepath: Directory to save plots
             show: Whether to show the plot interactively
@@ -440,9 +440,7 @@ class Plotting(QDialog):
 
         # Convert site data to DataFrame for easier plotting
         rows = []
-        for dataset in site_data:
-            file_prefix = dataset.get("file_prefix", "unknown")
-
+        for file_prefix, dataset in site_data.items():
             for site_num, site_info in dataset.get("sites", {}).items():
                 if site_info.get("total_events") is None or site_info.get("energy") is None:
                     continue

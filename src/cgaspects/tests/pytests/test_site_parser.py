@@ -300,10 +300,13 @@ class TestMergeSiteResults(unittest.TestCase):
         # Merge
         merged = merge_site_results(results_with_paths)
 
-        # Should have one merged result (same prefix)
+        # Should be a dict with one merged result (same prefix)
+        self.assertIsInstance(merged, dict)
         self.assertEqual(len(merged), 1)
 
-        merged_result = merged[0]
+        # Get the first (and only) merged result
+        prefix = next(iter(merged))
+        merged_result = merged[prefix]
 
         # Check structure
         self.assertIn("file_prefix", merged_result)
@@ -332,7 +335,9 @@ class TestMergeSiteResults(unittest.TestCase):
         ]
 
         merged = merge_site_results(results_with_paths)
-        merged_result = merged[0]
+        # Get the first (and only) merged result from the dict
+        prefix = next(iter(merged))
+        merged_result = merged[prefix]
 
         # Pick a site that exists in both files
         site_num = next(iter(merged_result["sites"]))

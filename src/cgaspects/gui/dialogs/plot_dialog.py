@@ -36,6 +36,20 @@ matplotlib.use("QTAgg")
 logger = logging.getLogger("CA:PlotDialog")
 
 
+def format_label(label):
+    """Format a column name for display by converting to title case and removing underscores.
+
+    Args:
+        label: The column name to format
+
+    Returns:
+        Formatted label string
+    """
+    if not label:
+        return label
+    return label.replace("_", " ").title()
+
+
 class NavigationToolbar(NavigationToolbar2QT):
     toolitems = (
         ("Home", "Reset original view", "home", "home"),
@@ -109,7 +123,7 @@ class PlottingDialog(QDialog):
         self.custom_ylabel = ""
         self.custom_cbar_label = ""
 
-        # Colormap settings (universal across all modes)
+        # Colour scheme settings (universal across all modes)
         self.cmap = "viridis"
 
         # Data filtering
@@ -219,13 +233,11 @@ class PlottingDialog(QDialog):
             if custom_index >= 0:
                 self.plot_types_combobox.setCurrentIndex(custom_index)
 
-    def _convert_site_analysis_to_df(self, site_data_list):
+    def _convert_site_analysis_to_df(self, site_data_dict):
         """Convert site analysis JSON data to a pandas DataFrame for plotting."""
         rows = []
 
-        for dataset in site_data_list:
-            file_prefix = dataset.get("file_prefix", "unknown")
-
+        for file_prefix, dataset in site_data_dict.items():
             for site_num, site_data in dataset.get("sites", {}).items():
                 # Create a row for each site
                 row = {
@@ -313,8 +325,8 @@ class PlottingDialog(QDialog):
         self.checkbox_zingg = QCheckBox("Zingg")
         self.checkbox_corr_mat = QCheckBox("Correlation Matix")
 
-        # Colormap controls (universal across all modes)
-        self.cmap_label = QLabel("Colormap:")
+        # Colour scheme controls (universal across all modes)
+        self.cmap_label = QLabel("Colour Scheme:")
         self.cmap_label.setAlignment(QtCore.Qt.AlignRight)
         self.cmap_combobox = QComboBox(self)
         self.cmap_combobox.addItems(
@@ -352,7 +364,7 @@ class PlottingDialog(QDialog):
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
 
-        # Colormap controls
+        # Colour scheme controls
         self.cmap_combobox.currentIndexChanged.connect(self.trigger_plot)
 
         if self.plot_permutations_combobox is not None:
@@ -388,8 +400,6 @@ class PlottingDialog(QDialog):
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
         hbox1.addWidget(self.button_add_trendline)
-        hbox1.addWidget(self.button_filter_data)
-        hbox1.addWidget(self.button_customize_labels)
         hbox1.addWidget(self.button_save)
 
         grid1 = QGridLayout()
@@ -402,17 +412,19 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.checkbox_zingg, 0, 6)
         grid1.addWidget(self.checkbox_corr_mat, 0, 7)
 
-        # Add colormap controls row (universal across all modes)
-        grid1.addWidget(self.cmap_label, 1, 0)
-        grid1.addWidget(self.cmap_combobox, 1, 1)
+        # Add filter/customize buttons and colour scheme controls row (universal across all modes)
+        grid1.addWidget(self.button_filter_data, 1, 0)
+        grid1.addWidget(self.button_customize_labels, 1, 1)
+        grid1.addWidget(self.cmap_label, 1, 2)
+        grid1.addWidget(self.cmap_combobox, 1, 3)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
 
-        # Set alignment to right for all labels and combo boxes
+        # Set alignment to right for labels only
         for i in range(grid1.rowCount()):
             for j in range(grid1.columnCount()):
                 item = grid1.itemAtPosition(i, j)
-                if item and item.widget():
+                if item and item.widget() and isinstance(item.widget(), QLabel):
                     grid1.setAlignment(item.widget(), QtCore.Qt.AlignRight)
 
         controls_layout.addLayout(hbox1)
@@ -524,15 +536,28 @@ class PlottingDialog(QDialog):
         }
 
         dialog = LabelCustomizationDialog(current_labels, parent=self)
+
+        # Connect Apply button signal to update labels without closing dialog
+        dialog.labels_applied.connect(self._update_labels_and_replot)
+
         if dialog.exec() == QDialog.Accepted:
+            # Update labels when OK is clicked
             labels = dialog.get_labels()
-            self.custom_title = labels["title"]
-            self.custom_xlabel = labels["xlabel"]
-            self.custom_ylabel = labels["ylabel"]
-            self.custom_cbar_label = labels["cbar_label"]
-            logger.info("Custom labels updated: %s", labels)
-            # Replot with new labels
-            self.trigger_plot()
+            self._update_labels_and_replot(labels)
+
+    def _update_labels_and_replot(self, labels):
+        """Update custom labels and trigger replot.
+
+        Args:
+            labels: Dictionary with keys 'title', 'xlabel', 'ylabel', 'cbar_label'
+        """
+        self.custom_title = labels["title"]
+        self.custom_xlabel = labels["xlabel"]
+        self.custom_ylabel = labels["ylabel"]
+        self.custom_cbar_label = labels["cbar_label"]
+        logger.info("Custom labels updated: %s", labels)
+        # Replot with new labels
+        self.trigger_plot()
 
     def open_filter_dialog(self):
         """Open the data filter dialog."""
@@ -540,18 +565,32 @@ class PlottingDialog(QDialog):
         original_df = self._get_original_df()
 
         dialog = DataFilterDialog(original_df, current_filters=self.data_filters, parent=self)
+
+        # Connect Apply button signal to update filters without closing dialog
+        dialog.filters_applied.connect(self._update_filters_and_replot)
+
         if dialog.exec() == QDialog.Accepted:
-            self.data_filters = dialog.get_filters()
-            logger.info("Data filters updated: %s", self.data_filters)
+            # Update filters when OK is clicked
+            filters = dialog.get_filters()
+            self._update_filters_and_replot(filters)
 
-            # Update button text to indicate active filters
-            if self.data_filters:
-                self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
-            else:
-                self.button_filter_data.setText("Filter Data...")
+    def _update_filters_and_replot(self, filters):
+        """Update data filters and trigger replot.
 
-            # Replot with filtered data
-            self.trigger_plot()
+        Args:
+            filters: List of filter dictionaries
+        """
+        self.data_filters = filters
+        logger.info("Data filters updated: %s", self.data_filters)
+
+        # Update button text to indicate active filters
+        if self.data_filters:
+            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        else:
+            self.button_filter_data.setText("Filter Data...")
+
+        # Replot with filtered data
+        self.trigger_plot()
 
     def _get_original_df(self):
         """Get the original unfiltered dataframe."""
@@ -609,7 +648,9 @@ class PlottingDialog(QDialog):
                 continue
 
         self.df = filtered_df
-        logger.info(f"Applied {len(self.data_filters)} filters: {len(self.df)} rows remaining from {len(self.df_original)} original rows")
+        logger.info(
+            f"Applied {len(self.data_filters)} filters: {len(self.df)} rows remaining from {len(self.df_original)} original rows"
+        )
 
     def trigger_plot(self):
         # Store custom labels before resetting
@@ -652,7 +693,7 @@ class PlottingDialog(QDialog):
         ) = self.custom_plot_widget.get_selections()
         self.custom_y = [tmp[1] for tmp in self.custom_y]
 
-        # Get colormap settings
+        # Get colour scheme settings
         self.cmap = self.cmap_combobox.currentText()
 
         self.change_mode(mode=self.plot_type)
@@ -686,8 +727,9 @@ class PlottingDialog(QDialog):
             ].copy()
 
             # Apply sign based on occupation (True = grown, False = ungrown)
+            # Grown sites should be positive (+), ungrown sites should be negative (-)
             df_filtered["signed_total_events"] = df_filtered.apply(
-                lambda row: -row["total_events"] if row["occupation"] else row["total_events"],
+                lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
                 axis=1,
             )
 
@@ -756,22 +798,24 @@ class PlottingDialog(QDialog):
             self.y_label = "Relative Growth Rate"
             self.title = "Growth Rates vs supersaturation"
         if self.plot_type == "Site Analysis":
-            self.x_label = "Total Events (- = grown, + = ungrown)"
+            self.x_label = "Total Events (Grown (+), Ungrown (-))"
             self.y_label = "Energy"
-            self.title = "Site Analysis: Total Events vs Energy"
+            self.title = "Site Analysis: Total Events Vs Energy"
         if self.plot_type == "Heatmap":
             self.title = "Heatmap"
-            self.x_label = self.custom_x if self.custom_x else ""
-            self.y_label = self.custom_y[0] if self.custom_y and len(self.custom_y) > 0 else ""
+            self.x_label = format_label(self.custom_x) if self.custom_x else ""
+            self.y_label = (
+                format_label(self.custom_y[0]) if self.custom_y and len(self.custom_y) > 0 else ""
+            )
         if self.plot_type == "Custom":
             self.title = ""
-            self.x_label = self.custom_x
+            self.x_label = format_label(self.custom_x) if self.custom_x else ""
             self.y_label = ""
 
             if len(self.custom_y) == 1:
-                self.y_label = self.custom_y[0]
+                self.y_label = format_label(self.custom_y[0])
             elif len(self.custom_y) <= 3:
-                self.y_label = ", ".join(self.custom_y)
+                self.y_label = ", ".join([format_label(y) for y in self.custom_y])
             else:
                 self.y_label = "Multiple columns..."
 
@@ -824,8 +868,8 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Custom":
             variable = self.custom_c
         elif self.plot_type == "Heatmap":
-            # For Heatmap, use the c_name (value column name)
-            self.c_label = self.c_name if self.c_name else ""
+            # For Heatmap, use the c_name (value column name) with formatting
+            self.c_label = format_label(self.c_name) if self.c_name else ""
             return
 
         self.c_label = ""
@@ -837,13 +881,15 @@ class PlottingDialog(QDialog):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
         elif variable and variable.startswith("starting_delmu"):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+        elif variable and "energy" in variable.lower():
+            self.c_label = r"$\Delta G$ (kcal/mol)"
         elif variable and variable.startswith("temperature_celcius"):
             self.c_label = "Temperature (℃)"
         elif variable and variable.startswith("excess"):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
         elif variable and variable != "None":
-            # For other variables, use the variable name as the label
-            self.c_label = variable
+            # For other variables, use the variable name as the label with formatting
+            self.c_label = format_label(variable)
 
     def plot(self):
         self.plot_objects = {}
@@ -984,7 +1030,7 @@ class PlottingDialog(QDialog):
             self._plot_scatter(x, y, c, cmap, add_line, label, marker)
 
     def _plot_scatter(self, x, y, c, cmap, add_line, label, marker):
-        # Use universal colormap if color data is present
+        # Use universal colour scheme if color data is present
         if c is not None:
             cmap = self.cmap
         else:
@@ -1114,10 +1160,10 @@ class PlottingDialog(QDialog):
         # Add colorbar
         if self.cbar is None:
             self.cbar = self.figure.colorbar(im, ax=self.ax)
-            self.cbar.set_label(self.c_name if self.c_name else "Value")
+            self.cbar.set_label(self.c_label if self.c_label else "Value")
         else:
             self.cbar.update_normal(im)
-            self.cbar.set_label(self.c_name if self.c_name else "Value")
+            self.cbar.set_label(self.c_label if self.c_label else "Value")
 
         # Set labels and title
         self.ax.set_xlabel(self.x_label)

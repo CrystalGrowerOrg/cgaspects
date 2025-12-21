@@ -58,7 +58,7 @@ def parse_site_csv(csv_path: Path) -> Dict:
         Note: sites is a dictionary where keys are site numbers (int) and values
         are dictionaries containing the site data.
     """
-    logger.info(f"Parsing site CSV: {csv_path}")
+    logger.debug(f"Parsing site CSV: {csv_path}")
 
     # Read the entire CSV without headers to handle the complex structure
     df = pd.read_csv(
@@ -66,7 +66,13 @@ def parse_site_csv(csv_path: Path) -> Dict:
     )
 
     # Initialize the result dictionary
-    result = {"supersaturation": None, "time": None, "iterations": None, "file_type": None, "sites": {}}
+    result = {
+        "supersaturation": None,
+        "time": None,
+        "iterations": None,
+        "file_type": None,
+        "sites": {},
+    }
 
     # The structure is fixed, so we can use direct indexing
     # Row 0: sitenumbers header + site numbers
@@ -194,7 +200,7 @@ def parse_site_csv(csv_path: Path) -> Dict:
                 elif result["file_type"] == "population":
                     sites[site_num]["population"] = data_array
 
-    logger.info(f"Parsed {len(result['sites'])} sites from {csv_path.name}")
+    logger.debug(f"Parsed {len(result['sites'])} sites from {csv_path.name}")
     logger.debug(
         f"Global parameters - Supersaturation points: {len(result['supersaturation'])}, "
         f"Time points: {len(result['time'])}, Iterations: {len(result['iterations'])}"
@@ -224,7 +230,7 @@ def extract_file_prefix(file_path: Path) -> str:
     return filename
 
 
-def merge_site_results(results_with_paths: List[tuple]) -> List[Dict]:
+def merge_site_results(results_with_paths: List[tuple]) -> Dict[str, Dict]:
     """
     Merge site data from multiple CSV files by matching file prefixes.
 
@@ -236,7 +242,7 @@ def merge_site_results(results_with_paths: List[tuple]) -> List[Dict]:
         results_with_paths: List of (parsed_result, file_path) tuples
 
     Returns:
-        List of merged results, one per unique file prefix
+        Dict of merged results, keyed by file prefix
     """
     from collections import defaultdict
 
@@ -246,10 +252,10 @@ def merge_site_results(results_with_paths: List[tuple]) -> List[Dict]:
         prefix = extract_file_prefix(file_path)
         prefix_groups[prefix].append((result, file_path))
 
-    merged_results = []
+    merged_results = {}
 
     for prefix, group in prefix_groups.items():
-        logger.info(f"Merging {len(group)} file(s) with prefix '{prefix}'")
+        logger.debug(f"Merging {len(group)} file(s) with prefix '{prefix}'")
 
         # Initialize merged result with data from first file
         first_result, _ = group[0]
@@ -328,10 +334,10 @@ def merge_site_results(results_with_paths: List[tuple]) -> List[Dict]:
 
             merged["sites"][site_num] = merged_site
 
-        logger.info(
+        logger.debug(
             f"Merged result for '{prefix}': {len(merged['sites'])} sites from {merged['source_files']}"
         )
-        merged_results.append(merged)
+        merged_results[prefix] = merged
 
     return merged_results
 

@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from typing import Literal, Optional
 from chmpy.shape.convex_hull import ray_hull_intersections  # type: ignore
@@ -82,12 +83,6 @@ def create_norm_array(
     ValueError
         If an unsupported normalization mode is specified.
 
-    Examples
-    --------
-    >>> create_norm_array(2, mode='orthonormal')
-    array([0.28209479, 0.28209479, 0.28209479, 0.34549415, 0.34549415, 0.34549415])
-    >>> create_norm_array(2, mode=None)
-    array([1., 1., 1., 1., 1., 1.])
 
     Notes
     -----
@@ -99,7 +94,7 @@ def create_norm_array(
     norm_coeffs : Utilizes this function to apply normalization factors to spherical harmonic coefficients.
     """
     # Precompute factorial values
-    factorials = [np.math.factorial(i) for i in range(2 * l_max + 1)]
+    factorials = [math.factorial(i) for i in range(2 * l_max + 1)]
 
     # Determine the size of the normalization array
     size = (l_max + 1) * (l_max + 2) // 2
@@ -170,13 +165,6 @@ def norm_coeffs(
     np.ndarray
         The adjusted coefficients, with the same shape as the input `coeffs`.
 
-    Examples
-    --------
-    >>> coeffs = np.array([1, 2, 3, 4])
-    >>> norm_coeffs(coeffs, l_max=2, mode='orthonormal')
-    array([0.28209479, 0.28209479, 0.28209479, 0.28209479])
-    >>> norm_coeffs(coeffs, l_max=2, mode='orthonormal', operation='divide')
-    array([3.54604934, 3.54604934, 3.54604934, 3.54604934])
 
     Notes
     -----

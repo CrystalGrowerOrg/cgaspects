@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Optional
 
 import pandas as pd
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -81,6 +81,9 @@ class FilterRow(QWidget):
 class DataFilterDialog(QDialog):
     """Dialog for creating and managing data filters."""
 
+    # Signal emitted when Apply button is clicked
+    filters_applied = Signal(list)
+
     def __init__(self, df: pd.DataFrame, current_filters: Optional[List[Dict]] = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Data Filter")
@@ -134,9 +137,16 @@ class DataFilterDialog(QDialog):
         self.status_label.setWordWrap(True)
 
         # Dialog buttons
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Apply | QDialogButtonBox.Cancel
+        )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+
+        # Connect Apply button to emit signal without closing
+        apply_button = self.button_box.button(QDialogButtonBox.Apply)
+        if apply_button:
+            apply_button.clicked.connect(self.apply_filters_and_emit)
 
     def create_layout(self):
         """Create dialog layout."""
@@ -257,12 +267,17 @@ class DataFilterDialog(QDialog):
 
         return filtered_df
 
-    def accept(self):
-        """Validate and accept the dialog."""
+    def validate_and_update_status(self) -> bool:
+        """Validate filters and update status label.
+
+        Returns:
+            True if validation succeeded, False otherwise
+        """
         filters = self.get_filters()
 
         if not filters:
             self.status_label.setText("No filters defined. Click OK to show all data.")
+            return True
         else:
             # Test the filters
             try:
@@ -273,9 +288,22 @@ class DataFilterDialog(QDialog):
                     f"Filters will show {filtered_count} of {original_count} data points."
                 )
                 logger.info(f"Filter validation: {filtered_count}/{original_count} rows pass filters")
+                return True
             except Exception as e:
                 self.status_label.setText(f"Error validating filters: {e}")
                 logger.error(f"Filter validation error: {e}")
-                return
+                return False
+
+    def apply_filters_and_emit(self):
+        """Apply filters and emit signal without closing the dialog."""
+        if self.validate_and_update_status():
+            filters = self.get_filters()
+            self.filters_applied.emit(filters)
+            logger.debug(f"Applied filters: {filters}")
+
+    def accept(self):
+        """Validate and accept the dialog."""
+        if not self.validate_and_update_status():
+            return
 
         super().accept()

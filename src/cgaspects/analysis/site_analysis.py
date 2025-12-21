@@ -17,6 +17,7 @@ from .site_parser import (
     parse_multiple_site_csvs,
     parse_site_csv,
 )
+from .gui_threads import WorkerSiteAnalysis
 from ..fileio import find_data as fd
 from ..utils.data_structures import results_tuple
 
@@ -37,6 +38,7 @@ class SiteAnalysis:
         self.signals = signals
         self.threadpool = QThreadPool()
         self.result_tuple = results_tuple
+        self.plotting_csv = None
 
         self.crystallisation_files: List[Path] = []
         self.population_files: List[Path] = []
@@ -98,66 +100,120 @@ class SiteAnalysis:
         # For now, we'll create a simple dialog to let users choose what to analyze
         # TODO: Create a proper dialog for site analysis options
 
+        if self.threadpool:
+            worker = WorkerSiteAnalysis(
+                input_folder=self.input_folder,
+                output_folder=self.output_folder,
+                crystallisation_files=self.crystallisation_files,
+                population_files=self.population_files,
+            )
+            worker.signals.progress.connect(self.update_progress)
+            worker.signals.result.connect(self.set_plotting)
+            worker.signals.location.connect(self.get_location)
+            self.signals.started.emit()
+            self.threadpool.start(worker)
+
+        else:
+            logger.warning("Running Calculation on the same (GUI) thread!")
+            self.run_on_same_thread()
+            self.set_plotting(plotting_csv=self.plotting_csv)
+
+    def set_plotting(self, plotting_csv):
+        result = self.result_tuple(csv=plotting_csv, selected=None, folder=self.output_folder)
+        self.signals.finished.emit()
+        self.signals.result.emit(result)
+        logger.debug("Sending plotting information to GUI: %s", result)
+        self.plot(plotting_csv=plotting_csv)
+
+    def plot(self, plotting_csv):
+        """Show the plotting dialog for site analysis data."""
+        from ..gui.dialogs.plot_dialog import PlottingDialog
+        PlottingDialogs = PlottingDialog(csv=plotting_csv, signals=self.signals)
+        PlottingDialogs.show()
+
+    def get_location(self, location):
+        self.output_folder = location
+        self.signals.location.emit(location)
+
+    def run_on_same_thread(self):
+        """Run site analysis on the same thread (fallback when threadpool is not available)."""
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
-        self.signals.started.emit()
 
         try:
             # Parse all CSV files
             results_with_paths = []
 
+            # Calculate total number of files to process for progress tracking
+            total_files = len(self.crystallisation_files) + len(self.population_files)
+            files_processed = 0
+
             if self.crystallisation_files:
                 logger.info(f"Parsing {len(self.crystallisation_files)} crystallisation event files")
                 for csv_path in self.crystallisation_files:
                     try:
+                        self.signals.message.emit(f"Parsing crystallisation file: {csv_path.name}")
                         result = parse_site_csv(csv_path)
                         results_with_paths.append((result, csv_path))
+                        files_processed += 1
+                        progress = int((files_processed / total_files) * 80)  # Use 80% for parsing
+                        self.signals.progress.emit(progress)
                     except Exception as e:
                         logger.error(f"Error parsing {csv_path}: {e}", exc_info=True)
+                        files_processed += 1
+                        progress = int((files_processed / total_files) * 80)
+                        self.signals.progress.emit(progress)
 
             if self.population_files:
                 logger.info(f"Parsing {len(self.population_files)} population files")
                 for csv_path in self.population_files:
                     try:
+                        self.signals.message.emit(f"Parsing population file: {csv_path.name}")
                         result = parse_site_csv(csv_path)
                         results_with_paths.append((result, csv_path))
+                        files_processed += 1
+                        progress = int((files_processed / total_files) * 80)
+                        self.signals.progress.emit(progress)
                     except Exception as e:
                         logger.error(f"Error parsing {csv_path}: {e}", exc_info=True)
+                        files_processed += 1
+                        progress = int((files_processed / total_files) * 80)
+                        self.signals.progress.emit(progress)
 
             # Merge results by file prefix
+            self.signals.message.emit("Merging results by file prefix...")
+            self.signals.progress.emit(85)
             merged_results = merge_site_results(results_with_paths)
             self.parsed_data = merged_results
 
             # Generate summaries
-            for idx, result in enumerate(merged_results):
+            self.signals.message.emit("Generating summaries...")
+            self.signals.progress.emit(90)
+            for prefix, result in merged_results.items():
                 summary = get_site_summary(result)
-                prefix = result.get("file_prefix", f"File {idx + 1}")
                 logger.info(f"{prefix}: {summary['total_sites']} sites, "
                           f"{summary['occupied_sites']} occupied, "
                           f"{summary['time_points']} time points")
 
             # Save parsed data summary to a file
+            self.signals.message.emit("Saving summary file...")
+            self.signals.progress.emit(95)
             summary_path = self.output_folder / "site_analysis_summary.txt"
             self._save_summary(merged_results, summary_path)
 
             # Save parsed data as JSON for plotting
+            self.signals.message.emit("Saving JSON data for plotting...")
+            self.signals.progress.emit(98)
             json_path = self.output_folder / "site_analysis_data.json"
             self._save_json(merged_results, json_path)
 
             logger.info(f"Site analysis complete. Results saved to {self.output_folder}")
-
-            result = self.result_tuple(
-                csv=json_path,
-                selected=None,
-                folder=self.output_folder
-            )
-
-            self.signals.finished.emit()
-            self.signals.result.emit(result)
+            self.signals.message.emit("Site analysis complete!")
+            self.signals.progress.emit(100)
+            self.plotting_csv = json_path
 
         except Exception as e:
             logger.error(f"Error during site analysis: {e}", exc_info=True)
-            self.signals.finished.emit()
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(
                 None,
@@ -165,15 +221,14 @@ class SiteAnalysis:
                 f"An error occurred during site analysis:\n{str(e)}"
             )
 
-    def _save_summary(self, merged_results: List[dict], output_path: Path):
+    def _save_summary(self, merged_results: dict[str, dict], output_path: Path):
         """Save a text summary of the merged parsed data."""
         with open(output_path, 'w') as f:
             f.write("Site Analysis Summary\n")
             f.write("=" * 80 + "\n\n")
 
-            for idx, result in enumerate(merged_results):
+            for prefix, result in merged_results.items():
                 summary = get_site_summary(result)
-                prefix = result.get("file_prefix", f"Result {idx + 1}")
                 source_files = result.get("source_files", [])
 
                 f.write(f"Prefix: {prefix}\n")
@@ -215,7 +270,7 @@ class SiteAnalysis:
 
                 f.write("\n" + "=" * 80 + "\n\n")
 
-    def _save_json(self, merged_results: List[dict], output_path: Path):
+    def _save_json(self, merged_results: dict[str, dict], output_path: Path):
         """Save the merged parsed data as JSON for plotting."""
 
         def convert_to_serializable(obj):

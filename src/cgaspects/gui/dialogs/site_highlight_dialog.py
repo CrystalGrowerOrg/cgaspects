@@ -49,11 +49,16 @@ class SiteHighlightDialog(QDialog):
         bg_color_label = QLabel("Background Color:")
         self.bg_color_button = QToolButton()
         self.background_color = QColor(200, 200, 200)  # Default light gray
+        self.use_none_background = False  # Flag for "None" option
         self.bg_color_button.setIcon(create_colored_icon(self.background_color))
         self.bg_color_button.clicked.connect(self.select_background_color)
         self.bg_color_button.setMinimumSize(60, 30)
+        self.bg_none_button = QPushButton("None (Use Existing)")
+        self.bg_none_button.setCheckable(True)
+        self.bg_none_button.clicked.connect(self.toggle_background_none)
         bg_color_layout.addWidget(bg_color_label)
         bg_color_layout.addWidget(self.bg_color_button)
+        bg_color_layout.addWidget(self.bg_none_button)
         bg_color_layout.addStretch()
         layout.addLayout(bg_color_layout)
 
@@ -148,9 +153,26 @@ class SiteHighlightDialog(QDialog):
         color = QColorDialog.getColor(self.background_color, self, "Select Background Color")
         if color.isValid():
             self.background_color = color
+            self.use_none_background = False
+            self.bg_none_button.setChecked(False)
             self.bg_color_button.setIcon(create_colored_icon(self.background_color))
+            self.bg_color_button.setEnabled(True)
             # Apply changes immediately
             self.apply_all_highlights()
+
+    def toggle_background_none(self):
+        """Toggle the 'None' background option."""
+        self.use_none_background = self.bg_none_button.isChecked()
+        if self.use_none_background:
+            # Disable color button when None is selected
+            self.bg_color_button.setEnabled(False)
+            self.status_label.setText("Background set to 'None' - using existing coloring")
+        else:
+            # Re-enable color button
+            self.bg_color_button.setEnabled(True)
+            self.status_label.setText("Background color restored")
+        # Apply changes immediately
+        self.apply_all_highlights()
 
     def parse_site_numbers(self, text):
         """Parse site numbers from text input.
@@ -242,8 +264,9 @@ class SiteHighlightDialog(QDialog):
 
     def apply_all_highlights(self):
         """Apply all highlight groups."""
-        # Emit all groups along with background color
-        self.highlightsChanged.emit(self.highlight_groups + [("background", self.background_color)])
+        # Emit all groups along with background color (None if use_none_background is True)
+        bg_value = None if self.use_none_background else self.background_color
+        self.highlightsChanged.emit(self.highlight_groups + [("background", bg_value)])
         total_sites = sum(len(sites) for sites, _ in self.highlight_groups)
         self.status_label.setText(f"Applied {len(self.highlight_groups)} group(s) with {total_sites} total sites")
 

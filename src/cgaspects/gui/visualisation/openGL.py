@@ -55,6 +55,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         self.colormap = "Viridis"
         self.color_by = "Layer"
+        self.single_color = QColor(128, 128, 128)  # Default grey color
 
         self.viewInitialized = False
         self.point_size = 6.0
@@ -122,32 +123,29 @@ class VisualisationWidget(QOpenGLWidget):
             self.update()
             logger.info("Axes reset to Cartesian coordinates")
 
-    def highlight_sites(self, site_numbers, color=None):
-        """Highlight specific sites with a given color (legacy method for single group).
-
-        Args:
-            site_numbers: List or set of site numbers to highlight
-            color: RGB color as numpy array or list [r, g, b] in range [0, 1]
-                   If None, uses red color
-        """
-        if color is None:
-            color = [1.0, 0.0, 0.0]  # Red by default
-
-        # Use the new multiple highlights method with a single group
-        self.highlight_sites_multiple([(site_numbers, color)])
-
-    def highlight_sites_multiple(self, highlight_groups, background_color=None):
+    def highlight_sites(self, highlight_groups, background_color=None):
         """Highlight multiple groups of sites with different colors.
 
         Args:
             highlight_groups: List of (site_numbers, color) tuples
                              Each color is RGB array or list [r, g, b] in range [0, 1]
+                             site_numbers can be a single number, list, or set
             background_color: RGB color for non-highlighted sites [r, g, b] in range [0, 1]
                             If None, uses original coloring
         """
         self.highlight_groups = []
         for site_numbers, color in highlight_groups:
-            site_set = set(site_numbers) if not isinstance(site_numbers, set) else site_numbers
+            if color is None:
+                color = [1.0, 0.0, 0.0]  # Red by default
+
+            # Handle single number, list, or set
+            if isinstance(site_numbers, (int, np.integer)):
+                site_set = {site_numbers}
+            elif isinstance(site_numbers, set):
+                site_set = site_numbers
+            else:
+                site_set = set(site_numbers)
+
             color_array = np.array(color, dtype=np.float32)
             self.highlight_groups.append((site_set, color_array))
 
@@ -157,7 +155,9 @@ class VisualisationWidget(QOpenGLWidget):
             self.background_color_override = None
 
         total_sites = sum(len(sites) for sites, _ in self.highlight_groups)
-        logger.info(f"Highlighting {len(self.highlight_groups)} groups with {total_sites} total sites")
+        logger.info(
+            f"Highlighting {len(self.highlight_groups)} groups with {total_sites} total sites"
+        )
 
         # Re-initialize geometry to apply the highlighting
         self.initGeometry()
@@ -253,14 +253,15 @@ class VisualisationWidget(QOpenGLWidget):
             "Low (Fast)": 1,
             "Medium (Balanced)": 2,
             "High (Detailed)": 3,
-            "Ultra (Slow)": 4
+            "Ultra (Slow)": 4,
         }
         resolution_choice, ok = QInputDialog.getItem(
-            self, "Select Mesh Resolution",
+            self,
+            "Select Mesh Resolution",
             "Resolution (sphere detail):",
             list(resolution_options.keys()),
             1,  # Default to "Medium"
-            False
+            False,
         )
 
         if not ok:
@@ -347,6 +348,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Create base sphere mesh
         from trimesh.creation import icosphere
+
         base_sphere = icosphere(subdivisions=subdivision_level, radius=1.0)
 
         # Scale the sphere by point size (matching the shader: u_pointSize * 0.2)
@@ -383,9 +385,7 @@ class VisualisationWidget(QOpenGLWidget):
         combined_colors_uint8 = (combined_colors * 255).astype(np.uint8)
 
         mesh = trimesh.Trimesh(
-            vertices=combined_vertices,
-            faces=combined_faces,
-            vertex_colors=combined_colors_uint8
+            vertices=combined_vertices, faces=combined_faces, vertex_colors=combined_colors_uint8
         )
         return mesh
 
@@ -422,6 +422,10 @@ class VisualisationWidget(QOpenGLWidget):
 
         if present_and_changed("Color By", self.color_by):
             self.color_by = kwargs.get("Color By", self.color_by)
+            needs_reinit = True
+
+        if present_and_changed("Single Color", self.single_color):
+            self.single_color = kwargs.get("Single Color", self.single_color)
             needs_reinit = True
 
         if present_and_changed("Point Size", self.point_size):
@@ -614,9 +618,16 @@ class VisualisationWidget(QOpenGLWidget):
                 min_val = 1
                 max_val = max_layers
             elif color_axis == -1:
+                # Single color mode - use custom color
                 min_val = 0
                 max_val = 0
                 axis_vis = np.zeros_like(axis_vis)
+                # Convert QColor to RGB values in [0, 1] range
+                single_color_rgb = np.array([
+                    self.single_color.redF(),
+                    self.single_color.greenF(),
+                    self.single_color.blueF()
+                ], dtype=np.float32)
             else:
                 min_val = np.nanmin(axis_vis)
                 max_val = np.nanmax(axis_vis)
@@ -626,7 +637,11 @@ class VisualisationWidget(QOpenGLWidget):
 
             normalized_axis_vis = (axis_vis - min_val) / range_val
 
-            pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[:, 0:3]
+            if color_axis == -1:
+                # Use the custom single color for all points
+                pcd_colors = np.tile(single_color_rgb, (xyz.shape[0], 1))
+            else:
+                pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[:, 0:3]
 
             return (pcd_points, pcd_colors)
 
@@ -650,9 +665,9 @@ class VisualisationWidget(QOpenGLWidget):
 
             # Then apply highlight colors for each group (later groups override earlier ones)
             for site_set, highlight_color in self.highlight_groups:
-                for i, site_num in enumerate(site_numbers):
-                    if site_num in site_set:
-                        colors[i] = highlight_color
+                # Create a mask for particles belonging to sites in this group
+                mask = np.isin(site_numbers, list(site_set))
+                colors[mask] = highlight_color
 
         try:
             attributes = np.concatenate((points, colors), axis=1)

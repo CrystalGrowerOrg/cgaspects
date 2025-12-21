@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QDialogButtonBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 logger = logging.getLogger("CA:LabelCustomizationDialog")
 
@@ -27,6 +27,9 @@ class LabelCustomizationDialog(QDialog):
 
     All labels support LaTeX formatting using raw strings (r"...").
     """
+
+    # Signal emitted when Apply button is clicked
+    labels_applied = Signal(dict)
 
     def __init__(self, current_labels=None, parent=None):
         """Initialize the dialog.
@@ -82,10 +85,15 @@ class LabelCustomizationDialog(QDialog):
 
         # Create dialog buttons
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            QDialogButtonBox.Ok | QDialogButtonBox.Apply | QDialogButtonBox.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+
+        # Connect Apply button to emit signal without closing
+        apply_button = self.button_box.button(QDialogButtonBox.Apply)
+        if apply_button:
+            apply_button.clicked.connect(self.apply_labels)
 
     def create_layout(self):
         """Create dialog layout."""
@@ -159,3 +167,12 @@ class LabelCustomizationDialog(QDialog):
             'ylabel': self.ylabel_edit.text().strip(),
             'cbar_label': self.cbar_label_edit.text().strip(),
         }
+
+    def apply_labels(self):
+        """Apply the current labels without closing the dialog.
+
+        Emits the labels_applied signal with the current label values.
+        """
+        labels = self.get_labels()
+        self.labels_applied.emit(labels)
+        logger.debug(f"Applied labels: {labels}")
