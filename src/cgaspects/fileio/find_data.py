@@ -163,6 +163,8 @@ def find_info(path):
     found_simparam_files = False
     summary_file = None
     growth_mod = None
+    crystallisation_files = []
+    population_files = []
 
     # Check the root directory for the summary file
     summary_file = next(path.glob("*summary.csv"), None)
@@ -177,9 +179,13 @@ def find_info(path):
         for file in entry.glob("*"):
             if file.name.endswith("size.csv") and file.stat().st_size > 0:
                 size_files.append(file)
+            elif file.name.endswith("_crystallisation_events.csv") and file.stat().st_size > 0:
+                crystallisation_files.append(file)
+            elif file.name.endswith("_populations.csv") and file.stat().st_size > 0:
+                population_files.append(file)
             elif file.name.endswith("simulation_parameters.txt"):
                 found_simparam_files = True
-                with open(file, "r", encoding="utf-8") as file:
+                with open(file, "r", encoding="utf-8", errors="replace") as file:
                     lines = file.readlines()
                 growth_mod = process_simulation_parameters(
                     lines, supersats, directions, growth_mod
@@ -202,7 +208,8 @@ def find_info(path):
         )
 
     return file_info_tuple(
-        supersats, size_files, directions, growth_mod, folders, summary_file
+        supersats, size_files, directions, growth_mod, folders, summary_file,
+        crystallisation_files, population_files
     )
 
 
@@ -231,7 +238,7 @@ def process_simulation_parameters(
 
 def find_growth_directions(csv):
     """Returns the lenghts from a size_file"""
-    lt_df = pd.read_csv(csv)
+    lt_df = pd.read_csv(csv, encoding="utf-8", encoding_errors="replace")
     columns = lt_df.columns
     directions = []
     for col in columns:
@@ -242,10 +249,10 @@ def find_growth_directions(csv):
 
 
 def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
-    summary_df = pd.read_csv(summary_csv)
+    summary_df = pd.read_csv(summary_csv, encoding="utf-8", encoding_errors="replace")
 
     if aspect_csv:
-        aspect_df = pd.read_csv(aspect_csv)
+        aspect_df = pd.read_csv(aspect_csv, encoding="utf-8", encoding_errors="replace")
 
     summary_cols = summary_df.columns
     aspect_cols = aspect_df.columns

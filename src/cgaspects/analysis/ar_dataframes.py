@@ -139,7 +139,7 @@ def build_ratio_equations(directions, ar_df=None, csv=None, filepath: str | Path
     if ar_df is None:
         if csv is None:
             LOG.error("A pandas DataFrame or a path to a CSV file must be provided.")
-        ar_df = pd.read_csv(Path(csv))
+        ar_df = pd.read_csv(Path(csv), encoding="utf-8", encoding_errors="replace")
     if not isinstance(ar_df, pd.DataFrame):
         LOG.error("Dataframe not found AR_DF: %s CSV: ", type(ar_df), type(csv))
     if len(directions) != 3:
@@ -191,6 +191,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
     col_headings = [
         "Simulation Number",
+        "Frame Index",
         "PC1",
         "PC2",
         "PC3",
@@ -271,6 +272,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
 
     # Convert data to a DataFrame if not empty
     if data_list:
+        print(col_headings)
         df = pd.DataFrame(data_list, columns=col_headings)
         return df
     else:

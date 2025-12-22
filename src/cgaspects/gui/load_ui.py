@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.1
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
         MainWindow.setEnabled(True)
         MainWindow.resize(1280, 790)
         icon = QIcon()
-        icon.addFile(u":/app_icons/app_icons/CG_gray.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/app_icons/app_icons/CG_gray.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
         self.actionOpen_Simulations = QAction(MainWindow)
         self.actionOpen_Simulations.setObjectName(u"actionOpen_Simulations")
@@ -151,7 +151,7 @@ class Ui_MainWindow(object):
         self.actionImport = QAction(MainWindow)
         self.actionImport.setObjectName(u"actionImport")
         icon1 = QIcon()
-        icon1.addFile(u":/material_icons/material_icons/png/folder-arrow-down-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/material_icons/material_icons/png/folder-arrow-down-custom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionImport.setIcon(icon1)
         self.actionResults_Directory = QAction(MainWindow)
         self.actionResults_Directory.setObjectName(u"actionResults_Directory")
@@ -159,7 +159,7 @@ class Ui_MainWindow(object):
         self.actionImport_CSV_for_Plotting = QAction(MainWindow)
         self.actionImport_CSV_for_Plotting.setObjectName(u"actionImport_CSV_for_Plotting")
         icon2 = QIcon()
-        icon2.addFile(u":/material_icons/material_icons/png/chart-scatter-plot.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/material_icons/material_icons/png/chart-scatter-plot.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionImport_CSV_for_Plotting.setIcon(icon2)
         self.actionPlottingDialog = QAction(MainWindow)
         self.actionPlottingDialog.setObjectName(u"actionPlottingDialog")
@@ -174,7 +174,7 @@ class Ui_MainWindow(object):
         self.actionRender.setObjectName(u"actionRender")
         self.actionRender.setEnabled(False)
         icon3 = QIcon()
-        icon3.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/material_icons/material_icons/png/content-save-custom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionRender.setIcon(icon3)
         self.actionSettings = QAction(MainWindow)
         self.actionSettings.setObjectName(u"actionSettings")
@@ -192,7 +192,7 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.vis_scrollArea = QScrollArea(self.centralwidget)
         self.vis_scrollArea.setObjectName(u"vis_scrollArea")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(3)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.vis_scrollArea.sizePolicy().hasHeightForWidth())
@@ -203,12 +203,12 @@ class Ui_MainWindow(object):
         self.vis_scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 870, 715))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, 0, 826, 722))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.main_frame = QFrame(self.scrollAreaWidgetContents_4)
         self.main_frame.setObjectName(u"main_frame")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(5)
         sizePolicy1.setHeightForWidth(self.main_frame.sizePolicy().hasHeightForWidth())
@@ -230,7 +230,7 @@ class Ui_MainWindow(object):
         self.playPauseButton.setObjectName(u"playPauseButton")
         self.playPauseButton.setMinimumSize(QSize(0, 0))
         icon4 = QIcon()
-        icon4.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/material_icons/material_icons/png/play-custom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.playPauseButton.setIcon(icon4)
 
         self.horizontalLayout_5.addWidget(self.playPauseButton)
@@ -252,7 +252,7 @@ class Ui_MainWindow(object):
 
         self.frame_slider = QSlider(self.movie_controls_frame)
         self.frame_slider.setObjectName(u"frame_slider")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy2.setHorizontalStretch(0)
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.frame_slider.sizePolicy().hasHeightForWidth())
@@ -279,7 +279,7 @@ class Ui_MainWindow(object):
 
         self.frame = QFrame(self.centralwidget)
         self.frame.setObjectName(u"frame")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy3.setHorizontalStretch(1)
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
@@ -293,7 +293,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_7.setSizeConstraint(QLayout.SetFixedSize)
         self.import_pushButton = QPushButton(self.frame)
         self.import_pushButton.setObjectName(u"import_pushButton")
-        sizePolicy4 = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy4.setHorizontalStretch(0)
         sizePolicy4.setVerticalStretch(0)
         sizePolicy4.setHeightForWidth(self.import_pushButton.sizePolicy().hasHeightForWidth())
@@ -311,7 +311,7 @@ class Ui_MainWindow(object):
         self.view_results_pushButton.setMinimumSize(QSize(0, 0))
         self.view_results_pushButton.setBaseSize(QSize(0, 0))
         icon5 = QIcon()
-        icon5.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/material_icons/material_icons/png/folder-arrow-right-custom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.view_results_pushButton.setIcon(icon5)
 
         self.horizontalLayout_7.addWidget(self.view_results_pushButton)
@@ -321,7 +321,7 @@ class Ui_MainWindow(object):
 
         self.dataAnalysis_groupBox = QGroupBox(self.frame)
         self.dataAnalysis_groupBox.setObjectName(u"dataAnalysis_groupBox")
-        sizePolicy5 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         sizePolicy5.setHorizontalStretch(0)
         sizePolicy5.setVerticalStretch(0)
         sizePolicy5.setHeightForWidth(self.dataAnalysis_groupBox.sizePolicy().hasHeightForWidth())
@@ -332,7 +332,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.location_label = QLabel(self.dataAnalysis_groupBox)
         self.location_label.setObjectName(u"location_label")
-        sizePolicy6 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         sizePolicy6.setHorizontalStretch(0)
         sizePolicy6.setVerticalStretch(0)
         sizePolicy6.setHeightForWidth(self.location_label.sizePolicy().hasHeightForWidth())
@@ -353,7 +353,7 @@ class Ui_MainWindow(object):
         self.aspect_ratio_pushButton = QPushButton(self.dataAnalysis_groupBox)
         self.aspect_ratio_pushButton.setObjectName(u"aspect_ratio_pushButton")
         self.aspect_ratio_pushButton.setEnabled(False)
-        sizePolicy7 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy7 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         sizePolicy7.setHorizontalStretch(0)
         sizePolicy7.setVerticalStretch(0)
         sizePolicy7.setHeightForWidth(self.aspect_ratio_pushButton.sizePolicy().hasHeightForWidth())
@@ -368,6 +368,14 @@ class Ui_MainWindow(object):
         self.growth_rate_pushButton.setSizePolicy(sizePolicy7)
 
         self.horizontalLayout_2.addWidget(self.growth_rate_pushButton)
+
+        self.site_analysis_pushButton = QPushButton(self.dataAnalysis_groupBox)
+        self.site_analysis_pushButton.setObjectName(u"site_analysis_pushButton")
+        self.site_analysis_pushButton.setEnabled(False)
+        sizePolicy7.setHeightForWidth(self.site_analysis_pushButton.sizePolicy().hasHeightForWidth())
+        self.site_analysis_pushButton.setSizePolicy(sizePolicy7)
+
+        self.horizontalLayout_2.addWidget(self.site_analysis_pushButton)
 
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
@@ -387,7 +395,7 @@ class Ui_MainWindow(object):
 
         self.plot_lineEdit = QLineEdit(self.dataAnalysis_groupBox)
         self.plot_lineEdit.setObjectName(u"plot_lineEdit")
-        sizePolicy8 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy8 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy8.setHorizontalStretch(5)
         sizePolicy8.setVerticalStretch(0)
         sizePolicy8.setHeightForWidth(self.plot_lineEdit.sizePolicy().hasHeightForWidth())
@@ -400,7 +408,7 @@ class Ui_MainWindow(object):
         self.plot_pushButton.setObjectName(u"plot_pushButton")
         self.plot_pushButton.setEnabled(False)
         icon6 = QIcon()
-        icon6.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon6.addFile(u":/material_icons/material_icons/png/chart-scatter-plot-custom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.plot_pushButton.setIcon(icon6)
 
         self.horizontalLayout_4.addWidget(self.plot_pushButton)
@@ -413,7 +421,7 @@ class Ui_MainWindow(object):
 
         self.variablesTabWidget = QTabWidget(self.frame)
         self.variablesTabWidget.setObjectName(u"variablesTabWidget")
-        sizePolicy9 = QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        sizePolicy9 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         sizePolicy9.setHorizontalStretch(0)
         sizePolicy9.setVerticalStretch(0)
         sizePolicy9.setHeightForWidth(self.variablesTabWidget.sizePolicy().hasHeightForWidth())
@@ -455,7 +463,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3.addWidget(self.xyzFilenameListWidget)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_3.addItem(self.verticalSpacer)
 
@@ -499,7 +507,7 @@ class Ui_MainWindow(object):
         font.setPointSize(8)
         font.setItalic(True)
         self.statusbar.setFont(font)
-        self.statusbar.setCursor(QCursor(Qt.ArrowCursor))
+        self.statusbar.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
         MainWindow.setStatusBar(self.statusbar)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
@@ -675,6 +683,10 @@ class Ui_MainWindow(object):
         self.growth_rate_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform growth rate calculations", None))
 #endif // QT_CONFIG(tooltip)
         self.growth_rate_pushButton.setText(QCoreApplication.translate("MainWindow", u"Growth Rates", None))
+#if QT_CONFIG(tooltip)
+        self.site_analysis_pushButton.setToolTip(QCoreApplication.translate("MainWindow", u"Perform growth rate calculations", None))
+#endif // QT_CONFIG(tooltip)
+        self.site_analysis_pushButton.setText(QCoreApplication.translate("MainWindow", u"Site Analysis", None))
         self.plot_label.setText(QCoreApplication.translate("MainWindow", u"Plotting", None))
         self.importPlotDataPushButton.setText(QCoreApplication.translate("MainWindow", u"Import CSV for Plotting", None))
 #if QT_CONFIG(tooltip)

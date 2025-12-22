@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'crystalinfo.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.1
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -22,7 +22,7 @@ class Ui_CrystalInfoWidget(object):
     def setupUi(self, CrystalInfoWidget):
         if not CrystalInfoWidget.objectName():
             CrystalInfoWidget.setObjectName(u"CrystalInfoWidget")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(CrystalInfoWidget.sizePolicy().hasHeightForWidth())

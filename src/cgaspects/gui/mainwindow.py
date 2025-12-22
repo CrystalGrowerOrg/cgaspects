@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from pathlib import Path
 from typing import List
 
@@ -9,27 +9,31 @@ import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
-from PySide6.QtGui import QIcon, Qt
+from PySide6.QtGui import QIcon, Qt, QAction
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
 
 from ..analysis.aspect_ratios import AspectRatio
 from ..analysis.growth_rates import GrowthRate
+from ..analysis.site_analysis import SiteAnalysis
 from ..analysis.gui_threads import WorkerXYZ
 from ..fileio.find_data import find_info, locate_xyz_files
 from ..fileio.xyz_file import CrystalCloud
-from ..fileio.logging import setup_logging
+from ..fileio.logging import setup_logging, get_log_file_path
 from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
+from .dialogs.lattice_dialog import LatticeParametersDialog
+from .dialogs.site_highlight_dialog import SiteHighlightDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
     SimulationVariablesWidget,
+    TextFileViewer,
     VisualizationSettingsWidget,
 )
-from ..utils.data_structures import xyz_tuple
+from .utils.crystallography import Crystallography
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -54,6 +58,7 @@ class GUIWorkerSignals(QObject):
     started = Signal()
     finished = Signal()
     sim_id = Signal(int)
+    highlight_site = Signal(int)  # Signal for highlighting a site in visualization
     error = Signal(tuple)
     result = Signal(object)
     location = Signal(object)
@@ -93,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals = GUIWorkerSignals()
         self.aspectratio = AspectRatio(signals=self.worker_signals)
         self.growthrate = GrowthRate(signals=self.worker_signals)
+        self.siteanalysis = SiteAnalysis(signals=self.worker_signals)
         self.worker_signals.location.connect(self.set_output_folder)
         self.worker_signals.result.connect(self.set_results)
         self.worker_signals.started.connect(self.set_progressbar)
@@ -100,6 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals.progress.connect(self.update_progressbar)
         self.worker_signals.message.connect(self.set_message)
         self.worker_signals.sim_id.connect(self.update_sim_id)
+        self.worker_signals.highlight_site.connect(self.highlight_site_in_visualization)
         # Other self variables
         self.sim_num: int | None = None
         self.input_folder: Path | None = None
@@ -112,6 +119,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plotting_dialog = None
 
         self.aboutDialog = None
+        self.text_file_viewer = None
 
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
@@ -141,8 +149,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
         self.fps = self.visualizationSettings.fps()
 
+        # Create site highlighting dialog
+        self.site_highlight_dialog = SiteHighlightDialog(parent=self)
+        self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
+        self.site_highlight_dialog.clearHighlights.connect(self.handle_clear_highlights)
+
         self.setup_button_connections()
         self.setup_menubar_connections()
+        self.setup_log_menu_actions()
         self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
@@ -171,6 +185,50 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
 
+        # Add Site Highlighting action to View menu
+        self.actionSiteHighlighting = QAction("Highlight Sites", self)
+        self.actionSiteHighlighting.setShortcut("Ctrl+Shift+S")
+        self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
+        self.menuView.addAction(self.actionSiteHighlighting)
+
+    def setup_log_menu_actions(self):
+        # Create Open Log File action
+        self.actionOpenLogFile = QAction("Open Log File", self)
+        self.actionOpenLogFile.setShortcut("Ctrl+L")
+        self.actionOpenLogFile.setToolTip("Open the application log file")
+        self.actionOpenLogFile.triggered.connect(self.open_log_file)
+
+        # Create Clear Log File action
+        self.actionClearLogFile = QAction("Clear Log File", self)
+        self.actionClearLogFile.setToolTip("Clear the application log file")
+        self.actionClearLogFile.triggered.connect(self.clear_log_file)
+
+        # Create Set Lattice Parameters action
+        self.actionSetLatticeParameters = QAction("Set Lattice Parameters", self)
+        self.actionSetLatticeParameters.setToolTip(
+            "Set lattice parameters to convert axes to fractional coordinates"
+        )
+        self.actionSetLatticeParameters.triggered.connect(self.show_lattice_parameters_dialog)
+
+        # Create Toggle Axes action (starts disabled until lattice params are set)
+        self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
+        self.actionToggleAxes.setShortcut("Ctrl+Shift+A")
+        self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
+        self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
+        self.actionToggleAxes.triggered.connect(self.toggle_axes)
+
+        # Track current axes state
+        self.current_axes_type = "cartesian"
+        self.crystallography = None
+
+        # Add actions to View menu
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionOpenLogFile)
+        self.menuView.addAction(self.actionClearLogFile)
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionSetLatticeParameters)
+        self.menuView.addAction(self.actionToggleAxes)
+
     def showAboutDialog(self):
         if self.aboutDialog is None:
             self.aboutDialog = AboutCGDialog(self)
@@ -180,6 +238,50 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aboutDialog.activateWindow()
         else:
             self.aboutDialog.show()
+
+    def show_lattice_parameters_dialog(self):
+        """Show dialog to enter lattice parameters for fractional axes."""
+        dialog = LatticeParametersDialog(self)
+
+        if dialog.exec():
+            cell = dialog.get_cell()
+            if cell is not None:
+                # Create and store Crystallography object from the cell
+                self.crystallography = Crystallography(cell)
+
+                # Enable the toggle axes action
+                self.actionToggleAxes.setEnabled(True)
+
+                # Switch to fractional axes
+                self.current_axes_type = "fractional"
+                self.openglwidget.set_fractional_axes(self.crystallography)
+                self.actionToggleAxes.setText("Switch to Cartesian Axes")
+
+                self.log_message(
+                    f"Axes converted to fractional coordinates using lattice parameters: "
+                    f"a={cell.a:.4f}, b={cell.b:.4f}, c={cell.c:.4f}, "
+                    f"α={cell.alpha:.3f}°, β={cell.beta:.3f}°, γ={cell.gamma:.3f}°",
+                    "info",
+                )
+
+    def toggle_axes(self):
+        """Toggle between Cartesian and fractional axes."""
+        if self.crystallography is None:
+            self.log_message("No lattice parameters set. Please set them first.", "warning")
+            return
+
+        if self.current_axes_type == "cartesian":
+            # Switch to fractional
+            self.openglwidget.set_fractional_axes(self.crystallography)
+            self.current_axes_type = "fractional"
+            self.actionToggleAxes.setText("Switch to Cartesian Axes")
+            self.log_message("Axes switched to fractional coordinates", "info")
+        else:
+            # Switch to Cartesian
+            self.openglwidget.set_cartesian_axes()
+            self.current_axes_type = "cartesian"
+            self.actionToggleAxes.setText("Switch to Fractional Axes")
+            self.log_message("Axes switched to Cartesian coordinates", "info")
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)
@@ -193,6 +295,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
+        self.site_analysis_pushButton.clicked.connect(self.calculate_site_analysis)
 
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
@@ -218,12 +321,74 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.input_folder is not None:
             self.setCurrentXYZIndex(value=value)
 
+    def highlight_site_in_visualization(self, site_number):
+        """Highlight a specific site in the 3D visualization (from plot click)."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            # Check if a crystal is loaded before trying to highlight
+            if self.openglwidget.xyz is None:
+                logger.debug(
+                    f"Cannot highlight site {site_number} - no crystal loaded in visualizer"
+                )
+                return
+            # Highlight just this one site
+            self.openglwidget.highlight_sites([(site_number, None)])
+            logger.info(f"Highlighted site {site_number} in visualization")
+
+    def handle_highlights_changed(self, highlight_data):
+        """Handle site highlighting changes from the dialog.
+
+        Args:
+            highlight_data: List of (site_numbers, color) tuples, with last item being ("background", color or None)
+        """
+        if not hasattr(self, "openglwidget") or self.openglwidget is None:
+            return
+
+        if not highlight_data:
+            self.openglwidget.clear_highlighted_sites()
+            return
+
+        # Extract background color (last item)
+        bg_color = None
+        highlight_groups = []
+
+        for item in highlight_data:
+            if len(item) == 2:
+                sites, color = item
+                if sites == "background":
+                    # Handle None case - keep bg_color as None to use existing coloring
+                    if color is not None:
+                        bg_color = [color.redF(), color.greenF(), color.blueF()]
+                    else:
+                        bg_color = None
+                else:
+                    # Convert QColor to RGB array [0.0-1.0]
+                    rgb_color = [color.redF(), color.greenF(), color.blueF()]
+                    highlight_groups.append((sites, rgb_color))
+
+        # Apply highlights with background color
+        self.openglwidget.highlight_sites(highlight_groups, background_color=bg_color)
+        total_sites = sum(len(sites) for sites, _ in highlight_groups)
+        logger.info(
+            f"Applied {len(highlight_groups)} highlight group(s) with {total_sites} total sites"
+        )
+
+    def handle_clear_highlights(self):
+        """Handle clearing site highlights from the visualization settings widget."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.clear_highlighted_sites()
+            logger.info("Cleared all site highlights")
+
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
 
     def show_settings(self):
         self.settings_dialog.show()
         self.settings_dialog.raise_()
+
+    def show_site_highlighting_dialog(self):
+        """Show the site highlighting dialog."""
+        self.site_highlight_dialog.show()
+        self.site_highlight_dialog.raise_()
 
     def welcome_message(self):
         self.log_message(
@@ -477,6 +642,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         folder = self.input_folder
         # Initially disable buttons that depend on the data
         self.growth_rate_pushButton.setEnabled(False)
+        self.site_analysis_pushButton.setEnabled(False)
 
         if not Path(folder).is_dir():
             QMessageBox.warning(None, "Directory Error", f"{folder} is not a valid directory.")
@@ -500,6 +666,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectratio.set_information(information=information)
         self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
 
+        # Enable and set Site Analysis information if relevant files are found
+        if information.crystallisation_files or information.population_files:
+            self.site_analysis_pushButton.setEnabled(True)
+            self.siteanalysis.set_folder(folder=folder)
+            self.siteanalysis.set_information(information=information)
+            self.siteanalysis.set_xyz_files(xyz_files=self.xyz_files)
+            self.siteanalysis.set_site_files(
+                crystallisation_files=information.crystallisation_files,
+                population_files=information.population_files,
+            )
+            logger.info(
+                f"Found {len(information.crystallisation_files)} crystallisation files and "
+                f"{len(information.population_files)} population files"
+            )
+        else:
+            logger.info("No crystallisation events or population files found for site analysis")
+
         if not information.directions:
             QMessageBox.warning(
                 None,
@@ -521,6 +704,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def calculate_growth_rates(self):
         self.growthrate.calculate_growth_rates()
 
+    def calculate_site_analysis(self):
+        self.siteanalysis.calculate_site_analysis()
+
     def setShowPlottingButtons(self, state=True):
         self.actionPlottingDialog.setEnabled(state)
         self.importPlotDataPushButton.setVisible(not state)
@@ -531,7 +717,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             # Attempt to get the directory from the file dialog
             plotting_csv = QFileDialog.getOpenFileName(
-                self, "Select CSV File", "./", "CSV Files (*.csv);;All Files (*)"
+                self,
+                "Select CSV File",
+                "./",
+                "CSV Files (*.csv);;JSON Files (*.json);;All Files (*)",
             )[0]
 
             # Check if the folder selection was canceled or empty and handle appropriately
@@ -578,7 +767,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if self.plotting_dialog is None:
                 self.plotting_dialog = PlottingDialog(
-                    csv=self.plotting_csv, signals=self.worker_signals, parent=self
+                    csv=self.plotting_csv,
+                    signals=self.worker_signals,
+                    parent=self,
+                    summary_df=self.summ_df
                 )
                 self.plotting_dialog.connect
             else:
@@ -607,7 +799,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Select summary file and read in as a Dataframe
         self.log_message(f"Summary File Found at: {summary_file}", "debug")
-        self.summ_df = pd.read_csv(summary_file)
+        self.summ_df = pd.read_csv(summary_file, encoding="utf-8", encoding_errors="replace")
         if list(self.summ_df.columns)[-1].startswith("Unnamed"):
             self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
@@ -687,6 +879,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             var_values = self.summ_df.iloc[value, :].values
             self.update_variables(values=var_values)
 
+        # Sync the plot dialog if it's open and showing site analysis
+        if self.plotting_dialog is not None and hasattr(self.plotting_dialog, 'sync_file_prefix_from_xyz_index'):
+            self.plotting_dialog.sync_file_prefix_from_xyz_index(value)
+
     def updateVisualizationSettings(self):
         pass
 
@@ -739,6 +935,81 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def thread_finished(self):
         self.log_message("THREAD COMPLETED!", "info")
+
+    def open_log_file(self):
+        """Open the log file in the text file viewer widget."""
+        log_file = get_log_file_path()
+        if log_file.exists():
+            try:
+                # Create or show the text file viewer
+                if self.text_file_viewer is None:
+                    self.text_file_viewer = TextFileViewer(
+                        file_path=log_file, parent=self, auto_refresh=False, refresh_interval=2000
+                    )
+                    # Set window size
+                    self.text_file_viewer.resize(800, 600)
+                else:
+                    # Update the file path if viewer already exists
+                    self.text_file_viewer.set_file(log_file)
+
+                # Show and raise the viewer window
+                self.text_file_viewer.show()
+                self.text_file_viewer.raise_()
+                self.text_file_viewer.activateWindow()
+
+                self.log_message(f"Opening log file: {log_file}", "info")
+            except Exception as e:
+                self.log_message(f"Failed to open log file: {e}", "error")
+                QMessageBox.warning(
+                    self,
+                    "Error Opening Log File",
+                    f"Could not open the log file:\n{log_file}\n\nError: {e}",
+                )
+        else:
+            self.log_message("Log file does not exist yet", "warning")
+            QMessageBox.information(
+                self,
+                "Log File Not Found",
+                f"The log file has not been created yet:\n{log_file}\n\n"
+                "It will be created automatically when the application logs messages.",
+            )
+
+    def clear_log_file(self):
+        """Clear the contents of the log file after user confirmation."""
+        log_file = get_log_file_path()
+
+        # Confirm with user before clearing
+        reply = QMessageBox.question(
+            self,
+            "Clear Log File",
+            f"Are you sure you want to clear the log file?\n\n{log_file}\n\n"
+            "This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                if log_file.exists():
+                    # Open in write mode to truncate the file
+                    with open(log_file, "w") as f:
+                        pass
+                    self.log_message("Log file cleared successfully", "info")
+                    QMessageBox.information(
+                        self, "Log File Cleared", "The log file has been cleared successfully."
+                    )
+                else:
+                    self.log_message("Log file does not exist", "warning")
+                    QMessageBox.information(
+                        self, "Log File Not Found", "The log file does not exist yet."
+                    )
+            except Exception as e:
+                self.log_message(f"Failed to clear log file: {e}", "error")
+                QMessageBox.warning(
+                    self,
+                    "Error Clearing Log File",
+                    f"Could not clear the log file:\n{log_file}\n\nError: {e}",
+                )
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:

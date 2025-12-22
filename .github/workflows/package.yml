@@ -15,7 +15,7 @@ jobs:
             arch: 'arm64'
             build_script: ./scripts/macos_bundle.sh
             package_script: ./scripts/bundle_disk_image.sh
-          - os: macos-13
+          - os: macos-15-intel
             python-version: '3.11'
             arch: 'x86_64'
             build_script: ./scripts/macos_bundle.sh
@@ -84,7 +84,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
-          name: dist-macos-13
+          name: dist-macos-15-intel
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
         with:

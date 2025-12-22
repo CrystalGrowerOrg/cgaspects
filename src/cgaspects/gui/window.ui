@@ -47,8 +47,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>870</width>
-         <height>715</height>
+         <width>826</width>
+         <height>722</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_3">
@@ -334,6 +334,25 @@
               </property>
               <property name="text">
                <string>Growth Rates</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="site_analysis_pushButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>Perform growth rate calculations</string>
+              </property>
+              <property name="text">
+               <string>Site Analysis</string>
               </property>
              </widget>
             </item>

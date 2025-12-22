@@ -4,7 +4,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtCore import Qt
 import sys
 import pandas as pd
-from cgaspects.gui.dialogs.plot_dialog import PlottingDialog
+from cgaspects.gui.dialogs.plot_dialog import PlottingDialog, format_label
 
 
 class TestPlottingDialog(unittest.TestCase):
@@ -61,6 +61,18 @@ class TestPlottingDialog(unittest.TestCase):
         # self.assertIsNotNone(dialog.findChild())
 
         # Add more specific tests
+
+    def test_format_label(self):
+        # Test the format_label function
+        self.assertEqual(format_label("total_events"), "Total Events")
+        self.assertEqual(format_label("tile_type"), "Tile Type")
+        self.assertEqual(format_label("site_number"), "Site Number")
+        self.assertEqual(format_label("coordination"), "Coordination")
+        self.assertEqual(format_label("energy"), "Energy")
+        self.assertEqual(format_label("occupation"), "Occupation")
+        self.assertEqual(format_label("total_population"), "Total Population")
+        self.assertEqual(format_label(""), "")
+        self.assertIsNone(format_label(None))
 
     @classmethod
     def tearDownClass(cls):

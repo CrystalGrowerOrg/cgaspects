@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPushButton,
     QSlider,
     QToolButton,
     QVBoxLayout,
@@ -70,6 +72,88 @@ class LabelledComboBox(QWidget):
         layout.addWidget(self.label)
         layout.addWidget(self.comboBox)
         self.setLayout(layout)
+
+    def setValue(self, value):
+        idx = self.options.index(value)
+        if idx > -1:
+            self.comboBox.setCurrentIndex(idx)
+
+    @property
+    def value(self):
+        return self.options[self.comboBox.currentIndex()]
+
+    def currentIndex(self):
+        return self.comboBox.currentIndex()
+
+    def currentIndexChanged(self, idx):
+        self.valueChanged.emit()
+
+    def setOptions(self, options):
+        self.comboBox.removeItems()
+        self.options = options
+        self.comboBox.addItems(options)
+
+
+class LabelledComboBoxWithColorPicker(QWidget):
+    """A combo box with an optional color picker that appears on the same row."""
+    valueChanged = Signal()
+    colorChanged = Signal()
+
+    def __init__(self, label, options, parent=None):
+        super().__init__(parent)
+
+        self.label = QLabel(label)
+        self.options = options
+
+        self.comboBox = QComboBox()
+        self.comboBox.addItems(options)
+        self.comboBox.currentIndexChanged.connect(self.currentIndexChanged)
+
+        # Color picker button (initially hidden)
+        self.colorButton = QToolButton()
+        self.colorButton.clicked.connect(self.openColorDialog)
+        self.colorButton.hide()
+
+        # Default color
+        self.color = QColor(128, 128, 128)
+        self._updateColorIcon()
+
+        # Layout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(*MARGINS)
+        layout.addWidget(self.label)
+        layout.addWidget(self.comboBox)
+        layout.addWidget(self.colorButton)
+        self.setLayout(layout)
+
+    def _updateColorIcon(self):
+        """Update the color button icon to match the current color."""
+        self.icon = create_colored_icon(self.color)
+        self.colorButton.setIcon(self.icon)
+
+    def setColor(self, color):
+        """Set the color for the color picker."""
+        self.color = QColor(color)
+        self._updateColorIcon()
+        self.colorChanged.emit()
+
+    def getColor(self):
+        """Get the current color."""
+        return self.color
+
+    def openColorDialog(self):
+        """Open color picker dialog."""
+        color = QColorDialog.getColor(self.color)
+        if color.isValid():
+            self.setColor(color)
+
+    def showColorPicker(self):
+        """Show the color picker button."""
+        self.colorButton.show()
+
+    def hideColorPicker(self):
+        """Hide the color picker button."""
+        self.colorButton.hide()
 
     def setValue(self, value):
         idx = self.options.index(value)
@@ -208,7 +292,7 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Color Map"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox(
+        w = LabelledComboBoxWithColorPicker(
             "Color By",
             (
                 "Layer",
@@ -220,7 +304,9 @@ class VisualizationSettingsWidget(QWidget):
             ),
         )
         self.widgets["Color By"] = w
+        w.valueChanged.connect(self._on_color_by_changed)
         w.valueChanged.connect(self.settingsChanged)
+        w.colorChanged.connect(self.settingsChanged)
 
         w = LabelledColorSelector("Background Color", QColor(Qt.white))
         self.widgets["Background Color"] = w
@@ -257,6 +343,12 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Frame Rate"] = w
         w.valueChanged.connect(self.settingsChanged)
 
+        w = LabelledDoubleSlider("Axes Thickness", vrange=(1.0, 10.0), steps=18, parent=self)
+        w.setValue(2.0)
+
+        self.widgets["Axes Thickness"] = w
+        w.valueChanged.connect(self.settingsChanged)
+
         for w in self.widgets.values():
             layout.addWidget(w)
 
@@ -280,4 +372,22 @@ class VisualizationSettingsWidget(QWidget):
             v.setEnabled(enabled)
 
     def settings(self):
-        return {k: w.value for k, w in self.widgets.items()}
+        settings_dict = {}
+        for k, w in self.widgets.items():
+            settings_dict[k] = w.value
+
+        # Add the single color from the Color By widget
+        color_by_widget = self.widgets["Color By"]
+        if hasattr(color_by_widget, 'getColor'):
+            settings_dict["Single Color"] = color_by_widget.getColor()
+
+        return settings_dict
+
+    def _on_color_by_changed(self):
+        """Show/hide the single color picker based on Color By selection."""
+        color_by_widget = self.widgets["Color By"]
+        color_by = color_by_widget.value
+        if color_by == "Single Colour":
+            color_by_widget.showColorPicker()
+        else:
+            color_by_widget.hideColorPicker()
