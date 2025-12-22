@@ -27,6 +27,7 @@ from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
 from .dialogs.lattice_dialog import LatticeParametersDialog
 from .dialogs.site_highlight_dialog import SiteHighlightDialog
+from .dialogs.axes_settings_dialog import AxesSettingsDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
@@ -155,6 +156,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
         self.site_highlight_dialog.clearHighlights.connect(self.handle_clear_highlights)
 
+        # Create axes settings dialog
+        self.axes_settings_dialog = AxesSettingsDialog(parent=self)
+        self.axes_settings_dialog.settingsChanged.connect(self.handle_axes_settings_changed)
+
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
@@ -195,9 +200,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Add Projection Mode Toggle action to View menu
         self.actionToggleProjection = QAction("Switch to Perspective Projection", self)
         self.actionToggleProjection.setShortcut("Ctrl+Shift+P")
-        self.actionToggleProjection.setToolTip("Toggle between Orthographic and Perspective projection")
+        self.actionToggleProjection.setToolTip(
+            "Toggle between Orthographic and Perspective projection"
+        )
         self.actionToggleProjection.triggered.connect(self.toggle_projection_mode)
         self.menuView.addAction(self.actionToggleProjection)
+
+        # Add Axes Settings action to View menu
+        self.actionAxesSettings = QAction("Axes Settings", self)
+        self.actionAxesSettings.setShortcut("Ctrl+Shift+A")
+        self.actionAxesSettings.setToolTip("Configure axes rendering settings")
+        self.actionAxesSettings.triggered.connect(self.show_axes_settings_dialog)
+        self.menuView.addAction(self.actionAxesSettings)
 
     def setup_log_menu_actions(self):
         # Create Open Log File action
@@ -415,6 +429,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Show the site highlighting dialog."""
         self.site_highlight_dialog.show()
         self.site_highlight_dialog.raise_()
+
+    def show_axes_settings_dialog(self):
+        """Show the axes settings dialog."""
+        self.axes_settings_dialog.show()
+        self.axes_settings_dialog.raise_()
+
+    def handle_axes_settings_changed(self, settings):
+        """Handle changes to axes settings."""
+        if hasattr(self.openglwidget, "axes_renderer"):
+            self.openglwidget.axes_renderer.update_settings(settings)
+            self.openglwidget.update()
 
     def welcome_message(self):
         self.log_message(

@@ -333,12 +333,6 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Frame Rate"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledDoubleSlider("Axes Thickness", vrange=(1.0, 10.0), steps=18, parent=self)
-        w.setValue(2.0)
-
-        self.widgets["Axes Thickness"] = w
-        w.valueChanged.connect(self.settingsChanged)
-
         for w in self.widgets.values():
             layout.addWidget(w)
 

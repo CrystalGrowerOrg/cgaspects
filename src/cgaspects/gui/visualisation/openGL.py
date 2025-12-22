@@ -5,8 +5,8 @@ import numpy as np
 from matplotlib import cm
 from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QColor, QDesktopServices
+from PySide6.QtCore import Qt, QUrl, QPoint
+from PySide6.QtGui import QColor, QDesktopServices, QPainter, QFont
 from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
@@ -620,11 +620,14 @@ class VisualisationWidget(QOpenGLWidget):
                 max_val = 0
                 axis_vis = np.zeros_like(axis_vis)
                 # Convert QColor to RGB values in [0, 1] range
-                single_color_rgb = np.array([
-                    self.single_color.redF(),
-                    self.single_color.greenF(),
-                    self.single_color.blueF()
-                ], dtype=np.float32)
+                single_color_rgb = np.array(
+                    [
+                        self.single_color.redF(),
+                        self.single_color.greenF(),
+                        self.single_color.blueF(),
+                    ],
+                    dtype=np.float32,
+                )
             else:
                 min_val = np.nanmin(axis_vis)
                 max_val = np.nanmax(axis_vis)
@@ -786,3 +789,68 @@ class VisualisationWidget(QOpenGLWidget):
         gl = self.context().extraFunctions()
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.draw(gl)
+
+        # Draw text labels using QPainter overlay
+        self._draw_axis_labels()
+
+    def _draw_axis_labels(self):
+        """Draw axis labels using QPainter overlay without affecting OpenGL state."""
+        if not hasattr(self, "axes_renderer") or not self.axes_renderer:
+            return
+
+        # # Begin native painting - this properly manages OpenGL state
+        # painter = QPainter(self)
+        # painter.beginNativePainting()
+        # painter.endNativePainting()
+
+        # # Now do 2D painting
+        # painter.setRenderHint(QPainter.Antialiasing)
+        # font = QFont("Arial", 12, QFont.Bold)
+        # painter.setFont(font)
+
+        # # Get axis endpoints from axes renderer
+        # endpoints = self.axes_renderer.get_axis_endpoints()
+
+        # for endpoint in endpoints:
+        #     # Project 3D position to screen coordinates
+        #     pos_3d = endpoint['position']
+        #     screen_pos = self._project_to_screen(pos_3d, self.camera.modelViewProjectionMatrix(self.aspect_ratio))
+
+        #     if screen_pos:
+        #         # Set text color based on axis color
+        #         color = endpoint['color']
+        #         painter.setPen(QColor(int(color[0] * 255),
+        #                             int(color[1] * 255),
+        #                             int(color[2] * 255)))
+
+        #         # Draw the label slightly offset from the endpoint
+        #         painter.drawText(QPoint(int(screen_pos[0] + 10),
+        #                                int(screen_pos[1])),
+        #                        endpoint['label'])
+
+        # painter.end()
+
+    def _project_to_screen(self, pos_3d, mvp):
+        """Project a 3D position to screen coordinates."""
+        from PySide6.QtGui import QVector4D, QVector3D
+
+        # Apply rotation to position (similar to geometry shader)
+        view = self.camera.viewMatrix()
+        rotated = view.map(QVector3D(pos_3d[0], pos_3d[1], pos_3d[2])) * 0.1
+
+        # Offset to corner (matching the geometry shader)
+        screen_offset = QVector3D(0.8, 0.8, 0.0)
+        rotated -= screen_offset
+
+        # Convert to clip space
+        clip_pos = QVector4D(rotated.x(), rotated.y(), rotated.z(), 1.0)
+
+        # Get NDC coordinates
+        ndc_x = clip_pos.x()
+        ndc_y = clip_pos.y()
+
+        # Convert NDC to screen coordinates
+        screen_x = (ndc_x + 1.0) * 0.5 * self.width()
+        screen_y = (1.0 - ndc_y) * 0.5 * self.height()
+
+        return (screen_x, screen_y)
