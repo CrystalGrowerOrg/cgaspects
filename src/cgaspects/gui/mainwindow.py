@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 import sys
 from collections import defaultdict
@@ -770,7 +771,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     csv=self.plotting_csv,
                     signals=self.worker_signals,
                     parent=self,
-                    summary_df=self.summ_df
+                    summary_df=self.summ_df,
                 )
                 self.plotting_dialog.connect
             else:
@@ -880,7 +881,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.update_variables(values=var_values)
 
         # Sync the plot dialog if it's open and showing site analysis
-        if self.plotting_dialog is not None and hasattr(self.plotting_dialog, 'sync_file_prefix_from_xyz_index'):
+        if self.plotting_dialog is not None and hasattr(
+            self.plotting_dialog, "sync_file_prefix_from_xyz_index"
+        ):
             self.plotting_dialog.sync_file_prefix_from_xyz_index(value)
 
     def updateVisualizationSettings(self):

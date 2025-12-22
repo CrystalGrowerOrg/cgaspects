@@ -26,23 +26,20 @@ def setup_logging(basic="DEBUG", console="INFO"):
     file_handler = RotatingFileHandler(
         log_file,
         mode="a",
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=3,
-        encoding="utf-8"
+        encoding="utf-8",
     )
     file_handler.setLevel(basic)
     file_formatter = logging.Formatter(
-        fmt="%(asctime)s-%(name)s-%(levelname)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s-%(name)s-%(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     file_handler.setFormatter(file_formatter)
 
     # Create a console handler to write logs to the console
     console_handler = logging.StreamHandler()
     console_handler.setLevel(console)
-    console_formatter = logging.Formatter(
-        "%(name)s-%(levelname)s: %(message)s", datefmt="%H:%M:%S"
-    )
+    console_formatter = logging.Formatter("%(name)s-%(levelname)s: %(message)s", datefmt="%H:%M:%S")
     console_handler.setFormatter(console_formatter)
 
     # Get the root logger and add both the file and console handlers to it

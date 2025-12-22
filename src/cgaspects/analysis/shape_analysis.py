@@ -6,10 +6,8 @@ from typing import List, Optional, Literal, Dict
 import numpy as np
 import trimesh
 
-from chmpy.shape.sht import SHT  # type: ignore
 from scipy.spatial import ConvexHull  # pylint: disable=no-name-in-module
 
-from .sph import transform_shape
 from ..fileio.xyz_file import CrystalCloud, ShapeMetrics
 
 LOG = logging.getLogger("CA:ShapeAnalysis")
@@ -21,43 +19,17 @@ class ShapeAnalyser:
 
     l_max: int = 10
     zingg_method: Literal["bounding_box", "svd"] = "svd"
-    norm_method: Optional[Literal["orthonormal", "schmidt"]] = "orthonormal"
-    norm_array: Optional[np.ndarray] = None
-    norm_operation: Optional[Literal["multiply", "divide"]] = "multiply"
-
     # Computed attributes
-    sht: Optional[SHT] = field(init=False, default=None)
     points: List[np.ndarray] = field(default_factory=list)
-    coeffs: Optional[np.ndarray] = None
-    ref_coeffs: Optional[np.ndarray] = None
 
     # Multi-frame support
-    frame_coeffs: Dict[int, np.ndarray] = field(default_factory=dict)
     frame_metrics: Dict[int, ShapeMetrics] = field(default_factory=dict)
-
-    def __post_init__(self):
-        """Initialize SHT after dataclass creation."""
-        self.sht = SHT(self.l_max)
-
-    def get_coeffs(self, xyz_vals: np.ndarray, method: str = "ConvexHull") -> np.ndarray:
-        """Calculate spherical harmonic coefficients from coordinates."""
-        if method == "ConvexHull":
-            shape_hull = ConvexHull(CrystalCloud.normalise_verts(xyz_vals))
-            coeffs = transform_shape(self.sht, shape_hull)
-        elif method == "PointCloud":
-            coeffs = transform_shape(self.sht, CrystalCloud.normalise_verts(xyz_vals))
-        else:
-            raise ValueError(f"Unknown method: {method}")
-
-        LOG.debug("Coefficients calculated from [%s]: (%s)", method, coeffs.shape)
-        return coeffs
 
     def analyse_crystal(
         self,
         crystal: CrystalCloud,
         method: str = "ConvexHull",
         frame_idx: Optional[int] = None,
-        sph: bool = False,
     ) -> None:
         """Analyse a single frame or all frames of a crystal shape."""
         if frame_idx is not None:
@@ -65,58 +37,11 @@ class ShapeAnalyser:
             frame = crystal.frames[frame_idx]
             coords = frame.coords
             self.frame_metrics[frame_idx] = self.shape_info(coords)
-            if sph:
-                self.coeffs = self.get_coeffs(coords, method)
-                self.frame_coeffs[frame_idx] = self.coeffs
         else:
             # Analyse all frames
             for idx, frame in enumerate(crystal.frames):
                 coords = frame.coords
                 self.frame_metrics[idx] = self.shape_info(coords)
-                if sph:
-                    coeffs = self.get_coeffs(coords, method)
-                    self.frame_coeffs[idx] = coeffs
-
-            # Set coeffs to last frame for compatibility
-            if 0 in self.frame_coeffs:
-                self.coeffs = self.frame_coeffs[-1]
-
-    def reference_shape(
-        self, shapepath: Path, method: str = "ConvexHull", normalize: bool = True
-    ) -> np.ndarray:
-        """Set reference shape from file."""
-        shapepath = Path(shapepath)
-        if not shapepath.exists():
-            raise FileNotFoundError(f"Reference shape file {shapepath} not found")
-
-        if shapepath.suffix.lower() == ".xyz":
-            temp_crystal = CrystalCloud.from_file(shapepath, normalise=normalize)
-            xyz = temp_crystal.coords
-        else:
-            mesh = trimesh.load(shapepath)
-            xyz = CrystalCloud.normalise_verts(mesh.vertices) if normalize else mesh.vertices
-
-        self.ref_coeffs = self.get_coeffs(xyz, method)
-        return self.ref_coeffs
-
-    def compare_frame_to_reference(self, frame_idx: int, **kwargs) -> float:
-        """Compare a specific frame to the reference shape."""
-        if self.ref_coeffs is None:
-            raise ValueError("No reference shape set. Call reference_shape() first.")
-        if frame_idx not in self.frame_coeffs:
-            raise ValueError(f"Frame {frame_idx} not analysed. Call analyse_crystal() first.")
-
-        return self.compare_shape(self.ref_coeffs, self.frame_coeffs[frame_idx], **kwargs)
-
-    def compare_all_frames_to_reference(self, **kwargs) -> Dict[int, float]:
-        """Compare all analysed frames to the reference shape."""
-        if self.ref_coeffs is None:
-            raise ValueError("No reference shape set. Call reference_shape() first.")
-
-        return {
-            frame_idx: self.compare_shape(self.ref_coeffs, coeffs, **kwargs)
-            for frame_idx, coeffs in self.frame_coeffs.items()
-        }
 
     def get_frame_metrics(self, frame_idx: int) -> Optional[ShapeMetrics]:
         """Get metrics for a specific frame."""
