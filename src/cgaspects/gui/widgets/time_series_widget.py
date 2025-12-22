@@ -99,6 +99,13 @@ class TimeSeriesWidget(QWidget):
         self.play_button.setToolTip("Play/Pause time-series animation")
         self.play_button.setMaximumWidth(80)
 
+        # Initially hide the per-step controls since default mode is "Total Events"
+        self.label.setVisible(False)
+        self.parameter_combo.setVisible(False)
+        self.time_slider.setVisible(False)
+        self.value_label.setVisible(False)
+        self.play_button.setVisible(False)
+
     def _create_layout(self):
         """Create the layout for the widget."""
         # Main vertical layout with two rows

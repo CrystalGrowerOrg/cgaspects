@@ -250,17 +250,24 @@ class PlottingDialog(QDialog):
         self.plot_types.append("Custom")
         self.updatePlotWidgets()
 
-        # Set default plot type to "Custom" or "Site Analysis" if available
+        # Set default plot type: prioritize Site Analysis, otherwise use first available plot type
+        # Block signals to prevent trigger_plot being called during this default selection
+        self.plot_types_combobox.blockSignals(True)
         if self.site_analysis_data is not None:
+            # For site analysis, default to "Site Analysis" mode
             site_analysis_index = self.plot_types_combobox.findText("Site Analysis")
             if site_analysis_index >= 0:
                 self.plot_types_combobox.setCurrentIndex(site_analysis_index)
-        else:
-            custom_index = self.plot_types_combobox.findText("Custom")
-            if custom_index >= 0:
-                self.plot_types_combobox.setCurrentIndex(custom_index)
+        # For all other cases, the first plot type (index 0) is already selected by default
+        # (e.g., Zingg, CDA, SA:Vol Ratio, or Custom if no specific plot types were found)
+        self.plot_types_combobox.blockSignals(False)
 
     def updatePlotWidgets(self):
+        # Block signals during widget updates to prevent multiple trigger_plot calls
+        self.plot_permutations_combobox.blockSignals(True)
+        self.plot_types_combobox.blockSignals(True)
+        self.variables_combobox.blockSignals(True)
+
         self.custom_plot_widget.xAxisListWidget.clear()
         self.custom_plot_widget.yAxisListWidget.clear()
         self.custom_plot_widget.yAxisListWidget_single.clear()
@@ -285,6 +292,11 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.yAxisListWidget_single.addItems(self.df.columns)
             self.custom_plot_widget.colorListWidget.addItems(["None"])
             self.custom_plot_widget.colorListWidget.addItems(self.df.columns)
+
+        # Unblock signals after all updates are complete
+        self.plot_permutations_combobox.blockSignals(False)
+        self.plot_types_combobox.blockSignals(False)
+        self.variables_combobox.blockSignals(False)
 
     def create_widgets(self):
         self.figure = Figure()
@@ -589,30 +601,52 @@ class PlottingDialog(QDialog):
         self.time_series_widget.set_time_data(supersaturation, time, iterations)
         logger.debug("Initialized time-series widget with data")
 
-    def _on_file_prefix_changed(self, selected_prefix):
-        """Handle file prefix selection change."""
-        if self.site_analysis_data is None:
-            return
+        # After initialization, manually trigger the initial file prefix sync
+        # This ensures the XYZ visualization matches the initially selected prefix
+        selected_prefix = self.time_series_widget.get_selected_file_prefix()
+        if selected_prefix and selected_prefix != "All Data":
+            xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
+            if xyz_index is not None and self.signals:
+                logger.debug(f"Initial sync: setting XYZ to index {xyz_index} for prefix {selected_prefix}")
+                self.signals.sim_id.emit(xyz_index)
 
-        logger.info(f"File prefix changed to: {selected_prefix}")
+    def _on_file_prefix_changed(self, selected_prefix):
+        """Handle file prefix selection change.
+
+        This updates the displayed XYZ file when the data source dropdown is changed.
+        """
+        logger.info(f"_on_file_prefix_changed called with prefix: {selected_prefix}")
+
+        if self.site_analysis_data is None:
+            logger.debug("No site analysis data, skipping file prefix change handling")
+            return
 
         # If we have signals and this is not "All Data", try to find the corresponding XYZ file
         if self.signals and selected_prefix != "All Data":
             # Try to find the index of the XYZ file that matches this prefix
             xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
+            logger.debug(f"Found XYZ index {xyz_index} for prefix {selected_prefix}")
             if xyz_index is not None:
-                logger.debug(
-                    f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}"
-                )
+                logger.info(f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}")
                 self.signals.sim_id.emit(xyz_index)
+            else:
+                logger.warning(f"Could not find XYZ index for prefix {selected_prefix}")
+        else:
+            if not self.signals:
+                logger.debug("No signals object available")
+            if selected_prefix == "All Data":
+                logger.debug("Selected 'All Data', not changing XYZ visualization")
 
         # Trigger a replot - data will be extracted from dictionary in _set_data()
+        logger.debug("Triggering plot after file prefix change")
         self.trigger_plot()
 
     def _find_xyz_index_for_prefix(self, file_prefix):
         """Try to find the XYZ file index that corresponds to a file prefix.
 
-        This looks for XYZ files whose stem (filename without extension) matches the file prefix.
+        Since the site analysis data and XYZ files are in the same order,
+        we can use the position of the prefix in the site analysis data keys
+        as the index for the XYZ files.
 
         Args:
             file_prefix: The file prefix to search for
@@ -620,57 +654,86 @@ class PlottingDialog(QDialog):
         Returns:
             int or None: The index of the matching XYZ file, or None if not found
         """
-        # This requires access to the XYZ files list from the parent window
-        # We'll need to pass this information when the plot dialog is created
-        # For now, we'll try to extract it from the file prefix itself
-        # The file prefix typically comes from the XYZ filename
-        # Example: "sim_001" might correspond to the file "sim_001.xyz"
+        if self.site_analysis_data is None:
+            return None
 
-        # Check if we have access to parent's xyz_files
-        if hasattr(self.parent(), "xyz_files"):
-            xyz_files = self.parent().xyz_files
-            for idx, xyz_file in enumerate(xyz_files):
-                # Check if the XYZ file stem matches the prefix
-                if xyz_file.stem == file_prefix or xyz_file.stem.startswith(file_prefix):
-                    return idx
+        # Get the ordered list of file prefixes from site analysis data
+        file_prefixes = list(self.site_analysis_data.keys())
 
-        return None
+        # Find the index of this prefix in the ordered list
+        try:
+            prefix_index = file_prefixes.index(file_prefix)
+            logger.debug(f"Found prefix '{file_prefix}' at index {prefix_index} in site_analysis_data")
+
+            # Verify this index is valid for xyz_files if available
+            if hasattr(self.parent(), "xyz_files"):
+                xyz_files = self.parent().xyz_files
+                if 0 <= prefix_index < len(xyz_files):
+                    return prefix_index
+                else:
+                    logger.warning(f"Prefix index {prefix_index} out of range for xyz_files (length {len(xyz_files)})")
+                    return None
+            else:
+                # If we don't have access to xyz_files, just return the index
+                return prefix_index
+        except ValueError:
+            logger.warning(f"Prefix '{file_prefix}' not found in site_analysis_data keys")
+            return None
 
     def sync_file_prefix_from_xyz_index(self, xyz_index):
         """Synchronize the file prefix selection based on an XYZ file index.
 
         This is called when the user selects a different XYZ file in the main window,
-        to update the plot to show the corresponding data.
+        to update the plot to show the corresponding data. This provides the opposite
+        direction of synchronization from _on_file_prefix_changed.
+
+        Since the site analysis data and XYZ files are in the same order,
+        we use the xyz_index directly to find the corresponding prefix.
 
         Args:
             xyz_index: The index of the selected XYZ file
         """
-        if not self.site_analysis_data or self.plot_type != "Site Analysis":
+        logger.info(f"========== sync_file_prefix_from_xyz_index called with index {xyz_index} ==========")
+        logger.debug(f"Current plot_type: {self.plot_type if hasattr(self, 'plot_type') else 'not set'}")
+        logger.debug(f"Has site_analysis_data: {self.site_analysis_data is not None}")
+
+        if not self.site_analysis_data:
+            logger.debug("No site analysis data, skipping sync")
             return
 
-        # Get the XYZ filename from the parent
-        if hasattr(self.parent(), "xyz_files"):
-            xyz_files = self.parent().xyz_files
-            if 0 <= xyz_index < len(xyz_files):
-                xyz_file = xyz_files[xyz_index]
-                file_prefix = xyz_file.stem
+        # Check if we're in Site Analysis mode (or plot_type not yet set during initialization)
+        if hasattr(self, 'plot_type') and self.plot_type != "Site Analysis":
+            logger.debug(f"Not in Site Analysis mode (current: {self.plot_type}), skipping sync")
+            return
 
-                # Check if this prefix exists in our data
-                if file_prefix in self.site_analysis_data:
-                    # Update the time series widget's selection
-                    # Find the index in the combo box
-                    combo_index = self.time_series_widget.file_prefix_combo.findText(file_prefix)
-                    if combo_index >= 0:
-                        # Block signals to prevent infinite loop
-                        from PySide6.QtCore import QSignalBlocker
+        # Get the ordered list of file prefixes from site analysis data
+        file_prefixes = list(self.site_analysis_data.keys())
 
-                        with QSignalBlocker(self.time_series_widget.file_prefix_combo):
-                            self.time_series_widget.file_prefix_combo.setCurrentIndex(combo_index)
-                            self.time_series_widget.current_file_prefix = file_prefix
+        # Use the xyz_index to get the corresponding prefix
+        if 0 <= xyz_index < len(file_prefixes):
+            file_prefix = file_prefixes[xyz_index]
+            logger.debug(f"XYZ index {xyz_index} corresponds to prefix: {file_prefix}")
 
-                        # Trigger replot - data will be extracted from dictionary in _set_data()
-                        self.trigger_plot()
-                        logger.debug(f"Synced file prefix to: {file_prefix}")
+            # Update the time series widget's selection
+            # Find the index in the combo box (add 1 because "All Data" is at index 0)
+            combo_index = self.time_series_widget.file_prefix_combo.findText(file_prefix)
+            logger.debug(f"Combo box index for prefix '{file_prefix}': {combo_index}")
+
+            if combo_index >= 0:
+                # Block signals to prevent infinite loop
+                from PySide6.QtCore import QSignalBlocker
+
+                with QSignalBlocker(self.time_series_widget.file_prefix_combo):
+                    self.time_series_widget.file_prefix_combo.setCurrentIndex(combo_index)
+                    self.time_series_widget.current_file_prefix = file_prefix
+
+                # Trigger replot - data will be extracted from dictionary in _set_data()
+                logger.info(f"Synced file prefix to: {file_prefix} from XYZ index {xyz_index}, triggering replot")
+                self.trigger_plot()
+            else:
+                logger.warning(f"Could not find prefix '{file_prefix}' in combo box")
+        else:
+            logger.warning(f"XYZ index {xyz_index} out of range for site_analysis_data (has {len(file_prefixes)} entries)")
 
     def open_label_customization_dialog(self):
         """Open the label customization dialog."""
@@ -1720,15 +1783,24 @@ class PlottingDialog(QDialog):
         if event.inaxes != self.ax:
             return
 
+        # Track if we clicked on any point
+        clicked_on_point = False
+
         def handle_scatter(scatter):
+            nonlocal clicked_on_point
             # Check if scatter plot exists and handle click event
             if scatter is not None:
                 is_contained, ind = scatter.contains(event)
                 if is_contained:
+                    clicked_on_point = True
                     self.handle_click(scatter, self.c_data, self.c_name, ind)
 
         for plot in self.plot_objects.values():
             handle_scatter(scatter=plot.scatter)
+
+        # If we didn't click on any point, handle whitespace click (deselection)
+        if not clicked_on_point:
+            self.handle_whitespace_click()
 
     def handle_click(self, scatter, _colour_data, _column_name, ind):
         """Handle click event on scatter plot points."""
@@ -1764,6 +1836,23 @@ class PlottingDialog(QDialog):
             logger.info(f"Clicked on row {point_index}: {row_data}")
         else:
             logger.debug(f"Clicked on point {point_index} with coordinates (x={x}, y={y})")
+
+    def handle_whitespace_click(self):
+        """Handle click event on whitespace (not on any data point).
+
+        This deselects any currently selected site type from a previous point click.
+        """
+        logger.info("Clicked on whitespace - deselecting site")
+
+        # For Site Analysis mode, deselect the highlighted site
+        if self.plot_type == "Site Analysis":
+            if self.signals and hasattr(self.signals, "highlight_site"):
+                # Emit signal with -1 or None to indicate deselection
+                self.signals.highlight_site.emit(-1)
+                logger.debug("Deselected site highlighting")
+        else:
+            # For other plot types, you could add similar deselection logic if needed
+            logger.debug("Whitespace click in non-site-analysis mode")
 
     def toggle_trendline(self):
         logger.info(self.trendline_text)
