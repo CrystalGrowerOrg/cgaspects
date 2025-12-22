@@ -327,16 +327,6 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Show Mesh Edges"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox(
-            "Projection",
-            (
-                "Orthographic",
-                "Perspective",
-            ),
-        )
-        self.widgets["Projection"] = w
-        w.valueChanged.connect(self.settingsChanged)
-
         w = LabelledDoubleSlider("Frame Rate", vrange=(1, 100), steps=50, parent=self)
         w.setValue(15)
 

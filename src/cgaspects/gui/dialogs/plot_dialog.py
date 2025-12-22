@@ -607,7 +607,9 @@ class PlottingDialog(QDialog):
         if selected_prefix and selected_prefix != "All Data":
             xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
             if xyz_index is not None and self.signals:
-                logger.debug(f"Initial sync: setting XYZ to index {xyz_index} for prefix {selected_prefix}")
+                logger.debug(
+                    f"Initial sync: setting XYZ to index {xyz_index} for prefix {selected_prefix}"
+                )
                 self.signals.sim_id.emit(xyz_index)
 
     def _on_file_prefix_changed(self, selected_prefix):
@@ -615,7 +617,7 @@ class PlottingDialog(QDialog):
 
         This updates the displayed XYZ file when the data source dropdown is changed.
         """
-        logger.info(f"_on_file_prefix_changed called with prefix: {selected_prefix}")
+        logger.debug(f"_on_file_prefix_changed called with prefix: {selected_prefix}")
 
         if self.site_analysis_data is None:
             logger.debug("No site analysis data, skipping file prefix change handling")
@@ -627,7 +629,9 @@ class PlottingDialog(QDialog):
             xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
             logger.debug(f"Found XYZ index {xyz_index} for prefix {selected_prefix}")
             if xyz_index is not None:
-                logger.info(f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}")
+                logger.debug(
+                    f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}"
+                )
                 self.signals.sim_id.emit(xyz_index)
             else:
                 logger.warning(f"Could not find XYZ index for prefix {selected_prefix}")
@@ -663,7 +667,9 @@ class PlottingDialog(QDialog):
         # Find the index of this prefix in the ordered list
         try:
             prefix_index = file_prefixes.index(file_prefix)
-            logger.debug(f"Found prefix '{file_prefix}' at index {prefix_index} in site_analysis_data")
+            logger.debug(
+                f"Found prefix '{file_prefix}' at index {prefix_index} in site_analysis_data"
+            )
 
             # Verify this index is valid for xyz_files if available
             if hasattr(self.parent(), "xyz_files"):
@@ -671,7 +677,9 @@ class PlottingDialog(QDialog):
                 if 0 <= prefix_index < len(xyz_files):
                     return prefix_index
                 else:
-                    logger.warning(f"Prefix index {prefix_index} out of range for xyz_files (length {len(xyz_files)})")
+                    logger.warning(
+                        f"Prefix index {prefix_index} out of range for xyz_files (length {len(xyz_files)})"
+                    )
                     return None
             else:
                 # If we don't have access to xyz_files, just return the index
@@ -679,61 +687,6 @@ class PlottingDialog(QDialog):
         except ValueError:
             logger.warning(f"Prefix '{file_prefix}' not found in site_analysis_data keys")
             return None
-
-    def sync_file_prefix_from_xyz_index(self, xyz_index):
-        """Synchronize the file prefix selection based on an XYZ file index.
-
-        This is called when the user selects a different XYZ file in the main window,
-        to update the plot to show the corresponding data. This provides the opposite
-        direction of synchronization from _on_file_prefix_changed.
-
-        Since the site analysis data and XYZ files are in the same order,
-        we use the xyz_index directly to find the corresponding prefix.
-
-        Args:
-            xyz_index: The index of the selected XYZ file
-        """
-        logger.info(f"========== sync_file_prefix_from_xyz_index called with index {xyz_index} ==========")
-        logger.debug(f"Current plot_type: {self.plot_type if hasattr(self, 'plot_type') else 'not set'}")
-        logger.debug(f"Has site_analysis_data: {self.site_analysis_data is not None}")
-
-        if not self.site_analysis_data:
-            logger.debug("No site analysis data, skipping sync")
-            return
-
-        # Check if we're in Site Analysis mode (or plot_type not yet set during initialization)
-        if hasattr(self, 'plot_type') and self.plot_type != "Site Analysis":
-            logger.debug(f"Not in Site Analysis mode (current: {self.plot_type}), skipping sync")
-            return
-
-        # Get the ordered list of file prefixes from site analysis data
-        file_prefixes = list(self.site_analysis_data.keys())
-
-        # Use the xyz_index to get the corresponding prefix
-        if 0 <= xyz_index < len(file_prefixes):
-            file_prefix = file_prefixes[xyz_index]
-            logger.debug(f"XYZ index {xyz_index} corresponds to prefix: {file_prefix}")
-
-            # Update the time series widget's selection
-            # Find the index in the combo box (add 1 because "All Data" is at index 0)
-            combo_index = self.time_series_widget.file_prefix_combo.findText(file_prefix)
-            logger.debug(f"Combo box index for prefix '{file_prefix}': {combo_index}")
-
-            if combo_index >= 0:
-                # Block signals to prevent infinite loop
-                from PySide6.QtCore import QSignalBlocker
-
-                with QSignalBlocker(self.time_series_widget.file_prefix_combo):
-                    self.time_series_widget.file_prefix_combo.setCurrentIndex(combo_index)
-                    self.time_series_widget.current_file_prefix = file_prefix
-
-                # Trigger replot - data will be extracted from dictionary in _set_data()
-                logger.info(f"Synced file prefix to: {file_prefix} from XYZ index {xyz_index}, triggering replot")
-                self.trigger_plot()
-            else:
-                logger.warning(f"Could not find prefix '{file_prefix}' in combo box")
-        else:
-            logger.warning(f"XYZ index {xyz_index} out of range for site_analysis_data (has {len(file_prefixes)} entries)")
 
     def open_label_customization_dialog(self):
         """Open the label customization dialog."""
@@ -764,7 +717,7 @@ class PlottingDialog(QDialog):
         self.custom_xlabel = labels["xlabel"]
         self.custom_ylabel = labels["ylabel"]
         self.custom_cbar_label = labels["cbar_label"]
-        logger.info("Custom labels updated: %s", labels)
+        logger.debug("Custom labels updated: %s", labels)
         # Replot with new labels
         self.trigger_plot()
 
@@ -861,7 +814,7 @@ class PlottingDialog(QDialog):
                 continue
 
         self.df = filtered_df
-        logger.info(
+        logger.debug(
             f"Applied {len(self.data_filters)} filters: {len(self.df)} rows remaining from {len(self.df_original)} original rows"
         )
 
@@ -1301,8 +1254,8 @@ class PlottingDialog(QDialog):
 
     def plot(self):
         self.plot_objects = {}
-        logger.info("Plotting called!")
-        logger.info(
+        logger.debug("Plotting called!")
+        logger.debug(
             "Plot Called!\nType: %s, Permutation: %s, Variable: %s, \nCustom X: %s, Custom Y: %s, Custom C: %s, \nGrid: %s, Legend: %s, Point Size: %s, ",
             self.plot_type,
             self.permutation,
@@ -1492,7 +1445,7 @@ class PlottingDialog(QDialog):
         vals = self.df[self.custom_y]
         try:
             corr_matrix = vals.corr()
-            logger.info("Correlation matrix:\n%s", corr_matrix)
+            logger.debug("Correlation matrix:\n%s", corr_matrix)
         except ValueError as ve:
             logger.error("Make sure a valid data set is provided, Encountered: %s", ve)
             return

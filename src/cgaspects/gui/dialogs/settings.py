@@ -37,6 +37,6 @@ class SettingsDialog(QDialog):
             ]
         )
         self.ui.pointtype_comboBox.addItems(["Points", "Spheres"])
-        self.ui.projection_comboBox.addItems(["Orthographic", "Perspective"])
+        # Projection mode is now controlled via View menu (Ctrl+Shift+P)
         self.ui.colour_comboBox.addItems(self.colour_list)
         self.ui.bgcolour_comboBox.addItems(["Black", "White"])

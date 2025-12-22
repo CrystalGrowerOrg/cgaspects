@@ -277,7 +277,15 @@ class WorkerSiteAnalysis(QRunnable):
             self.signals.message.emit("Site analysis complete!")
             self.signals.progress.emit(100)
 
-            self.signals.result.emit(json_path)
+            # Convert Path to string for signal emission
+            logger.info(f"About to emit result signal with path: {json_path}")
+            self.signals.result.emit(str(json_path))
+            logger.info("Result signal emitted successfully")
+
+            # Emit finished signal to indicate worker completion
+            logger.info("Emitting finished signal from worker")
+            self.signals.finished.emit()
+            logger.info("Finished signal emitted from worker")
 
         except Exception as e:
             logger.error(f"Error during site analysis: {e}", exc_info=True)

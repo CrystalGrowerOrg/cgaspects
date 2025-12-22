@@ -192,6 +192,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
         self.menuView.addAction(self.actionSiteHighlighting)
 
+        # Add Projection Mode Toggle action to View menu
+        self.actionToggleProjection = QAction("Switch to Perspective Projection", self)
+        self.actionToggleProjection.setShortcut("Ctrl+Shift+P")
+        self.actionToggleProjection.setToolTip("Toggle between Orthographic and Perspective projection")
+        self.actionToggleProjection.triggered.connect(self.toggle_projection_mode)
+        self.menuView.addAction(self.actionToggleProjection)
+
     def setup_log_menu_actions(self):
         # Create Open Log File action
         self.actionOpenLogFile = QAction("Open Log File", self)
@@ -283,6 +290,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.current_axes_type = "cartesian"
             self.actionToggleAxes.setText("Switch to Fractional Axes")
             self.log_message("Axes switched to Cartesian coordinates", "info")
+
+    def toggle_projection_mode(self):
+        """Toggle between Orthographic and Perspective projection."""
+        current_mode = self.openglwidget.camera.projectionMode()
+
+        if current_mode == "Orthographic":
+            # Switch to Perspective
+            self.openglwidget.camera.setProjectionMode("Perspective")
+            self.actionToggleProjection.setText("Switch to Orthographic Projection")
+            self.log_message("Projection mode switched to Perspective", "info")
+        else:
+            # Switch to Orthographic
+            self.openglwidget.camera.setProjectionMode("Orthographic")
+            self.actionToggleProjection.setText("Switch to Perspective Projection")
+            self.log_message("Projection mode switched to Orthographic", "info")
+
+        # Update the visualization
+        self.openglwidget.update()
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)
@@ -753,6 +778,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message("Plotting CSV set to None", "debug")
 
     def set_results(self, value):
+        logger.debug(f"set_results called with value: {value}")
         self.plot_lineEdit.setText(str(value.csv))
         self.log_message(f"Accepting incoming result to GUI {value}", "debug")
         if value.selected:
@@ -761,6 +787,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if value.folder:
             self.output_folder = value.folder
             self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
+
+        logger.debug("About to call replotting_called()")
+        # Automatically show plot dialog after results are set
+        self.replotting_called()
+        logger.debug("Returned from replotting_called()")
 
     def replotting_called(self):
         if self.plotting_csv:
@@ -879,12 +910,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.summ_df is not None:
             var_values = self.summ_df.iloc[value, :].values
             self.update_variables(values=var_values)
-
-        # Sync the plot dialog if it's open and showing site analysis
-        if self.plotting_dialog is not None and hasattr(
-            self.plotting_dialog, "sync_file_prefix_from_xyz_index"
-        ):
-            self.plotting_dialog.sync_file_prefix_from_xyz_index(value)
 
     def updateVisualizationSettings(self):
         pass

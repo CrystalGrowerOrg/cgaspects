@@ -431,9 +431,6 @@ class VisualisationWidget(QOpenGLWidget):
         if present_and_changed("Point Size", self.point_size):
             self.point_size = float(kwargs["Point Size"])
 
-        if present_and_changed("Projection", self.camera.projectionMode()):
-            self.camera.setProjectionMode(kwargs["Projection"])
-
         if "Axes Thickness" in kwargs:
             if self.axes_renderer is not None:
                 self.axes_renderer.set_axes_thickness(float(kwargs["Axes Thickness"]))
