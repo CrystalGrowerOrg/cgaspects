@@ -68,7 +68,7 @@ class NavigationToolbar(NavigationToolbar2QT):
 
 
 class PlottingDialog(QDialog):
-    def __init__(self, csv, signals=None, parent=None):
+    def __init__(self, csv, signals=None, parent=None, summary_df=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Plot Window")
         self.setGeometry(100, 100, 800, 600)
@@ -77,6 +77,7 @@ class PlottingDialog(QDialog):
         self.setWindowModality(QtCore.Qt.NonModal)
 
         self.signals = signals
+        self.summary_df = summary_df  # Summary file dataframe for mapping file prefixes to values
         self.annot = None
         self.trendline = None
         self.trendline_text = None
@@ -89,6 +90,7 @@ class PlottingDialog(QDialog):
         self.permutations = []
         self.permutation_labels = []
         self.interaction_columns = []
+        self.site_analysis_columns = []  # Separate columns for site analysis mode
         self.trendline_text = []
         self.plotting_mode = "default"
 
@@ -131,6 +133,9 @@ class PlottingDialog(QDialog):
         self.data_filters = []  # List of filter configurations
 
     def setCSV(self, csv):
+        # Check if we're reloading the same CSV file
+        csv_changed = not hasattr(self, "csv") or self.csv != csv
+
         self.csv = csv
         self.site_analysis_data = None
 
@@ -144,74 +149,95 @@ class PlottingDialog(QDialog):
 
                 with open(csv, "r") as f:
                     self.site_analysis_data = json.load(f)
-                # Convert to DataFrame for plotting
-                self.df = self._convert_site_analysis_to_df(self.site_analysis_data)
-                self.df_original = self.df.copy()
+
+                # For site analysis, we DON'T convert to DataFrame
+                # Data will be extracted directly from the dictionary in _set_data()
+                # Set df to None to indicate this is dict-based data
+                self.df = None
+                self.df_original = None
+
+                # Populate site_analysis_columns for the variables dropdown
+                self.site_analysis_columns = [
+                    "None",
+                    "tile_type",
+                    "energy",
+                    "occupation",
+                    "coordination",
+                    "total_events",
+                    "total_population",
+                    "file_prefix",
+                ]
+                # Only clear time series widget file prefixes if the CSV file actually changed
+                # This preserves the user's data source selection when replotting
+                if csv_changed:
+                    self.time_series_widget.file_prefixes = []
+                logger.debug(
+                    f"Loaded site analysis data with {len(self.site_analysis_data)} file prefixes"
+                )
             else:
                 self.df = pd.read_csv(self.csv, encoding="utf-8", encoding_errors="replace")
                 self.df_original = self.df.copy()
 
-        logger.debug("Dataframe read:\n%s", self.df)
+        if self.df is not None:
+            logger.debug("Dataframe read:\n%s", self.df)
+
         plotting = None
-        for col in self.df.columns:
-            if col.startswith("Supersaturation"):
-                plotting = "Growth Rates"
         self.growth_rate = None
 
-        self.interaction_columns = [
-            col
-            for col in self.df.columns
-            if col.startswith(("interaction", "tile", "temperature", "starting_delmu", "excess"))
-        ]
+        # Only process DataFrame columns if we have a DataFrame (not site analysis)
+        if self.df is not None:
+            for col in self.df.columns:
+                if col.startswith("Supersaturation"):
+                    plotting = "Growth Rates"
 
-        # Add site analysis specific columns if present
-        site_analysis_columns = [
-            "tile_type",
-            "energy",
-            "occupation",
-            "coordination",
-            "total_events",
-            "total_population",
-        ]
-        for col in site_analysis_columns:
-            if col in self.df.columns and col not in self.interaction_columns:
-                self.interaction_columns.append(col)
-
-        self.interaction_columns.insert(0, "None")
-        logger.debug("Interaction energy columns: %s", self.interaction_columns)
+            self.interaction_columns = [
+                col
+                for col in self.df.columns
+                if col.startswith(
+                    ("interaction", "tile", "temperature", "starting_delmu", "excess")
+                )
+            ]
+            self.interaction_columns.insert(0, "None")
+            logger.debug("Interaction energy columns: %s", self.interaction_columns)
+        else:
+            # For site analysis (dict-based), interaction_columns is not used
+            self.interaction_columns = []
 
         # List to store the results
         self.plot_types = []
         self.directions = []
-        # Check each column heading
-        for column in self.df.columns:
-            if column in ["PC1", "PC2", "PC3"] and "Zingg" not in self.plot_types:
-                self.plot_types.append("Zingg")
-            if column.startswith("Ratio"):
-                column = column.replace("Ratio_", "")
-                directions = column.split(":")
-                for direction in directions:
-                    if direction not in self.directions:
-                        self.directions.append(direction)
-                if "CDA" not in self.plot_types:
-                    self.plot_types.append("CDA")
-            if column == "SA:Vol Ratio" and "SA:Vol Ratio" not in self.plot_types:
-                self.plot_types.append("SA:Vol Ratio")
 
-        self.permutation_labels = ["None"]
-        if len(self.directions) == 3:
-            self.permutations = list(permutations(self.directions))
-            for permutation in self.permutations:
-                p_str = f"({permutation[0].strip()}) : ({permutation[1].strip()}) : ({permutation[2].strip()})"
-                self.permutation_labels.append(p_str)
+        # Only check DataFrame columns if we have a DataFrame (not site analysis)
+        if self.df is not None:
+            # Check each column heading
+            for column in self.df.columns:
+                if column in ["PC1", "PC2", "PC3"] and "Zingg" not in self.plot_types:
+                    self.plot_types.append("Zingg")
+                if column.startswith("Ratio"):
+                    column = column.replace("Ratio_", "")
+                    directions = column.split(":")
+                    for direction in directions:
+                        if direction not in self.directions:
+                            self.directions.append(direction)
+                    if "CDA" not in self.plot_types:
+                        self.plot_types.append("CDA")
+                if column == "SA:Vol Ratio" and "SA:Vol Ratio" not in self.plot_types:
+                    self.plot_types.append("SA:Vol Ratio")
 
-        if plotting == "Growth Rates":
-            self.growth_rate = True
-            self.directions = []
-            for col in self.df.columns:
-                if col.startswith(" "):
-                    self.directions.append(col)
-            self.plot_types = ["Growth Rates"]
+            self.permutation_labels = ["None"]
+            if len(self.directions) == 3:
+                self.permutations = list(permutations(self.directions))
+                for permutation in self.permutations:
+                    p_str = f"({permutation[0].strip()}) : ({permutation[1].strip()}) : ({permutation[2].strip()})"
+                    self.permutation_labels.append(p_str)
+
+            if plotting == "Growth Rates":
+                self.growth_rate = True
+                self.directions = []
+                for col in self.df.columns:
+                    if col.startswith(" "):
+                        self.directions.append(col)
+                self.plot_types = ["Growth Rates"]
 
         # Check if this is site analysis data
         if self.site_analysis_data is not None:
@@ -234,36 +260,6 @@ class PlottingDialog(QDialog):
             if custom_index >= 0:
                 self.plot_types_combobox.setCurrentIndex(custom_index)
 
-    def _convert_site_analysis_to_df(self, site_data_dict):
-        """Convert site analysis JSON data to a pandas DataFrame for plotting."""
-        rows = []
-
-        for file_prefix, dataset in site_data_dict.items():
-            for site_num, site_data in dataset.get("sites", {}).items():
-                # Create a row for each site
-                row = {
-                    "file_prefix": file_prefix,
-                    "site_number": int(site_num),
-                    "tile_type": site_data.get("tile_type"),
-                    "energy": site_data.get("energy"),
-                    "occupation": site_data.get("occupation"),
-                    "coordination": site_data.get("coordination"),
-                    "total_events": site_data.get("total_events"),
-                    "total_population": site_data.get("total_population"),
-                }
-
-                # Store time-series data if available
-                if site_data.get("events") is not None:
-                    row["events_series"] = site_data["events"]
-                if site_data.get("population") is not None:
-                    row["population_series"] = site_data["population"]
-
-                rows.append(row)
-
-        df = pd.DataFrame(rows)
-        logger.info(f"Converted site analysis data to DataFrame with {len(df)} rows")
-        return df
-
     def updatePlotWidgets(self):
         self.custom_plot_widget.xAxisListWidget.clear()
         self.custom_plot_widget.yAxisListWidget.clear()
@@ -275,8 +271,14 @@ class PlottingDialog(QDialog):
 
         self.plot_permutations_combobox.addItems(self.permutation_labels)
         self.plot_types_combobox.addItems(self.plot_types)
-        self.variables_combobox.addItems(self.interaction_columns)
 
+        # For site analysis, use site_analysis_columns; otherwise use interaction_columns
+        if self.site_analysis_data is not None:
+            self.variables_combobox.addItems(self.site_analysis_columns)
+        else:
+            self.variables_combobox.addItems(self.interaction_columns)
+
+        # Only populate custom plot widgets if we have DataFrame data
         if self.df is not None:
             self.custom_plot_widget.xAxisListWidget.addItems(self.df.columns)
             self.custom_plot_widget.yAxisListWidget.addItems(self.df.columns)
@@ -392,6 +394,7 @@ class PlottingDialog(QDialog):
         # Connect time-series widget signals
         self.time_series_widget.time_point_changed.connect(self.trigger_plot)
         self.time_series_widget.plotting_mode_changed.connect(self.trigger_plot)
+        self.time_series_widget.file_prefix_changed.connect(self._on_file_prefix_changed)
 
     def create_layout(self):
         main_layout = QVBoxLayout()
@@ -488,7 +491,10 @@ class PlottingDialog(QDialog):
             self.checkbox_zingg.setChecked(False)
             # Show time-series widget for Site Analysis
             self.time_series_widget.show()
-            self._initialize_time_series_widget()
+            # Only initialize if the widget hasn't been set up yet
+            # (check if file_prefixes list is empty)
+            if not self.time_series_widget.file_prefixes:
+                self._initialize_time_series_widget()
         elif mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
@@ -563,6 +569,11 @@ class PlottingDialog(QDialog):
             logger.warning("No site analysis data available for time-series widget")
             return
 
+        # Set the available file prefixes
+        file_prefixes = list(self.site_analysis_data.keys())
+        self.time_series_widget.set_file_prefixes(file_prefixes)
+        logger.debug(f"Set {len(file_prefixes)} file prefixes: {file_prefixes}")
+
         # Get the first dataset to extract time-series parameters
         first_dataset = next(iter(self.site_analysis_data.values()), None)
         if first_dataset is None:
@@ -577,6 +588,89 @@ class PlottingDialog(QDialog):
         # Set the time-series data in the widget
         self.time_series_widget.set_time_data(supersaturation, time, iterations)
         logger.debug("Initialized time-series widget with data")
+
+    def _on_file_prefix_changed(self, selected_prefix):
+        """Handle file prefix selection change."""
+        if self.site_analysis_data is None:
+            return
+
+        logger.info(f"File prefix changed to: {selected_prefix}")
+
+        # If we have signals and this is not "All Data", try to find the corresponding XYZ file
+        if self.signals and selected_prefix != "All Data":
+            # Try to find the index of the XYZ file that matches this prefix
+            xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
+            if xyz_index is not None:
+                logger.debug(
+                    f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}"
+                )
+                self.signals.sim_id.emit(xyz_index)
+
+        # Trigger a replot - data will be extracted from dictionary in _set_data()
+        self.trigger_plot()
+
+    def _find_xyz_index_for_prefix(self, file_prefix):
+        """Try to find the XYZ file index that corresponds to a file prefix.
+
+        This looks for XYZ files whose stem (filename without extension) matches the file prefix.
+
+        Args:
+            file_prefix: The file prefix to search for
+
+        Returns:
+            int or None: The index of the matching XYZ file, or None if not found
+        """
+        # This requires access to the XYZ files list from the parent window
+        # We'll need to pass this information when the plot dialog is created
+        # For now, we'll try to extract it from the file prefix itself
+        # The file prefix typically comes from the XYZ filename
+        # Example: "sim_001" might correspond to the file "sim_001.xyz"
+
+        # Check if we have access to parent's xyz_files
+        if hasattr(self.parent(), "xyz_files"):
+            xyz_files = self.parent().xyz_files
+            for idx, xyz_file in enumerate(xyz_files):
+                # Check if the XYZ file stem matches the prefix
+                if xyz_file.stem == file_prefix or xyz_file.stem.startswith(file_prefix):
+                    return idx
+
+        return None
+
+    def sync_file_prefix_from_xyz_index(self, xyz_index):
+        """Synchronize the file prefix selection based on an XYZ file index.
+
+        This is called when the user selects a different XYZ file in the main window,
+        to update the plot to show the corresponding data.
+
+        Args:
+            xyz_index: The index of the selected XYZ file
+        """
+        if not self.site_analysis_data or self.plot_type != "Site Analysis":
+            return
+
+        # Get the XYZ filename from the parent
+        if hasattr(self.parent(), "xyz_files"):
+            xyz_files = self.parent().xyz_files
+            if 0 <= xyz_index < len(xyz_files):
+                xyz_file = xyz_files[xyz_index]
+                file_prefix = xyz_file.stem
+
+                # Check if this prefix exists in our data
+                if file_prefix in self.site_analysis_data:
+                    # Update the time series widget's selection
+                    # Find the index in the combo box
+                    combo_index = self.time_series_widget.file_prefix_combo.findText(file_prefix)
+                    if combo_index >= 0:
+                        # Block signals to prevent infinite loop
+                        from PySide6.QtCore import QSignalBlocker
+
+                        with QSignalBlocker(self.time_series_widget.file_prefix_combo):
+                            self.time_series_widget.file_prefix_combo.setCurrentIndex(combo_index)
+                            self.time_series_widget.current_file_prefix = file_prefix
+
+                        # Trigger replot - data will be extracted from dictionary in _set_data()
+                        self.trigger_plot()
+                        logger.debug(f"Synced file prefix to: {file_prefix}")
 
     def open_label_customization_dialog(self):
         """Open the label customization dialog."""
@@ -650,6 +744,10 @@ class PlottingDialog(QDialog):
 
     def _apply_data_filters(self):
         """Apply data filters to the dataframe."""
+        # Skip for site analysis - filters are applied in _extract_site_analysis_data()
+        if self.plot_type == "Site Analysis" or self.df_original is None:
+            return
+
         if not self.data_filters:
             self.df = self.df_original.copy()
             return
@@ -756,6 +854,125 @@ class PlottingDialog(QDialog):
         self._set_c_label()
         self.plot()
 
+    def _extract_site_analysis_data(self):
+        """Extract site analysis data directly from dictionary based on current mode and filters.
+
+        Returns:
+            tuple: (x_data_array, y_data_array, site_metadata_list)
+                  where site_metadata_list contains dicts with site info for hover/click handling
+        """
+        # Get the selected file prefix
+        selected_prefix = self.time_series_widget.get_selected_file_prefix()
+
+        # Get current plotting mode and time point
+        plotting_mode = self.time_series_widget.get_plotting_mode()
+        _, _, time_index = self.time_series_widget.get_current_time_point()
+
+        # Determine which prefixes to include
+        if selected_prefix == "All Data":
+            prefixes_to_process = list(self.site_analysis_data.keys())
+        else:
+            prefixes_to_process = (
+                [selected_prefix] if selected_prefix in self.site_analysis_data else []
+            )
+
+        x_values = []
+        y_values = []
+        site_metadata = []
+
+        # Extract data from each file prefix
+        for file_prefix in prefixes_to_process:
+            dataset = self.site_analysis_data[file_prefix]
+            sites_dict = dataset.get("sites", {})
+
+            for site_num, site_data in sites_dict.items():
+                # Apply filters if any
+                if self.data_filters:
+                    # Check if this site passes all filters
+                    passes_filters = True
+                    for filter_config in self.data_filters:
+                        # TODO: Implement filter checking based on site_data properties
+                        pass
+                    if not passes_filters:
+                        continue
+
+                # Skip sites without energy data
+                if site_data.get("energy") is None:
+                    continue
+
+                # Extract x value based on plotting mode
+                x_value = None
+                if plotting_mode == "Total Events":
+                    if site_data.get("total_events") is not None:
+                        # Apply sign based on occupation
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * site_data["total_events"]
+
+                elif plotting_mode == "Total Population":
+                    if site_data.get("total_population") is not None:
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * site_data["total_population"]
+
+                elif plotting_mode == "Events per Step":
+                    events_series = site_data.get("events")
+                    if (
+                        events_series
+                        and isinstance(events_series, list)
+                        and time_index < len(events_series)
+                    ):
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * events_series[time_index]
+                    elif site_data.get("total_events") is not None:
+                        # Fallback to total events
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * site_data["total_events"]
+
+                elif plotting_mode == "Population per Step":
+                    population_series = site_data.get("population")
+                    if (
+                        population_series
+                        and isinstance(population_series, list)
+                        and time_index < len(population_series)
+                    ):
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * population_series[time_index]
+                    elif site_data.get("total_population") is not None:
+                        # Fallback to total population
+                        sign = 1 if site_data.get("occupation") else -1
+                        x_value = sign * site_data["total_population"]
+
+                # Skip if we couldn't get an x value
+                if x_value is None:
+                    continue
+
+                # Y value is always energy
+                y_value = site_data["energy"]
+
+                # Store the data
+                x_values.append(x_value)
+                y_values.append(y_value)
+
+                # Store metadata for this site (for hover/click handling)
+                metadata = {
+                    "file_prefix": file_prefix,
+                    "site_number": int(site_num),
+                    "tile_type": site_data.get("tile_type"),
+                    "energy": site_data.get("energy"),
+                    "occupation": site_data.get("occupation"),
+                    "coordination": site_data.get("coordination"),
+                    "total_events": site_data.get("total_events"),
+                    "total_population": site_data.get("total_population"),
+                }
+                site_metadata.append(metadata)
+
+        # Convert to numpy arrays
+        import numpy as np
+
+        x_array = np.array(x_values)
+        y_array = np.array(y_values)
+
+        return x_array, y_array, site_metadata
+
     def _set_data(self):
         if self.plot_type == "Zingg":
             self.x_data = self.df["S:M"]
@@ -771,103 +988,14 @@ class PlottingDialog(QDialog):
             self.x_data = self.df["Supersaturation"]
             self.y_data = self.df[self.directions]
         if self.plot_type == "Site Analysis":
-            # Get current plotting mode and time point from time-series widget
-            plotting_mode = self.time_series_widget.get_plotting_mode()
-            _, _, time_index = self.time_series_widget.get_current_time_point()
+            # Extract data directly from dictionary
+            x_array, y_array, site_metadata = self._extract_site_analysis_data()
 
-            # Check if we have time-series data
-            has_events_series = "events_series" in self.df.columns
-            has_population_series = "population_series" in self.df.columns
+            self.x_data = x_array
+            self.y_data = y_array
 
-            # Determine which mode we're in
-            if plotting_mode == "Total Events":
-                # Use total_events data
-                df_filtered = self.df[
-                    self.df["total_events"].notna() & self.df["energy"].notna()
-                ].copy()
-
-                df_filtered["signed_total_events"] = df_filtered.apply(
-                    lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
-                    axis=1,
-                )
-                self.x_data = df_filtered["signed_total_events"]
-
-            elif plotting_mode == "Total Population":
-                # Use total_population data
-                df_filtered = self.df[
-                    self.df["total_population"].notna() & self.df["energy"].notna()
-                ].copy()
-
-                df_filtered["signed_total_population"] = df_filtered.apply(
-                    lambda row: row["total_population"] if row["occupation"] else -row["total_population"],
-                    axis=1,
-                )
-                self.x_data = df_filtered["signed_total_population"]
-
-            elif plotting_mode == "Events per Step":
-                # Use events time-series data at selected time point
-                if has_events_series:
-                    df_filtered = self.df[
-                        self.df["events_series"].notna() & self.df["energy"].notna()
-                    ].copy()
-
-                    # Extract value at time_index for each site
-                    df_filtered["current_events"] = df_filtered["events_series"].apply(
-                        lambda x: x[time_index] if isinstance(x, list) and time_index < len(x) else 0
-                    )
-
-                    # Apply sign based on occupation
-                    df_filtered["signed_events"] = df_filtered.apply(
-                        lambda row: row["current_events"] if row["occupation"] else -row["current_events"],
-                        axis=1,
-                    )
-                    self.x_data = df_filtered["signed_events"]
-                else:
-                    # Fallback to total events if no time-series data
-                    df_filtered = self.df[
-                        self.df["total_events"].notna() & self.df["energy"].notna()
-                    ].copy()
-
-                    df_filtered["signed_total_events"] = df_filtered.apply(
-                        lambda row: row["total_events"] if row["occupation"] else -row["total_events"],
-                        axis=1,
-                    )
-                    self.x_data = df_filtered["signed_total_events"]
-
-            elif plotting_mode == "Population per Step":
-                # Use population time-series data at selected time point
-                if has_population_series:
-                    df_filtered = self.df[
-                        self.df["population_series"].notna() & self.df["energy"].notna()
-                    ].copy()
-
-                    # Extract value at time_index for each site
-                    df_filtered["current_population"] = df_filtered["population_series"].apply(
-                        lambda x: x[time_index] if isinstance(x, list) and time_index < len(x) else 0
-                    )
-
-                    # Apply sign based on occupation
-                    df_filtered["signed_population"] = df_filtered.apply(
-                        lambda row: row["current_population"] if row["occupation"] else -row["current_population"],
-                        axis=1,
-                    )
-                    self.x_data = df_filtered["signed_population"]
-                else:
-                    # Fallback to total population if no time-series data
-                    df_filtered = self.df[
-                        self.df["total_population"].notna() & self.df["energy"].notna()
-                    ].copy()
-
-                    df_filtered["signed_total_population"] = df_filtered.apply(
-                        lambda row: row["total_population"] if row["occupation"] else -row["total_population"],
-                        axis=1,
-                    )
-                    self.x_data = df_filtered["signed_total_population"]
-
-            self.y_data = df_filtered["energy"]
-
-            # Store the filtered dataframe for hover info
-            self._site_analysis_df = df_filtered
+            # Store site metadata for hover/click handling
+            self._site_metadata = site_metadata
         if self.plot_type == "Heatmap":
             # For heatmap: X and Y are axes, C (color) is the value to display
             self.x_data = None
@@ -900,6 +1028,9 @@ class PlottingDialog(QDialog):
             self.y_data = self._ensure_pd_series(self.y_data)
 
     def _mask_with_permutation(self):
+        # Skip permutation masking if we don't have a DataFrame (e.g., site analysis mode)
+        if self.df is None:
+            return
         if self.permutation == 0:
             self._set_data()
             return
@@ -910,23 +1041,6 @@ class PlottingDialog(QDialog):
             self.c_data = self.c_data[mask]
 
     def _set_labels(self):
-        if self.plot_type == "Zingg":
-            self.x_label = "S:M"
-            self.y_label = "M:L"
-            self.title = "Zingg Diagram"
-        if self.plot_type == "CDA":
-            ratio_columns = [col for col in self.df.columns if col.startswith("Ratio_")]
-            self.x_label = ratio_columns[0].replace("Ratio_", "")
-            self.y_label = ratio_columns[1].replace("Ratio_", "")
-            self.title = "Crystallographic Face-to-Face Distance Ratios"
-        if self.plot_type == "SA:Vol Ratio":
-            self.x_label = "Surface Area"
-            self.y_label = "Volume"
-            self.title = "Surface Area to Volume Ratio"
-        if self.plot_type == "Growth Rates":
-            self.x_label = "Supersaturation (kcal/mol)"
-            self.y_label = "Relative Growth Rate"
-            self.title = "Growth Rates vs supersaturation"
         if self.plot_type == "Site Analysis":
             # Get current plotting mode
             plotting_mode = self.time_series_widget.get_plotting_mode()
@@ -962,6 +1076,27 @@ class PlottingDialog(QDialog):
                     self.title = f"Site Analysis: {data_type} vs Energy"
 
             self.y_label = "Energy"
+
+        if self.df is not None:
+            return
+
+        if self.plot_type == "Zingg":
+            self.x_label = "S:M"
+            self.y_label = "M:L"
+            self.title = "Zingg Diagram"
+        if self.plot_type == "CDA":
+            ratio_columns = [col for col in self.df.columns if col.startswith("Ratio_")]
+            self.x_label = ratio_columns[0].replace("Ratio_", "")
+            self.y_label = ratio_columns[1].replace("Ratio_", "")
+            self.title = "Crystallographic Face-to-Face Distance Ratios"
+        if self.plot_type == "SA:Vol Ratio":
+            self.x_label = "Surface Area"
+            self.y_label = "Volume"
+            self.title = "Surface Area to Volume Ratio"
+        if self.plot_type == "Growth Rates":
+            self.x_label = "Supersaturation (kcal/mol)"
+            self.y_label = "Relative Growth Rate"
+            self.title = "Growth Rates vs supersaturation"
         if self.plot_type == "Heatmap":
             self.title = "Heatmap"
             self.x_label = format_label(self.custom_x) if self.custom_x else ""
@@ -983,20 +1118,63 @@ class PlottingDialog(QDialog):
     def _set_c(self):
         self.c_data = None
         self.c_name = None
+        self.c_mapped_name = None  # Track the actual variable name when mapping file_prefix
         if self.plot_type == "Site Analysis":
             # Use variable dropdown to control color for Site Analysis
-            if self.variable != "None" and self.variable and hasattr(self, "_site_analysis_df"):
-                # Map the variable to the correct column in the filtered dataframe
-                if self.variable in self._site_analysis_df.columns:
-                    self.c_data = self._site_analysis_df[self.variable]
+            if self.variable != "None" and self.variable and hasattr(self, "_site_metadata"):
+                import numpy as np
+
+                # Extract coloring data from site metadata
+                c_values = []
+                for site_meta in self._site_metadata:
+                    if self.variable in site_meta:
+                        c_values.append(site_meta[self.variable])
+                    else:
+                        c_values.append(None)
+
+                # Special handling for file_prefix when we have a summary file
+                if self.variable == "file_prefix" and self.summary_df is not None:
+                    # Map file prefixes to summary file values
+                    mapped_values = []
+                    if hasattr(self.parent(), "xyz_files"):
+                        xyz_files = self.parent().xyz_files
+                        # Create mapping from file_prefix to index
+                        prefix_to_index = {
+                            xyz_file.stem: idx for idx, xyz_file in enumerate(xyz_files)
+                        }
+
+                        # Find first varying column in summary
+                        varying_cols = []
+                        for col in self.summary_df.columns:
+                            if self.summary_df[col].nunique() > 1 and pd.api.types.is_numeric_dtype(
+                                self.summary_df[col]
+                            ):
+                                varying_cols.append(col)
+
+                        if varying_cols:
+                            varying_col = varying_cols[0]
+                            self.c_mapped_name = varying_col
+
+                            for site_meta in self._site_metadata:
+                                file_prefix = site_meta.get("file_prefix")
+                                if file_prefix in prefix_to_index:
+                                    idx = prefix_to_index[file_prefix]
+                                    if idx < len(self.summary_df):
+                                        mapped_values.append(self.summary_df.iloc[idx][varying_col])
+                                    else:
+                                        mapped_values.append(0)
+                                else:
+                                    mapped_values.append(0)
+
+                    if mapped_values:
+                        self.c_data = np.array(mapped_values)
+                    else:
+                        # Fallback to factorized file_prefix
+                        self.c_data = pd.factorize(c_values)[0]
                     self.c_name = self.variable
-                elif self.variable in self.df.columns:
-                    # Handle case where variable is in original df but not in filtered df
-                    # Need to filter it the same way as _site_analysis_df
-                    df_filtered = self.df[
-                        self.df["total_events"].notna() & self.df["energy"].notna()
-                    ].copy()
-                    self.c_data = df_filtered[self.variable]
+                else:
+                    # Regular variable
+                    self.c_data = np.array(c_values)
                     self.c_name = self.variable
         elif self.plot_type == "Heatmap":
             # For heatmap, use custom_c as the value, default to Frame Index
@@ -1041,13 +1219,19 @@ class PlottingDialog(QDialog):
         ):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
         elif variable and variable.startswith("starting_delmu"):
-            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+            self.c_label = "Supersaturation (kcal/mol)"
         elif variable and "energy" in variable.lower():
             self.c_label = r"$\Delta G$ (kcal/mol)"
         elif variable and variable.startswith("temperature_celcius"):
             self.c_label = "Temperature (℃)"
         elif variable and variable.startswith("excess"):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
+        elif variable and variable == "file_prefix":
+            # If we mapped file_prefix to a summary variable, use that variable's name
+            if hasattr(self, "c_mapped_name") and self.c_mapped_name:
+                self.c_label = format_label(self.c_mapped_name)
+            else:
+                self.c_label = "File / Dataset"
         elif variable and variable != "None":
             # For other variables, use the variable name as the label with formatting
             self.c_label = format_label(variable)
@@ -1123,22 +1307,28 @@ class PlottingDialog(QDialog):
             ]
 
             # Plot the data
-            if self.y_data.ndim == 1:
-                # 1D y_data
+            # Check if y_data has ndim attribute (numpy array or pandas Series/DataFrame)
+            if hasattr(self.y_data, "ndim"):
+                if self.y_data.ndim == 1:
+                    # 1D y_data
+                    self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
+                elif self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
+                    # y_data with multiple columns - only for DataFrame-based plots
+                    if self.df is not None:
+                        line = True if self.plot_type == "Growth Rates" else False
+                        for i, y in enumerate(self.y_data):
+                            self._plot(
+                                x=self.x_data,
+                                y=self._ensure_pd_series(self.df[y]),
+                                c=self.c_data,
+                                add_line=line,
+                                label=y,
+                                marker=markers[i % len(markers)],
+                            )
+                        self._set_legend() if self.show_legend else None
+            else:
+                # Fallback for data without ndim (shouldn't happen, but handle gracefully)
                 self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
-            if self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
-                # y_data with multiple columns
-                line = True if self.plot_type == "Growth Rates" else False
-                for i, y in enumerate(self.y_data):
-                    self._plot(
-                        x=self.x_data,
-                        y=self._ensure_pd_series(self.df[y]),
-                        c=self.c_data,
-                        add_line=line,
-                        label=y,
-                        marker=markers[i % len(markers)],
-                    )
-                self._set_legend() if self.show_legend else None
 
         if self.plot_type == "Zingg":
             self.ax.axhline(y=0.66, color="black", linestyle="--")
@@ -1181,7 +1371,12 @@ class PlottingDialog(QDialog):
     #     self.plot_objects[label] = plot_object
 
     def _plot(self, x, y, c=None, cmap="plasma", add_line=False, label=None, marker="o"):
-        label = y.name if label is None else label
+        # Handle label: use y.name for pandas Series, or plot_type for numpy arrays
+        if label is None:
+            if hasattr(y, "name"):
+                label = y.name
+            else:
+                label = self.plot_type if self.plot_type else "data"
 
         if self.covmat:
             self._plot_covmat()
@@ -1225,6 +1420,11 @@ class PlottingDialog(QDialog):
         self.plot_objects[label] = plot_object
 
     def _plot_covmat(self):
+        # Correlation matrix only works with DataFrame-based data
+        if self.df is None:
+            logger.warning("Cannot plot correlation matrix without DataFrame data")
+            return
+
         # Calculate correlation matrix for the interactions
         vals = self.df[self.custom_y]
         try:
@@ -1365,24 +1565,28 @@ class PlottingDialog(QDialog):
         _sim_id = "N/A"
 
         # Handle Site Analysis plots differently
-        if self.plot_type == "Site Analysis" and hasattr(self, "_site_analysis_df"):
-            if ind["ind"][0] < len(self._site_analysis_df):
-                row_data = self._site_analysis_df.iloc[ind["ind"][0]]
-                site_num = row_data["site_number"]
-                coordination = row_data["coordination"]
-                energy = row_data["energy"]
-                occupation_status = "Grown" if row_data["occupation"] else "Ungrown"
+        if self.plot_type == "Site Analysis" and hasattr(self, "_site_metadata"):
+            if ind["ind"][0] < len(self._site_metadata):
+                site_meta = self._site_metadata[ind["ind"][0]]
+                site_num = site_meta["site_number"]
+                coordination = site_meta["coordination"]
+                energy = site_meta["energy"]
+                occupation_status = "Grown" if site_meta["occupation"] else "Ungrown"
+                file_prefix = site_meta.get("file_prefix", "N/A")
 
                 # Get current plotting mode and time point info
                 plotting_mode = self.time_series_widget.get_plotting_mode()
-                param_name, param_value, time_index = self.time_series_widget.get_current_time_point()
+                param_name, param_value, time_index = (
+                    self.time_series_widget.get_current_time_point()
+                )
 
                 # Determine which data to show based on mode
                 if plotting_mode == "Total Events":
-                    current_value = row_data.get("total_events", 0)
+                    current_value = site_meta.get("total_events", 0)
                     total_value = current_value
                     data_label = "Total Events"
                     text = (
+                        f"File: {file_prefix}\n"
                         f"Site Number: {site_num}\n"
                         f"{data_label}: {current_value}\n"
                         f"Energy: {energy:.2f}\n"
@@ -1390,10 +1594,11 @@ class PlottingDialog(QDialog):
                         f"Status: {occupation_status}"
                     )
                 elif plotting_mode == "Total Population":
-                    current_value = row_data.get("total_population", 0)
+                    current_value = site_meta.get("total_population", 0)
                     total_value = current_value
                     data_label = "Total Population"
                     text = (
+                        f"File: {file_prefix}\n"
                         f"Site Number: {site_num}\n"
                         f"{data_label}: {current_value}\n"
                         f"Energy: {energy:.2f}\n"
@@ -1401,53 +1606,33 @@ class PlottingDialog(QDialog):
                         f"Status: {occupation_status}"
                     )
                 elif plotting_mode == "Events per Step":
-                    if "current_events" in row_data:
-                        current_value = row_data["current_events"]
-                        total_value = row_data.get("total_events", "N/A")
-                        data_label = "Events"
-                        text = (
-                            f"Site Number: {site_num}\n"
-                            f"{data_label} (t={time_index}): {current_value}\n"
-                            f"Total {data_label}: {total_value}\n"
-                            f"Energy: {energy:.2f}\n"
-                            f"Coordination: {coordination}\n"
-                            f"Status: {occupation_status}"
-                        )
-                    else:
-                        current_value = row_data.get("total_events", 0)
-                        total_value = current_value
-                        data_label = "Events"
-                        text = (
-                            f"Site Number: {site_num}\n"
-                            f"Total {data_label}: {current_value}\n"
-                            f"Energy: {energy:.2f}\n"
-                            f"Coordination: {coordination}\n"
-                            f"Status: {occupation_status}"
-                        )
+                    total_value = site_meta.get("total_events", "N/A")
+                    data_label = "Events"
+                    # The current value at this time point is what we plotted (x value)
+                    current_value = abs(x)  # Remove sign to get actual value
+                    text = (
+                        f"File: {file_prefix}\n"
+                        f"Site Number: {site_num}\n"
+                        f"{data_label} (t={time_index}): {current_value:.1f}\n"
+                        f"Total {data_label}: {total_value}\n"
+                        f"Energy: {energy:.2f}\n"
+                        f"Coordination: {coordination}\n"
+                        f"Status: {occupation_status}"
+                    )
                 elif plotting_mode == "Population per Step":
-                    if "current_population" in row_data:
-                        current_value = row_data["current_population"]
-                        total_value = row_data.get("total_population", "N/A")
-                        data_label = "Population"
-                        text = (
-                            f"Site Number: {site_num}\n"
-                            f"{data_label} (t={time_index}): {current_value}\n"
-                            f"Total {data_label}: {total_value}\n"
-                            f"Energy: {energy:.2f}\n"
-                            f"Coordination: {coordination}\n"
-                            f"Status: {occupation_status}"
-                        )
-                    else:
-                        current_value = row_data.get("total_population", 0)
-                        total_value = current_value
-                        data_label = "Population"
-                        text = (
-                            f"Site Number: {site_num}\n"
-                            f"Total {data_label}: {current_value}\n"
-                            f"Energy: {energy:.2f}\n"
-                            f"Coordination: {coordination}\n"
-                            f"Status: {occupation_status}"
-                        )
+                    total_value = site_meta.get("total_population", "N/A")
+                    data_label = "Population"
+                    # The current value at this time point is what we plotted (x value)
+                    current_value = abs(x)  # Remove sign to get actual value
+                    text = (
+                        f"File: {file_prefix}\n"
+                        f"Site Number: {site_num}\n"
+                        f"{data_label} (t={time_index}): {current_value:.1f}\n"
+                        f"Total {data_label}: {total_value}\n"
+                        f"Energy: {energy:.2f}\n"
+                        f"Coordination: {coordination}\n"
+                        f"Status: {occupation_status}"
+                    )
 
                 self.annot.set_text(text)
                 self.annot.get_bbox_patch().set_alpha(0.4)
@@ -1553,21 +1738,22 @@ class PlottingDialog(QDialog):
         # Extracting the x and y data of the clicked point
         x, y = scatter.get_offsets()[point_index]
 
-        # Access the row in the self.df
+        # Handle Site Analysis plot clicks
+        if self.plot_type == "Site Analysis" and hasattr(self, "_site_metadata"):
+            if point_index < len(self._site_metadata):
+                site_meta = self._site_metadata[point_index]
+                site_num = site_meta["site_number"]
+                file_prefix = site_meta.get("file_prefix", "N/A")
+                logger.info(f"Clicked on Site Analysis point: file={file_prefix}, site={site_num}")
+
+                # Emit signal to highlight this site in the visualization
+                if self.signals and hasattr(self.signals, "highlight_site"):
+                    self.signals.highlight_site.emit(int(site_num))
+                return
+
+        # Access the row in the self.df for non-site-analysis plots
         if self.df is not None and point_index < len(self.df):
             row_data = self.df.iloc[point_index]
-
-            # Handle Site Analysis plot clicks
-            if self.plot_type == "Site Analysis" and hasattr(self, "_site_analysis_df"):
-                if point_index < len(self._site_analysis_df):
-                    site_row = self._site_analysis_df.iloc[point_index]
-                    site_num = site_row["site_number"]
-                    logger.info(f"Clicked on Site Analysis point: site {site_num}")
-
-                    # Emit signal to highlight this site in the visualization
-                    if self.signals and hasattr(self.signals, "highlight_site"):
-                        self.signals.highlight_site.emit(int(site_num))
-                    return
 
             try:
                 _sim_id = int(row_data["Simulation Number"] - 1)

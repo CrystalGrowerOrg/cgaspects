@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QSlider,
     QSpacerItem,
     QSizePolicy,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -33,6 +34,8 @@ class TimeSeriesWidget(QWidget):
     time_point_changed = Signal(int)
     # Signal emitted when the plotting mode changes
     plotting_mode_changed = Signal(str)
+    # Signal emitted when the file prefix selection changes
+    file_prefix_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -42,6 +45,8 @@ class TimeSeriesWidget(QWidget):
         self.is_playing = False
         self.timer = QTimer()
         self.timer.timeout.connect(self._advance_time)
+        self.file_prefixes = []  # List of available file prefixes
+        self.current_file_prefix = None
 
         self._create_widgets()
         self._create_layout()
@@ -59,6 +64,12 @@ class TimeSeriesWidget(QWidget):
             "Population per Step"
         ])
         self.mode_combo.setToolTip("Select what data to plot")
+
+        # File prefix label and dropdown
+        self.file_prefix_label = QLabel("Data Source:")
+        self.file_prefix_combo = QComboBox()
+        self.file_prefix_combo.addItems(["All Data"])
+        self.file_prefix_combo.setToolTip("Select which file/dataset to display")
 
         # Label
         self.label = QLabel("Time Parameter:")
@@ -90,22 +101,36 @@ class TimeSeriesWidget(QWidget):
 
     def _create_layout(self):
         """Create the layout for the widget."""
-        layout = QHBoxLayout()
-        layout.addWidget(self.mode_label)
-        layout.addWidget(self.mode_combo)
-        layout.addWidget(self.label)
-        layout.addWidget(self.parameter_combo)
-        layout.addWidget(self.time_slider)
-        layout.addWidget(self.value_label)
-        layout.addWidget(self.play_button)
-        # Add horizontal spacer on the right to prevent jumping when widgets are hidden
-        layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
+        # Main vertical layout with two rows
+        main_layout = QVBoxLayout()
+
+        # First row: Plot Mode and Data Source
+        row1 = QHBoxLayout()
+        row1.addWidget(self.mode_label)
+        row1.addWidget(self.mode_combo)
+        row1.addWidget(self.file_prefix_label)
+        row1.addWidget(self.file_prefix_combo)
+        row1.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        # Second row: Time controls
+        row2 = QHBoxLayout()
+        row2.addWidget(self.label)
+        row2.addWidget(self.parameter_combo)
+        row2.addWidget(self.time_slider)
+        row2.addWidget(self.value_label)
+        row2.addWidget(self.play_button)
+        row2.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        main_layout.addLayout(row1)
+        main_layout.addLayout(row2)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(5)
+        self.setLayout(main_layout)
 
     def _connect_signals(self):
         """Connect widget signals to slots."""
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        self.file_prefix_combo.currentIndexChanged.connect(self._on_file_prefix_changed)
         self.parameter_combo.currentIndexChanged.connect(self._on_parameter_changed)
         self.time_slider.valueChanged.connect(self._on_slider_changed)
         self.play_button.clicked.connect(self._on_play_clicked)
@@ -256,6 +281,49 @@ class TimeSeriesWidget(QWidget):
             str: One of "Total Events", "Total Population", "Events per Step", "Population per Step"
         """
         return self.mode_combo.currentText()
+
+    def set_file_prefixes(self, file_prefixes: list):
+        """
+        Set the available file prefixes.
+
+        Args:
+            file_prefixes: List of file prefix strings
+        """
+        from PySide6.QtCore import QSignalBlocker
+
+        # Block signals to prevent triggering updates while we rebuild the combo box
+        with QSignalBlocker(self.file_prefix_combo):
+            self.file_prefixes = file_prefixes
+            self.file_prefix_combo.clear()
+            self.file_prefix_combo.addItem("All Data")
+            self.file_prefix_combo.addItems(file_prefixes)
+
+            # Select the first individual prefix by default if available
+            if len(file_prefixes) > 0:
+                self.file_prefix_combo.setCurrentIndex(1)  # Select first prefix, not "All Data"
+                self.current_file_prefix = file_prefixes[0]
+            else:
+                self.current_file_prefix = "All Data"
+
+        # DON'T emit signal here - let the plot dialog handle initial setup
+        # The signal will be emitted when the user actually changes the selection
+
+    def get_selected_file_prefix(self):
+        """
+        Get the currently selected file prefix.
+
+        Returns:
+            str: The selected file prefix, or "All Data" if showing all data
+        """
+        return self.file_prefix_combo.currentText()
+
+    def _on_file_prefix_changed(self, _index):
+        """Handle file prefix selection change."""
+        selected = self.file_prefix_combo.currentText()
+        self.current_file_prefix = selected
+        logger.debug(f"File prefix changed to: {selected}")
+        # Emit signal
+        self.file_prefix_changed.emit(selected)
 
     def reset(self):
         """Reset the widget to initial state."""
