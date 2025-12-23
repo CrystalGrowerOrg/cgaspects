@@ -350,6 +350,9 @@ class PlottingDialog(QDialog):
         self.checkbox_legend = QCheckBox("Show Legend")
         self.checkbox_zingg = QCheckBox("Zingg")
         self.checkbox_corr_mat = QCheckBox("Correlation Matix")
+        self.checkbox_hide_bulk = QCheckBox("Hide Bulk Site")
+        self.checkbox_hide_bulk.setChecked(True)  # Checked by default
+        self.checkbox_hide_bulk.setToolTip("Hide the site with the highest population (bulk site)")
 
         # Colour scheme controls (universal across all modes)
         self.cmap_label = QLabel("Colour Scheme:")
@@ -386,6 +389,7 @@ class PlottingDialog(QDialog):
         self.checkbox_corr_mat.stateChanged.connect(
             lambda: self._handle_plot_checkboxes(self.checkbox_corr_mat)
         )
+        self.checkbox_hide_bulk.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
@@ -448,6 +452,7 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.button_customize_labels, 1, 1)
         grid1.addWidget(self.cmap_label, 1, 2)
         grid1.addWidget(self.cmap_combobox, 1, 3)
+        grid1.addWidget(self.checkbox_hide_bulk, 1, 4)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
 
@@ -501,12 +506,16 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            # Disable filter data button in Site Analysis mode since data filtering doesn't work
+            self.button_filter_data.setEnabled(False)
             # Show time-series widget for Site Analysis
             self.time_series_widget.show()
             # Only initialize if the widget hasn't been set up yet
             # (check if file_prefixes list is empty)
             if not self.time_series_widget.file_prefixes:
                 self._initialize_time_series_widget()
+            # Update hide bulk checkbox visibility based on plotting mode
+            self._update_hide_bulk_visibility()
         elif mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
@@ -521,6 +530,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            # Enable filter data button in Heatmap mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in Heatmap mode
+            self.checkbox_hide_bulk.hide()
 
             # Show single selection Y-axis widget, hide checkable one
             self.custom_plot_widget.yAxisListWidget.hide()
@@ -545,6 +558,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.show()
             self.checkbox_zingg.setEnabled(True)
             self.checkbox_zingg.show()
+            # Enable filter data button in Custom mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in Custom mode
+            self.checkbox_hide_bulk.hide()
 
             # Show checkable Y-axis widget, hide single selection one
             self.custom_plot_widget.yAxisListWidget.show()
@@ -567,6 +584,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_corr_mat.hide()
             self.checkbox_zingg.hide()
+            # Enable filter data button in default mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in default mode
+            self.checkbox_hide_bulk.hide()
 
             # Ensure checkable widget is shown when hiding custom widget
             self.custom_plot_widget.yAxisListWidget.show()
@@ -574,6 +595,21 @@ class PlottingDialog(QDialog):
 
             # Hide time-series widget
             self.time_series_widget.hide()
+
+    def _update_hide_bulk_visibility(self):
+        """Update the visibility of the Hide Bulk Site checkbox based on plotting mode."""
+        if self.plot_type != "Site Analysis":
+            self.checkbox_hide_bulk.hide()
+            return
+
+        # Get current plotting mode
+        plotting_mode = self.time_series_widget.get_plotting_mode()
+
+        # Show checkbox only for population-based plotting modes
+        if plotting_mode in ["Total Population", "Population per Step"]:
+            self.checkbox_hide_bulk.show()
+        else:
+            self.checkbox_hide_bulk.hide()
 
     def _initialize_time_series_widget(self):
         """Initialize the time-series widget with site analysis data."""
@@ -863,6 +899,8 @@ class PlottingDialog(QDialog):
         self.cmap = self.cmap_combobox.currentText()
 
         self.change_mode(mode=self.plot_type)
+        # Update hide bulk checkbox visibility (needed when plotting mode changes within Site Analysis)
+        self._update_hide_bulk_visibility()
         self._set_data()
         self._set_c()
         self._mask_with_permutation()
@@ -920,8 +958,9 @@ class PlottingDialog(QDialog):
                 x_value = None
                 if plotting_mode == "Total Events":
                     if site_data.get("total_events") is not None:
-                        # Apply sign based on occupation
-                        sign = 1 if site_data.get("occupation") else -1
+                        # For events-based plotting: flip the sign
+                        # Ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                        sign = -1 if site_data.get("occupation") else 1
                         x_value = sign * site_data["total_events"]
 
                 elif plotting_mode == "Total Population":
@@ -936,11 +975,13 @@ class PlottingDialog(QDialog):
                         and isinstance(events_series, list)
                         and time_index < len(events_series)
                     ):
-                        sign = 1 if site_data.get("occupation") else -1
+                        # For events-based plotting: flip the sign
+                        # Ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                        sign = -1 if site_data.get("occupation") else 1
                         x_value = sign * events_series[time_index]
                     elif site_data.get("total_events") is not None:
                         # Fallback to total events
-                        sign = 1 if site_data.get("occupation") else -1
+                        sign = -1 if site_data.get("occupation") else 1
                         x_value = sign * site_data["total_events"]
 
                 elif plotting_mode == "Population per Step":
@@ -981,6 +1022,19 @@ class PlottingDialog(QDialog):
                 }
                 site_metadata.append(metadata)
 
+        # Filter out bulk site if checkbox is checked and we're in population mode
+        if self.checkbox_hide_bulk.isChecked() and plotting_mode in ["Total Population", "Population per Step"]:
+            if x_values:
+                # Find the index of the site with the highest absolute population value
+                import numpy as np
+                abs_x_values = [abs(x) for x in x_values]
+                max_idx = np.argmax(abs_x_values)
+
+                # Remove the bulk site from all lists
+                x_values.pop(max_idx)
+                y_values.pop(max_idx)
+                site_metadata.pop(max_idx)
+
         # Convert to numpy arrays
         import numpy as np
 
@@ -1016,29 +1070,31 @@ class PlottingDialog(QDialog):
             # For heatmap: X and Y are axes, C (color) is the value to display
             self.x_data = None
             self.y_data = None
-            try:
-                # Set defaults: S:M for X, Supersaturation for Y if available, Frame Index for value
-                if self.custom_x:
-                    self.x_data = self.df[self.custom_x]
-                elif "S:M" in self.df.columns:
-                    self.x_data = self.df["S:M"]
-                    self.custom_x = "S:M"
+            if self.df is not None:
+                try:
+                    # Set defaults: S:M for X, Supersaturation for Y if available, Frame Index for value
+                    if self.custom_x:
+                        self.x_data = self.df[self.custom_x]
+                    elif "S:M" in self.df.columns:
+                        self.x_data = self.df["S:M"]
+                        self.custom_x = "S:M"
 
-                if self.custom_y and len(self.custom_y) > 0:
-                    self.y_data = self.df[self.custom_y[0]]
-                elif "Supersaturation" in self.df.columns:
-                    self.y_data = self.df["Supersaturation"]
-                    self.custom_y = ["Supersaturation"]
-            except KeyError as exc:
-                logger.warning("X or Y data not been set, invalid axis title!\n%s", exc)
+                    if self.custom_y and len(self.custom_y) > 0:
+                        self.y_data = self.df[self.custom_y[0]]
+                    elif "Supersaturation" in self.df.columns:
+                        self.y_data = self.df["Supersaturation"]
+                        self.custom_y = ["Supersaturation"]
+                except KeyError as exc:
+                    logger.warning("X or Y data not been set, invalid axis title!\n%s", exc)
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
-            try:
-                self.x_data = self.df[self.custom_x]
-                self.y_data = self.df[self.custom_y]
-            except KeyError as exc:
-                logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
+            if self.df is not None:
+                try:
+                    self.x_data = self.df[self.custom_x]
+                    self.y_data = self.df[self.custom_y]
+                except KeyError as exc:
+                    logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
 
         if self.plot_type != "Heatmap":
             self.y_data = self._ensure_pd_series(self.y_data)
@@ -1065,7 +1121,8 @@ class PlottingDialog(QDialog):
             # Determine labels based on mode
             if plotting_mode == "Total Events":
                 data_type = "Events"
-                self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
+                # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                self.x_label = f"Total {data_type} (Growth (+), Dissolution (-))"
                 self.title = f"Site Analysis: Total {data_type} vs Energy"
 
             elif plotting_mode == "Total Population":
@@ -1075,11 +1132,12 @@ class PlottingDialog(QDialog):
 
             elif plotting_mode == "Events per Step":
                 data_type = "Events"
+                # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
                 if param_value is not None:
-                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
                     self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
                 else:
-                    self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
+                    self.x_label = f"{data_type} per Step (Growth (+), Dissolution (-))"
                     self.title = f"Site Analysis: {data_type} vs Energy"
 
             elif plotting_mode == "Population per Step":
