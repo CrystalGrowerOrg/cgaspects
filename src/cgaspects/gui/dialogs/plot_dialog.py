@@ -131,6 +131,7 @@ class PlottingDialog(QDialog):
 
         # Data filtering
         self.data_filters = []  # List of filter configurations
+        self.interaction_filters = {}  # Dictionary of interaction filter configurations
 
     def setCSV(self, csv):
         # Check if we're reloading the same CSV file
@@ -166,6 +167,7 @@ class PlottingDialog(QDialog):
                     "total_events",
                     "total_population",
                     "file_prefix",
+                    "interactions",
                 ]
                 # Only clear time series widget file prefixes if the CSV file actually changed
                 # This preserves the user's data source selection when replotting
@@ -506,8 +508,8 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
-            # Disable filter data button in Site Analysis mode since data filtering doesn't work
-            self.button_filter_data.setEnabled(False)
+            # Enable filter data button in Site Analysis mode (now supports filtering)
+            self.button_filter_data.setEnabled(True)
             # Show time-series widget for Site Analysis
             self.time_series_widget.show()
             # Only initialize if the widget hasn't been set up yet
@@ -762,28 +764,47 @@ class PlottingDialog(QDialog):
         # Use the original unfiltered dataframe for the filter dialog
         original_df = self._get_original_df()
 
-        dialog = DataFilterDialog(original_df, current_filters=self.data_filters, parent=self)
+        # Pass site_analysis_data if in site analysis mode
+        site_analysis_data = self.site_analysis_data if self.plot_type == "Site Analysis" else None
+
+        dialog = DataFilterDialog(
+            df=original_df,
+            current_filters=self.data_filters,
+            parent=self,
+            site_analysis_data=site_analysis_data,
+            current_interaction_filters=self.interaction_filters,
+        )
 
         # Connect Apply button signal to update filters without closing dialog
         dialog.filters_applied.connect(self._update_filters_and_replot)
 
         if dialog.exec() == QDialog.Accepted:
             # Update filters when OK is clicked
-            filters = dialog.get_filters()
-            self._update_filters_and_replot(filters)
+            data_filters = dialog.get_filters()
+            interaction_filters = dialog.get_interaction_filters()
+            self._update_filters_and_replot(data_filters, interaction_filters)
 
-    def _update_filters_and_replot(self, filters):
-        """Update data filters and trigger replot.
+    def _update_filters_and_replot(self, data_filters, interaction_filters=None):
+        """Update data and interaction filters and trigger replot.
 
         Args:
-            filters: List of filter dictionaries
+            data_filters: List of data filter dictionaries
+            interaction_filters: Dictionary of interaction filters (optional)
         """
-        self.data_filters = filters
+        self.data_filters = data_filters
+        if interaction_filters is not None:
+            self.interaction_filters = interaction_filters
+
         logger.info("Data filters updated: %s", self.data_filters)
+        logger.info("Interaction filters updated: %s", self.interaction_filters)
 
         # Update button text to indicate active filters
-        if self.data_filters:
-            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        total_filters = len(self.data_filters)
+        if self.interaction_filters:
+            total_filters += len(self.interaction_filters)
+
+        if total_filters > 0:
+            self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
             self.button_filter_data.setText("Filter Data...")
 
@@ -793,6 +814,65 @@ class PlottingDialog(QDialog):
     def _get_original_df(self):
         """Get the original unfiltered dataframe."""
         return self.df_original if hasattr(self, "df_original") else self.df
+
+    def _check_site_data_filter(self, site_data: dict, filter_config: dict) -> bool:
+        """Check if a site passes a data filter.
+
+        Args:
+            site_data: Dictionary containing site data
+            filter_config: Filter configuration dict with 'column', 'operator', 'value'
+
+        Returns:
+            True if the site passes the filter, False otherwise
+        """
+        column = filter_config["column"]
+        operator = filter_config["operator"]
+        value_str = filter_config["value"]
+
+        # Get the site's value for this column
+        if column not in site_data:
+            return False
+
+        site_value = site_data[column]
+
+        # Handle None values - exclude sites with None unless using != operator
+        if site_value is None:
+            if operator == "!=":
+                return True  # None != any value is True
+            else:
+                return False  # None fails all other comparisons
+
+        try:
+            # Try to convert to numeric if both are numeric
+            if isinstance(site_value, (int, float)):
+                value = float(value_str)
+            else:
+                value = value_str
+
+            # Apply the filter based on operator
+            if operator == "==":
+                return site_value == value
+            elif operator == "!=":
+                return site_value != value
+            elif operator == ">":
+                return site_value > value
+            elif operator == ">=":
+                return site_value >= value
+            elif operator == "<":
+                return site_value < value
+            elif operator == "<=":
+                return site_value <= value
+            elif operator == "contains":
+                return str(value).lower() in str(site_value).lower()
+            elif operator == "not contains":
+                return str(value).lower() not in str(site_value).lower()
+            else:
+                logger.warning(f"Unknown operator: {operator}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Error applying filter {filter_config} to site data: {e}")
+            return False  # Changed from True to False - if filter fails, exclude the site
 
     def _apply_data_filters(self):
         """Apply data filters to the dataframe."""
@@ -861,16 +941,22 @@ class PlottingDialog(QDialog):
         custom_ylabel = self.custom_ylabel
         custom_cbar_label = self.custom_cbar_label
         data_filters = self.data_filters  # Store filters before resetting
+        interaction_filters = self.interaction_filters  # Store interaction filters before resetting
 
         self.setPlotDefaults()
 
         # Apply data filters
         self.data_filters = data_filters
+        self.interaction_filters = interaction_filters
         self._apply_data_filters()
 
         # Update filter button text
-        if self.data_filters:
-            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        total_filters = len(self.data_filters)
+        if self.interaction_filters:
+            total_filters += len(self.interaction_filters)
+
+        if total_filters > 0:
+            self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
             self.button_filter_data.setText("Filter Data...")
 
@@ -908,6 +994,43 @@ class PlottingDialog(QDialog):
         self._set_c_label()
         self.plot()
 
+    def _check_interaction_filter(self, site_interactions: dict, interaction_filters: dict) -> bool:
+        """Check if a site passes the interaction filter.
+
+        Args:
+            site_interactions: Dictionary mapping interaction_id to frequency for this site
+            interaction_filters: Dictionary mapping interaction_id to set of selected frequencies
+
+        Returns:
+            True if the site passes the filter (should be shown), False otherwise
+        """
+        if not interaction_filters:
+            # No filters active, show all sites
+            return True
+
+        # Convert site_interactions keys to integers for comparison
+        site_interactions_int = {int(k): int(v) for k, v in site_interactions.items()}
+
+        # Site must match ALL selected interaction filters (AND logic)
+        for interaction_id, selected_freqs in interaction_filters.items():
+            # Check if site has this interaction
+            if interaction_id not in site_interactions_int:
+                # Site doesn't have this interaction at all
+                return False
+
+            site_freq = site_interactions_int[interaction_id]
+
+            # Check if the site's frequency matches any of the selected frequencies
+            if "Any" in selected_freqs:
+                # "Any" is selected, so any frequency for this interaction is acceptable
+                continue
+            elif site_freq not in selected_freqs:
+                # Site's frequency doesn't match any selected frequency
+                return False
+
+        # Site passed all filters
+        return True
+
     def _extract_site_analysis_data(self):
         """Extract site analysis data directly from dictionary based on current mode and filters.
 
@@ -921,6 +1044,9 @@ class PlottingDialog(QDialog):
         # Get current plotting mode and time point
         plotting_mode = self.time_series_widget.get_plotting_mode()
         _, _, time_index = self.time_series_widget.get_current_time_point()
+
+        # Get interaction filters if active
+        interaction_filters = self.interaction_filters
 
         # Determine which prefixes to include
         if selected_prefix == "All Data":
@@ -940,14 +1066,26 @@ class PlottingDialog(QDialog):
             sites_dict = dataset.get("sites", {})
 
             for site_num, site_data in sites_dict.items():
-                # Apply filters if any
+                # Apply data filters if any
                 if self.data_filters:
-                    # Check if this site passes all filters
+                    # Check if this site passes all data filters
                     passes_filters = True
                     for filter_config in self.data_filters:
-                        # TODO: Implement filter checking based on site_data properties
-                        pass
+                        if not self._check_site_data_filter(site_data, filter_config):
+                            passes_filters = False
+                            break
                     if not passes_filters:
+                        continue
+
+                # Apply interaction filters if active
+                # BUT: only filter (hide) sites if variable is NOT "interactions"
+                # If variable is "interactions", we want to show all sites and color them instead
+                if interaction_filters and self.variable != "interactions":
+                    site_interactions = site_data.get("interactions", {})
+                    passes_interaction_filter = self._check_interaction_filter(
+                        site_interactions, interaction_filters
+                    )
+                    if not passes_interaction_filter:
                         continue
 
                 # Skip sites without energy data
@@ -1019,6 +1157,7 @@ class PlottingDialog(QDialog):
                     "coordination": site_data.get("coordination"),
                     "total_events": site_data.get("total_events"),
                     "total_population": site_data.get("total_population"),
+                    "interactions": site_data.get("interactions", {}),
                 }
                 site_metadata.append(metadata)
 
@@ -1198,6 +1337,24 @@ class PlottingDialog(QDialog):
             if self.variable != "None" and self.variable and hasattr(self, "_site_metadata"):
                 import numpy as np
 
+                # Special handling for "interactions" - binary color based on filter match
+                if self.variable == "interactions":
+                    interaction_filters = self.interaction_filters
+                    if interaction_filters:
+                        # Color sites based on whether they match the selected interaction filter
+                        c_values = []
+                        for site_meta in self._site_metadata:
+                            site_interactions = site_meta.get("interactions", {})
+                            matches = self._check_interaction_filter(site_interactions, interaction_filters)
+                            c_values.append(1 if matches else 0)
+                        self.c_data = np.array(c_values)
+                        self.c_name = self.variable
+                    else:
+                        # No interaction filter selected, cannot color by interactions
+                        self.c_data = None
+                        self.c_name = None
+                    return
+
                 # Extract coloring data from site metadata
                 c_values = []
                 for site_meta in self._site_metadata:
@@ -1306,6 +1463,8 @@ class PlottingDialog(QDialog):
                 self.c_label = format_label(self.c_mapped_name)
             else:
                 self.c_label = "File / Dataset"
+        elif variable and variable == "interactions":
+            self.c_label = "Interaction Match"
         elif variable and variable != "None":
             # For other variables, use the variable name as the label with formatting
             self.c_label = format_label(variable)
