@@ -185,12 +185,14 @@ class WorkerSiteAnalysis(QRunnable):
         output_folder: Path,
         crystallisation_files: list[Path],
         population_files: list[Path],
+        count_files: list[Path],
     ):
         super(WorkerSiteAnalysis, self).__init__()
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.crystallisation_files = crystallisation_files
         self.population_files = population_files
+        self.count_files = count_files
         self.signals = WorkerSignals()
 
     def run(self):
@@ -198,6 +200,9 @@ class WorkerSiteAnalysis(QRunnable):
             parse_site_csv,
             merge_site_results,
             get_site_summary,
+            parse_count,
+            merge_interactions,
+            extract_file_prefix,
         )
 
         self.output_folder = create_aspects_folder(self.input_folder)
@@ -249,6 +254,46 @@ class WorkerSiteAnalysis(QRunnable):
             self.signals.message.emit("Merging results by file prefix...")
             self.signals.progress.emit(85)
             merged_results = merge_site_results(results_with_paths)
+
+            # Parse and merge count files if available
+            if self.count_files:
+                self.signals.message.emit("Processing interaction count files...")
+                self.signals.progress.emit(87)
+                logger.info(f"Parsing {len(self.count_files)} count files")
+
+                for count_file in self.count_files:
+                    try:
+                        # Extract prefix from count file
+                        count_filename = count_file.stem
+                        if count_filename.endswith("_count"):
+                            prefix = count_filename[:-6]  # Remove "_count"
+                        elif count_filename == "count":
+                            # Use parent directory name or try to match with available prefixes
+                            prefix = count_file.parent.name
+                            # If that doesn't match, try the first available prefix
+                            if prefix not in merged_results and len(merged_results) == 1:
+                                prefix = next(iter(merged_results))
+                        else:
+                            prefix = count_filename
+
+                        # Parse the count file
+                        interactions = parse_count(count_file)
+
+                        # Merge interactions into the corresponding merged result
+                        if prefix in merged_results:
+                            merge_interactions(merged_results[prefix]["sites"], interactions)
+                            logger.info(
+                                f"Merged {len(interactions)} site interactions from {count_file.name} "
+                                f"into prefix '{prefix}'"
+                            )
+                        else:
+                            logger.warning(
+                                f"Could not find matching prefix '{prefix}' for count file {count_file.name}. "
+                                f"Available prefixes: {list(merged_results.keys())}"
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error processing count file {count_file}: {e}", exc_info=True)
 
             # Generate summaries
             self.signals.message.emit("Generating summaries...")

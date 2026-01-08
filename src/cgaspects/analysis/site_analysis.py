@@ -16,6 +16,8 @@ from .site_parser import (
     merge_site_results,
     parse_multiple_site_csvs,
     parse_site_csv,
+    parse_count,
+    merge_interactions,
 )
 from .gui_threads import WorkerSiteAnalysis
 from ..fileio import find_data as fd
@@ -42,6 +44,7 @@ class SiteAnalysis:
 
         self.crystallisation_files: List[Path] = []
         self.population_files: List[Path] = []
+        self.count_files: List[Path] = []
         self.parsed_data = None
 
     def update_progress(self, value):
@@ -62,13 +65,20 @@ class SiteAnalysis:
         """Set the list of XYZ files."""
         self.xyz_files = xyz_files
 
-    def set_site_files(self, crystallisation_files: List[Path], population_files: List[Path]):
+    def set_site_files(
+        self,
+        crystallisation_files: List[Path],
+        population_files: List[Path],
+        count_files: List[Path],
+    ):
         """Set the crystallisation events and population CSV files."""
         self.crystallisation_files = crystallisation_files
         self.population_files = population_files
+        self.count_files = count_files
         logger.info(
             f"Set {len(crystallisation_files)} crystallisation files and "
             f"{len(population_files)} population files"
+            f"{len(count_files)} count files"
         )
 
     def calculate_site_analysis(self):
@@ -109,9 +119,11 @@ class SiteAnalysis:
                 output_folder=self.output_folder,
                 crystallisation_files=self.crystallisation_files,
                 population_files=self.population_files,
+                count_files=self.count_files,
             )
             # Use Qt.QueuedConnection for thread-safe signal delivery
             from PySide6.QtCore import Qt
+
             worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
             worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
             worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
@@ -200,6 +212,46 @@ class SiteAnalysis:
             self.signals.progress.emit(85)
             merged_results = merge_site_results(results_with_paths)
             self.parsed_data = merged_results
+
+            # Parse and merge count files if available
+            if self.count_files:
+                self.signals.message.emit("Processing interaction count files...")
+                self.signals.progress.emit(87)
+                logger.info(f"Parsing {len(self.count_files)} count files")
+
+                for count_file in self.count_files:
+                    try:
+                        # Extract prefix from count file
+                        count_filename = count_file.stem
+                        if count_filename.endswith("_count"):
+                            prefix = count_filename[:-6]  # Remove "_count"
+                        elif count_filename == "count":
+                            # Use parent directory name or try to match with available prefixes
+                            prefix = count_file.parent.name
+                            # If that doesn't match, try the first available prefix
+                            if prefix not in merged_results and len(merged_results) == 1:
+                                prefix = next(iter(merged_results))
+                        else:
+                            prefix = count_filename
+
+                        # Parse the count file
+                        interactions = parse_count(count_file)
+
+                        # Merge interactions into the corresponding merged result
+                        if prefix in merged_results:
+                            merge_interactions(merged_results[prefix]["sites"], interactions)
+                            logger.info(
+                                f"Merged {len(interactions)} site interactions from {count_file.name} "
+                                f"into prefix '{prefix}'"
+                            )
+                        else:
+                            logger.warning(
+                                f"Could not find matching prefix '{prefix}' for count file {count_file.name}. "
+                                f"Available prefixes: {list(merged_results.keys())}"
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error processing count file {count_file}: {e}", exc_info=True)
 
             # Generate summaries
             self.signals.message.emit("Generating summaries...")

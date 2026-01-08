@@ -726,6 +726,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.siteanalysis.set_site_files(
                 crystallisation_files=information.crystallisation_files,
                 population_files=information.population_files,
+                count_files=information.count_files,
             )
             logger.info(
                 f"Found {len(information.crystallisation_files)} crystallisation files and "

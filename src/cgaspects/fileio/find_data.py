@@ -63,8 +63,7 @@ def filter_xyz_files(crystal_xyz_list):
         return [
             f
             for f in crystal_xyz_list
-            if Path(f).stem.split("_")[-1] in suffixes
-            and not Path(f).name.startswith("._")
+            if Path(f).stem.split("_")[-1] in suffixes and not Path(f).name.startswith("._")
         ]
 
     if len(suffixes) < 1:
@@ -112,9 +111,7 @@ def locate_xyz_files(xyz_folderpath):
                     crystal_xyz_list.append(filepath)
 
             if not crystal_xyz_list:
-                raise FileNotFoundError(
-                    "No .XYZ files found in the selected directory."
-                )
+                raise FileNotFoundError("No .XYZ files found in the selected directory.")
         else:
             raise NotADirectoryError(f"{xyz_folderpath} is not a valid directory.")
 
@@ -165,6 +162,7 @@ def find_info(path):
     growth_mod = None
     crystallisation_files = []
     population_files = []
+    count_files = []
 
     # Check the root directory for the summary file
     summary_file = next(path.glob("*summary.csv"), None)
@@ -187,9 +185,9 @@ def find_info(path):
                 found_simparam_files = True
                 with open(file, "r", encoding="utf-8", errors="replace") as file:
                     lines = file.readlines()
-                growth_mod = process_simulation_parameters(
-                    lines, supersats, directions, growth_mod
-                )
+                growth_mod = process_simulation_parameters(lines, supersats, directions, growth_mod)
+            elif file.name.endswith("count.txt"):
+                count_files.append(file)
 
     # Process parameter files if present
     if not found_simparam_files:
@@ -208,14 +206,19 @@ def find_info(path):
         )
 
     return file_info_tuple(
-        supersats, size_files, directions, growth_mod, folders, summary_file,
-        crystallisation_files, population_files
+        supersats,
+        size_files,
+        directions,
+        growth_mod,
+        folders,
+        summary_file,
+        crystallisation_files,
+        population_files,
+        count_files,
     )
 
 
-def process_simulation_parameters(
-    lines: list, supersats: list, directions: list, growth_mod
-):
+def process_simulation_parameters(lines: list, supersats: list, directions: list, growth_mod):
     get_facets = True
     for line in lines:
         if line.startswith("Starting delta mu value (kcal/mol):"):
@@ -278,9 +281,7 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
         except KeyError:
             sim_num = row.iloc[0]
 
-        num_string = (
-            f"{search_string}_{sim_num}" if search_string is not None else str(sim_num)
-        )
+        num_string = f"{search_string}_{sim_num}" if search_string is not None else str(sim_num)
         aspect_row = row.values
         aspect_row = np.array([aspect_row])
         collect_row = summary_df.filter(items=[num_string], axis=0).values
