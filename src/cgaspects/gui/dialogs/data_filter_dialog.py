@@ -294,10 +294,7 @@ class DataFilterDialog(QDialog):
         """Get interaction filter configurations (for site analysis mode)."""
         if self.interaction_filter_widget:
             filters = self.interaction_filter_widget.get_selected_filters()
-            logger.info(f"get_interaction_filters - Retrieved interaction filters: {filters}")
-            logger.info(f"get_interaction_filters - Type: {type(filters)}")
             return filters
-        logger.debug("No interaction filter widget available")
         return {}
 
     def apply_filters(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -403,10 +400,17 @@ class DataFilterDialog(QDialog):
         if self.validate_and_update_status():
             data_filters = self.get_filters()
             interaction_filters = self.get_interaction_filters()
-            self.filters_applied.emit(data_filters, interaction_filters)
-            logger.debug(
-                f"Applied data filters: {data_filters}, interaction filters: {interaction_filters}"
+
+            # Convert sets to lists and int keys to strings for Qt signal compatibility
+            # Qt signals don't properly handle dicts with int keys or set values
+            interaction_filters_serializable = {
+                str(k): list(v) for k, v in interaction_filters.items()
+            }
+
+            logger.info(
+                f"Applying filters - Data: {len(data_filters)} filter(s), Interactions: {interaction_filters_serializable}"
             )
+            self.filters_applied.emit(data_filters, interaction_filters_serializable)
 
     def accept(self):
         """Validate and accept the dialog."""
@@ -416,9 +420,16 @@ class DataFilterDialog(QDialog):
         # Emit filters before closing
         data_filters = self.get_filters()
         interaction_filters = self.get_interaction_filters()
-        self.filters_applied.emit(data_filters, interaction_filters)
-        logger.debug(
-            f"Accepted with data filters: {data_filters}, interaction filters: {interaction_filters}"
+
+        # Convert sets to lists and int keys to strings for Qt signal compatibility
+        # Qt signals don't properly handle dicts with int keys or set values
+        interaction_filters_serializable = {
+            str(k): list(v) for k, v in interaction_filters.items()
+        }
+
+        logger.info(
+            f"Filters accepted - Data: {len(data_filters)} filter(s), Interactions: {interaction_filters_serializable}"
         )
+        self.filters_applied.emit(data_filters, interaction_filters_serializable)
 
         super().accept()

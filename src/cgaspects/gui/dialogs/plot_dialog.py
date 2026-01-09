@@ -797,14 +797,9 @@ class PlottingDialog(QDialog):
             data_filters: List of data filter dictionaries
             interaction_filters: Dictionary of interaction filters (optional)
         """
-        logger.info("_update_filters_and_replot RECEIVED - data_filters: %s, interaction_filters: %s (type: %s)",
-                    data_filters, interaction_filters, type(interaction_filters))
         self.data_filters = data_filters
         if interaction_filters is not None:
             self.interaction_filters = interaction_filters
-
-        logger.info("Data filters updated: %s", self.data_filters)
-        logger.info("Interaction filters updated: %s", self.interaction_filters)
 
         # Update button text to indicate active filters
         total_filters = len(self.data_filters)

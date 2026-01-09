@@ -13,7 +13,9 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -43,6 +45,20 @@ class InteractionFilterWidget(QWidget):
         # Group box to contain the filter grid
         self.group_box = QGroupBox("Interaction Frequency Filter")
         self.group_box_layout = QVBoxLayout()
+
+        # Button row for Select All / Unselect All
+        self.button_layout = QHBoxLayout()
+        self.select_all_button = QPushButton("Select All")
+        self.select_all_button.setToolTip("Select all 'Any' buttons")
+        self.select_all_button.clicked.connect(self._select_all_any)
+        self.unselect_all_button = QPushButton("Unselect All")
+        self.unselect_all_button.setToolTip("Unselect all checkboxes")
+        self.unselect_all_button.clicked.connect(self.clear_filters)
+        self.button_layout.addWidget(self.select_all_button)
+        self.button_layout.addWidget(self.unselect_all_button)
+        self.button_layout.addStretch()
+
+        self.group_box_layout.addLayout(self.button_layout)
 
         # Scroll area for the checkbox grid
         self.scroll_area = QScrollArea()
@@ -229,16 +245,11 @@ class InteractionFilterWidget(QWidget):
                 if interaction_id not in filters:
                     filters[interaction_id] = set()
                 filters[interaction_id].add(freq)
-                logger.info(
-                    f"Checkbox checked - interaction_id: {interaction_id}, freq: {freq}, current filters: {filters}"
-                )
 
         # Clean up: if "Any" is selected, remove specific frequencies
         for interaction_id in list(filters.keys()):
             if "Any" in filters[interaction_id]:
                 filters[interaction_id] = {"Any"}
-
-        print(filters)
 
         return filters
 
@@ -251,6 +262,17 @@ class InteractionFilterWidget(QWidget):
 
         # Emit filter changed signal
         self.filter_changed.emit({})
+
+    def _select_all_any(self):
+        """Select all 'Any' checkboxes for each interaction."""
+        for (interaction_id, freq), checkbox in self.checkboxes.items():
+            if freq == "Any":
+                checkbox.blockSignals(True)
+                checkbox.setChecked(True)
+                checkbox.blockSignals(False)
+
+        # Emit filter changed signal once after all changes
+        self._on_checkbox_changed()
 
     def has_filters_active(self) -> bool:
         """Check if any filters are currently active."""
