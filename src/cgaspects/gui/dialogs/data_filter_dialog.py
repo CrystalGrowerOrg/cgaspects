@@ -39,9 +39,7 @@ class FilterRow(QWidget):
 
         # Operator selection
         self.operator_combo = QComboBox()
-        self.operator_combo.addItems(
-            ["==", "!=", ">", ">=", "<", "<=", "contains", "not contains"]
-        )
+        self.operator_combo.addItems(["==", "!=", ">", ">=", "<", "<=", "contains", "not contains"])
 
         # Value input
         self.value_input = QLineEdit()
@@ -180,7 +178,9 @@ class DataFilterDialog(QDialog):
 
             self.interaction_filter_widget = InteractionFilterWidget()
             if self.site_analysis_data:
-                logger.debug(f"Setting interaction data for {len(self.site_analysis_data)} file prefixes")
+                logger.debug(
+                    f"Setting interaction data for {len(self.site_analysis_data)} file prefixes"
+                )
                 self.interaction_filter_widget.set_interaction_data(self.site_analysis_data)
             else:
                 logger.warning("No site_analysis_data available for interaction filter widget")
@@ -294,7 +294,8 @@ class DataFilterDialog(QDialog):
         """Get interaction filter configurations (for site analysis mode)."""
         if self.interaction_filter_widget:
             filters = self.interaction_filter_widget.get_selected_filters()
-            logger.debug(f"Retrieved interaction filters: {filters}")
+            logger.info(f"get_interaction_filters - Retrieved interaction filters: {filters}")
+            logger.info(f"get_interaction_filters - Type: {type(filters)}")
             return filters
         logger.debug("No interaction filter widget available")
         return {}
@@ -360,9 +361,16 @@ class DataFilterDialog(QDialog):
             True if validation succeeded, False otherwise
         """
         filters = self.get_filters()
+        interaction_filters = self.get_interaction_filters()
 
-        if not filters:
+        if not filters and not interaction_filters:
             self.status_label.setText("No filters defined. Click OK to show all data.")
+            return True
+        elif not filters and interaction_filters:
+            # Only interaction filters are defined
+            self.status_label.setText(
+                f"{len(interaction_filters)} interaction filter(s) will be applied to site data."
+            )
             return True
         else:
             # Test the filters
@@ -381,7 +389,9 @@ class DataFilterDialog(QDialog):
                 self.status_label.setText(
                     f"Filters will show {filtered_count} of {original_count} data points."
                 )
-                logger.info(f"Filter validation: {filtered_count}/{original_count} rows pass filters")
+                logger.info(
+                    f"Filter validation: {filtered_count}/{original_count} rows pass filters"
+                )
                 return True
             except Exception as e:
                 self.status_label.setText(f"Error validating filters: {e}")
@@ -394,7 +404,9 @@ class DataFilterDialog(QDialog):
             data_filters = self.get_filters()
             interaction_filters = self.get_interaction_filters()
             self.filters_applied.emit(data_filters, interaction_filters)
-            logger.debug(f"Applied data filters: {data_filters}, interaction filters: {interaction_filters}")
+            logger.debug(
+                f"Applied data filters: {data_filters}, interaction filters: {interaction_filters}"
+            )
 
     def accept(self):
         """Validate and accept the dialog."""
@@ -405,6 +417,8 @@ class DataFilterDialog(QDialog):
         data_filters = self.get_filters()
         interaction_filters = self.get_interaction_filters()
         self.filters_applied.emit(data_filters, interaction_filters)
-        logger.debug(f"Accepted with data filters: {data_filters}, interaction filters: {interaction_filters}")
+        logger.debug(
+            f"Accepted with data filters: {data_filters}, interaction filters: {interaction_filters}"
+        )
 
         super().accept()

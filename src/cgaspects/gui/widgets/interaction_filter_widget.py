@@ -6,7 +6,7 @@ their interaction types and frequencies.
 """
 
 import logging
-from typing import Optional, Dict, Set, Tuple
+from typing import Dict, Set, Tuple
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -213,13 +213,13 @@ class InteractionFilterWidget(QWidget):
         logger.debug(f"Filter selection changed: {selected_filters}")
         self.filter_changed.emit(selected_filters)
 
-    def get_selected_filters(self) -> Dict[int, Set]:
+    def get_selected_filters(self) -> Dict[int, list]:
         """
         Get the currently selected interaction filters.
 
         Returns:
-            Dictionary mapping interaction_id to set of selected frequencies.
-            If "Any" is selected, the set will contain the string "Any".
+            Dictionary mapping interaction_id to list of selected frequencies.
+            If "Any" is selected, the list will contain the string "Any".
             Empty dict means no filters are active (show all sites).
         """
         filters = {}
@@ -229,7 +229,9 @@ class InteractionFilterWidget(QWidget):
                 if interaction_id not in filters:
                     filters[interaction_id] = set()
                 filters[interaction_id].add(freq)
-                print(filters)
+                logger.info(
+                    f"Checkbox checked - interaction_id: {interaction_id}, freq: {freq}, current filters: {filters}"
+                )
 
         # Clean up: if "Any" is selected, remove specific frequencies
         for interaction_id in list(filters.keys()):
