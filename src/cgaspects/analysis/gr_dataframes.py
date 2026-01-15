@@ -40,7 +40,6 @@ def build_growthrates(
     time_tol: float = 1e-12,
 ):
     """Generate the growth rate dataframe from size.csv files."""
-    growth_list = []
     n_size_files = len(size_file_list)
 
     if n_size_files == 0:
@@ -48,35 +47,72 @@ def build_growthrates(
 
     logger.info("%s size files used to calculate growth rate data", n_size_files)
 
-    for i, f in enumerate(size_file_list):
-        f = Path(f)
-        lt_df = pd.read_csv(f, encoding="utf-8", encoding_errors="replace")
+    growth_list = []
+    use_index_for_all = False
+    restart = True
 
-        missing_directions = [d for d in directions if d not in lt_df.columns]
-        if missing_directions:
-            logger.warning(
-                "Skipping file %s: missing direction columns %s",
-                f.name,
-                missing_directions,
-            )
-            continue
+    while restart:
+        restart = False
+        growth_list = []
 
-        x_data = get_x_axis(lt_df, tol=time_tol)
+        for i, f in enumerate(size_file_list):
+            f = Path(f)
+            lt_df = pd.read_csv(f, encoding="utf-8", encoding_errors="replace")
 
-        tokens = re.findall(r"\d+", f.name)
-        sim_num = int(tokens[-1])
+            missing_directions = [d for d in directions if d not in lt_df.columns]
+            if missing_directions:
+                logger.warning(
+                    "Skipping file %s: missing direction columns %s",
+                    f.name,
+                    missing_directions,
+                )
+                continue
 
-        gr_list = [sim_num]
-        for direction in directions:
-            y_data = np.asarray(lt_df[direction], dtype=float)
-            model = np.polyfit(x_data, y_data, 1)
-            gr_list.append(model[0])
+            # Determine x-axis data
+            if use_index_for_all:
+                x_data = np.arange(len(lt_df), dtype=float)
+            else:
+                # Check if time column is suitable
+                time_col = "time"
+                if time_col not in lt_df.columns:
+                    logger.info(
+                        "Time column missing in file %s - restarting with index for all files",
+                        f.name,
+                    )
+                    use_index_for_all = True
+                    restart = True
+                    break
+                else:
+                    x_time = lt_df[time_col].to_numpy(dtype=float)
+                    if (
+                        not np.isfinite(x_time).all()
+                        or len(x_time) < 2
+                        or np.ptp(x_time) < time_tol
+                    ):
+                        logger.info(
+                            "Time column unsuitable in file %s - restarting with index for all files",
+                            f.name,
+                        )
+                        use_index_for_all = True
+                        restart = True
+                        break
+                    else:
+                        x_data = x_time
 
-        growth_list.append(gr_list)
+            tokens = re.findall(r"\d+", f.name)
+            sim_num = int(tokens[-1])
 
-        if signals:
-            prog = (100 * (i + 1)) // n_size_files
-            signals.progress.emit(prog)
+            gr_list = [sim_num]
+            for direction in directions:
+                y_data = np.asarray(lt_df[direction], dtype=float)
+                model = np.polyfit(x_data, y_data, 1)
+                gr_list.append(model[0])
+
+            growth_list.append(gr_list)
+
+            if signals:
+                prog = (100 * (i + 1)) // n_size_files
+                signals.progress.emit(prog)
 
     growth_array = np.asarray(growth_list)
     gr_df = pd.DataFrame(growth_array, columns=["Simulation Number"] + directions)
