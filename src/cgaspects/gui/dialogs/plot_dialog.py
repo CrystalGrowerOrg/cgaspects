@@ -28,9 +28,11 @@ from PySide6.QtWidgets import (
 from cgaspects.gui.dialogs.data_filter_dialog import DataFilterDialog
 from cgaspects.gui.dialogs.label_customization_dialog import LabelCustomizationDialog
 from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
+from cgaspects.gui.dialogs.smoothing_dialog import SmoothingDialog
 from cgaspects.gui.widgets.plot_axes_widget import PlotAxesWidget
 from cgaspects.gui.widgets.time_series_widget import TimeSeriesWidget
 from cgaspects.utils.data_structures import plot_obj_tuple
+from cgaspects.utils.data_smoothing import process_series
 
 matplotlib.use("QTAgg")
 
@@ -132,6 +134,10 @@ class PlottingDialog(QDialog):
         # Data filtering
         self.data_filters = []  # List of filter configurations
         self.interaction_filters = {}  # Dictionary of interaction filter configurations
+
+        # Smoothing/interpolation/extrapolation settings (for Growth Rates mode)
+        self.smoothing_configs = {}  # Dictionary mapping series names to their configurations
+        self.smoothing_legend_mode = "Show Both Original and Processed"  # Legend display mode
 
     def setCSV(self, csv):
         # Check if we're reloading the same CSV file
@@ -347,6 +353,9 @@ class PlottingDialog(QDialog):
         self.button_customize_labels = QPushButton("Customize Labels...")
         self.button_filter_data = QPushButton("Filter Data...")
         self.button_filter_data.setToolTip("Filter the data shown in the plot")
+        self.button_smooth_data = QPushButton("Smooth/Extrapolate Data...")
+        self.button_smooth_data.setToolTip("Apply smoothing, interpolation, and extrapolation to growth rate data")
+        self.button_smooth_data.hide()  # Hidden by default, only shown in Growth Rates mode
 
         # Initialize the variables
         self.point_size = 12
@@ -389,6 +398,7 @@ class PlottingDialog(QDialog):
         self.button_save.clicked.connect(self.save)
         self.button_customize_labels.clicked.connect(self.open_label_customization_dialog)
         self.button_filter_data.clicked.connect(self.open_filter_dialog)
+        self.button_smooth_data.clicked.connect(self.open_smoothing_dialog)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.checkbox_legend.stateChanged.connect(self.trigger_plot)
         self.checkbox_zingg.stateChanged.connect(
@@ -458,9 +468,10 @@ class PlottingDialog(QDialog):
         # Add filter/customize buttons and colour scheme controls row (universal across all modes)
         grid1.addWidget(self.button_filter_data, 1, 0)
         grid1.addWidget(self.button_customize_labels, 1, 1)
-        grid1.addWidget(self.cmap_label, 1, 2)
-        grid1.addWidget(self.cmap_combobox, 1, 3)
-        grid1.addWidget(self.checkbox_hide_bulk, 1, 4)
+        grid1.addWidget(self.button_smooth_data, 1, 2)
+        grid1.addWidget(self.cmap_label, 1, 3)
+        grid1.addWidget(self.cmap_combobox, 1, 4)
+        grid1.addWidget(self.checkbox_hide_bulk, 1, 5)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
 
@@ -501,6 +512,12 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
 
     def change_mode(self, mode):
+        # Show/hide smoothing button based on mode
+        if mode == "Growth Rates":
+            self.button_smooth_data.show()
+        else:
+            self.button_smooth_data.hide()
+
         if mode == "Site Analysis":
             # Enable permutation controls for Site Analysis (3 permutations)
             self.plot_permutations_label.setEnabled(True)
@@ -764,6 +781,40 @@ class PlottingDialog(QDialog):
         logger.debug("Custom labels updated: %s", labels)
         # Replot with new labels
         self.trigger_plot()
+
+    def open_smoothing_dialog(self):
+        """Open the smoothing/interpolation/extrapolation dialog."""
+        if self.plot_type != "Growth Rates":
+            logger.warning("Smoothing dialog only available in Growth Rates mode")
+            return
+
+        # Get the list of series (directions) available
+        series_names = self.directions if self.directions else []
+
+        if not series_names:
+            logger.warning("No data series available for smoothing")
+            return
+
+        dialog = SmoothingDialog(
+            series_names=series_names,
+            existing_configs=self.smoothing_configs,
+            parent=self
+        )
+
+        if dialog.exec() == QDialog.Accepted:
+            # Get the configurations
+            configs, legend_mode = dialog.get_configs()
+            self.smoothing_configs = configs
+            self.smoothing_legend_mode = legend_mode
+
+            # Update button text to indicate active smoothing
+            if configs:
+                self.button_smooth_data.setText(f"Smooth/Extrapolate Data... ({len(configs)})")
+            else:
+                self.button_smooth_data.setText("Smooth/Extrapolate Data...")
+
+            # Replot with smoothed data
+            self.trigger_plot()
 
     def open_filter_dialog(self):
         """Open the data filter dialog."""
@@ -1724,14 +1775,42 @@ class PlottingDialog(QDialog):
                     if self.df is not None:
                         line = True if self.plot_type == "Growth Rates" else False
                         for i, y in enumerate(self.y_data):
-                            self._plot(
-                                x=self.x_data,
-                                y=self._ensure_pd_series(self.df[y]),
-                                c=self.c_data,
-                                add_line=line,
-                                label=y,
-                                marker=markers[i % len(markers)],
+                            # Plot original data
+                            show_original = (
+                                self.plot_type == "Growth Rates" and
+                                self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Original Only"]
                             )
+
+                            if show_original or y not in self.smoothing_configs:
+                                self._plot(
+                                    x=self.x_data,
+                                    y=self._ensure_pd_series(self.df[y]),
+                                    c=self.c_data,
+                                    add_line=line,
+                                    label=y if y not in self.smoothing_configs else f"{y} (original)",
+                                    marker=markers[i % len(markers)],
+                                )
+
+                            # Plot processed (smoothed/interpolated/extrapolated) data
+                            if self.plot_type == "Growth Rates" and y in self.smoothing_configs:
+                                show_processed = self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Processed Only"]
+
+                                if show_processed:
+                                    x_processed, y_processed = self._apply_smoothing(
+                                        self.x_data,
+                                        self._ensure_pd_series(self.df[y]),
+                                        self.smoothing_configs[y]
+                                    )
+
+                                    self._plot(
+                                        x=x_processed,
+                                        y=y_processed,
+                                        c=None,  # Don't use color for processed data
+                                        add_line=True,  # Always use line for processed data
+                                        label=f"{y} (processed)",
+                                        marker=markers[i % len(markers)],
+                                    )
+
                         self._set_legend() if self.show_legend else None
             else:
                 # Fallback for data without ndim (shouldn't happen, but handle gracefully)
@@ -2345,6 +2424,25 @@ class PlottingDialog(QDialog):
         if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
             return data.iloc[:, 0]
         return data
+
+    def _apply_smoothing(self, x_data, y_data, config):
+        """
+        Apply smoothing, interpolation, and extrapolation to a data series.
+
+        Args:
+            x_data: X-axis data
+            y_data: Y-axis data
+            config: Configuration dictionary from smoothing dialog
+
+        Returns:
+            Tuple of (x_processed, y_processed)
+        """
+        try:
+            x_proc, y_proc = process_series(x_data, y_data, config)
+            return x_proc, y_proc
+        except Exception as e:
+            logger.error(f"Error applying smoothing: {e}, returning original data")
+            return np.array(x_data), np.array(y_data)
 
 
 def main():
