@@ -9,8 +9,6 @@ from . import gr_dataframes as gr
 from ..fileio import find_data as fd
 from .gui_threads import WorkerGrowthRates
 from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
-from ..gui.dialogs.plot_dialog import PlottingDialog
-from ..plot.plot_data import Plotting
 from ..utils.data_structures import results_tuple
 
 logger = logging.getLogger("CA:G-Rates")
@@ -54,9 +52,7 @@ class GrowthRate:
         # Check if the user selected a folder
         if self.input_folder:
             if self.information is None:
-                logger.warning(
-                    "Method called without information, looking for information now."
-                )
+                logger.warning("Method called without information, looking for information now.")
                 # Read the information from the selected folder
                 self.information = fd.find_info(self.input_folder)
             logger.info("Attempting to calculate Growth Rates...")
@@ -122,10 +118,6 @@ class GrowthRate:
                 )
                 self.signals.result.emit(result)
                 logger.debug("Sending plotting information to GUI: %s", result)
-                PlottingDialogs = PlottingDialog(
-                    csv=growth_rate_csv, signals=self.signals
-                )
-                PlottingDialogs.show()
                 # if self.auto_plotting:
                 #     plot = Plotting()
                 #     plot.plot_growth_rates(

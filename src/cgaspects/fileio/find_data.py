@@ -245,7 +245,8 @@ def find_growth_directions(csv):
     columns = lt_df.columns
     directions = []
     for col in columns:
-        if col.startswith(" "):
+        # Direction columns start with space or minus sign (Miller indices)
+        if col.startswith((" ", "-")):
             directions.append(col)
 
     return directions

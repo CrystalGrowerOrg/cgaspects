@@ -243,7 +243,8 @@ class PlottingDialog(QDialog):
                 self.growth_rate = True
                 self.directions = []
                 for col in self.df.columns:
-                    if col.startswith(" "):
+                    # Direction columns start with space or minus sign (Miller indices)
+                    if col.startswith((" ", "-")):
                         self.directions.append(col)
                 self.plot_types = ["Growth Rates"]
 

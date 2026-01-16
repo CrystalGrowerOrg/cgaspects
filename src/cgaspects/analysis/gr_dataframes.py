@@ -20,11 +20,7 @@ def get_x_axis(df: pd.DataFrame, *, time_col: str = "time", tol: float = 1e-12):
 
     x_time = df[time_col].to_numpy(dtype=float)
 
-    if (
-        not np.isfinite(x_time).all()
-        or len(x_time) < 2
-        or np.ptp(x_time) < tol
-    ):
+    if not np.isfinite(x_time).all() or len(x_time) < 2 or np.ptp(x_time) < tol:
         logger.debug("Using row indices as x-axis (time column unsuitable)")
         return np.arange(len(df), dtype=float)
 
@@ -46,6 +42,7 @@ def build_growthrates(
         return None
 
     logger.info("%s size files used to calculate growth rate data", n_size_files)
+    print(directions)
 
     growth_list = []
     use_index_for_all = False
@@ -90,7 +87,7 @@ def build_growthrates(
                         or np.ptp(x_time) < time_tol
                     ):
                         logger.info(
-                            "Time column unsuitable in file %s - restarting with index for all files",
+                            "Time column unsuitable in file %s (contains NaN/Inf, <2 points, or zero time range) - restarting with index for all files",
                             f.name,
                         )
                         use_index_for_all = True
