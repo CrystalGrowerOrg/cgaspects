@@ -919,9 +919,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setCurrentXYZIndex(self, value):
         self.sim_num = value
         self.openglwidget.get_XYZ_from_list(value=value)
+        self.crystal = self.openglwidget.crystal
         self.movie_controls_frame.hide()
+
         if len(self.crystal) > 1:
             self.movie_controls_frame.show()
+            self.frame_list = list(range(1, len(self.crystal) + 1))
+            num_frames = len(self.frame_list)
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(num_frames - 1)
+            self.frame_spinBox.setMinimum(0)
+            self.frame_spinBox.setMaximum(num_frames - 1)
+            self.frameMaxLabel.setText(f"{num_frames - 1}")
 
         # block to prevent double updates
         with QSignalBlocker(self.xyzFilenameListWidget):
