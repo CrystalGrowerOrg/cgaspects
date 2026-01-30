@@ -922,7 +922,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.crystal = self.openglwidget.crystal
         self.movie_controls_frame.hide()
 
-        if len(self.crystal) > 1:
+        if self.crystal is not None and len(self.crystal) > 1:
             self.movie_controls_frame.show()
             self.frame_list = list(range(1, len(self.crystal) + 1))
             num_frames = len(self.frame_list)

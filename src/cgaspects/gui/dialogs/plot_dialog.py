@@ -1137,9 +1137,26 @@ class PlottingDialog(QDialog):
                     # Check if this site passes all data filters
                     passes_filters = True
                     for filter_config in self.data_filters:
-                        if not self._check_site_data_filter(site_data, filter_config):
-                            passes_filters = False
-                            break
+                        column = filter_config["column"]
+
+                        # Handle special fields that aren't in site_data dict
+                        if column == "site_number":
+                            # Check site_number filter directly
+                            site_data_temp = {"site_number": int(site_num)}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        elif column == "file_prefix":
+                            # Check file_prefix filter directly
+                            site_data_temp = {"file_prefix": file_prefix}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        else:
+                            # Check normal site_data fields
+                            if not self._check_site_data_filter(site_data, filter_config):
+                                passes_filters = False
+                                break
                     if not passes_filters:
                         continue
 
@@ -1566,6 +1583,7 @@ class PlottingDialog(QDialog):
                                 matches = matches and self._check_interaction_filter(site_interactions, interaction_filters)
 
                             # Check data filters if present
+                            # Note: site_meta already contains "site_number" from metadata creation
                             if data_filters and matches:
                                 for filter_config in data_filters:
                                     if not self._check_site_data_filter(site_meta, filter_config):

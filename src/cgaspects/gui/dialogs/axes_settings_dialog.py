@@ -1,7 +1,16 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
-                               QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-                               QPushButton, QVBoxLayout)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
 
 
 class AxesSettingsDialog(QDialog):
@@ -20,13 +29,13 @@ class AxesSettingsDialog(QDialog):
         style_layout = QFormLayout()
 
         self.style_combo = QComboBox()
-        self.style_combo.addItems(["Line", "Arrow"])
-        self.style_combo.setCurrentText("Arrow")
+        self.style_combo.addItems(["Line", "Arrow", "Cylinder"])
+        self.style_combo.setCurrentText("Cylinder")
         style_layout.addRow("Style:", self.style_combo)
 
         self.thickness_spinbox = QDoubleSpinBox()
         self.thickness_spinbox.setRange(1.0, 10.0)
-        self.thickness_spinbox.setValue(2.0)
+        self.thickness_spinbox.setValue(3.5)
         self.thickness_spinbox.setSingleStep(0.5)
         self.thickness_spinbox.setDecimals(1)
         style_layout.addRow("Thickness:", self.thickness_spinbox)
@@ -119,38 +128,34 @@ class AxesSettingsDialog(QDialog):
     def get_settings(self):
         """Return current settings as a dictionary."""
         return {
-            'style': self.style_combo.currentText().lower(),
-            'thickness': self.thickness_spinbox.value(),
+            "style": self.style_combo.currentText().lower(),
+            "thickness": self.thickness_spinbox.value(),
             # 'label_style': self.labels_combo.currentText(),
-            'length_multiplier': self.length_multiplier_spinbox.value(),
-            'origin': (
-                self.x_spinbox.value(),
-                self.y_spinbox.value(),
-                self.z_spinbox.value()
-            )
+            "length_multiplier": self.length_multiplier_spinbox.value(),
+            "origin": (self.x_spinbox.value(), self.y_spinbox.value(), self.z_spinbox.value()),
         }
 
     def set_settings(self, settings):
         """Set dialog values from a settings dictionary."""
-        if 'style' in settings:
-            style_text = settings['style'].capitalize()
+        if "style" in settings:
+            style_text = settings["style"].capitalize()
             index = self.style_combo.findText(style_text)
             if index >= 0:
                 self.style_combo.setCurrentIndex(index)
 
-        if 'thickness' in settings:
-            self.thickness_spinbox.setValue(settings['thickness'])
+        if "thickness" in settings:
+            self.thickness_spinbox.setValue(settings["thickness"])
 
         # if 'label_style' in settings:
         #     index = self.labels_combo.findText(settings['label_style'])
         #     if index >= 0:
         #         self.labels_combo.setCurrentIndex(index)
 
-        if 'length_multiplier' in settings:
-            self.length_multiplier_spinbox.setValue(settings['length_multiplier'])
+        if "length_multiplier" in settings:
+            self.length_multiplier_spinbox.setValue(settings["length_multiplier"])
 
-        if 'origin' in settings:
-            origin = settings['origin']
+        if "origin" in settings:
+            origin = settings["origin"]
             self.x_spinbox.setValue(origin[0])
             self.y_spinbox.setValue(origin[1])
             self.z_spinbox.setValue(origin[2])

@@ -51,6 +51,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer = None
 
         self.xyz = None
+        self.crystal = None
         # self.object = 0
 
         self.colormap = "Viridis"
