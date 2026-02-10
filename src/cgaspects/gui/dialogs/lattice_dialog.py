@@ -30,14 +30,18 @@ class LatticeParametersDialog(QDialog):
 
     parametersAccepted = Signal(Cell)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, cell: Optional[Cell] = None):
         super().__init__(parent)
         self.setWindowTitle("Lattice Parameters")
         self.setModal(True)
         self.resize(500, 300)
 
-        self.cell = None
+        self.cell = cell
         self.setupUI()
+
+        # Pre-fill with existing cell parameters if provided
+        if cell is not None:
+            self.set_cell_values(cell)
 
     def setupUI(self):
         """Setup the user interface."""
@@ -120,6 +124,15 @@ class LatticeParametersDialog(QDialog):
 
         layout.addLayout(button_layout)
         self.setLayout(layout)
+
+    def set_cell_values(self, cell: Cell):
+        """Populate the input fields with values from a Cell object."""
+        self.a_edit.setText(str(cell.a))
+        self.b_edit.setText(str(cell.b))
+        self.c_edit.setText(str(cell.c))
+        self.alpha_edit.setText(str(cell.alpha))
+        self.beta_edit.setText(str(cell.beta))
+        self.gamma_edit.setText(str(cell.gamma))
 
     def browse_file(self):
         """Open file dialog to select CrystalGrower structure file or CIF file."""

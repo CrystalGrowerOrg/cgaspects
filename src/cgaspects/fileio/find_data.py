@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..utils.data_structures import file_info_tuple
+from ..gui.utils.crystallography import Cell
 
 logger = logging.getLogger("CA:FileIO")
 
@@ -160,6 +161,7 @@ def find_info(path):
     found_simparam_files = False
     summary_file = None
     growth_mod = None
+    structure_file = None
     crystallisation_files = []
     population_files = []
     count_files = []
@@ -185,7 +187,7 @@ def find_info(path):
                 found_simparam_files = True
                 with open(file, "r", encoding="utf-8", errors="replace") as file:
                     lines = file.readlines()
-                growth_mod = process_simulation_parameters(lines, supersats, directions, growth_mod)
+                growth_mod, structure_file = process_simulation_parameters(lines, supersats, directions, growth_mod, structure_file)
             elif file.name.endswith("count.txt"):
                 count_files.append(file)
 
@@ -215,10 +217,11 @@ def find_info(path):
         crystallisation_files,
         population_files,
         count_files,
+        structure_file,
     )
 
 
-def process_simulation_parameters(lines: list, supersats: list, directions: list, growth_mod):
+def process_simulation_parameters(lines: list, supersats: list, directions: list, growth_mod, structure_file=None):
     get_facets = True
     for line in lines:
         if line.startswith("Starting delta mu value (kcal/mol):"):
@@ -226,6 +229,10 @@ def process_simulation_parameters(lines: list, supersats: list, directions: list
             supersats.append(supersat)
         if line.startswith("normal, ordered or growth modifier"):
             growth_mod = line.endswith("growth_modifier\n")
+        if line.startswith("File containing TOPOS input?:") and structure_file is None:
+            path = line.split(":", 1)[1].strip()
+            if path and path != "N/A":
+                structure_file = path
         if line.startswith("Size of crystal") and get_facets:
             frame = lines.index(line) + 1
             for n in range(frame, len(lines)):
@@ -236,7 +243,7 @@ def process_simulation_parameters(lines: list, supersats: list, directions: list
                 facet = line.split("      ")[0]
                 if len(facet) <= 8 and facet not in directions:
                     directions.append(facet)
-    return growth_mod
+    return growth_mod, structure_file
 
 
 def find_growth_directions(csv):
@@ -329,3 +336,63 @@ def combine_xyz_cda(CDA_df, XYZ_df):
     logger.debug("Combined df:\n%s", combine_df)
 
     return combine_df
+
+
+def parse_structure_file(file_path: str | Path) -> Cell | None:
+    """Parse a CrystalGrower structure file to extract lattice parameters.
+
+    The file format has a section starting with 'Non primitive data' followed by
+    lattice parameters:
+        a   b   c
+        alpha beta gamma
+
+    Parameters
+    ----------
+    file_path : str or Path
+        Path to the CrystalGrower structure file.
+
+    Returns
+    -------
+    Cell or None
+        Cell object with lattice parameters, or None if parsing fails.
+    """
+    file_path = Path(file_path)
+
+    if not file_path.exists():
+        logger.warning("Structure file not found: %s", file_path)
+        return None
+
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        # Find the "Non primitive data" section
+        non_primitive_index = None
+        for i, line in enumerate(lines):
+            if "Non primitive data" in line:
+                non_primitive_index = i
+                break
+
+        if non_primitive_index is None:
+            logger.warning("Could not find 'Non primitive data' section in %s", file_path)
+            return None
+
+        # The next line should contain a, b, c
+        abc_line = lines[non_primitive_index + 1].strip()
+        a, b, c = map(float, abc_line.split())
+
+        # The line after that should contain alpha, beta, gamma
+        angles_line = lines[non_primitive_index + 2].strip()
+        alpha, beta, gamma = map(float, angles_line.split())
+
+        logger.info(
+            "Parsed lattice parameters from %s: a=%.4f b=%.4f c=%.4f α=%.3f° β=%.3f° γ=%.3f°",
+            file_path.name,
+            a, b, c, alpha, beta, gamma,
+        )
+
+        return Cell(a=a, b=b, c=c, alpha=alpha, beta=beta, gamma=gamma)
+
+    except Exception as e:
+        logger.error("Error parsing structure file %s: %s", file_path, e)
+        return None

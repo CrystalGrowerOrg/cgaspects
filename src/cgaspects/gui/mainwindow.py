@@ -17,7 +17,7 @@ from ..analysis.aspect_ratios import AspectRatio
 from ..analysis.growth_rates import GrowthRate
 from ..analysis.site_analysis import SiteAnalysis
 from ..analysis.gui_threads import WorkerXYZ
-from ..fileio.find_data import find_info, locate_xyz_files
+from ..fileio.find_data import find_info, locate_xyz_files, parse_structure_file
 from ..fileio.xyz_file import CrystalCloud
 from ..fileio.logging import setup_logging, get_log_file_path
 from ..fileio.opendir import open_directory
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create Toggle Axes action (starts disabled until lattice params are set)
         self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
-        self.actionToggleAxes.setShortcut("Ctrl+Shift+A")
+        self.actionToggleAxes.setShortcut("Shift+x")
         self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
         self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
         self.actionToggleAxes.triggered.connect(self.toggle_axes)
@@ -263,7 +263,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def show_lattice_parameters_dialog(self):
         """Show dialog to enter lattice parameters for fractional axes."""
-        dialog = LatticeParametersDialog(self)
+        # Pass current cell if available to pre-fill the dialog
+        current_cell = self.crystallography.cell if self.crystallography else None
+        dialog = LatticeParametersDialog(self, cell=current_cell)
 
         if dialog.exec():
             cell = dialog.get_cell()
@@ -701,6 +703,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.input_folder = folder
         information = find_info(folder)
+
+        # Auto-load structure file for fractional axes if available
+        if information.structure_file:
+            cell = parse_structure_file(information.structure_file)
+            if cell is not None:
+                self.crystallography = Crystallography(cell)
+                self.actionToggleAxes.setEnabled(True)
+                self.current_axes_type = "fractional"
+                self.openglwidget.set_fractional_axes(self.crystallography)
+                self.actionToggleAxes.setText("Switch to Cartesian Axes")
+                self.log_message(
+                    f"Auto-loaded lattice parameters: a={cell.a:.2f} b={cell.b:.2f} c={cell.c:.2f}",
+                    "info",
+                )
 
         # Enable buttons and set data based on available information
         if information.size_files and information.directions:
