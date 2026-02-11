@@ -468,38 +468,45 @@ class VisualisationWidget(QOpenGLWidget):
         self.restrict_axis = None
         modifiers = event.modifiers()
 
-        if event.key() == Qt.Key_W:
+        # Arrow keys for rotation
+        if event.key() == Qt.Key_Up:
             dy -= 10
-        if event.key() == Qt.Key_S:
+        if event.key() == Qt.Key_Down:
             dy += 10
-
-        if event.key() == Qt.Key_A:
+        if event.key() == Qt.Key_Left:
             dx -= 10
-        if event.key() == Qt.Key_D:
+        if event.key() == Qt.Key_Right:
             dx += 10
 
-        if event.key() == Qt.Key_C:
+        # Shift+C to store orientation, R to reset
+        if modifiers & Qt.ShiftModifier and event.key() == Qt.Key_S:
             self.camera.storeOrientation()
 
         if event.key() == Qt.Key_R:
             self.camera.resetOrientation()
 
-        # Check for Shift + X, Y, or Z
+        # Axis alignment keys
+        # X/Y/Z align to Cartesian axes, A/B/C align to fractional axes
+        if event.key() == Qt.Key_X:
+            self._align_view_to_axis("x")
+        elif event.key() == Qt.Key_Y:
+            self._align_view_to_axis("y")
+        elif event.key() == Qt.Key_Z:
+            self._align_view_to_axis("z")
+        elif event.key() == Qt.Key_A:
+            self._align_view_to_axis("a")
+        elif event.key() == Qt.Key_B:
+            self._align_view_to_axis("b")
+        elif event.key() == Qt.Key_C:
+            self._align_view_to_axis("c")
+
+        # Check for Shift + arrow keys for restricted rotation
         if modifiers & Qt.ShiftModifier:
-            if event.key() == Qt.Key_X:
+            if event.key() == Qt.Key_Left or event.key() == Qt.Key_Right:
                 self.restrict_axis = "shift_x"
-            elif event.key() == Qt.Key_Y:
+            elif event.key() == Qt.Key_Up or event.key() == Qt.Key_Down:
                 self.restrict_axis = "shift_y"
-            elif event.key() == Qt.Key_Z:
-                self.restrict_axis = "shift_z"
-        else:
-            # Regular X, Y, Z without Shift
-            if event.key() == Qt.Key_X:
-                self.restrict_axis = "x"
-            elif event.key() == Qt.Key_Y:
-                self.restrict_axis = "y"
-            elif event.key() == Qt.Key_Z:
-                self.restrict_axis = "z"
+
         super().keyPressEvent(event)
 
         self.camera.orbit(
@@ -509,9 +516,77 @@ class VisualisationWidget(QOpenGLWidget):
         self.update()
 
     def keyReleaseEvent(self, event):
-        if event.key() in (Qt.Key_X, Qt.Key_Y, Qt.Key_Z):
+        if event.key() in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down):
             self.restrict_axis = None
         super().keyReleaseEvent(event)
+
+    def _align_view_to_axis(self, axis):
+        """Align the camera view to look along a specific axis.
+
+        Args:
+            axis: 'x', 'y', 'z' for Cartesian axes or 'a', 'b', 'c' for fractional axes
+        """
+        from PySide6.QtGui import QVector3D
+
+        # Define view directions for each axis
+        # Looking along +axis means camera is on -axis side looking toward origin
+        if axis == "x":
+            # Look along X axis (camera on -X, looking toward +X)
+            direction = QVector3D(1, 0, 0)
+            up = QVector3D(0, 1, 0)
+        elif axis == "y":
+            # Look along Y axis (camera on -Y, looking toward +Y)
+            direction = QVector3D(0, 1, 0)
+            up = QVector3D(0, 0, 1)
+        elif axis == "z":
+            # Look along Z axis (camera on -Z, looking toward +Z)
+            direction = QVector3D(0, 0, 1)
+            up = QVector3D(0, 1, 0)
+        elif axis == "a":
+            # Fractional a-axis - use crystallography if available
+            if self.axes_renderer and self.axes_renderer.crystallography:
+                frac_a = np.array([1, 0, 0])
+                cart_a = self.axes_renderer.crystallography.frac_to_cart(frac_a.reshape(1, -1))[0]
+                cart_a = cart_a / np.linalg.norm(cart_a)
+                direction = QVector3D(cart_a[0], cart_a[1], cart_a[2])
+                up = QVector3D(0, 1, 0)
+            else:
+                # Fall back to Cartesian X
+                direction = QVector3D(1, 0, 0)
+                up = QVector3D(0, 1, 0)
+        elif axis == "b":
+            # Fractional b-axis - use crystallography if available
+            if self.axes_renderer and self.axes_renderer.crystallography:
+                frac_b = np.array([0, 1, 0])
+                cart_b = self.axes_renderer.crystallography.frac_to_cart(frac_b.reshape(1, -1))[0]
+                cart_b = cart_b / np.linalg.norm(cart_b)
+                direction = QVector3D(cart_b[0], cart_b[1], cart_b[2])
+                up = QVector3D(0, 0, 1)
+            else:
+                # Fall back to Cartesian Y
+                direction = QVector3D(0, 1, 0)
+                up = QVector3D(0, 0, 1)
+        elif axis == "c":
+            # Fractional c-axis - use crystallography if available
+            if self.axes_renderer and self.axes_renderer.crystallography:
+                frac_c = np.array([0, 0, 1])
+                cart_c = self.axes_renderer.crystallography.frac_to_cart(frac_c.reshape(1, -1))[0]
+                cart_c = cart_c / np.linalg.norm(cart_c)
+                direction = QVector3D(cart_c[0], cart_c[1], cart_c[2])
+                up = QVector3D(0, 1, 0)
+            else:
+                # Fall back to Cartesian Z
+                direction = QVector3D(0, 0, 1)
+                up = QVector3D(0, 1, 0)
+        else:
+            return
+
+        # Set camera position along the negative direction, looking toward target
+        distance = (self.camera.position - self.camera.target).length()
+        self.camera.position = self.camera.target - direction * distance
+        self.camera.up = up
+        self.camera.right = QVector3D.crossProduct(up, direction).normalized()
+        self.update()
 
     def mouseMoveEvent(self, event):
         dx = event.pos().x() - self.lastMousePosition.x()
@@ -799,37 +874,70 @@ class VisualisationWidget(QOpenGLWidget):
         if not hasattr(self, "axes_renderer") or not self.axes_renderer:
             return
 
-        # # Begin native painting - this properly manages OpenGL state
-        # painter = QPainter(self)
-        # painter.beginNativePainting()
-        # painter.endNativePainting()
+        # Check if labels should be shown
+        if not self.axes_renderer.show_labels:
+            return
 
-        # # Now do 2D painting
-        # painter.setRenderHint(QPainter.Antialiasing)
-        # font = QFont("Arial", 12, QFont.Bold)
-        # painter.setFont(font)
+        # Begin native painting - this properly manages OpenGL state
+        painter = QPainter(self)
+        painter.beginNativePainting()
+        painter.endNativePainting()
 
-        # # Get axis endpoints from axes renderer
-        # endpoints = self.axes_renderer.get_axis_endpoints()
+        # Now do 2D painting
+        painter.setRenderHint(QPainter.Antialiasing)
+        font = QFont("Arial", 12, QFont.Bold)
+        painter.setFont(font)
 
-        # for endpoint in endpoints:
-        #     # Project 3D position to screen coordinates
-        #     pos_3d = endpoint['position']
-        #     screen_pos = self._project_to_screen(pos_3d, self.camera.modelViewProjectionMatrix(self.aspect_ratio))
+        # Get axis endpoints from axes renderer
+        endpoints = self.axes_renderer.get_axis_endpoints()
 
-        #     if screen_pos:
-        #         # Set text color based on axis color
-        #         color = endpoint['color']
-        #         painter.setPen(QColor(int(color[0] * 255),
-        #                             int(color[1] * 255),
-        #                             int(color[2] * 255)))
+        # Determine label color mode
+        use_axes_color = self.axes_renderer.label_color_same_as_axes
+        custom_label_color = self.axes_renderer.label_color
 
-        #         # Draw the label slightly offset from the endpoint
-        #         painter.drawText(QPoint(int(screen_pos[0] + 10),
-        #                                int(screen_pos[1])),
-        #                        endpoint['label'])
+        # Get MVP matrix for projection
+        mvp = self.camera.modelViewProjectionMatrix(self.aspect_ratio)
 
-        # painter.end()
+        # Get origin screen position for calculating label offsets
+        origin_screen = self._project_to_screen((0, 0, 0), mvp)
+
+        for endpoint in endpoints:
+            # Project 3D position to screen coordinates
+            pos_3d = endpoint["position"]
+            screen_pos = self._project_to_screen(pos_3d, mvp)
+
+            if screen_pos:
+                # Set text color based on settings
+                if use_axes_color:
+                    # Use the axis color
+                    color = endpoint["color"]
+                else:
+                    # Use custom label color (default black)
+                    color = custom_label_color
+
+                painter.setPen(
+                    QColor(int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+                )
+
+                # Calculate offset direction from origin to endpoint in screen space
+                # This ensures labels are positioned away from the cylinder
+                offset_x, offset_y = 8, 0  # Default offset
+                if origin_screen:
+                    dx = screen_pos[0] - origin_screen[0]
+                    dy = screen_pos[1] - origin_screen[1]
+                    length = (dx * dx + dy * dy) ** 0.5
+                    if length > 0.001:
+                        # Normalize and scale the offset
+                        offset_x = dx / length * 15
+                        offset_y = dy / length * 15
+
+                # Draw the label offset in the direction of the axis
+                painter.drawText(
+                    QPoint(int(screen_pos[0] + offset_x), int(screen_pos[1] + offset_y)),
+                    endpoint["label"],
+                )
+
+        painter.end()
 
     def _project_to_screen(self, pos_3d, mvp):
         """Project a 3D position to screen coordinates."""

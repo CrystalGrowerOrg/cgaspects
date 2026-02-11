@@ -1,6 +1,8 @@
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QCheckBox,
+    QColorDialog,
     QComboBox,
     QDialog,
     QDoubleSpinBox,
@@ -43,17 +45,34 @@ class AxesSettingsDialog(QDialog):
         style_group.setLayout(style_layout)
         main_layout.addWidget(style_group)
 
-        # # Labels Group
-        # labels_group = QGroupBox("Axis Labels")
-        # labels_layout = QFormLayout()
+        # Labels Group
+        labels_group = QGroupBox("Axis Labels")
+        labels_layout = QFormLayout()
 
-        # self.labels_combo = QComboBox()
-        # self.labels_combo.addItems(["x, y, z", "a, b, c"])
-        # self.labels_combo.setCurrentText("x, y, z")
-        # labels_layout.addRow("Label Style:", self.labels_combo)
+        self.show_labels_checkbox = QCheckBox()
+        self.show_labels_checkbox.setChecked(True)
+        self.show_labels_checkbox.setToolTip("Show or hide axis labels (x, y, z or a, b, c)")
+        labels_layout.addRow("Show Labels:", self.show_labels_checkbox)
 
-        # labels_group.setLayout(labels_layout)
-        # main_layout.addWidget(labels_group)
+        # Label color options
+        self.label_color_same_as_axes = QCheckBox()
+        self.label_color_same_as_axes.setChecked(False)
+        self.label_color_same_as_axes.setToolTip("Use the same color as the axes for labels")
+        labels_layout.addRow("Match Axes Color:", self.label_color_same_as_axes)
+
+        # Custom label color (default black)
+        label_color_layout = QHBoxLayout()
+        self.label_color_button = QPushButton()
+        self.label_color = QColor(0, 0, 0)  # Default black
+        self._update_color_button(self.label_color_button, self.label_color)
+        self.label_color_button.clicked.connect(self._pick_label_color)
+        self.label_color_button.setToolTip("Click to choose label color")
+        label_color_layout.addWidget(self.label_color_button)
+        label_color_layout.addStretch()
+        labels_layout.addRow("Label Color:", label_color_layout)
+
+        labels_group.setLayout(labels_layout)
+        main_layout.addWidget(labels_group)
 
         # Scale Group
         scale_group = QGroupBox("Scale Settings")
@@ -113,7 +132,8 @@ class AxesSettingsDialog(QDialog):
         # Connect signals
         self.style_combo.currentTextChanged.connect(self._emit_settings)
         self.thickness_spinbox.valueChanged.connect(self._emit_settings)
-        # self.labels_combo.currentTextChanged.connect(self._emit_settings)
+        self.show_labels_checkbox.stateChanged.connect(self._emit_settings)
+        self.label_color_same_as_axes.stateChanged.connect(self._on_label_color_mode_changed)
         self.length_multiplier_spinbox.valueChanged.connect(self._emit_settings)
         self.x_spinbox.valueChanged.connect(self._emit_settings)
         self.y_spinbox.valueChanged.connect(self._emit_settings)
@@ -121,6 +141,31 @@ class AxesSettingsDialog(QDialog):
 
         self.apply_button.clicked.connect(self._emit_settings)
         self.close_button.clicked.connect(self.close)
+
+        # Initial state for label color button
+        self._on_label_color_mode_changed()
+
+    def _update_color_button(self, button, color):
+        """Update a button's appearance to show the selected color."""
+        button.setStyleSheet(
+            f"background-color: {color.name()}; "
+            f"border: 1px solid #888; "
+            f"min-width: 60px; min-height: 24px;"
+        )
+
+    def _pick_label_color(self):
+        """Open color picker for label color."""
+        color = QColorDialog.getColor(self.label_color, self, "Select Label Color")
+        if color.isValid():
+            self.label_color = color
+            self._update_color_button(self.label_color_button, color)
+            self._emit_settings()
+
+    def _on_label_color_mode_changed(self):
+        """Handle changes to the 'match axes color' checkbox."""
+        same_as_axes = self.label_color_same_as_axes.isChecked()
+        self.label_color_button.setEnabled(not same_as_axes)
+        self._emit_settings()
 
     def _emit_settings(self):
         self.settingsChanged.emit(self.get_settings())
@@ -130,7 +175,13 @@ class AxesSettingsDialog(QDialog):
         return {
             "style": self.style_combo.currentText().lower(),
             "thickness": self.thickness_spinbox.value(),
-            # 'label_style': self.labels_combo.currentText(),
+            "show_labels": self.show_labels_checkbox.isChecked(),
+            "label_color_same_as_axes": self.label_color_same_as_axes.isChecked(),
+            "label_color": (
+                self.label_color.redF(),
+                self.label_color.greenF(),
+                self.label_color.blueF(),
+            ),
             "length_multiplier": self.length_multiplier_spinbox.value(),
             "origin": (self.x_spinbox.value(), self.y_spinbox.value(), self.z_spinbox.value()),
         }
@@ -146,10 +197,16 @@ class AxesSettingsDialog(QDialog):
         if "thickness" in settings:
             self.thickness_spinbox.setValue(settings["thickness"])
 
-        # if 'label_style' in settings:
-        #     index = self.labels_combo.findText(settings['label_style'])
-        #     if index >= 0:
-        #         self.labels_combo.setCurrentIndex(index)
+        if "show_labels" in settings:
+            self.show_labels_checkbox.setChecked(settings["show_labels"])
+
+        if "label_color_same_as_axes" in settings:
+            self.label_color_same_as_axes.setChecked(settings["label_color_same_as_axes"])
+
+        if "label_color" in settings:
+            r, g, b = settings["label_color"]
+            self.label_color = QColor.fromRgbF(r, g, b)
+            self._update_color_button(self.label_color_button, self.label_color)
 
         if "length_multiplier" in settings:
             self.length_multiplier_spinbox.setValue(settings["length_multiplier"])

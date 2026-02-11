@@ -354,6 +354,9 @@ class AxesRenderer:
         self.points = None
         self.crystallography = None  # Store crystallography object for fractional coords
         self.axes_thickness = 3.5  # Default thickness
+        self.show_labels = True  # Whether to show axis labels
+        self.label_color_same_as_axes = True  # Whether labels use axes colors
+        self.label_color = (0.0, 0.0, 0.0)  # Default black for labels
 
         # Create shader programs for each rendering mode
         self.programs = {}
@@ -517,6 +520,12 @@ class AxesRenderer:
             self.axes_thickness = settings["thickness"]
         if "label_style" in settings:
             self.label_style = settings["label_style"]
+        if "show_labels" in settings:
+            self.show_labels = settings["show_labels"]
+        if "label_color_same_as_axes" in settings:
+            self.label_color_same_as_axes = settings["label_color_same_as_axes"]
+        if "label_color" in settings:
+            self.label_color = settings["label_color"]
         if "length_multiplier" in settings:
             self.length_multiplier = settings["length_multiplier"]
         if "origin" in settings:
@@ -528,31 +537,42 @@ class AxesRenderer:
         else:
             self._initialize_axes("fractional")
 
-    # def get_axis_endpoints(self):
-    #     """Get the endpoints of the axes for label placement."""
-    #     if self.points is None:
-    #         return []
+    def get_axis_endpoints(self):
+        """Get the endpoints of the axes for label placement."""
+        if self.points is None:
+            return []
 
-    #     # Extract axis endpoints (every other point starting from index 1)
-    #     # Points are: origin, end_a, origin, end_b, origin, end_c
-    #     endpoints = []
-    #     labels = self.label_style.replace(' ', '').split(',')
+        # Extract axis endpoints (every other point starting from index 1)
+        # Points are: origin, end_a, origin, end_b, origin, end_c
+        endpoints = []
 
-    #     for i, label in enumerate(labels):
-    #         # Each axis is 2 points (origin and endpoint), 6 floats each
-    #         endpoint_idx = (i * 2 + 1) * 6
-    #         if endpoint_idx + 2 < len(self.points):
-    #             endpoints.append({
-    #                 'position': (self.points[endpoint_idx],
-    #                            self.points[endpoint_idx + 1],
-    #                            self.points[endpoint_idx + 2]),
-    #                 'label': label,
-    #                 'color': (self.points[endpoint_idx + 3],
-    #                         self.points[endpoint_idx + 4],
-    #                         self.points[endpoint_idx + 5])
-    #             })
+        # Determine labels based on whether we're using fractional or Cartesian
+        if self.crystallography is not None:
+            labels = ["a", "b", "c"]
+        else:
+            labels = ["x", "y", "z"]
 
-    #     return endpoints
+        for i, label in enumerate(labels):
+            # Each axis is 2 points (origin and endpoint), 6 floats each
+            endpoint_idx = (i * 2 + 1) * 6
+            if endpoint_idx + 5 < len(self.points):
+                endpoints.append(
+                    {
+                        "position": (
+                            self.points[endpoint_idx],
+                            self.points[endpoint_idx + 1],
+                            self.points[endpoint_idx + 2],
+                        ),
+                        "label": label,
+                        "color": (
+                            self.points[endpoint_idx + 3],
+                            self.points[endpoint_idx + 4],
+                            self.points[endpoint_idx + 5],
+                        ),
+                    }
+                )
+
+        return endpoints
 
     def setUniforms(self, **kwargs):
         for k, v in kwargs.items():

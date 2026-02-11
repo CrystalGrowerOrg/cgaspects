@@ -234,7 +234,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create Toggle Axes action (starts disabled until lattice params are set)
         self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
-        self.actionToggleAxes.setShortcut("Shift+x")
+        self.actionToggleAxes.setShortcut("Shift+A")
         self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
         self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
         self.actionToggleAxes.triggered.connect(self.toggle_axes)
