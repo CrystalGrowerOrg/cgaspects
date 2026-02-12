@@ -121,9 +121,18 @@ class VisualisationWidget(QOpenGLWidget):
         if self.sim_num != value:
             self.sim_num = value
             self.crystal = CrystalCloud.from_file(self.xyz_path_list[value])
+            if self.crystal.empty:
+                self.showNoDataOverlay()
+                return
             self.xyz = self.crystal.get_raw_frame_coords(0)
             self.initGeometry()
             self.update()
+
+    def showNoDataOverlay(self):
+        """Show an overlay message when there are no points to display."""
+        self.overlay.setText("No point data available for this simulation")
+        self.overlay.setVisible(True)
+        self.update()
 
     def set_fractional_axes(self, crystallography):
         """Set the axes to fractional coordinates using the provided crystallography object."""

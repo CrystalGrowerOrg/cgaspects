@@ -72,9 +72,8 @@ class GrowthRate:
             logger.warning("Selecting growth directions cancelled")
             return
 
-        # if growth_rate_dialog.exec() == QDialog.Accepted:
         self.selected_directions = growth_rate_dialog.selected_directions
-        # self.auto_plotting = growth_rate_dialog.plotting_checkbox.isChecked()
+        self.xaxis_mode = growth_rate_dialog.xaxis_mode
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
@@ -89,12 +88,14 @@ class GrowthRate:
                 size_file_list=self.information.size_files,
                 supersat_list=self.information.supersats,
                 directions=self.selected_directions,
+                xaxis_mode=self.xaxis_mode,
             )
             self.plot(plotting_csv=growth_rate_df)
         if self.threadpool:
             worker = WorkerGrowthRates(
                 information=self.information,
                 selected_directions=self.selected_directions,
+                xaxis_mode=self.xaxis_mode,
             )
             worker.signals.progress.connect(self.update_progress)
             worker.signals.result.connect(self.plot)

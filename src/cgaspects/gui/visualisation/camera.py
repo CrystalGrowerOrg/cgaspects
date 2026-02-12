@@ -7,9 +7,15 @@ LOG = logging.getLogger("CGA:Camera")
 
 def pca(vertices):
     "returns the magnitudes and the principle axes"
+    if len(vertices) < 2:
+        return np.ones(3), np.eye(3)
     centered_vertices = vertices - np.mean(vertices, axis=0)
     covariance_matrix = np.cov(centered_vertices.T)
-    U, S, vh = np.linalg.svd(covariance_matrix)
+    try:
+        U, S, vh = np.linalg.svd(covariance_matrix)
+    except np.linalg.LinAlgError:
+        return np.ones(3), np.eye(3)
+    S = np.where(S > 0, S, 1.0)
     return S, vh
 
 

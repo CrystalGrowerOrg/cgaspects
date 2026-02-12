@@ -222,6 +222,11 @@ class CrystalCloud:
         return self.frames.coords
 
     @property
+    def empty(self) -> bool:
+        """Return True if the crystal has no point data."""
+        return self.xyz is None or self.xyz.size == 0
+
+    @property
     def coords(self) -> Optional[np.ndarray]:
         """Return the coordinates of the last frame (index -1)."""
         return self.frames.get_coords(-1)
@@ -273,9 +278,13 @@ class CrystalCloud:
 
     @staticmethod
     def normalise_verts(verts, center=True):
+        if verts.size == 0:
+            return verts
         if center:
             verts = verts - np.mean(verts, axis=0)
         norm = np.linalg.norm(verts, axis=1).max()
+        if norm == 0:
+            return verts
         verts /= norm
         return verts
 

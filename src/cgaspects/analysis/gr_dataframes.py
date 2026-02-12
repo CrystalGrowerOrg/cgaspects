@@ -34,23 +34,40 @@ def build_growthrates(
     directions: List[str],
     signals=None,
     time_tol: float = 1e-12,
+    xaxis_mode: str = "auto",
 ):
-    """Generate the growth rate dataframe from size.csv files."""
+    """Generate the growth rate dataframe from size.csv files.
+
+    Parameters
+    ----------
+    xaxis_mode : str
+        How to choose the x-axis for linear fitting:
+        - ``"auto"``  – use the time column when present and valid,
+          otherwise fall back to row index for all files.
+        - ``"time"``  – always use the time column; files without a
+          valid time column are skipped.
+        - ``"index"`` – always use row index, ignoring any time column.
+    """
     n_size_files = len(size_file_list)
 
     if n_size_files == 0:
         return None
 
     logger.info("%s size files used to calculate growth rate data", n_size_files)
+    logger.info("X-axis mode: %s", xaxis_mode)
     print(directions)
 
     growth_list = []
-    use_index_for_all = False
+    kept_supersats = []
+
+    # In "index" mode we never look at the time column
+    use_index_for_all = xaxis_mode == "index"
     restart = True
 
     while restart:
         restart = False
         growth_list = []
+        kept_supersats = []
 
         for i, f in enumerate(size_file_list):
             f = Path(f)
@@ -72,6 +89,13 @@ def build_growthrates(
                 # Check if time column is suitable
                 time_col = "time"
                 if time_col not in lt_df.columns:
+                    if xaxis_mode == "time":
+                        logger.warning(
+                            "Skipping file %s: time column not found (forced time mode)",
+                            f.name,
+                        )
+                        continue
+                    # auto mode: fall back to index for all files
                     logger.info(
                         "Time column missing in file %s - restarting with index for all files",
                         f.name,
@@ -86,8 +110,15 @@ def build_growthrates(
                         or len(x_time) < 2
                         or np.ptp(x_time) < time_tol
                     ):
+                        if xaxis_mode == "time":
+                            logger.warning(
+                                "Skipping file %s: time column unsuitable (forced time mode)",
+                                f.name,
+                            )
+                            continue
+                        # auto mode: fall back to index for all files
                         logger.info(
-                            "Time column unsuitable in file %s (contains NaN/Inf, <2 points, or zero time range) - restarting with index for all files",
+                            "Time column unsuitable in file %s - restarting with index for all files",
                             f.name,
                         )
                         use_index_for_all = True
@@ -106,13 +137,18 @@ def build_growthrates(
                 gr_list.append(model[0])
 
             growth_list.append(gr_list)
+            kept_supersats.append(supersat_list[i])
 
             if signals:
                 prog = (100 * (i + 1)) // n_size_files
                 signals.progress.emit(prog)
 
+    if not growth_list:
+        logger.warning("No files were processed successfully")
+        return None
+
     growth_array = np.asarray(growth_list)
     gr_df = pd.DataFrame(growth_array, columns=["Simulation Number"] + directions)
-    gr_df.insert(1, "Supersaturation", supersat_list)
+    gr_df.insert(1, "Supersaturation", kept_supersats)
 
     return gr_df

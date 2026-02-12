@@ -13,7 +13,11 @@ class TransparentOverlay(QWidget):
         self.label.setAlignment(Qt.AlignCenter)
 
     def setText(self, text):
+        self.label.setPixmap(QPixmap())  # Clear any existing pixmap
         self.label.setText(text)
+        self.label.setStyleSheet(
+            "color: gray; font-size: 16px; font-weight: bold;"
+        )
 
     def showIcon(self):
         pixmap = QPixmap(":/app_icons/app_icons/Overlay.png")

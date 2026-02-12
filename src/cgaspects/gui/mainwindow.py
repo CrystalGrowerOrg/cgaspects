@@ -669,10 +669,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
         if n_xyz > 0:
             self.init_opengl()
-            self.crystal = self.get_crystal(0)
-            self.init_crystal()
 
-            self.update_XYZ_info(self.openglwidget.xyz)
+            crystal_found = False
+            for i in range(n_xyz):
+                self.crystal = self.get_crystal(i)
+                if self.crystal is not None and not self.crystal.empty:
+                    self.setCurrentXYZIndex(i)
+                    self.init_crystal()
+                    crystal_found = True
+                    break
+
+            if not crystal_found:
+                self.openglwidget.showNoDataOverlay()
+
             self.aspect_ratio_pushButton.setEnabled(True)
             self.set_batch_type()
             self.variablesTabWidget.setCurrentIndex(0)
@@ -1071,6 +1080,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openglwidget.get_XYZ_from_list(value=value)
         self.crystal = self.openglwidget.crystal
         self.movie_controls_frame.hide()
+
+        if self.crystal is not None and self.crystal.empty:
+            return
 
         if self.crystal is not None and len(self.crystal) > 1:
             self.movie_controls_frame.show()

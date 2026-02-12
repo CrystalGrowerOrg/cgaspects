@@ -160,10 +160,11 @@ class WorkerAspectRatios(QRunnable):
 
 
 class WorkerGrowthRates(QRunnable):
-    def __init__(self, information, selected_directions):
+    def __init__(self, information, selected_directions, xaxis_mode="auto"):
         super(WorkerGrowthRates, self).__init__()
         self.information = information
         self.selected_directions = selected_directions
+        self.xaxis_mode = xaxis_mode
 
         self.signals = WorkerSignals()
 
@@ -173,6 +174,7 @@ class WorkerGrowthRates(QRunnable):
             supersat_list=self.information.supersats,
             directions=self.selected_directions,
             signals=self.signals,
+            xaxis_mode=self.xaxis_mode,
         )
 
         self.signals.result.emit(growth_rate_df)
