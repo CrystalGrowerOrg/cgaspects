@@ -133,7 +133,11 @@ def build_growthrates(
             gr_list = [sim_num]
             for direction in directions:
                 y_data = np.asarray(lt_df[direction], dtype=float)
-                model = np.polyfit(x_data, y_data, 1)
+                mask = y_data > 0
+                if mask.sum() < 2:
+                    gr_list.append(0.0)
+                    continue
+                model = np.polyfit(x_data[mask], y_data[mask], 1)
                 gr_list.append(model[0])
 
             growth_list.append(gr_list)
