@@ -3,10 +3,10 @@ from pathlib import Path
 
 import numpy as np
 from matplotlib import cm
-from OpenGL.GL import GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
+from OpenGL.GL import GL_BLEND, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, QUrl, QPoint
-from PySide6.QtGui import QColor, QDesktopServices, QPainter, QFont
+from PySide6.QtCore import Qt, QUrl, QPoint, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QPainter, QFont, QVector3D
 from PySide6.QtOpenGL import QOpenGLDebugLogger, QOpenGLFramebufferObject
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
@@ -30,6 +30,11 @@ class VisualisationWidget(QOpenGLWidget):
     style = "Spheres"
     show_mesh_edges = False
 
+    # Signals for point interaction
+    pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
+    selectionChanged = Signal(set)  # Set of selected point indices
+    pointsDeleted = Signal(int)  # Number of points deleted
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -42,6 +47,14 @@ class VisualisationWidget(QOpenGLWidget):
         self.centre = self.geom.center()
         print(self.geom)
         print(self.geom.getRect())
+
+        # Point picking and selection
+        self.setMouseTracking(True)  # Enable hover detection
+        self._hovered_point_index = None
+        self._selected_points = set()  # Set of selected point indices
+        self._last_selected_index = None  # For shift-click range selection
+        self._pick_radius = 0.05  # Picking radius in normalized coordinates
+        self._deleted_points = set()  # Set of deleted point indices
 
         self.xyz_path_list = []
         self.sim_num = 0
@@ -306,6 +319,107 @@ class VisualisationWidget(QOpenGLWidget):
                 msgBox.setText(f"Failed to export mesh:\n{str(e)}")
                 msgBox.exec_()
 
+    def exportXYZDialog(self):
+        """Open dialog to export the current point cloud as an XYZ file."""
+        if self.xyz is None:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No point cloud data loaded to export.",
+            )
+            return
+
+        # Get active points (excluding deleted ones)
+        active_xyz = self.get_active_xyz()
+        if active_xyz is None or len(active_xyz) == 0:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No points available to export (all points may have been deleted).",
+            )
+            return
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Export XYZ File", "", "XYZ Files (*.XYZ);;All Files (*)"
+        )
+
+        if file_name:
+            if not file_name.upper().endswith(".XYZ"):
+                file_name += ".XYZ"
+
+            try:
+                self.exportXYZ(file_name, active_xyz)
+
+                # Confirmation dialog
+                deleted_count = len(self._deleted_points)
+                msg = f"XYZ file saved to:\n{file_name}\n\n"
+                msg += f"Points exported: {len(active_xyz)}"
+                if deleted_count > 0:
+                    msg += f"\nPoints omitted (deleted): {deleted_count}"
+
+                msgBox = QMessageBox(self)
+                msgBox.setWindowTitle("XYZ Exported")
+                msgBox.setText(msg)
+                msgBox.setStandardButtons(QMessageBox.Open | QMessageBox.Ok)
+                msgBox.setDefaultButton(QMessageBox.Ok)
+
+                open_folder_button = msgBox.addButton("Open Folder", QMessageBox.ActionRole)
+
+                result = msgBox.exec_()
+
+                if result == QMessageBox.Open:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
+                elif msgBox.clickedButton() == open_folder_button:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(Path(file_name).parent))
+
+            except Exception as e:
+                logger.error("Failed to export XYZ: %s", e)
+                QMessageBox.critical(
+                    self,
+                    "Export Failed",
+                    f"Failed to export XYZ file:\n{str(e)}",
+                )
+
+    def exportXYZ(self, file_name, xyz_data=None):
+        """Export point cloud data to an XYZ file.
+
+        Args:
+            file_name: Path to save the XYZ file
+            xyz_data: Optional XYZ data array. If None, uses active (non-deleted) points.
+        """
+        if xyz_data is None:
+            xyz_data = self.get_active_xyz()
+
+        if xyz_data is None or len(xyz_data) == 0:
+            raise ValueError("No point cloud data to export")
+
+        num_points = len(xyz_data)
+
+        with open(file_name, "w") as f:
+            # Write header line (number of points)
+            f.write(f"{num_points}\n")
+
+            # Write comment line
+            comment = f"Exported from CrystalAspects // {num_points}"
+            f.write(f"{comment}\n")
+
+            # Write point data
+            # Format: type number layer x y z [site] [energy]
+            for row in xyz_data:
+                if len(row) >= 6:
+                    # Basic format: type number layer x y z
+                    line = f"{int(row[0])} {int(row[1])} {int(row[2])} {row[3]:.6f} {row[4]:.6f} {row[5]:.6f}"
+
+                    # Add optional columns if present
+                    if len(row) > 6:
+                        line += f" {int(row[6])}"  # Site number
+                    if len(row) > 7:
+                        line += f" {row[7]:.6f}"  # Energy
+
+                    f.write(line + "\n")
+
+        logger.info(f"Exported {num_points} points to {file_name}")
+
     def saveMesh(self, file_name, subdivision_level=2):
         """Export the current visualization as a 3D mesh file
 
@@ -462,6 +576,20 @@ class VisualisationWidget(QOpenGLWidget):
         self.lastMousePosition = event.pos()
         if event.button() == QtCore.Qt.RightButton:
             self.rightMouseButtonPressed = True
+        elif event.button() == QtCore.Qt.LeftButton:
+            # Check for point selection
+            point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
+            if point_idx is not None:
+                modifiers = event.modifiers()
+                if modifiers & QtCore.Qt.ShiftModifier and self._last_selected_index is not None:
+                    # Shift+Click: Range selection
+                    self.select_range(point_idx)
+                elif modifiers & QtCore.Qt.ControlModifier:
+                    # Ctrl+Click: Toggle selection
+                    self.select_point(point_idx, toggle=True)
+                else:
+                    # Regular click: Select single point
+                    self.select_point(point_idx)
 
     def keyPressEvent(self, event):
         dx, dy = 0, 0
@@ -588,6 +716,223 @@ class VisualisationWidget(QOpenGLWidget):
         self.camera.right = QVector3D.crossProduct(up, direction).normalized()
         self.update()
 
+    def _screen_to_ray(self, screen_x, screen_y):
+        """Convert screen coordinates to a ray in world space.
+
+        Returns:
+            tuple: (ray_origin, ray_direction) as numpy arrays
+        """
+        # Get normalized device coordinates
+        ndc_x = (2.0 * screen_x / self.width()) - 1.0
+        ndc_y = 1.0 - (2.0 * screen_y / self.height())
+
+        # Get the inverse of the model-view-projection matrix
+        mvp = self.camera.modelViewProjectionMatrix(self.aspect_ratio)
+        mvp_inv = mvp.inverted()[0]
+
+        # Near and far points in NDC
+        near_point = mvp_inv.map(QVector3D(ndc_x, ndc_y, -1.0))
+        far_point = mvp_inv.map(QVector3D(ndc_x, ndc_y, 1.0))
+
+        # Ray direction
+        ray_dir = far_point - near_point
+        ray_dir.normalize()
+
+        ray_origin = np.array([near_point.x(), near_point.y(), near_point.z()])
+        ray_direction = np.array([ray_dir.x(), ray_dir.y(), ray_dir.z()])
+
+        return ray_origin, ray_direction
+
+    def _find_point_at_screen_pos(self, screen_x, screen_y):
+        """Find the closest point to a screen position.
+
+        Args:
+            screen_x: X coordinate in screen space
+            screen_y: Y coordinate in screen space
+
+        Returns:
+            tuple: (point_index, distance) or (None, None) if no point found
+        """
+        if self.xyz is None or len(self.xyz) == 0:
+            return None, None
+
+        ray_origin, ray_direction = self._screen_to_ray(screen_x, screen_y)
+
+        # Get point positions (columns 3:6 contain x, y, z)
+        points = self.xyz[:, 3:6]
+
+        # Calculate distance from each point to the ray
+        # Using point-to-line distance formula
+        # d = ||(p - o) - ((p - o) · d) * d|| where p=point, o=origin, d=direction
+
+        # Vector from ray origin to each point
+        to_points = points - ray_origin
+
+        # Project onto ray direction
+        projections = np.dot(to_points, ray_direction)
+
+        # Only consider points in front of the camera
+        valid_mask = projections > 0
+
+        # Exclude deleted points
+        for idx in self._deleted_points:
+            if idx < len(valid_mask):
+                valid_mask[idx] = False
+
+        if not np.any(valid_mask):
+            return None, None
+
+        # Calculate perpendicular distance to ray
+        closest_on_ray = ray_origin + np.outer(projections, ray_direction)
+        distances = np.linalg.norm(points - closest_on_ray, axis=1)
+
+        # Apply mask for valid points
+        distances[~valid_mask] = np.inf
+
+        # Find minimum distance
+        min_idx = np.argmin(distances)
+        min_dist = distances[min_idx]
+
+        # Check if within picking radius (scale by point size)
+        pick_threshold = self._pick_radius * self.point_size
+        if min_dist < pick_threshold:
+            return min_idx, min_dist
+
+        return None, None
+
+    def _get_point_data(self, point_index):
+        """Get data for a specific point.
+
+        Args:
+            point_index: Index of the point
+
+        Returns:
+            dict: Point data including position, type, number, layer, etc.
+        """
+        if self.xyz is None or point_index is None or point_index >= len(self.xyz):
+            return None
+
+        row = self.xyz[point_index]
+        data = {
+            "position": (row[3], row[4], row[5]),
+            "type": row[0],
+            "number": row[1],
+            "layer": row[2],
+        }
+
+        # Add optional columns if available
+        if self.xyz.shape[1] > 6:
+            data["site"] = row[6]
+        if self.xyz.shape[1] > 7:
+            data["energy"] = row[7]
+
+        return data
+
+    def get_selected_points(self):
+        """Get the set of currently selected point indices."""
+        return self._selected_points.copy()
+
+    def clear_selection(self):
+        """Clear the current point selection."""
+        self._selected_points.clear()
+        self._last_selected_index = None
+        self.selectionChanged.emit(self._selected_points.copy())
+        self.initGeometry()
+        self.update()
+
+    def select_point(self, index, add_to_selection=False, toggle=False):
+        """Select a point by index.
+
+        Args:
+            index: Point index to select
+            add_to_selection: If True, add to existing selection
+            toggle: If True, toggle selection state
+        """
+        if index is None:
+            return
+
+        if toggle:
+            if index in self._selected_points:
+                self._selected_points.discard(index)
+            else:
+                self._selected_points.add(index)
+        elif add_to_selection:
+            self._selected_points.add(index)
+        else:
+            self._selected_points = {index}
+
+        self._last_selected_index = index
+        self.selectionChanged.emit(self._selected_points.copy())
+        self.initGeometry()
+        self.update()
+
+    def select_range(self, end_index):
+        """Select a range of points from last selected to end_index."""
+        if self._last_selected_index is None or end_index is None:
+            return
+
+        start = min(self._last_selected_index, end_index)
+        end = max(self._last_selected_index, end_index)
+
+        for i in range(start, end + 1):
+            if i not in self._deleted_points:
+                self._selected_points.add(i)
+
+        self.selectionChanged.emit(self._selected_points.copy())
+        self.initGeometry()
+        self.update()
+
+    def delete_selected_points(self):
+        """Delete the currently selected points.
+
+        Returns:
+            int: Number of points deleted
+        """
+        if not self._selected_points:
+            return 0
+
+        count = len(self._selected_points)
+        self._deleted_points.update(self._selected_points)
+        self._selected_points.clear()
+        self._last_selected_index = None
+
+        self.selectionChanged.emit(self._selected_points.copy())
+        self.pointsDeleted.emit(count)
+        self.initGeometry()
+        self.update()
+
+        logger.info(f"Deleted {count} points, total deleted: {len(self._deleted_points)}")
+        return count
+
+    def restore_deleted_points(self):
+        """Restore all deleted points."""
+        count = len(self._deleted_points)
+        self._deleted_points.clear()
+        self.initGeometry()
+        self.update()
+        logger.info(f"Restored {count} deleted points")
+        return count
+
+    def get_active_xyz(self):
+        """Get XYZ data excluding deleted points.
+
+        Returns:
+            np.ndarray: XYZ data with deleted points removed
+        """
+        if self.xyz is None:
+            return None
+
+        if not self._deleted_points:
+            return self.xyz.copy()
+
+        # Create mask for non-deleted points
+        mask = np.ones(len(self.xyz), dtype=bool)
+        for idx in self._deleted_points:
+            if idx < len(mask):
+                mask[idx] = False
+
+        return self.xyz[mask].copy()
+
     def mouseMoveEvent(self, event):
         dx = event.pos().x() - self.lastMousePosition.x()
         dy = event.pos().y() - self.lastMousePosition.y()
@@ -605,6 +950,14 @@ class VisualisationWidget(QOpenGLWidget):
 
         elif self.rightMouseButtonPressed:
             self.camera.pan(-dx, dy)  # Negate dx to get correct direction
+
+        # Handle hover detection when no button is pressed
+        elif event.buttons() == QtCore.Qt.NoButton:
+            point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
+            if point_idx != self._hovered_point_index:
+                self._hovered_point_index = point_idx
+                point_data = self._get_point_data(point_idx) if point_idx is not None else None
+                self.pointHovered.emit(point_idx, point_data)
 
         self.lastMousePosition = event.pos()
         self.update()
@@ -745,8 +1098,27 @@ class VisualisationWidget(QOpenGLWidget):
                 mask = np.isin(site_numbers, list(site_set))
                 colors[mask] = highlight_color
 
+        # Create selection flags array (1.0 for selected, 0.0 for not selected)
+        selection_flags = np.zeros((len(points), 1), dtype=np.float32)
+        if self._selected_points:
+            for idx in self._selected_points:
+                if idx < len(selection_flags):
+                    selection_flags[idx] = 1.0
+
+        # Handle deleted points - filter them out
+        if self._deleted_points:
+            # Create mask for non-deleted points
+            mask = np.ones(len(points), dtype=bool)
+            for idx in self._deleted_points:
+                if idx < len(mask):
+                    mask[idx] = False
+            points = points[mask]
+            colors = colors[mask]
+            selection_flags = selection_flags[mask]
+
         try:
-            attributes = np.concatenate((points, colors), axis=1)
+            # Concatenate: position (3) + color (3) + selection (1) = 7 floats
+            attributes = np.concatenate((points, colors, selection_flags), axis=1)
 
             return attributes
         except ValueError as exc:
@@ -863,6 +1235,9 @@ class VisualisationWidget(QOpenGLWidget):
 
     def paintGL(self):
         gl = self.context().extraFunctions()
+        # Restore GL state that QPainter may have changed in the previous frame
+        gl.glEnable(GL_DEPTH_TEST)
+        gl.glDisable(GL_BLEND)
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.draw(gl)
 

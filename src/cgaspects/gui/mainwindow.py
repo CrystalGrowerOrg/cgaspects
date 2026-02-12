@@ -31,6 +31,7 @@ from .dialogs.axes_settings_dialog import AxesSettingsDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
+    PointInfoToolbar,
     SimulationVariablesWidget,
     TextFileViewer,
     VisualizationSettingsWidget,
@@ -138,7 +139,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.crystal_info = CrystalInfo()
         self.crystalInfoChanged.connect(self.crystalInfoWidget.update)
-        self.gl_vLayout.addWidget(self.openglwidget)
+        self.gl_vLayout.addWidget(self.openglwidget, 0, 0)  # Row 0, Column 0
+
+        # Add point info toolbar on right side of OpenGL widget
+        self.pointInfoToolbar = PointInfoToolbar(self)
+        self.pointInfoToolbar.set_collapsed(True)  # Start collapsed
+        self.gl_vLayout.addWidget(self.pointInfoToolbar, 0, 1)  # Row 0, Column 1
+        self.gl_vLayout.setColumnStretch(0, 1)  # OpenGL widget stretches
+        self.gl_vLayout.setColumnStretch(1, 0)  # Toolbar doesn't stretch
+
+        # Connect toolbar signals
+        self.pointInfoToolbar.deleteSelectedRequested.connect(self.delete_selected_points)
+        self.pointInfoToolbar.clearSelectionRequested.connect(self.clear_point_selection)
+        self.pointInfoToolbar.exportXYZRequested.connect(self.export_xyz)
+
+        # Connect OpenGL widget signals to toolbar
+        self.openglwidget.pointHovered.connect(self.pointInfoToolbar.update_hover_info)
+        self.openglwidget.selectionChanged.connect(self.pointInfoToolbar.update_selection_info)
 
         self.xyzFilenameListWidget.currentRowChanged.connect(self.setCurrentXYZIndex)
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
@@ -187,6 +204,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
+        self.actionExportXYZ = QAction("Export Edited XYZ", self)
+        self.actionExportXYZ.setShortcut("Ctrl+Shift+E")
+        self.actionExportXYZ.setToolTip("Export the current point cloud to an XYZ file")
+        self.actionExportXYZ.triggered.connect(self.export_xyz)
+        self.actionExportXYZ.setEnabled(False)  # Disabled until XYZ is loaded
+        self.menuFile.addAction(self.actionExportXYZ)
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
 
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
@@ -420,6 +443,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.clear_highlighted_sites()
             logger.info("Cleared all site highlights")
 
+    def delete_selected_points(self):
+        """Delete the currently selected points in the visualization."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            count = self.openglwidget.delete_selected_points()
+            if count > 0:
+                self.log_message(f"Deleted {count} point(s)", "info")
+
+    def clear_point_selection(self):
+        """Clear the current point selection."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.clear_selection()
+            self.log_message("Selection cleared", "info")
+
+    def export_xyz(self):
+        """Export the current point cloud to an XYZ file."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.exportXYZDialog()
+
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
 
@@ -590,6 +631,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             self.openglwidget.initGeometry()
             self.actionRender.setEnabled(True)
+            self.actionExportXYZ.setEnabled(True)
             self.saveframe_pushButton.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
