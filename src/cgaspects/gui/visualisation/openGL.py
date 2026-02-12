@@ -14,6 +14,8 @@ from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 from ...fileio.xyz_file import CrystalCloud
 from .axes_renderer import AxesRenderer
 from .camera import Camera
+from .direction_renderer import DirectionRenderer
+from .plane_renderer import PlaneRenderer
 from .point_cloud_renderer import SimplePointRenderer
 from .sphere_renderer import SphereRenderer
 from .mesh_renderer import MeshRenderer
@@ -53,7 +55,7 @@ class VisualisationWidget(QOpenGLWidget):
         self._hovered_point_index = None
         self._selected_points = set()  # Set of selected point indices
         self._last_selected_index = None  # For shift-click range selection
-        self._pick_radius = 0.05  # Picking radius in normalized coordinates
+        self._pick_radius = 0.1  # Picking radius in normalized coordinates
         self._deleted_points = set()  # Set of deleted point indices
 
         self.xyz_path_list = []
@@ -136,6 +138,18 @@ class VisualisationWidget(QOpenGLWidget):
             self.axes_renderer.set_cartesian()
             self.update()
             logger.info("Axes reset to Cartesian coordinates")
+
+    def set_directions(self, directions, crystallography=None):
+        """Set crystallographic directions to render."""
+        if self.direction_renderer is not None:
+            self.direction_renderer.set_directions(directions, crystallography)
+            self.update()
+
+    def set_planes(self, planes, crystallography=None):
+        """Set crystallographic planes to render."""
+        if self.plane_renderer is not None:
+            self.plane_renderer.set_planes(planes, crystallography)
+            self.update()
 
     def highlight_sites(self, highlight_groups, background_color=None):
         """Highlight multiple groups of sites with different colors.
@@ -1150,6 +1164,8 @@ class VisualisationWidget(QOpenGLWidget):
         self.mesh_renderer = MeshRenderer(gl)
         self.line_renderer = LineRenderer(gl)
         self.axes_renderer = AxesRenderer()
+        self.direction_renderer = DirectionRenderer()
+        self.plane_renderer = PlaneRenderer()
         gl.glEnable(GL_DEPTH_TEST)
         gl.glClearColor(color.redF(), color.greenF(), color.blueF(), 1)
 
@@ -1232,6 +1248,48 @@ class VisualisationWidget(QOpenGLWidget):
         self.axes_renderer.setUniforms(**uniforms)
         self.axes_renderer.draw(gl)
         self.axes_renderer.release()
+
+        # Draw directions and planes with alpha blending
+        self._draw_directions_and_planes(gl, uniforms)
+
+    def _draw_directions_and_planes(self, gl, uniforms):
+        """Draw crystallographic directions and planes with transparency support."""
+        from OpenGL.GL import GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CULL_FACE
+
+        has_directions = (
+            self.direction_renderer is not None
+            and self.direction_renderer.numberOfPoints() > 0
+        )
+        has_planes = (
+            self.plane_renderer is not None
+            and self.plane_renderer.numberOfVertices() > 0
+        )
+
+        if not has_directions and not has_planes:
+            return
+
+        gl.glEnable(GL_BLEND)
+        gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        if has_directions:
+            if self.direction_renderer.directions:
+                self.direction_renderer.draw_directions(
+                    gl, uniforms, self.direction_renderer.directions
+                )
+            else:
+                self.direction_renderer.bind()
+                self.direction_renderer.setUniforms(**uniforms)
+                self.direction_renderer.draw(gl)
+                self.direction_renderer.release()
+
+        if has_planes:
+            gl.glDisable(GL_CULL_FACE)
+            self.plane_renderer.bind()
+            self.plane_renderer.setUniforms(**uniforms)
+            self.plane_renderer.draw(gl)
+            self.plane_renderer.release()
+
+        gl.glDisable(GL_BLEND)
 
     def paintGL(self):
         gl = self.context().extraFunctions()

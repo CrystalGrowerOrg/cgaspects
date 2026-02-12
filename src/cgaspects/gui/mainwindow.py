@@ -28,6 +28,8 @@ from .dialogs.about import AboutCGDialog
 from .dialogs.lattice_dialog import LatticeParametersDialog
 from .dialogs.site_highlight_dialog import SiteHighlightDialog
 from .dialogs.axes_settings_dialog import AxesSettingsDialog
+from .dialogs.directions_dialog import DirectionsDialog
+from .dialogs.planes_dialog import PlanesDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
@@ -177,6 +179,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.axes_settings_dialog = AxesSettingsDialog(parent=self)
         self.axes_settings_dialog.settingsChanged.connect(self.handle_axes_settings_changed)
 
+        # Create directions and planes dialogs
+        self.directions_dialog = DirectionsDialog(parent=self)
+        self.directions_dialog.directionsChanged.connect(self.handle_directions_changed)
+        self.directions_dialog.directionsCleared.connect(self.handle_directions_cleared)
+
+        self.planes_dialog = PlanesDialog(parent=self)
+        self.planes_dialog.planesChanged.connect(self.handle_planes_changed)
+        self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
+
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
@@ -235,6 +246,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAxesSettings.setToolTip("Configure axes rendering settings")
         self.actionAxesSettings.triggered.connect(self.show_axes_settings_dialog)
         self.menuView.addAction(self.actionAxesSettings)
+
+        # Add Toggle Point Info Sidebar action to View menu
+        self.actionToggleSidebar = QAction("Toggle Point Info Panel", self)
+        self.actionToggleSidebar.setShortcut("Ctrl+B")
+        self.actionToggleSidebar.setToolTip("Show/hide the point info side panel")
+        self.actionToggleSidebar.triggered.connect(self._toggle_point_info_sidebar)
+        self.menuView.addAction(self.actionToggleSidebar)
+
+        # Create Crystallography menu
+        from PySide6.QtWidgets import QMenu
+
+        self.menuCrystallography = QMenu("Crystallography", self)
+        self.menuBar.addAction(self.menuCrystallography.menuAction())
+
+        self.actionAddDirections = QAction("Add Directions", self)
+        self.actionAddDirections.setShortcut("Ctrl+Shift+D")
+        self.actionAddDirections.setToolTip("Add crystallographic directions to the visualization")
+        self.actionAddDirections.triggered.connect(self.show_directions_dialog)
+        self.menuCrystallography.addAction(self.actionAddDirections)
+
+        self.actionAddPlanes = QAction("Add Planes", self)
+        self.actionAddPlanes.setShortcut("Ctrl+Shift+L")
+        self.actionAddPlanes.setToolTip("Add crystallographic planes to the visualization")
+        self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
+        self.menuCrystallography.addAction(self.actionAddPlanes)
 
     def setup_log_menu_actions(self):
         # Create Open Log File action
@@ -303,6 +339,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.current_axes_type = "fractional"
                 self.openglwidget.set_fractional_axes(self.crystallography)
                 self.actionToggleAxes.setText("Switch to Cartesian Axes")
+
+                # Update crystallography dialogs
+                self.directions_dialog.set_crystallography(self.crystallography)
+                self.planes_dialog.set_crystallography(self.crystallography)
 
                 self.log_message(
                     f"Axes converted to fractional coordinates using lattice parameters: "
@@ -483,6 +523,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if hasattr(self.openglwidget, "axes_renderer"):
             self.openglwidget.axes_renderer.update_settings(settings)
             self.openglwidget.update()
+
+    def _toggle_point_info_sidebar(self):
+        """Toggle the point info sidebar panel."""
+        self.pointInfoToolbar.set_collapsed(not self.pointInfoToolbar.is_collapsed())
+
+    def show_directions_dialog(self):
+        """Show the directions dialog."""
+        self.directions_dialog.set_crystallography(self.crystallography)
+        self.directions_dialog.show()
+        self.directions_dialog.raise_()
+
+    def show_planes_dialog(self):
+        """Show the planes dialog."""
+        self.planes_dialog.set_crystallography(self.crystallography)
+        self.planes_dialog.show()
+        self.planes_dialog.raise_()
+
+    def handle_directions_changed(self, directions):
+        """Handle changes to crystallographic directions."""
+        if hasattr(self.openglwidget, "set_directions"):
+            self.openglwidget.set_directions(directions, self.crystallography)
+
+    def handle_directions_cleared(self):
+        """Handle clearing of all directions."""
+        if hasattr(self.openglwidget, "set_directions"):
+            self.openglwidget.set_directions([], None)
+
+    def handle_planes_changed(self, planes):
+        """Handle changes to crystallographic planes."""
+        if hasattr(self.openglwidget, "set_planes"):
+            self.openglwidget.set_planes(planes, self.crystallography)
+
+    def handle_planes_cleared(self):
+        """Handle clearing of all planes."""
+        if hasattr(self.openglwidget, "set_planes"):
+            self.openglwidget.set_planes([], None)
 
     def welcome_message(self):
         self.log_message(
@@ -755,6 +831,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.current_axes_type = "fractional"
                 self.openglwidget.set_fractional_axes(self.crystallography)
                 self.actionToggleAxes.setText("Switch to Cartesian Axes")
+                # Update crystallography dialogs
+                self.directions_dialog.set_crystallography(self.crystallography)
+                self.planes_dialog.set_crystallography(self.crystallography)
+
                 self.log_message(
                     f"Auto-loaded lattice parameters: a={cell.a:.2f} b={cell.b:.2f} c={cell.c:.2f}",
                     "info",
