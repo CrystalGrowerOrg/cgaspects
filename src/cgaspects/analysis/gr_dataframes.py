@@ -130,10 +130,15 @@ def build_growthrates(
             tokens = re.findall(r"\d+", f.name)
             sim_num = int(tokens[-1])
 
+            # Keep rows where any direction has length > 0
+            mask = np.any(
+                [np.asarray(lt_df[d], dtype=float) > 0 for d in directions],
+                axis=0,
+            )
+
             gr_list = [sim_num]
             for direction in directions:
                 y_data = np.asarray(lt_df[direction], dtype=float)
-                mask = y_data > 0
                 if mask.sum() < 2:
                     gr_list.append(0.0)
                     continue
