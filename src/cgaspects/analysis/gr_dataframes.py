@@ -130,11 +130,16 @@ def build_growthrates(
             tokens = re.findall(r"\d+", f.name)
             sim_num = int(tokens[-1])
 
-            # Keep rows where any direction has length > 0
-            mask = np.any(
+            # Keep rows only up to the first row where any direction is 0
+            all_positive = np.all(
                 [np.asarray(lt_df[d], dtype=float) > 0 for d in directions],
                 axis=0,
             )
+            first_false = np.argmin(all_positive)
+            # If all True, argmin returns 0 — check if the first element is actually True
+            cutoff = first_false if not all_positive[first_false] else len(all_positive)
+            mask = np.zeros(len(all_positive), dtype=bool)
+            mask[:cutoff] = True
 
             gr_list = [sim_num]
             for direction in directions:
