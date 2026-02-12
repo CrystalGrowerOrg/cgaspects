@@ -266,7 +266,7 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets = {}
 
         w = LabelledDoubleSlider(
-            "Point Size", vrange=(1.0, 20.0), steps=20, parent=self
+            "Point Size", vrange=(0.1, 10.0), steps=20, parent=self
         )
         w.setValue(6.0)
 
@@ -327,7 +327,7 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Show Mesh Edges"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledDoubleSlider("Frame Rate", vrange=(1, 100), steps=50, parent=self)
+        w = LabelledDoubleSlider("Frame Rate", vrange=(0.5, 50), steps=50, parent=self)
         w.setValue(15)
 
         self.widgets["Frame Rate"] = w

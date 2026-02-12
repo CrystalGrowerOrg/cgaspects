@@ -140,6 +140,18 @@ class SiteHighlightDialog(QDialog):
 
         # Store highlight groups as list of (site_numbers, color) tuples
         self.highlight_groups = []
+        # Store original text for each group to allow editing
+        self._group_texts = []
+        self._editing_index = None
+
+        # Connect list click for editing
+        self.highlight_list.itemClicked.connect(self._load_item_for_editing)
+
+        # Cancel edit button (hidden by default)
+        self._cancel_edit_btn = QPushButton("Cancel Edit")
+        self._cancel_edit_btn.clicked.connect(self._cancel_edit)
+        self._cancel_edit_btn.setVisible(False)
+        add_button_layout.addWidget(self._cancel_edit_btn)
 
     def select_color(self):
         """Open color dialog to select highlight color."""
@@ -212,7 +224,7 @@ class SiteHighlightDialog(QDialog):
         return site_numbers
 
     def add_highlight_group(self):
-        """Add a new highlight group to the list."""
+        """Add a new highlight group or update an existing one."""
         text = self.site_input.text()
         site_numbers = self.parse_site_numbers(text)
 
@@ -220,22 +232,58 @@ class SiteHighlightDialog(QDialog):
             self.status_label.setText("No valid site numbers entered")
             return
 
-        # Store the group
-        self.highlight_groups.append((site_numbers, self.highlight_color))
+        if self._editing_index is not None:
+            # Update existing group
+            idx = self._editing_index
+            self.highlight_groups[idx] = (site_numbers, self.highlight_color)
+            self._group_texts[idx] = text
 
-        # Create display item with colored icon
-        color_swatch = create_colored_icon(self.highlight_color, size=(16, 16))
-        sites_str = text if len(text) < 40 else text[:37] + "..."
-        item = QListWidgetItem(color_swatch, f"{sites_str} ({len(site_numbers)} sites)")
-        item.setData(Qt.UserRole, len(self.highlight_groups) - 1)  # Store index
-        self.highlight_list.addItem(item)
+            item = self.highlight_list.item(idx)
+            sites_str = text if len(text) < 40 else text[:37] + "..."
+            item.setIcon(create_colored_icon(self.highlight_color, size=(16, 16)))
+            item.setText(f"{sites_str} ({len(site_numbers)} sites)")
 
-        # Clear input
+            self._cancel_edit()
+            self.apply_all_highlights()
+            self.status_label.setText(f"Updated group with {len(site_numbers)} site(s)")
+        else:
+            # Add new group
+            self.highlight_groups.append((site_numbers, self.highlight_color))
+            self._group_texts.append(text)
+
+            color_swatch = create_colored_icon(self.highlight_color, size=(16, 16))
+            sites_str = text if len(text) < 40 else text[:37] + "..."
+            item = QListWidgetItem(color_swatch, f"{sites_str} ({len(site_numbers)} sites)")
+            item.setData(Qt.UserRole, len(self.highlight_groups) - 1)
+            self.highlight_list.addItem(item)
+
+            self.site_input.clear()
+            self.apply_all_highlights()
+            self.status_label.setText(f"Added group with {len(site_numbers)} site(s)")
+
+    def _load_item_for_editing(self, item):
+        """Load a highlight group into the input fields for editing."""
+        row = self.highlight_list.row(item)
+        if row < 0 or row >= len(self.highlight_groups):
+            return
+        self._editing_index = row
+
+        # Populate fields from stored data
+        self.site_input.setText(self._group_texts[row])
+        self.highlight_color = QColor(self.highlight_groups[row][1])
+        self.color_button.setIcon(create_colored_icon(self.highlight_color))
+
+        self.add_button.setText("Update Highlight Group")
+        self._cancel_edit_btn.setVisible(True)
+        self.status_label.setText(f"Editing group {row}")
+
+    def _cancel_edit(self):
+        """Cancel editing and return to add mode."""
+        self._editing_index = None
+        self.add_button.setText("Add Highlight Group")
+        self._cancel_edit_btn.setVisible(False)
         self.site_input.clear()
-
-        # Apply the highlights
-        self.apply_all_highlights()
-        self.status_label.setText(f"Added group with {len(site_numbers)} site(s)")
+        self.status_label.setText("")
 
     def remove_selected_group(self):
         """Remove the selected highlight group."""
@@ -244,19 +292,22 @@ class SiteHighlightDialog(QDialog):
             self.status_label.setText("No group selected")
             return
 
-        index = current_item.data(Qt.UserRole)
         row = self.highlight_list.currentRow()
+
+        # Cancel edit if removing the item being edited
+        if self._editing_index == row:
+            self._cancel_edit()
+        elif self._editing_index is not None and self._editing_index > row:
+            self._editing_index -= 1
 
         # Remove from list and data
         self.highlight_list.takeItem(row)
-        self.highlight_groups.pop(index)
+        self.highlight_groups.pop(row)
+        self._group_texts.pop(row)
 
         # Update indices in remaining items
         for i in range(self.highlight_list.count()):
-            item = self.highlight_list.item(i)
-            old_index = item.data(Qt.UserRole)
-            if old_index > index:
-                item.setData(Qt.UserRole, old_index - 1)
+            self.highlight_list.item(i).setData(Qt.UserRole, i)
 
         # Reapply all highlights
         self.apply_all_highlights()
@@ -272,7 +323,9 @@ class SiteHighlightDialog(QDialog):
 
     def clear_all_highlights(self):
         """Clear all site highlights."""
+        self._cancel_edit()
         self.highlight_groups.clear()
+        self._group_texts.clear()
         self.highlight_list.clear()
         self.clearHighlights.emit()
         self.site_input.clear()

@@ -162,7 +162,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.xyzFilenameListWidget.currentRowChanged.connect(self.setCurrentXYZIndex)
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
 
-        self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
+        self.saveframe_pushButton.hide()
 
         self.visualizationSettings = VisualizationSettingsWidget(parent=self)
         self.visualizationSettings.setEnabled(enabled=True)
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
-        self.actionExportXYZ = QAction("Export Edited XYZ", self)
+        self.actionExportXYZ = QAction("Export XYZ", self)
         self.actionExportXYZ.setShortcut("Ctrl+Shift+E")
         self.actionExportXYZ.setToolTip("Export the current point cloud to an XYZ file")
         self.actionExportXYZ.triggered.connect(self.export_xyz)
@@ -302,13 +302,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.current_axes_type = "cartesian"
         self.crystallography = None
 
-        # Add actions to View menu
+        # Add log actions to View menu
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionOpenLogFile)
         self.menuView.addAction(self.actionClearLogFile)
-        self.menuView.addSeparator()
-        self.menuView.addAction(self.actionSetLatticeParameters)
-        self.menuView.addAction(self.actionToggleAxes)
+
+        # Add lattice/axes actions to Crystallography menu
+        self.menuCrystallography.addSeparator()
+        self.menuCrystallography.addAction(self.actionSetLatticeParameters)
+        self.menuCrystallography.addAction(self.actionToggleAxes)
 
     def showAboutDialog(self):
         if self.aboutDialog is None:
@@ -528,15 +530,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Toggle the point info sidebar panel."""
         self.pointInfoToolbar.set_collapsed(not self.pointInfoToolbar.is_collapsed())
 
+    def _get_point_cloud_max_extent(self):
+        """Compute the max extent (half-range) of the point cloud."""
+        xyz = self.openglwidget.xyz
+        if xyz is not None and len(xyz) > 0:
+            points = xyz[:, 3:6]
+            extents = points.max(axis=0) - points.min(axis=0)
+            return float(extents.max()) / 2.0
+        return None
+
     def show_directions_dialog(self):
         """Show the directions dialog."""
         self.directions_dialog.set_crystallography(self.crystallography)
+        self.directions_dialog.set_point_cloud_extent(self._get_point_cloud_max_extent())
         self.directions_dialog.show()
         self.directions_dialog.raise_()
 
     def show_planes_dialog(self):
         """Show the planes dialog."""
         self.planes_dialog.set_crystallography(self.crystallography)
+        self.planes_dialog.set_point_cloud_extent(self._get_point_cloud_max_extent())
         self.planes_dialog.show()
         self.planes_dialog.raise_()
 
@@ -708,7 +721,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.initGeometry()
             self.actionRender.setEnabled(True)
             self.actionExportXYZ.setEnabled(True)
-            self.saveframe_pushButton.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
