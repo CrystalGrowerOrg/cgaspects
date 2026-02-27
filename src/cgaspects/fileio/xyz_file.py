@@ -255,14 +255,17 @@ class CrystalCloud:
 
                 comment = file.readline().strip()
 
-                try:
-                    raw = np.loadtxt(file, max_rows=n_atoms, dtype=float, ndmin=2)
-                except ValueError as e:
-                    if clean:
-                        raw_text = Path(filepath).read_text(encoding="utf-8").replace("*", "0")
-                        Path(filepath).write_text(raw_text, encoding="utf-8")
-                        return CrystalCloud.parse_xyz_file(filepath, progress_callback, clean=False)
-                    raise e
+                if n_atoms == 0:
+                    raw = np.empty((0, 0), dtype=float)
+                else:
+                    try:
+                        raw = np.loadtxt(file, max_rows=n_atoms, dtype=float, ndmin=2)
+                    except ValueError as e:
+                        if clean:
+                            raw_text = Path(filepath).read_text(encoding="utf-8").replace("*", "0")
+                            Path(filepath).write_text(raw_text, encoding="utf-8")
+                            return CrystalCloud.parse_xyz_file(filepath, progress_callback, clean=False)
+                        raise e
 
                 frames.append(Frame(raw=raw, comment=comment))
                 frame_idx += 1

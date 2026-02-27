@@ -1,5 +1,9 @@
 """Dialog for adding crystallographic planes to the 3D visualization."""
 
+import math
+from fractions import Fraction
+
+import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
@@ -15,6 +19,7 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QSlider,
     QToolButton,
+    QWidget,
     QVBoxLayout,
 )
 
@@ -28,6 +33,7 @@ def _colored_icon(color, size=(50, 50)):
 class PlanesDialog(QDialog):
     planesChanged = Signal(list)
     planesCleared = Signal()
+    computePlaneFromSelection = Signal()  # Emitted when user confirms plane-from-points
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -40,6 +46,7 @@ class PlanesDialog(QDialog):
         self._max_extent = 1.0
         self._planes = []
         self._editing_index = None
+        self._find_mode_active = False
 
         main_layout = QVBoxLayout(self)
 
@@ -70,6 +77,7 @@ class PlanesDialog(QDialog):
 
         # Plane input - horizontal
         input_group = QGroupBox("Plane Definition")
+        input_vbox = QVBoxLayout()
         input_layout = QHBoxLayout()
         self._h_spin = QDoubleSpinBox()
         self._k_spin = QDoubleSpinBox()
@@ -85,7 +93,14 @@ class PlanesDialog(QDialog):
             spin.setDecimals(3)
             input_layout.addWidget(QLabel(label_text))
             input_layout.addWidget(spin)
-        input_group.setLayout(input_layout)
+        self._reduce_btn = QPushButton("Reduce")
+        self._reduce_btn.setToolTip(
+            "Reduce Miller indices by their greatest common divisor (e.g., 2 4 2 → 1 2 1)"
+        )
+        self._reduce_btn.clicked.connect(self._reduce_miller_indices)
+        input_layout.addWidget(self._reduce_btn)
+        input_vbox.addLayout(input_layout)
+        input_group.setLayout(input_vbox)
         main_layout.addWidget(input_group)
 
         # Origin offset - horizontal
@@ -143,18 +158,43 @@ class PlanesDialog(QDialog):
         appearance_group.setLayout(appearance_layout)
         main_layout.addWidget(appearance_group)
 
-        # Add/Update button
-        add_layout = QHBoxLayout()
+        # Single row: [ Add Plane (½) | Find Plane (¼) + Confirm (¼, hidden) ]
+        action_layout = QHBoxLayout()
+
         self._add_button = QPushButton("Add Plane")
         self._add_button.setDefault(True)
         self._add_button.clicked.connect(self._add_or_update_plane)
+        action_layout.addWidget(self._add_button, 1)  # half
+
+        # Right half — Find/Cancel button always visible, Confirm appears alongside it
+        find_container = QWidget()
+        find_inner = QHBoxLayout(find_container)
+        find_inner.setContentsMargins(0, 0, 0, 0)
+        find_inner.setSpacing(action_layout.spacing())
+
+        self._find_btn = QPushButton("Find Plane")
+        self._find_btn.setToolTip(
+            "Select 3 or more points in the 3D view using Shift+Click, then click 'Confirm'"
+        )
+        self._find_btn.clicked.connect(self._toggle_find_mode)
+        self._confirm_plane_btn = QPushButton("Confirm")
+        self._confirm_plane_btn.setToolTip("Compute plane from currently selected points")
+        self._confirm_plane_btn.setVisible(False)
+        self._confirm_plane_btn.clicked.connect(self._confirm_plane_from_selection)
+        find_inner.addWidget(self._find_btn, 1)  # quarter of total (half of right half)
+        find_inner.addWidget(self._confirm_plane_btn, 1)  # quarter of total when visible
+
+        action_layout.addWidget(find_container, 1)  # half
+        main_layout.addLayout(action_layout)
+
+        # Cancel Edit — shown below when in edit mode
+        cancel_edit_layout = QHBoxLayout()
         self._cancel_edit_btn = QPushButton("Cancel Edit")
         self._cancel_edit_btn.clicked.connect(self._cancel_edit)
         self._cancel_edit_btn.setVisible(False)
-        add_layout.addWidget(self._add_button)
-        add_layout.addWidget(self._cancel_edit_btn)
-        add_layout.addStretch()
-        main_layout.addLayout(add_layout)
+        cancel_edit_layout.addWidget(self._cancel_edit_btn)
+        cancel_edit_layout.addStretch()
+        main_layout.addLayout(cancel_edit_layout)
 
         # List of planes
         list_label = QLabel("Planes:")
@@ -323,3 +363,104 @@ class PlanesDialog(QDialog):
         self._plane_list.clear()
         self.planesCleared.emit()
         self._status_label.setText("All planes cleared")
+
+    # ------------------------------------------------------------------ #
+    # Find plane from selected points                                      #
+    # ------------------------------------------------------------------ #
+
+    def _toggle_find_mode(self):
+        """Toggle the 'find plane from points' mode on/off."""
+        if self._find_mode_active:
+            self._find_mode_active = False
+            self._find_btn.setText("Find Plane")
+            self._confirm_plane_btn.setVisible(False)
+            self._status_label.setText("")
+        else:
+            self._find_mode_active = True
+            self._find_btn.setText("Cancel")
+            self._confirm_plane_btn.setVisible(True)
+            self._status_label.setText(
+                "Select 3+ points in the 3D view using Shift+Click, then click 'Confirm'"
+            )
+
+    def _confirm_plane_from_selection(self):
+        """Request computation of a plane from the current point selection."""
+        self.computePlaneFromSelection.emit()
+        self._toggle_find_mode()
+
+    def populate_from_plane(self, normal, origin, crystallography=None):
+        """Populate the plane definition fields from a computed normal and origin.
+
+        Args:
+            normal: Cartesian normal vector (numpy array)
+            origin: Cartesian centroid/origin (numpy array)
+            crystallography: optional Crystallography object for Miller index conversion
+        """
+        if crystallography is not None and crystallography.cell is not None:
+            # Convert Cartesian normal to fractional (Miller indices via inverse matrix)
+            miller = crystallography.cart_to_frac(normal)
+            max_abs = np.max(np.abs(miller))
+            if max_abs > 0:
+                miller = miller / max_abs
+            self._h_spin.setValue(float(miller[0]))
+            self._k_spin.setValue(float(miller[1]))
+            self._l_spin.setValue(float(miller[2]))
+            if self._fractional_radio.isEnabled():
+                self._fractional_radio.setChecked(True)
+        else:
+            norm = np.linalg.norm(normal)
+            n = normal / norm if norm > 0 else normal
+            self._h_spin.setValue(float(n[0]))
+            self._k_spin.setValue(float(n[1]))
+            self._l_spin.setValue(float(n[2]))
+            self._cartesian_radio.setChecked(True)
+
+        self._ox_spin.setValue(float(origin[0]))
+        self._oy_spin.setValue(float(origin[1]))
+        self._oz_spin.setValue(float(origin[2]))
+        self._status_label.setText(
+            "Plane populated from selected points — adjust and click 'Add Plane'"
+        )
+
+    # ------------------------------------------------------------------ #
+    # Reduce Miller indices                                                #
+    # ------------------------------------------------------------------ #
+
+    def _reduce_miller_indices(self):
+        """Reduce Miller indices to the smallest integer form.
+
+        Handles float inputs (e.g. 0.0, 0.68, 1.06) by converting each value
+        to an exact Fraction, scaling all three by the LCM of their denominators
+        to produce integers, then dividing by their GCD.
+        """
+        # Round to 3 significant figures then snap near-zero values to exactly 0
+        def _clean(v):
+            v = float(f"{v:.3g}")
+            return 0.0 if abs(v) < 0.01 else v
+
+        h_raw = _clean(self._h_spin.value())
+        k_raw = _clean(self._k_spin.value())
+        ll_raw = _clean(self._l_spin.value())
+        old_str = f"({h_raw:.3g} {k_raw:.3g} {ll_raw:.3g})"
+
+        # Convert floats to exact fractions (3 sf → limit 1000)
+        fracs = [Fraction(v).limit_denominator(1000) for v in (h_raw, k_raw, ll_raw)]
+
+        # Scale all three to integers by multiplying by the LCM of denominators
+        denom_lcm = fracs[0].denominator
+        for f in fracs[1:]:
+            denom_lcm = denom_lcm * f.denominator // math.gcd(denom_lcm, f.denominator)
+        h, k, ll = (int(f * denom_lcm) for f in fracs)
+
+        # Divide by GCD to fully reduce
+        g = math.gcd(math.gcd(abs(h), abs(k)), abs(ll))
+        if g > 1:
+            h, k, ll = h // g, k // g, ll // g
+
+        if h == round(h_raw) and k == round(k_raw) and ll == round(ll_raw) and g <= 1:
+            self._status_label.setText(f"({h} {k} {ll}) is already fully reduced")
+        else:
+            self._h_spin.setValue(float(h))
+            self._k_spin.setValue(float(k))
+            self._l_spin.setValue(float(ll))
+            self._status_label.setText(f"Reduced {old_str} → ({h} {k} {ll})")

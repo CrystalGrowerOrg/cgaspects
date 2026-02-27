@@ -1,11 +1,11 @@
 import logging
-import logging.handlers
 import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import List
 
+import numpy as np
 import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
@@ -153,11 +153,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Connect toolbar signals
         self.pointInfoToolbar.deleteSelectedRequested.connect(self.delete_selected_points)
         self.pointInfoToolbar.clearSelectionRequested.connect(self.clear_point_selection)
+        self.pointInfoToolbar.unselectCurrentRequested.connect(self.unselect_point)
         self.pointInfoToolbar.exportXYZRequested.connect(self.export_xyz)
 
         # Connect OpenGL widget signals to toolbar
         self.openglwidget.pointHovered.connect(self.pointInfoToolbar.update_hover_info)
         self.openglwidget.selectionChanged.connect(self.pointInfoToolbar.update_selection_info)
+        self.pointInfoToolbar.set_point_data_fn(self.openglwidget._get_point_data)
 
         self.xyzFilenameListWidget.currentRowChanged.connect(self.setCurrentXYZIndex)
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
@@ -187,6 +189,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog = PlanesDialog(parent=self)
         self.planes_dialog.planesChanged.connect(self.handle_planes_changed)
         self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
+        self.planes_dialog.computePlaneFromSelection.connect(self._on_compute_plane_from_selection)
 
         self.setup_button_connections()
         self.setup_menubar_connections()
@@ -498,6 +501,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.clear_selection()
             self.log_message("Selection cleared", "info")
 
+    def unselect_point(self, index):
+        """Remove a single point from the current selection."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.select_point(index, toggle=True)
+
     def export_xyz(self):
         """Export the current point cloud to an XYZ file."""
         if hasattr(self, "openglwidget") and self.openglwidget is not None:
@@ -572,6 +580,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Handle clearing of all planes."""
         if hasattr(self.openglwidget, "set_planes"):
             self.openglwidget.set_planes([], None)
+
+    def _on_compute_plane_from_selection(self):
+        """Compute a best-fit plane from the currently selected points and populate the planes dialog."""
+        if not hasattr(self, "openglwidget") or self.openglwidget is None:
+            return
+        selected_indices = self.openglwidget.get_selected_points()
+        if len(selected_indices) < 3:
+            QMessageBox.warning(
+                self,
+                "Not Enough Points",
+                "Please select at least 3 points in the 3D view using Shift+Click.",
+            )
+            return
+        xyz = self.openglwidget.xyz
+        if xyz is None:
+            return
+        coords = xyz[list(selected_indices), 3:6]  # columns 3,4,5 are x,y,z
+        centroid = coords.mean(axis=0)
+        _, _, Vt = np.linalg.svd(coords - centroid)
+        normal = Vt[-1]  # eigenvector for smallest singular value = plane normal
+
+        self.planes_dialog.populate_from_plane(normal, centroid, self.crystallography)
 
     def welcome_message(self):
         self.log_message(
@@ -671,13 +701,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.init_opengl()
 
             crystal_found = False
-            for i in range(n_xyz):
-                self.crystal = self.get_crystal(i)
-                if self.crystal is not None and not self.crystal.empty:
-                    self.setCurrentXYZIndex(i)
-                    self.init_crystal()
-                    crystal_found = True
-                    break
+            try:
+                for i in range(n_xyz):
+                    self.crystal = self.get_crystal(i)
+                    if self.crystal is not None and not self.crystal.empty:
+                        self.setCurrentXYZIndex(i)
+                        self.init_crystal()
+                        crystal_found = True
+                        break
+            except Exception as e:
+                self.log_message(f"Error initialising crystal visualisation: {e}", "error")
 
             if not crystal_found:
                 self.openglwidget.showNoDataOverlay()
@@ -691,6 +724,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         tot_sims = len(self.xyz_files)
         self.openglwidget.pass_XYZ_list([str(path) for path in self.xyz_files])
         self.sim_num = 0
+        self.openglwidget.sim_num = -1  # Force fresh load for new folder
         self.openglwidget.get_XYZ_from_list(0)
         self.xyzFilenameListWidget.clear()
         self.xyzFilenameListWidget.addItems([x.name for x in self.xyz_files])
@@ -750,7 +784,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return self.crystal
 
     def update_XYZ_info(self, xyz):
-        if xyz is None:
+        if xyz is None or xyz.size == 0 or xyz.ndim < 2 or xyz.shape[1] < 6:
+            self.crystal_info.aspectRatio1 = None
+            self.crystal_info.aspectRatio2 = None
+            self.crystal_info.shapeClass = "N/A"
+            self.crystal_info.surfaceAreaVolumeRatio = None
+            self.crystal_info.surfaceArea = None
+            self.crystal_info.volume = None
+            self.crystalInfoChanged.emit(self.crystal_info)
             return
         worker_xyz = WorkerXYZ(xyz)
         worker_xyz.signals.result.connect(self.insert_info)
@@ -1082,6 +1123,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.movie_controls_frame.hide()
 
         if self.crystal is not None and self.crystal.empty:
+            self.update_XYZ_info(None)
             return
 
         if self.crystal is not None and len(self.crystal) > 1:
@@ -1128,12 +1170,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def insert_info(self, result):
         self.log_message("Inserting data to GUI!", log_level="debug", gui=True)
-        self.crystal_info.aspectRatio1 = result.aspect1
-        self.crystal_info.aspectRatio2 = result.aspect2
-        self.crystal_info.shapeClass = result.shape
-        self.crystal_info.surfaceAreaVolumeRatio = result.surface_area_to_volume_ratio
-        self.crystal_info.surfaceArea = result.surface_area
-        self.crystal_info.volume = result.volume
+        if result is None:
+            self.crystal_info.aspectRatio1 = None
+            self.crystal_info.aspectRatio2 = None
+            self.crystal_info.shapeClass = "N/A"
+            self.crystal_info.surfaceAreaVolumeRatio = None
+            self.crystal_info.surfaceArea = None
+            self.crystal_info.volume = None
+        else:
+            self.crystal_info.aspectRatio1 = result.aspect1
+            self.crystal_info.aspectRatio2 = result.aspect2
+            self.crystal_info.shapeClass = result.shape
+            self.crystal_info.surfaceAreaVolumeRatio = result.surface_area_to_volume_ratio
+            self.crystal_info.surfaceArea = result.surface_area
+            self.crystal_info.volume = result.volume
 
         self.crystalInfoChanged.emit(self.crystal_info)
 

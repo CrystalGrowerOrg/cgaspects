@@ -56,6 +56,11 @@ class WorkerXYZ(QRunnable):
     @Slot()
     def run(self):
         shape_info = self.analyser.shape_info(self.xyz[:, 3:6])
+        if shape_info is None:
+            self.signals.message.emit("Not enough points to calculate shape.")
+            self.signals.result.emit(None)
+            self.signals.finished.emit()
+            return
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit("Calculations Complete!")

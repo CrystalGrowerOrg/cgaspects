@@ -34,7 +34,7 @@ class VisualisationWidget(QOpenGLWidget):
 
     # Signals for point interaction
     pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
-    selectionChanged = Signal(set)  # Set of selected point indices
+    selectionChanged = Signal(set, object)  # (selected_indices, last_selected_index)
     pointsDeleted = Signal(int)  # Number of points deleted
 
     def __init__(self, *args, **kwargs):
@@ -600,19 +600,20 @@ class VisualisationWidget(QOpenGLWidget):
         if event.button() == QtCore.Qt.RightButton:
             self.rightMouseButtonPressed = True
         elif event.button() == QtCore.Qt.LeftButton:
-            # Check for point selection
-            point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
-            if point_idx is not None:
-                modifiers = event.modifiers()
-                if modifiers & QtCore.Qt.ShiftModifier and self._last_selected_index is not None:
-                    # Shift+Click: Range selection
-                    self.select_range(point_idx)
-                elif modifiers & QtCore.Qt.ControlModifier:
-                    # Ctrl+Click: Toggle selection
-                    self.select_point(point_idx, toggle=True)
-                else:
-                    # Regular click: Select single point
+            modifiers = event.modifiers()
+            if modifiers & QtCore.Qt.ControlModifier:
+                # Cmd+Click (macOS): Select single point, or clear selection on whitespace
+                point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
+                if point_idx is not None:
                     self.select_point(point_idx)
+                else:
+                    self.clear_selection()
+            elif modifiers & QtCore.Qt.ShiftModifier:
+                # Shift+Click: Add/remove point from selection (multi-select)
+                point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
+                if point_idx is not None:
+                    self.select_point(point_idx, toggle=True)
+            # Plain left click: camera orbit only (handled in mouseMoveEvent)
 
     def keyPressEvent(self, event):
         dx, dy = 0, 0
@@ -657,6 +658,15 @@ class VisualisationWidget(QOpenGLWidget):
                 self.restrict_axis = "shift_x"
             elif event.key() == Qt.Key_Up or event.key() == Qt.Key_Down:
                 self.restrict_axis = "shift_y"
+
+        # Cmd+/Cmd- to increase/decrease point size
+        if modifiers & Qt.ControlModifier:
+            if event.key() in (Qt.Key_Equal, Qt.Key_Plus):
+                self.point_size = min(self.point_size + 1.0, 50.0)
+                self.update()
+            elif event.key() == Qt.Key_Minus:
+                self.point_size = max(self.point_size - 1.0, 1.0)
+                self.update()
 
         super().keyPressEvent(event)
 
@@ -859,7 +869,7 @@ class VisualisationWidget(QOpenGLWidget):
         """Clear the current point selection."""
         self._selected_points.clear()
         self._last_selected_index = None
-        self.selectionChanged.emit(self._selected_points.copy())
+        self.selectionChanged.emit(self._selected_points.copy(), None)
         self.initGeometry()
         self.update()
 
@@ -885,7 +895,7 @@ class VisualisationWidget(QOpenGLWidget):
             self._selected_points = {index}
 
         self._last_selected_index = index
-        self.selectionChanged.emit(self._selected_points.copy())
+        self.selectionChanged.emit(self._selected_points.copy(), index)
         self.initGeometry()
         self.update()
 
@@ -901,7 +911,7 @@ class VisualisationWidget(QOpenGLWidget):
             if i not in self._deleted_points:
                 self._selected_points.add(i)
 
-        self.selectionChanged.emit(self._selected_points.copy())
+        self.selectionChanged.emit(self._selected_points.copy(), end_index)
         self.initGeometry()
         self.update()
 
@@ -919,7 +929,7 @@ class VisualisationWidget(QOpenGLWidget):
         self._selected_points.clear()
         self._last_selected_index = None
 
-        self.selectionChanged.emit(self._selected_points.copy())
+        self.selectionChanged.emit(self._selected_points.copy(), None)
         self.pointsDeleted.emit(count)
         self.initGeometry()
         self.update()
@@ -1021,6 +1031,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.initGeometry()
 
     def initGeometry(self):
+        # self.update()
         if self.point_cloud_renderer is None:
             return
 
@@ -1266,13 +1277,9 @@ class VisualisationWidget(QOpenGLWidget):
         from OpenGL.GL import GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CULL_FACE
 
         has_directions = (
-            self.direction_renderer is not None
-            and self.direction_renderer.numberOfPoints() > 0
+            self.direction_renderer is not None and self.direction_renderer.numberOfPoints() > 0
         )
-        has_planes = (
-            self.plane_renderer is not None
-            and self.plane_renderer.numberOfVertices() > 0
-        )
+        has_planes = self.plane_renderer is not None and self.plane_renderer.numberOfVertices() > 0
 
         if not has_directions and not has_planes:
             return
