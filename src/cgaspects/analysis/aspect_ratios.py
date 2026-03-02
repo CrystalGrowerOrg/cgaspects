@@ -2,27 +2,18 @@ import logging
 from collections import namedtuple
 from pathlib import Path
 
-from PySide6.QtCore import QThreadPool, Signal
+from PySide6.QtCore import Qt, QThreadPool, Signal
 from PySide6.QtWidgets import QDialog, QWidget
 
-from .ar_dataframes import (
-    collect_all,
-    get_xyz_shape_percentage,
-    build_cda,
-    build_ratio_equations,
-    get_cda_shape_percentage,
-)
-from ..fileio.find_data import (
-    find_info,
-    summary_compare,
-    create_aspects_folder,
-    combine_xyz_cda,
-)
-from .gui_threads import WorkerAspectRatios
+from ..fileio.find_data import (combine_xyz_cda, create_aspects_folder,
+                                find_info, summary_compare)
 from ..gui.dialogs.aspectratio_dialog import AnalysisOptionsDialog
 from ..gui.dialogs.plot_dialog import PlottingDialog
 from ..plot.plot_data import Plotting
-from ..utils.data_structures import results_tuple, ar_selection_tuple
+from ..utils.data_structures import ar_selection_tuple, results_tuple
+from .ar_dataframes import (build_cda, build_ratio_equations, collect_all,
+                            get_cda_shape_percentage, get_xyz_shape_percentage)
+from .gui_threads import WorkerAspectRatios
 
 logger = logging.getLogger("CA:A-Ratios")
 
@@ -121,9 +112,9 @@ class AspectRatio(QWidget):
                 output_folder=self.output_folder,
                 xyz_files=self.xyz_files,
             )
-            worker.signals.progress.connect(self.update_progress)
-            worker.signals.result.connect(self.set_plotting)
-            worker.signals.location.connect(self.get_location)
+            worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
+            worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
+            worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
             self.signals.started.emit()
             self.threadpool.start(worker)
 

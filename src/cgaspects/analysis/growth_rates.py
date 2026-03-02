@@ -2,14 +2,14 @@ import logging
 from collections import namedtuple
 from pathlib import Path
 
-from PySide6.QtCore import QThreadPool, Signal
+from PySide6.QtCore import Qt, QThreadPool, Signal
 from PySide6.QtWidgets import QDialog
 
-from . import gr_dataframes as gr
 from ..fileio import find_data as fd
-from .gui_threads import WorkerGrowthRates
 from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
 from ..utils.data_structures import results_tuple
+from . import gr_dataframes as gr
+from .gui_threads import WorkerGrowthRates
 
 logger = logging.getLogger("CA:G-Rates")
 
@@ -97,8 +97,8 @@ class GrowthRate:
                 selected_directions=self.selected_directions,
                 xaxis_mode=self.xaxis_mode,
             )
-            worker.signals.progress.connect(self.update_progress)
-            worker.signals.result.connect(self.plot)
+            worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
+            worker.signals.result.connect(self.plot, Qt.QueuedConnection)
             self.signals.started.emit()
             self.threadpool.start(worker)
 
