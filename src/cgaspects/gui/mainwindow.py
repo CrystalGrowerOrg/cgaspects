@@ -25,6 +25,8 @@ from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
+from .shortcuts_manager import ShortcutsManager
+from .dialogs.keyboard_shortcuts import KeyboardShortcutsDialog
 from .dialogs.lattice_dialog import LatticeParametersDialog
 from .dialogs.site_highlight_dialog import SiteHighlightDialog
 from .dialogs.axes_settings_dialog import AxesSettingsDialog
@@ -194,9 +196,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
+        self.shortcuts_manager = ShortcutsManager(self.menuBar)
+        self._keyboard_shortcuts_dialog = None
         self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
+        # Remove permanently-disabled leftover from the auto-generated UI
+        self.menuView.removeAction(self.actionSettings)
+
         self.actionImport.triggered.connect(lambda: self.import_and_visualise_xyz(folder=None))
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
         self.actionImportCSVClipboard.triggered.connect(
@@ -219,6 +226,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
         self.actionExportXYZ = QAction("Export XYZ", self)
+        self.actionExportXYZ.setObjectName("actionExportXYZ")
         self.actionExportXYZ.setShortcut("Ctrl+Shift+E")
         self.actionExportXYZ.setToolTip("Export the current point cloud to an XYZ file")
         self.actionExportXYZ.triggered.connect(self.export_xyz)
@@ -230,12 +238,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Add Site Highlighting action to View menu
         self.actionSiteHighlighting = QAction("Highlight Sites", self)
+        self.actionSiteHighlighting.setObjectName("actionSiteHighlighting")
         self.actionSiteHighlighting.setShortcut("Ctrl+Shift+S")
         self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
         self.menuView.addAction(self.actionSiteHighlighting)
 
         # Add Projection Mode Toggle action to View menu
         self.actionToggleProjection = QAction("Switch to Perspective Projection", self)
+        self.actionToggleProjection.setObjectName("actionToggleProjection")
         self.actionToggleProjection.setShortcut("Ctrl+Shift+P")
         self.actionToggleProjection.setToolTip(
             "Toggle between Orthographic and Perspective projection"
@@ -245,6 +255,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Add Axes Settings action to View menu
         self.actionAxesSettings = QAction("Axes Settings", self)
+        self.actionAxesSettings.setObjectName("actionAxesSettings")
         self.actionAxesSettings.setShortcut("Ctrl+Shift+A")
         self.actionAxesSettings.setToolTip("Configure axes rendering settings")
         self.actionAxesSettings.triggered.connect(self.show_axes_settings_dialog)
@@ -252,6 +263,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Add Toggle Point Info Sidebar action to View menu
         self.actionToggleSidebar = QAction("Toggle Point Info Panel", self)
+        self.actionToggleSidebar.setObjectName("actionToggleSidebar")
         self.actionToggleSidebar.setShortcut("Ctrl+B")
         self.actionToggleSidebar.setToolTip("Show/hide the point info side panel")
         self.actionToggleSidebar.triggered.connect(self._toggle_point_info_sidebar)
@@ -264,31 +276,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.menuBar.addAction(self.menuCrystallography.menuAction())
 
         self.actionAddDirections = QAction("Add Directions", self)
+        self.actionAddDirections.setObjectName("actionAddDirections")
         self.actionAddDirections.setShortcut("Ctrl+Shift+D")
         self.actionAddDirections.setToolTip("Add crystallographic directions to the visualization")
         self.actionAddDirections.triggered.connect(self.show_directions_dialog)
         self.menuCrystallography.addAction(self.actionAddDirections)
 
         self.actionAddPlanes = QAction("Add Planes", self)
+        self.actionAddPlanes.setObjectName("actionAddPlanes")
         self.actionAddPlanes.setShortcut("Ctrl+Shift+L")
         self.actionAddPlanes.setToolTip("Add crystallographic planes to the visualization")
         self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
         self.menuCrystallography.addAction(self.actionAddPlanes)
 
+        # Help menu
+        self.menuHelp = QMenu("Help", self)
+        self.menuBar.addAction(self.menuHelp.menuAction())
+
+        self.actionKeyboardShortcuts = QAction("Keyboard Shortcuts...", self)
+        self.actionKeyboardShortcuts.setObjectName("actionKeyboardShortcuts")
+        self.actionKeyboardShortcuts.setShortcut("Ctrl+/")
+        self.actionKeyboardShortcuts.setToolTip("View and customise keyboard shortcuts")
+        self.actionKeyboardShortcuts.triggered.connect(self.show_keyboard_shortcuts_dialog)
+        self.menuHelp.addAction(self.actionKeyboardShortcuts)
+
     def setup_log_menu_actions(self):
         # Create Open Log File action
         self.actionOpenLogFile = QAction("Open Log File", self)
+        self.actionOpenLogFile.setObjectName("actionOpenLogFile")
         self.actionOpenLogFile.setShortcut("Ctrl+L")
         self.actionOpenLogFile.setToolTip("Open the application log file")
         self.actionOpenLogFile.triggered.connect(self.open_log_file)
 
         # Create Clear Log File action
         self.actionClearLogFile = QAction("Clear Log File", self)
+        self.actionClearLogFile.setObjectName("actionClearLogFile")
         self.actionClearLogFile.setToolTip("Clear the application log file")
         self.actionClearLogFile.triggered.connect(self.clear_log_file)
 
         # Create Set Lattice Parameters action
         self.actionSetLatticeParameters = QAction("Set Lattice Parameters", self)
+        self.actionSetLatticeParameters.setObjectName("actionSetLatticeParameters")
         self.actionSetLatticeParameters.setToolTip(
             "Set lattice parameters to convert axes to fractional coordinates"
         )
@@ -296,6 +324,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create Toggle Axes action (starts disabled until lattice params are set)
         self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
+        self.actionToggleAxes.setObjectName("actionToggleAxes")
         self.actionToggleAxes.setShortcut("Shift+A")
         self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
         self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
@@ -324,6 +353,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.aboutDialog.activateWindow()
         else:
             self.aboutDialog.show()
+
+    def show_keyboard_shortcuts_dialog(self):
+        if self._keyboard_shortcuts_dialog is None:
+            self._keyboard_shortcuts_dialog = KeyboardShortcutsDialog(
+                manager=self.shortcuts_manager, parent=self
+            )
+        self._keyboard_shortcuts_dialog.show()
+        self._keyboard_shortcuts_dialog.raise_()
+        self._keyboard_shortcuts_dialog.activateWindow()
 
     def show_lattice_parameters_dialog(self):
         """Show dialog to enter lattice parameters for fractional axes."""

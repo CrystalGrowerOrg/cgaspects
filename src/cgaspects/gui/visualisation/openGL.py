@@ -33,6 +33,34 @@ class VisualisationWidget(QOpenGLWidget):
     style = "Spheres"
     show_mesh_edges = False
 
+    # Viewport shortcuts for display in the Keyboard Shortcuts dialog.
+    # These are handled by keyPressEvent and are NOT user-configurable.
+    VIEWPORT_SHORTCUTS: dict[str, list[tuple[str, str]]] = {
+        "Rotation": [
+            ("Arrow Keys", "Rotate view freely"),
+            ("Shift + Arrow Keys", "Rotate on a single axis"),
+        ],
+        "Axis Alignment": [
+            ("X / Y / Z", "Align view to Cartesian axes"),
+            ("A / B / C", "Align view to fractional axes"),
+        ],
+        "View Control": [
+            ("R", "Reset view orientation"),
+            ("Shift + S", "Store current view orientation"),
+        ],
+        "Point Size": [
+            ("Ctrl/Cmd + =  or  +", "Increase point size"),
+            ("Ctrl/Cmd + -", "Decrease point size"),
+        ],
+        "Selection": [
+            ("Ctrl/Cmd + Click", "Select a point"),
+            ("Shift + Click", "Anchor sphere selection"),
+            ("Shift + Drag", "Adjust sphere selection radius"),
+        ],
+        "Playback": [("Space", "Play / Pause animation")],
+        "Window": [("Escape", "Exit fullscreen mode")],
+    }
+
     # Signals for point interaction
     pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
     selectionChanged = Signal(set, object)  # (selected_indices, last_selected_index)
@@ -48,8 +76,8 @@ class VisualisationWidget(QOpenGLWidget):
         self.restrict_axis = None
         self.geom = self.geometry()
         self.centre = self.geom.center()
-        print(self.geom)
-        print(self.geom.getRect())
+        # print(self.geom)
+        # print(self.geom.getRect())
 
         # Point picking and selection
         self.setMouseTracking(True)  # Enable hover detection
@@ -61,10 +89,10 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Sphere selection state (Shift + Left click + drag)
         self._sphere_sel_center_world = None  # np.array [x, y, z] — set on press
-        self._sphere_sel_anchor_idx = None    # index of the point the sphere starts on
+        self._sphere_sel_anchor_idx = None  # index of the point the sphere starts on
         self._sphere_sel_radius = 0.0
-        self._sphere_sel_start_screen = None   # QPoint of the initial click
-        self._sphere_sel_active = False        # True once the user starts dragging
+        self._sphere_sel_start_screen = None  # QPoint of the initial click
+        self._sphere_sel_active = False  # True once the user starts dragging
 
         self.xyz_path_list = []
         self.sim_num = 0
@@ -621,9 +649,7 @@ class VisualisationWidget(QOpenGLWidget):
                 # Shift+Click (+ optional drag): sphere selection mode.
                 # The sphere centre is always anchored to the nearest data point
                 # under the cursor.  If no point is found, nothing happens.
-                point_idx, _ = self._find_point_at_screen_pos(
-                    event.pos().x(), event.pos().y()
-                )
+                point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
                 if point_idx is not None:
                     self._sphere_sel_start_screen = event.pos()
                     self._sphere_sel_center_world = self.xyz[point_idx, 3:6].copy()
@@ -864,9 +890,7 @@ class VisualisationWidget(QOpenGLWidget):
         if self._sphere_sel_center_world is None:
             return 0.0
 
-        ray_origin, ray_dir = self._screen_to_ray(
-            current_screen_pos.x(), current_screen_pos.y()
-        )
+        ray_origin, ray_dir = self._screen_to_ray(current_screen_pos.x(), current_screen_pos.y())
         center = self._sphere_sel_center_world
 
         # View direction (camera.screen points from camera toward target)
