@@ -72,9 +72,26 @@ class PlaneRenderer:
 
         self.vertex_buffer = QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)
         self.vertex_buffer.create()
+        self.vertex_buffer.bind()
 
         self.vao = QOpenGLVertexArrayObject()
         self.vao.create()
+        self.vao.bind()
+
+        stride = 10 * 4  # 10 floats * 4 bytes
+        self.program.bind()
+        self.program.enableAttributeArray(0)
+        self.program.setAttributeBuffer(0, GL_FLOAT, 0, 3, stride)
+        self.program.enableAttributeArray(1)
+        self.program.setAttributeBuffer(1, GL_FLOAT, 3 * 4, 3, stride)
+        self.program.enableAttributeArray(2)
+        self.program.setAttributeBuffer(2, GL_FLOAT, 6 * 4, 3, stride)
+        self.program.enableAttributeArray(3)
+        self.program.setAttributeBuffer(3, GL_FLOAT, 9 * 4, 1, stride)
+
+        self.vao.release()
+        self.vertex_buffer.release()
+        self.program.release()
 
     def set_planes(self, planes, crystallography=None):
         """Set plane data from list of plane dicts.
@@ -141,27 +158,7 @@ class PlaneRenderer:
 
         self.vertex_buffer.bind()
         self.vertex_buffer.allocate(self.points.tobytes(), self.points.nbytes)
-
-        self.vao.bind()
-        self.program.bind()
-
-        stride = 10 * 4  # 10 floats * 4 bytes
-        # position
-        self.program.enableAttributeArray(0)
-        self.program.setAttributeBuffer(0, GL_FLOAT, 0, 3, stride)
-        # normal
-        self.program.enableAttributeArray(1)
-        self.program.setAttributeBuffer(1, GL_FLOAT, 3 * 4, 3, stride)
-        # color
-        self.program.enableAttributeArray(2)
-        self.program.setAttributeBuffer(2, GL_FLOAT, 6 * 4, 3, stride)
-        # alpha
-        self.program.enableAttributeArray(3)
-        self.program.setAttributeBuffer(3, GL_FLOAT, 9 * 4, 1, stride)
-
-        self.vao.release()
         self.vertex_buffer.release()
-        self.program.release()
 
     def setUniforms(self, **kwargs):
         for k, v in kwargs.items():
