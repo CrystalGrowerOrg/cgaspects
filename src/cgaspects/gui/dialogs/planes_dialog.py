@@ -426,41 +426,69 @@ class PlanesDialog(QDialog):
     # Reduce Miller indices                                                #
     # ------------------------------------------------------------------ #
 
-    def _reduce_miller_indices(self):
-        """Reduce Miller indices to the smallest integer form.
-
-        Handles float inputs (e.g. 0.0, 0.68, 1.06) by converting each value
-        to an exact Fraction, scaling all three by the LCM of their denominators
-        to produce integers, then dividing by their GCD.
+    def _reduce_miller_indices(
+        self,
+        zero_tol=1e-2,  # absolute tolerance
+        ratio_tol=2e-2,  # relative-to-max tolerance
+        snap_tol=5e-2,  # snapping tolerance when scaling
+        max_index=20,
+    ):
         """
-        # Round to 3 significant figures then snap near-zero values to exactly 0
-        def _clean(v):
-            v = float(f"{v:.3g}")
-            return 0.0 if abs(v) < 0.01 else v
+        Robust Miller index reduction with noise snapping.
+        """
 
-        h_raw = _clean(self._h_spin.value())
-        k_raw = _clean(self._k_spin.value())
-        ll_raw = _clean(self._l_spin.value())
-        old_str = f"({h_raw:.3g} {k_raw:.3g} {ll_raw:.3g})"
+        # --- Get values
+        h = float(self._h_spin.value())
+        k = float(self._k_spin.value())
+        l = float(self._l_spin.value())
+        old_str = f"({h:.3g} {k:.3g} {l:.3g})"
 
-        # Convert floats to exact fractions (3 sf → limit 1000)
-        fracs = [Fraction(v).limit_denominator(1000) for v in (h_raw, k_raw, ll_raw)]
+        vec = [h, k, l]
 
-        # Scale all three to integers by multiplying by the LCM of denominators
-        denom_lcm = fracs[0].denominator
-        for f in fracs[1:]:
-            denom_lcm = denom_lcm * f.denominator // math.gcd(denom_lcm, f.denominator)
-        h, k, ll = (int(f * denom_lcm) for f in fracs)
+        # --- Absolute zero snapping
+        vec = [0.0 if abs(v) < zero_tol else v for v in vec]
 
-        # Divide by GCD to fully reduce
-        g = math.gcd(math.gcd(abs(h), abs(k)), abs(ll))
-        if g > 1:
-            h, k, ll = h // g, k // g, ll // g
+        if all(abs(v) < 1e-12 for v in vec):
+            self._status_label.setText("All indices are zero.")
+            return
 
-        if h == round(h_raw) and k == round(k_raw) and ll == round(ll_raw) and g <= 1:
-            self._status_label.setText(f"({h} {k} {ll}) is already fully reduced")
+        # --- Relative snapping (remove small components)
+        max_val = max(abs(v) for v in vec)
+        vec = [0.0 if abs(v) / max_val < ratio_tol else v for v in vec]
+
+        # Recompute max after snapping
+        max_val = max(abs(v) for v in vec)
+        vec = [v / max_val for v in vec]
+
+        # --- If already near integers → snap directly
+        rounded = [round(v) for v in vec]
+        if all(abs(v - r) < snap_tol for v, r in zip(vec, rounded)):
+            h_i, k_i, l_i = rounded
         else:
-            self._h_spin.setValue(float(h))
-            self._k_spin.setValue(float(k))
-            self._l_spin.setValue(float(ll))
-            self._status_label.setText(f"Reduced {old_str} → ({h} {k} {ll})")
+            # --- Try integer scaling
+            h_i = k_i = l_i = None
+            for scale in range(1, max_index + 1):
+                scaled = [v * scale for v in vec]
+                rounded = [round(x) for x in scaled]
+
+                if all(abs(s - r) < snap_tol for s, r in zip(scaled, rounded)):
+                    h_i, k_i, l_i = rounded
+                    break
+
+            if h_i is None:
+                # Final fallback: just round normalized vector
+                h_i, k_i, l_i = [round(v) for v in vec]
+
+        # --- Final GCD reduction
+        g = math.gcd(math.gcd(abs(int(h_i)), abs(int(k_i))), abs(int(l_i)))
+        if g > 1:
+            h_i //= g
+            k_i //= g
+            l_i //= g
+
+        # --- Update UI
+        self._h_spin.setValue(float(h_i))
+        self._k_spin.setValue(float(k_i))
+        self._l_spin.setValue(float(l_i))
+
+        self._status_label.setText(f"Snapped {old_str} → ({h_i} {k_i} {l_i})")

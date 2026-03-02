@@ -61,6 +61,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Sphere selection state (Shift + Left click + drag)
         self._sphere_sel_center_world = None  # np.array [x, y, z] — set on press
+        self._sphere_sel_anchor_idx = None    # index of the point the sphere starts on
         self._sphere_sel_radius = 0.0
         self._sphere_sel_start_screen = None   # QPoint of the initial click
         self._sphere_sel_active = False        # True once the user starts dragging
@@ -626,6 +627,7 @@ class VisualisationWidget(QOpenGLWidget):
                 if point_idx is not None:
                     self._sphere_sel_start_screen = event.pos()
                     self._sphere_sel_center_world = self.xyz[point_idx, 3:6].copy()
+                    self._sphere_sel_anchor_idx = point_idx
                     self._sphere_sel_radius = 0.0
                     self._sphere_sel_active = False
             # Plain left click: camera orbit only (handled in mouseMoveEvent)
@@ -1094,18 +1096,15 @@ class VisualisationWidget(QOpenGLWidget):
         elif event.button() == QtCore.Qt.LeftButton:
             if self._sphere_sel_center_world is not None:
                 if not self._sphere_sel_active:
-                    # Plain Shift+Click (no drag): fall back to single-point toggle
-                    x = self._sphere_sel_start_screen.x()
-                    y = self._sphere_sel_start_screen.y()
-                    point_idx, _ = self._find_point_at_screen_pos(x, y)
-                    if point_idx is not None:
-                        self.select_point(point_idx, toggle=True)
+                    # Plain Shift+Click (no drag): toggle the anchor point
+                    self.select_point(self._sphere_sel_anchor_idx, toggle=True)
                 else:
                     # Emit final selection signal after sphere drag
                     self.selectionChanged.emit(self._selected_points.copy(), None)
                 # Clear sphere selection state
                 self._sphere_sel_active = False
                 self._sphere_sel_center_world = None
+                self._sphere_sel_anchor_idx = None
                 self._sphere_sel_radius = 0.0
                 self.update()
 
