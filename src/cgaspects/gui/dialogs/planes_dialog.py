@@ -143,6 +143,9 @@ class PlanesDialog(QDialog):
         self._color_button.setIcon(_colored_icon(self._color))
         self._color_button.setMinimumSize(60, 30)
         self._color_button.clicked.connect(self._pick_color)
+
+        for spin in (self._h_spin, self._k_spin, self._l_spin):
+            spin.valueChanged.connect(self._update_color_from_miller)
         appearance_layout.addWidget(QLabel("Color:"))
         appearance_layout.addWidget(self._color_button)
 
@@ -254,6 +257,23 @@ class PlanesDialog(QDialog):
             if self._fractional_radio.isChecked():
                 self._cartesian_radio.setChecked(True)
 
+    @staticmethod
+    def _miller_to_color(h, k, ml):
+        """Map |h|→R, |k|→G, |l|→B, normalised by the dominant index."""
+        r, g, b = abs(h), abs(k), abs(ml)
+        max_val = max(r, g, b)
+        if max_val < 1e-9:
+            return QColor(120, 120, 120)
+        r, g, b = r / max_val, g / max_val, b / max_val
+        return QColor(int(r * 255), int(g * 255), int(b * 255))
+
+    def _update_color_from_miller(self):
+        color = self._miller_to_color(
+            self._h_spin.value(), self._k_spin.value(), self._l_spin.value()
+        )
+        self._color = color
+        self._color_button.setIcon(_colored_icon(self._color))
+
     def _pick_color(self):
         color = QColorDialog.getColor(
             self._color, self, "Select Plane Color", QColorDialog.ShowAlphaChannel
@@ -309,9 +329,13 @@ class PlanesDialog(QDialog):
         p = self._planes[row]
 
         n = p["normal"]
+        for spin in (self._h_spin, self._k_spin, self._l_spin):
+            spin.blockSignals(True)
         self._h_spin.setValue(n[0])
         self._k_spin.setValue(n[1])
         self._l_spin.setValue(n[2])
+        for spin in (self._h_spin, self._k_spin, self._l_spin):
+            spin.blockSignals(False)
 
         o = p["origin"]
         self._ox_spin.setValue(o[0])
