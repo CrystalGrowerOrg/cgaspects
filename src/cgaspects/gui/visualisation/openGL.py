@@ -18,6 +18,7 @@ from .direction_renderer import DirectionRenderer
 from .plane_renderer import PlaneRenderer
 from .point_cloud_renderer import SimplePointRenderer
 from .sphere_renderer import SphereRenderer
+from .sphere_selection_renderer import SphereSelectionRenderer
 from .mesh_renderer import MeshRenderer
 from .line_renderer import LineRenderer
 from ..widgets.overlay_widget import TransparentOverlay
@@ -58,10 +59,17 @@ class VisualisationWidget(QOpenGLWidget):
         self._pick_radius = 0.1  # Picking radius in normalized coordinates
         self._deleted_points = set()  # Set of deleted point indices
 
+        # Sphere selection state (Shift + Left click + drag)
+        self._sphere_sel_center_world = None  # np.array [x, y, z] — set on press
+        self._sphere_sel_radius = 0.0
+        self._sphere_sel_start_screen = None   # QPoint of the initial click
+        self._sphere_sel_active = False        # True once the user starts dragging
+
         self.xyz_path_list = []
         self.sim_num = 0
         self.point_cloud_renderer = None
         self.sphere_renderer = None
+        self.sphere_selection_renderer = None
         self.mesh_renderer = None
         self.axes_renderer = None
 
@@ -609,10 +617,17 @@ class VisualisationWidget(QOpenGLWidget):
                 else:
                     self.clear_selection()
             elif modifiers & QtCore.Qt.ShiftModifier:
-                # Shift+Click: Add/remove point from selection (multi-select)
-                point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
+                # Shift+Click (+ optional drag): sphere selection mode.
+                # The sphere centre is always anchored to the nearest data point
+                # under the cursor.  If no point is found, nothing happens.
+                point_idx, _ = self._find_point_at_screen_pos(
+                    event.pos().x(), event.pos().y()
+                )
                 if point_idx is not None:
-                    self.select_point(point_idx, toggle=True)
+                    self._sphere_sel_start_screen = event.pos()
+                    self._sphere_sel_center_world = self.xyz[point_idx, 3:6].copy()
+                    self._sphere_sel_radius = 0.0
+                    self._sphere_sel_active = False
             # Plain left click: camera orbit only (handled in mouseMoveEvent)
 
     def keyPressEvent(self, event):
@@ -833,6 +848,79 @@ class VisualisationWidget(QOpenGLWidget):
 
         return None, None
 
+    # ------------------------------------------------------------------
+    # Sphere selection helpers
+    # ------------------------------------------------------------------
+
+    def _compute_sphere_radius(self, current_screen_pos):
+        """Compute world-space sphere radius from the current mouse position.
+
+        Projects the current cursor onto the plane that passes through the sphere
+        centre and is perpendicular to the view direction, then returns the 3D
+        distance to the centre.
+        """
+        if self._sphere_sel_center_world is None:
+            return 0.0
+
+        ray_origin, ray_dir = self._screen_to_ray(
+            current_screen_pos.x(), current_screen_pos.y()
+        )
+        center = self._sphere_sel_center_world
+
+        # View direction (camera.screen points from camera toward target)
+        view_dir = np.array(
+            [self.camera.screen.x(), self.camera.screen.y(), self.camera.screen.z()]
+        )
+
+        denom = np.dot(ray_dir, view_dir)
+        if abs(denom) < 1e-6:
+            # Ray nearly parallel to plane — keep last radius
+            return self._sphere_sel_radius
+
+        t = np.dot(center - ray_origin, view_dir) / denom
+        if t < 0:
+            return 0.0
+
+        current_world = ray_origin + t * ray_dir
+        return float(np.linalg.norm(current_world - center))
+
+    def _update_sphere_selection(self):
+        """Recompute which points lie within the current selection sphere."""
+        if self.xyz is None or self._sphere_sel_center_world is None:
+            return
+
+        points = self.xyz[:, 3:6]
+        diffs = points - self._sphere_sel_center_world
+        distances = np.linalg.norm(diffs, axis=1)
+
+        within = set(np.where(distances <= self._sphere_sel_radius)[0].tolist())
+        # Remove deleted points from the candidate set
+        within -= self._deleted_points
+
+        self._selected_points = within
+        self.initGeometry()
+
+    def _draw_sphere_selection(self, gl, uniforms):
+        """Draw the transparent selection sphere with alpha blending."""
+        from OpenGL.GL import GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+
+        if self.sphere_selection_renderer is None:
+            return
+
+        self.sphere_selection_renderer.set_sphere(
+            self._sphere_sel_center_world, self._sphere_sel_radius
+        )
+
+        gl.glEnable(GL_BLEND)
+        gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        self.sphere_selection_renderer.bind()
+        self.sphere_selection_renderer.setUniforms(**uniforms)
+        self.sphere_selection_renderer.draw(gl)
+        self.sphere_selection_renderer.release()
+
+        gl.glDisable(GL_BLEND)
+
     def _get_point_data(self, point_index):
         """Get data for a specific point.
 
@@ -971,7 +1059,12 @@ class VisualisationWidget(QOpenGLWidget):
         dy = event.pos().y() - self.lastMousePosition.y()
 
         if event.buttons() & QtCore.Qt.LeftButton:
-            if self.restrict_axis in {"x", "y", "z"}:
+            if self._sphere_sel_center_world is not None:
+                # Shift+drag sphere selection: update radius and selection
+                self._sphere_sel_active = True
+                self._sphere_sel_radius = self._compute_sphere_radius(event.pos())
+                self._update_sphere_selection()
+            elif self.restrict_axis in {"x", "y", "z"}:
                 self.rotatePointCloud(dx, self.restrict_axis)
             else:
                 self.camera.orbit(
@@ -998,6 +1091,23 @@ class VisualisationWidget(QOpenGLWidget):
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
             self.rightMouseButtonPressed = False
+        elif event.button() == QtCore.Qt.LeftButton:
+            if self._sphere_sel_center_world is not None:
+                if not self._sphere_sel_active:
+                    # Plain Shift+Click (no drag): fall back to single-point toggle
+                    x = self._sphere_sel_start_screen.x()
+                    y = self._sphere_sel_start_screen.y()
+                    point_idx, _ = self._find_point_at_screen_pos(x, y)
+                    if point_idx is not None:
+                        self.select_point(point_idx, toggle=True)
+                else:
+                    # Emit final selection signal after sphere drag
+                    self.selectionChanged.emit(self._selected_points.copy(), None)
+                # Clear sphere selection state
+                self._sphere_sel_active = False
+                self._sphere_sel_center_world = None
+                self._sphere_sel_radius = 0.0
+                self.update()
 
     def rotatePointCloud(self, dx, axis):
         if self.xyz is None:
@@ -1181,6 +1291,7 @@ class VisualisationWidget(QOpenGLWidget):
         gl = self.context().extraFunctions()
         self.point_cloud_renderer = SimplePointRenderer()
         self.sphere_renderer = SphereRenderer(gl)
+        self.sphere_selection_renderer = SphereSelectionRenderer()
         self.mesh_renderer = MeshRenderer(gl)
         self.line_renderer = LineRenderer(gl)
         self.axes_renderer = AxesRenderer()
@@ -1271,6 +1382,10 @@ class VisualisationWidget(QOpenGLWidget):
 
         # Draw directions and planes with alpha blending
         self._draw_directions_and_planes(gl, uniforms)
+
+        # Draw sphere selection overlay last (transparent, on top of everything)
+        if self._sphere_sel_active and self._sphere_sel_radius > 0:
+            self._draw_sphere_selection(gl, uniforms)
 
     def _draw_directions_and_planes(self, gl, uniforms):
         """Draw crystallographic directions and planes with transparency support."""
