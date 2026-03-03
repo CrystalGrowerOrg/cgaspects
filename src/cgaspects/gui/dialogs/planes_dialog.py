@@ -1,7 +1,6 @@
 """Dialog for adding crystallographic planes to the 3D visualization."""
 
 import math
-from fractions import Fraction
 
 import numpy as np
 from PySide6.QtCore import Qt, Signal
@@ -23,6 +22,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from cgaspects.gui.utils.crystal_items import DirectionData, PlaneData
+
 
 def _colored_icon(color, size=(50, 50)):
     pixmap = QPixmap(*size)
@@ -34,7 +35,7 @@ class PlanesDialog(QDialog):
     planesChanged = Signal(list)
     planesCleared = Signal()
     computePlaneFromSelection = Signal()  # Emitted when user confirms plane-from-points
-    addDirectionRequested = Signal(dict)  # Emitted when user wants to add selected plane as a direction
+    addDirectionRequested = Signal(object)  # Emits a DirectionData to add to the directions dialog
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -320,41 +321,44 @@ class PlanesDialog(QDialog):
             self._color = color
             self._color_button.setIcon(_colored_icon(self._color))
 
-    def _build_plane_dict(self):
-        return {
-            "normal": (self._h_spin.value(), self._k_spin.value(), self._l_spin.value()),
-            "origin": (self._ox_spin.value(), self._oy_spin.value(), self._oz_spin.value()),
-            "fractional": self._fractional_radio.isChecked(),
-            "size": self._size_spin.value() * self._max_extent,
-            "color": (self._color.redF(), self._color.greenF(), self._color.blueF()),
-            "alpha": self._alpha_slider.value() / 255.0,
-        }
+    def _build_plane(self) -> PlaneData:
+        size_relative = self._size_spin.value()
+        return PlaneData(
+            normal=(self._h_spin.value(), self._k_spin.value(), self._l_spin.value()),
+            origin=(self._ox_spin.value(), self._oy_spin.value(), self._oz_spin.value()),
+            fractional=self._fractional_radio.isChecked(),
+            size=size_relative * self._max_extent,
+            size_relative=size_relative,
+            color=(self._color.redF(), self._color.greenF(), self._color.blueF()),
+            alpha=self._alpha_slider.value() / 255.0,
+        )
 
-    def _make_list_label(self, plane):
-        mode = "Miller" if plane["fractional"] else "cart"
-        n = plane["normal"]
-        return f"({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) ({mode}) size={plane['size']:.1f}"
+    @staticmethod
+    def _make_list_label(plane: PlaneData) -> str:
+        mode = "Miller" if plane.fractional else "cart"
+        n = plane.normal
+        return f"({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) ({mode}) size={plane.size_relative:.1f}x"
 
     def _add_or_update_plane(self):
-        plane = self._build_plane_dict()
+        plane = self._build_plane()
 
         if self._editing_index is not None:
             idx = self._editing_index
             self._planes[idx] = plane
             item = self._plane_list.item(idx)
-            color = QColor.fromRgbF(*plane["color"])
+            color = QColor.fromRgbF(*plane.color)
             item.setIcon(_colored_icon(color, size=(16, 16)))
             item.setText(self._make_list_label(plane))
             self._cancel_edit()
             self._status_label.setText(f"Updated plane at index {idx}")
         else:
             self._planes.append(plane)
-            color = QColor.fromRgbF(*plane["color"])
+            color = QColor.fromRgbF(*plane.color)
             icon = _colored_icon(color, size=(16, 16))
             item = QListWidgetItem(icon, self._make_list_label(plane))
             item.setData(Qt.UserRole, len(self._planes) - 1)
             self._plane_list.addItem(item)
-            n = plane["normal"]
+            n = plane.normal
             self._status_label.setText(f"Added plane ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f})")
 
         self.planesChanged.emit(list(self._planes))
@@ -366,36 +370,33 @@ class PlanesDialog(QDialog):
         self._editing_index = row
         p = self._planes[row]
 
-        n = p["normal"]
         for spin in (self._h_spin, self._k_spin, self._l_spin):
             spin.blockSignals(True)
-        self._h_spin.setValue(n[0])
-        self._k_spin.setValue(n[1])
-        self._l_spin.setValue(n[2])
+        self._h_spin.setValue(p.normal[0])
+        self._k_spin.setValue(p.normal[1])
+        self._l_spin.setValue(p.normal[2])
         for spin in (self._h_spin, self._k_spin, self._l_spin):
             spin.blockSignals(False)
 
-        o = p["origin"]
-        self._ox_spin.setValue(o[0])
-        self._oy_spin.setValue(o[1])
-        self._oz_spin.setValue(o[2])
+        self._ox_spin.setValue(p.origin[0])
+        self._oy_spin.setValue(p.origin[1])
+        self._oz_spin.setValue(p.origin[2])
 
         for radio in (self._fractional_radio, self._cartesian_radio):
             radio.blockSignals(True)
-        if p["fractional"]:
+        if p.fractional:
             self._fractional_radio.setChecked(True)
         else:
             self._cartesian_radio.setChecked(True)
         for radio in (self._fractional_radio, self._cartesian_radio):
             radio.blockSignals(False)
 
-        self._size_spin.setValue(
-            p["size"] / self._max_extent if self._max_extent > 0 else p["size"]
-        )
+        # Use the stored relative size directly — no division needed
+        self._size_spin.setValue(p.size_relative)
 
-        self._color = QColor.fromRgbF(*p["color"])
+        self._color = QColor.fromRgbF(*p.color)
         self._color_button.setIcon(_colored_icon(self._color))
-        self._alpha_slider.setValue(int(p["alpha"] * 255))
+        self._alpha_slider.setValue(int(p.alpha * 255))
 
         self._add_button.setText("Update Plane")
         self._cancel_edit_btn.setVisible(True)
@@ -436,30 +437,31 @@ class PlanesDialog(QDialog):
             self._status_label.setText("No plane selected")
             return
         p = self._planes[row]
-        direction = {
-            "vector": p["normal"],
-            "origin": p["origin"],
-            "fractional": p["fractional"],
-            "style": "cylinder",
-            "thickness": 12.0,
-            "length": p["size"],
-            "color": p["color"],
-            "alpha": p["alpha"],
-        }
+        direction = DirectionData(
+            vector=p.normal,
+            origin=p.origin,
+            fractional=p.fractional,
+            style="cylinder",
+            thickness=12.0,
+            length=p.size_relative,
+            length_relative=p.size_relative,
+            color=p.color,
+            alpha=p.alpha,
+        )
         self.addDirectionRequested.emit(direction)
-        n = p["normal"]
+        n = p.normal
         self._status_label.setText(f"Sent ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) as direction")
 
-    def add_external(self, plane_dict):
-        """Add a plane dict programmatically (e.g. from the directions dialog)."""
-        self._planes.append(plane_dict)
-        color = QColor.fromRgbF(*plane_dict["color"])
+    def add_external(self, plane: PlaneData):
+        """Add a PlaneData programmatically (e.g. from the directions dialog)."""
+        self._planes.append(plane)
+        color = QColor.fromRgbF(*plane.color)
         icon = _colored_icon(color, size=(16, 16))
-        item = QListWidgetItem(icon, self._make_list_label(plane_dict))
+        item = QListWidgetItem(icon, self._make_list_label(plane))
         item.setData(Qt.UserRole, len(self._planes) - 1)
         self._plane_list.addItem(item)
         self.planesChanged.emit(list(self._planes))
-        n = plane_dict["normal"]
+        n = plane.normal
         self._status_label.setText(f"Added plane ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) from direction")
 
     # ------------------------------------------------------------------ #

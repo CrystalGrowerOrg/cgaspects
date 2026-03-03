@@ -185,10 +185,10 @@ class VisualisationWidget(QOpenGLWidget):
             self.update()
             logger.info("Axes reset to Cartesian coordinates")
 
-    def set_directions(self, directions, crystallography=None):
+    def set_directions(self, directions, crystallography=None, max_extent=1.0):
         """Set crystallographic directions to render."""
         if self.direction_renderer is not None:
-            self.direction_renderer.set_directions(directions, crystallography)
+            self.direction_renderer.set_directions(directions, crystallography, max_extent)
             self.update()
 
     def set_planes(self, planes, crystallography=None):

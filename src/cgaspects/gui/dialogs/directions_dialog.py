@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,
-    QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -21,6 +20,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from cgaspects.gui.utils.crystal_items import DirectionData, PlaneData
+
 
 def _colored_icon(color, size=(50, 50)):
     pixmap = QPixmap(*size)
@@ -31,7 +32,7 @@ def _colored_icon(color, size=(50, 50)):
 class DirectionsDialog(QDialog):
     directionsChanged = Signal(list)
     directionsCleared = Signal()
-    addPlaneRequested = Signal(dict)  # Emitted when user wants to add selected direction as a plane
+    addPlaneRequested = Signal(object)  # Emits a PlaneData to add to the planes dialog
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -302,45 +303,46 @@ class DirectionsDialog(QDialog):
             self._color = color
             self._color_button.setIcon(_colored_icon(self._color))
 
-    def _build_direction_dict(self):
-        return {
-            "vector": (self._u_spin.value(), self._v_spin.value(), self._w_spin.value()),
-            "origin": (self._ox_spin.value(), self._oy_spin.value(), self._oz_spin.value()),
-            "fractional": self._fractional_radio.isChecked(),
-            "style": self._style_combo.currentText().lower(),
-            "thickness": self._thickness_spin.value(),
-            "length": self._length_spin.value() * self._max_extent,
-            "color": (self._color.redF(), self._color.greenF(), self._color.blueF()),
-            "alpha": self._alpha_slider.value() / 255.0,
-        }
+    def _build_direction(self) -> DirectionData:
+        length_relative = self._length_spin.value()
+        return DirectionData(
+            vector=(self._u_spin.value(), self._v_spin.value(), self._w_spin.value()),
+            origin=(self._ox_spin.value(), self._oy_spin.value(), self._oz_spin.value()),
+            fractional=self._fractional_radio.isChecked(),
+            style=self._style_combo.currentText().lower(),
+            thickness=self._thickness_spin.value(),
+            length=length_relative,
+            length_relative=length_relative,
+            color=(self._color.redF(), self._color.greenF(), self._color.blueF()),
+            alpha=self._alpha_slider.value() / 255.0,
+        )
 
-    def _make_list_label(self, direction):
-        mode = "frac" if direction["fractional"] else "cart"
-        v = direction["vector"]
-        return f"[{v[0]:.1f} {v[1]:.1f} {v[2]:.1f}] ({mode}) {direction['style']}"
+    @staticmethod
+    def _make_list_label(direction: DirectionData) -> str:
+        mode = "frac" if direction.fractional else "cart"
+        v = direction.vector
+        return f"[{v[0]:.1f} {v[1]:.1f} {v[2]:.1f}] ({mode}) {direction.style}"
 
     def _add_or_update_direction(self):
-        direction = self._build_direction_dict()
+        direction = self._build_direction()
 
         if self._editing_index is not None:
-            # Update existing
             idx = self._editing_index
             self._directions[idx] = direction
             item = self._direction_list.item(idx)
-            color = QColor.fromRgbF(*direction["color"])
+            color = QColor.fromRgbF(*direction.color)
             item.setIcon(_colored_icon(color, size=(16, 16)))
             item.setText(self._make_list_label(direction))
             self._cancel_edit()
             self._status_label.setText(f"Updated direction at index {idx}")
         else:
-            # Add new
             self._directions.append(direction)
-            color = QColor.fromRgbF(*direction["color"])
+            color = QColor.fromRgbF(*direction.color)
             icon = _colored_icon(color, size=(16, 16))
             item = QListWidgetItem(icon, self._make_list_label(direction))
             item.setData(Qt.UserRole, len(self._directions) - 1)
             self._direction_list.addItem(item)
-            v = direction["vector"]
+            v = direction.vector
             self._status_label.setText(f"Added direction [{v[0]:.1f} {v[1]:.1f} {v[2]:.1f}]")
 
         self.directionsChanged.emit(list(self._directions))
@@ -352,39 +354,33 @@ class DirectionsDialog(QDialog):
         self._editing_index = row
         d = self._directions[row]
 
-        # Populate fields
-        v = d["vector"]
-        self._u_spin.setValue(v[0])
-        self._v_spin.setValue(v[1])
-        self._w_spin.setValue(v[2])
+        self._u_spin.setValue(d.vector[0])
+        self._v_spin.setValue(d.vector[1])
+        self._w_spin.setValue(d.vector[2])
 
-        o = d["origin"]
-        self._ox_spin.setValue(o[0])
-        self._oy_spin.setValue(o[1])
-        self._oz_spin.setValue(o[2])
+        self._ox_spin.setValue(d.origin[0])
+        self._oy_spin.setValue(d.origin[1])
+        self._oz_spin.setValue(d.origin[2])
 
         for radio in (self._fractional_radio, self._cartesian_radio):
             radio.blockSignals(True)
-        if d["fractional"]:
+        if d.fractional:
             self._fractional_radio.setChecked(True)
         else:
             self._cartesian_radio.setChecked(True)
         for radio in (self._fractional_radio, self._cartesian_radio):
             radio.blockSignals(False)
 
-        style = d["style"].capitalize()
-        idx = self._style_combo.findText(style)
-        if idx >= 0:
-            self._style_combo.setCurrentIndex(idx)
+        style_idx = self._style_combo.findText(d.style.capitalize())
+        if style_idx >= 0:
+            self._style_combo.setCurrentIndex(style_idx)
 
-        self._thickness_spin.setValue(d["thickness"])
-        self._length_spin.setValue(
-            d["length"] / self._max_extent if self._max_extent > 0 else d["length"]
-        )
+        self._thickness_spin.setValue(d.thickness)
+        self._length_spin.setValue(d.length)
 
-        self._color = QColor.fromRgbF(*d["color"])
+        self._color = QColor.fromRgbF(*d.color)
         self._color_button.setIcon(_colored_icon(self._color))
-        self._alpha_slider.setValue(int(d["alpha"] * 255))
+        self._alpha_slider.setValue(int(d.alpha * 255))
 
         self._add_button.setText("Update Direction")
         self._cancel_edit_btn.setVisible(True)
@@ -425,26 +421,27 @@ class DirectionsDialog(QDialog):
             self._status_label.setText("No direction selected")
             return
         d = self._directions[row]
-        plane = {
-            "normal": d["vector"],
-            "origin": d["origin"],
-            "fractional": d["fractional"],
-            "size": d["length"],
-            "color": d["color"],
-            "alpha": d["alpha"],
-        }
+        plane = PlaneData(
+            normal=d.vector,
+            origin=d.origin,
+            fractional=d.fractional,
+            size=d.length * self._max_extent,
+            size_relative=d.length,
+            color=d.color,
+            alpha=d.alpha,
+        )
         self.addPlaneRequested.emit(plane)
-        v = d["vector"]
+        v = d.vector
         self._status_label.setText(f"Sent [{v[0]:.0f} {v[1]:.0f} {v[2]:.0f}] as plane")
 
-    def add_external(self, direction_dict):
-        """Add a direction dict programmatically (e.g. from the planes dialog)."""
-        self._directions.append(direction_dict)
-        color = QColor.fromRgbF(*direction_dict["color"])
+    def add_external(self, direction: DirectionData):
+        """Add a DirectionData programmatically (e.g. from the planes dialog)."""
+        self._directions.append(direction)
+        color = QColor.fromRgbF(*direction.color)
         icon = _colored_icon(color, size=(16, 16))
-        item = QListWidgetItem(icon, self._make_list_label(direction_dict))
+        item = QListWidgetItem(icon, self._make_list_label(direction))
         item.setData(Qt.UserRole, len(self._directions) - 1)
         self._direction_list.addItem(item)
         self.directionsChanged.emit(list(self._directions))
-        v = direction_dict["vector"]
+        v = direction.vector
         self._status_label.setText(f"Added direction [{v[0]:.0f} {v[1]:.0f} {v[2]:.0f}] from plane")

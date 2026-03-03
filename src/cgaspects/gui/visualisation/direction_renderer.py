@@ -5,7 +5,7 @@ but renders in world space using the MVP matrix rather than screen-corner space.
 """
 
 import numpy as np
-from OpenGL.GL import GL_FLOAT, GL_LINES, GL_BLEND, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+from OpenGL.GL import GL_BLEND, GL_FLOAT, GL_LINES, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA
 from PySide6.QtOpenGL import (
     QOpenGLBuffer,
     QOpenGLShader,
@@ -117,8 +117,7 @@ class DirectionRenderer:
             float ndcThickness = u_dirThickness / u_screenSize.y * 2.0;
 
             float totalLength = length(ndcEnd - ndcStart);
-            float fixedArrowLength = 0.025;
-            float arrowLength = min(fixedArrowLength, totalLength * 0.4);
+            float arrowLength = totalLength * 0.2;
             vec2 shaftEnd = ndcEnd - dir * arrowLength;
             vec2 offset = perpDir * ndcThickness / 2.0;
 
@@ -141,8 +140,8 @@ class DirectionRenderer:
 
             EndPrimitive();
 
-            // Arrowhead
-            vec2 arrowOffset = perpDir * ndcThickness * 1.5;
+            // Arrowhead — width proportional to head length for consistent aspect ratio
+            vec2 arrowOffset = perpDir * arrowLength * 0.5;
 
             gl_Position = vec4((shaftEnd + arrowOffset) * clipEnd.w, clipEnd.zw);
             f_color = vec4(gs_in[1].color, gs_in[1].alpha);
@@ -255,13 +254,13 @@ class DirectionRenderer:
             float radius = u_dirThickness * 0.02;
 
             float totalLength = length(end - start);
-            float fixedArrowLength = 0.25;
-            float arrowLength = min(fixedArrowLength, totalLength * 0.4);
+            float arrowLength = totalLength * 0.2;
             vec3 dir = normalize(end - start);
             vec3 shaftEnd = end - dir * arrowLength;
+            float coneRadius = max(radius * 2.5, arrowLength * 0.35);
 
             emitCylinder(start, shaftEnd, radius, color, alpha);
-            emitCone(shaftEnd, end, radius * 2.5, color, alpha);
+            emitCone(shaftEnd, end, coneRadius, color, alpha);
         }
         """
 
@@ -342,10 +341,11 @@ class DirectionRenderer:
         self.vao = QOpenGLVertexArrayObject()
         self.vao.create()
 
-    def set_directions(self, directions, crystallography=None):
+    def set_directions(self, directions, crystallography=None, max_extent=1.0):
         """Set direction data from list of direction dicts.
 
         Each dict has: vector, origin, fractional, style, thickness, length, color, alpha
+        length is a relative multiplier; actual world-space length = length * max_extent.
         """
         self.directions = directions
         if not directions:
@@ -357,21 +357,21 @@ class DirectionRenderer:
         all_points = []
 
         for d in directions:
-            vec = np.array(d["vector"], dtype=np.float64)
-            origin = np.array(d["origin"], dtype=np.float64)
+            vec = np.array(d.vector, dtype=np.float64)
+            origin = np.array(d.origin, dtype=np.float64)
 
             # Convert fractional to Cartesian if needed
-            if d.get("fractional") and crystallography is not None:
+            if d.fractional and crystallography is not None:
                 vec = crystallography.frac_to_cart(vec.reshape(1, -1))[0]
 
-            # Normalize and apply length
+            # Normalize and apply length (d.length is a relative multiplier)
             length = np.linalg.norm(vec)
             if length > 1e-10:
-                vec = vec / length * d.get("length", 1.0)
+                vec = vec / length * (d.length * max_extent)
 
             endpoint = origin + vec
-            r, g, b = d["color"]
-            alpha = d.get("alpha", 1.0)
+            r, g, b = d.color
+            alpha = d.alpha
 
             all_points.extend([
                 origin[0], origin[1], origin[2], r, g, b, alpha,
@@ -438,10 +438,9 @@ class DirectionRenderer:
         # Group directions by style
         style_groups = {}
         for i, d in enumerate(directions):
-            style = d.get("style", "cylinder")
-            if style not in style_groups:
-                style_groups[style] = []
-            style_groups[style].append(i)
+            if d.style not in style_groups:
+                style_groups[d.style] = []
+            style_groups[d.style].append(i)
 
         for style, indices in style_groups.items():
             if style in self.programs:
@@ -452,8 +451,7 @@ class DirectionRenderer:
             self.setUniforms(**uniforms)
 
             # Set per-style thickness from first direction in group
-            thickness = directions[indices[0]].get("thickness", 3.5)
-            self.program.setUniformValue1f("u_dirThickness", thickness)
+            self.program.setUniformValue1f("u_dirThickness", directions[indices[0]].thickness)
 
             # Draw only the lines for this style group
             for idx in indices:

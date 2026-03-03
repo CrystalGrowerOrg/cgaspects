@@ -604,7 +604,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def handle_directions_changed(self, directions):
         """Handle changes to crystallographic directions."""
         if hasattr(self.openglwidget, "set_directions"):
-            self.openglwidget.set_directions(directions, self.crystallography)
+            max_extent = self._get_point_cloud_max_extent() or 1.0
+            self.openglwidget.set_directions(directions, self.crystallography, max_extent)
 
     def handle_directions_cleared(self):
         """Handle clearing of all directions."""

@@ -108,16 +108,16 @@ class PlaneRenderer:
         all_points = []
 
         for p in planes:
-            normal = np.array(p["normal"], dtype=np.float64)
-            origin = np.array(p["origin"], dtype=np.float64)
-            size = p.get("size", 5.0)
-            r, g, b = p["color"]
-            alpha = p.get("alpha", 0.5)
+            normal = np.array(p.normal, dtype=np.float64)
+            origin = np.array(p.origin, dtype=np.float64)
+            size = p.size
+            r, g, b = p.color
+            alpha = p.alpha
 
             # Convert Miller indices (hkl) to Cartesian normal via reciprocal lattice.
             # frac_to_cart uses the direct lattice (correct for directions [uvw]);
             # planes need M^{-T} since (hkl) lives in reciprocal space.
-            if p.get("fractional") and crystallography is not None:
+            if p.fractional and crystallography is not None:
                 normal = crystallography.miller_to_cart_normal(normal)
 
             # Normalize
