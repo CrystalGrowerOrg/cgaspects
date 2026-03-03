@@ -1,5 +1,6 @@
 """Dialog for adding crystallographic directions to the 3D visualization."""
 
+import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
@@ -30,6 +31,7 @@ def _colored_icon(color, size=(50, 50)):
 class DirectionsDialog(QDialog):
     directionsChanged = Signal(list)
     directionsCleared = Signal()
+    addPlaneRequested = Signal(dict)  # Emitted when user wants to add selected direction as a plane
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,6 +65,7 @@ class DirectionsDialog(QDialog):
         self._cartesian_radio.setChecked(True)
         self._fractional_radio.setEnabled(False)
         self._fractional_radio.setToolTip("Set lattice parameters first to enable fractional mode")
+        self._fractional_radio.toggled.connect(self._on_mode_changed)
         mode_layout.addWidget(self._fractional_radio)
         mode_layout.addWidget(self._cartesian_radio)
         mode_group.setLayout(mode_layout)
@@ -145,10 +148,13 @@ class DirectionsDialog(QDialog):
         appearance_layout = QHBoxLayout()
 
         self._color_button = QToolButton()
-        self._color = QColor(255, 0, 0)
+        self._color = self._uvw_to_color(1.0, 0.0, 0.0)
         self._color_button.setIcon(_colored_icon(self._color))
         self._color_button.setMinimumSize(60, 30)
         self._color_button.clicked.connect(self._pick_color)
+
+        for spin in (self._u_spin, self._v_spin, self._w_spin):
+            spin.valueChanged.connect(self._update_color_from_direction)
         appearance_layout.addWidget(QLabel("Color:"))
         appearance_layout.addWidget(self._color_button)
 
@@ -193,8 +199,12 @@ class DirectionsDialog(QDialog):
         self._remove_btn.clicked.connect(self._remove_selected)
         self._clear_btn = QPushButton("Clear All")
         self._clear_btn.clicked.connect(self._clear_all)
+        self._as_plane_btn = QPushButton("Add as Plane")
+        self._as_plane_btn.setToolTip("Add the selected direction's indices as a plane (hkl)")
+        self._as_plane_btn.clicked.connect(self._add_selected_as_plane)
         btn_layout.addWidget(self._remove_btn)
         btn_layout.addWidget(self._clear_btn)
+        btn_layout.addWidget(self._as_plane_btn)
         main_layout.addLayout(btn_layout)
 
         # Close
@@ -213,6 +223,55 @@ class DirectionsDialog(QDialog):
         """Set the max extent of the point cloud. Length=1 maps to this extent."""
         if max_extent is not None and max_extent > 0:
             self._max_extent = max_extent
+
+    @staticmethod
+    def _uvw_to_color(u, v, w):
+        """Map |u|→R, |v|→G, |w|→B, normalised by the dominant index."""
+        r, g, b = abs(u), abs(v), abs(w)
+        max_val = max(r, g, b)
+        if max_val < 1e-9:
+            return QColor(120, 120, 120)
+        r, g, b = r / max_val, g / max_val, b / max_val
+        return QColor(int(r * 255), int(g * 255), int(b * 255))
+
+    def _update_color_from_direction(self):
+        color = self._uvw_to_color(
+            self._u_spin.value(), self._v_spin.value(), self._w_spin.value()
+        )
+        self._color = color
+        self._color_button.setIcon(_colored_icon(self._color))
+
+    def _on_mode_changed(self, fractional_checked):
+        """Convert spinbox values when switching between Cartesian and fractional modes."""
+        if self._crystallography is None or self._crystallography.cell is None:
+            return
+        u = self._u_spin.value()
+        v = self._v_spin.value()
+        w = self._w_spin.value()
+        vec = np.array([u, v, w], dtype=np.float64)
+        for spin in (self._u_spin, self._v_spin, self._w_spin):
+            spin.blockSignals(True)
+        if fractional_checked:
+            # Cartesian → fractional [u v w]
+            frac = self._crystallography.cart_to_frac(vec)
+            max_abs = np.max(np.abs(frac))
+            if max_abs > 1e-9:
+                frac = frac / max_abs
+            self._u_spin.setValue(float(frac[0]))
+            self._v_spin.setValue(float(frac[1]))
+            self._w_spin.setValue(float(frac[2]))
+        else:
+            # Fractional [u v w] → Cartesian
+            cart = self._crystallography.frac_to_cart(vec)
+            norm = np.linalg.norm(cart)
+            if norm > 1e-9:
+                cart = cart / norm
+            self._u_spin.setValue(float(cart[0]))
+            self._v_spin.setValue(float(cart[1]))
+            self._w_spin.setValue(float(cart[2]))
+        for spin in (self._u_spin, self._v_spin, self._w_spin):
+            spin.blockSignals(False)
+        self._update_color_from_direction()
 
     def set_crystallography(self, crystallography):
         self._crystallography = crystallography
@@ -304,10 +363,14 @@ class DirectionsDialog(QDialog):
         self._oy_spin.setValue(o[1])
         self._oz_spin.setValue(o[2])
 
+        for radio in (self._fractional_radio, self._cartesian_radio):
+            radio.blockSignals(True)
         if d["fractional"]:
             self._fractional_radio.setChecked(True)
         else:
             self._cartesian_radio.setChecked(True)
+        for radio in (self._fractional_radio, self._cartesian_radio):
+            radio.blockSignals(False)
 
         style = d["style"].capitalize()
         idx = self._style_combo.findText(style)
@@ -355,3 +418,33 @@ class DirectionsDialog(QDialog):
         self._direction_list.clear()
         self.directionsCleared.emit()
         self._status_label.setText("All directions cleared")
+
+    def _add_selected_as_plane(self):
+        row = self._direction_list.currentRow()
+        if row < 0:
+            self._status_label.setText("No direction selected")
+            return
+        d = self._directions[row]
+        plane = {
+            "normal": d["vector"],
+            "origin": d["origin"],
+            "fractional": d["fractional"],
+            "size": d["length"],
+            "color": d["color"],
+            "alpha": d["alpha"],
+        }
+        self.addPlaneRequested.emit(plane)
+        v = d["vector"]
+        self._status_label.setText(f"Sent [{v[0]:.0f} {v[1]:.0f} {v[2]:.0f}] as plane")
+
+    def add_external(self, direction_dict):
+        """Add a direction dict programmatically (e.g. from the planes dialog)."""
+        self._directions.append(direction_dict)
+        color = QColor.fromRgbF(*direction_dict["color"])
+        icon = _colored_icon(color, size=(16, 16))
+        item = QListWidgetItem(icon, self._make_list_label(direction_dict))
+        item.setData(Qt.UserRole, len(self._directions) - 1)
+        self._direction_list.addItem(item)
+        self.directionsChanged.emit(list(self._directions))
+        v = direction_dict["vector"]
+        self._status_label.setText(f"Added direction [{v[0]:.0f} {v[1]:.0f} {v[2]:.0f}] from plane")

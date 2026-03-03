@@ -192,6 +192,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.planesChanged.connect(self.handle_planes_changed)
         self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
         self.planes_dialog.computePlaneFromSelection.connect(self._on_compute_plane_from_selection)
+        self.planes_dialog.addDirectionRequested.connect(self._on_add_direction_from_plane)
+        self.directions_dialog.addPlaneRequested.connect(self._on_add_plane_from_direction)
 
         self.setup_button_connections()
         self.setup_menubar_connections()
@@ -618,6 +620,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Handle clearing of all planes."""
         if hasattr(self.openglwidget, "set_planes"):
             self.openglwidget.set_planes([], None)
+
+    def _on_add_direction_from_plane(self, direction_dict):
+        """Route a plane's indices to the directions dialog as a new direction."""
+        self.directions_dialog.add_external(direction_dict)
+        self.directions_dialog.show()
+        self.directions_dialog.raise_()
+
+    def _on_add_plane_from_direction(self, plane_dict):
+        """Route a direction's indices to the planes dialog as a new plane."""
+        self.planes_dialog.add_external(plane_dict)
+        self.planes_dialog.show()
+        self.planes_dialog.raise_()
 
     def _on_compute_plane_from_selection(self):
         """Compute a best-fit plane from the currently selected points and populate the planes dialog."""

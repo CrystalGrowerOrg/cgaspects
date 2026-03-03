@@ -114,9 +114,11 @@ class PlaneRenderer:
             r, g, b = p["color"]
             alpha = p.get("alpha", 0.5)
 
-            # Convert fractional normal to Cartesian if needed
+            # Convert Miller indices (hkl) to Cartesian normal via reciprocal lattice.
+            # frac_to_cart uses the direct lattice (correct for directions [uvw]);
+            # planes need M^{-T} since (hkl) lives in reciprocal space.
             if p.get("fractional") and crystallography is not None:
-                normal = crystallography.frac_to_cart(normal.reshape(1, -1))[0]
+                normal = crystallography.miller_to_cart_normal(normal)
 
             # Normalize
             length = np.linalg.norm(normal)

@@ -34,6 +34,7 @@ class PlanesDialog(QDialog):
     planesChanged = Signal(list)
     planesCleared = Signal()
     computePlaneFromSelection = Signal()  # Emitted when user confirms plane-from-points
+    addDirectionRequested = Signal(dict)  # Emitted when user wants to add selected plane as a direction
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -70,6 +71,7 @@ class PlanesDialog(QDialog):
         self._fractional_radio.setToolTip(
             "Set lattice parameters first to enable Miller index mode"
         )
+        self._fractional_radio.toggled.connect(self._on_mode_changed)
         mode_layout.addWidget(self._fractional_radio)
         mode_layout.addWidget(self._cartesian_radio)
         mode_group.setLayout(mode_layout)
@@ -215,8 +217,12 @@ class PlanesDialog(QDialog):
         self._remove_btn.clicked.connect(self._remove_selected)
         self._clear_btn = QPushButton("Clear All")
         self._clear_btn.clicked.connect(self._clear_all)
+        self._as_direction_btn = QPushButton("Add as Direction")
+        self._as_direction_btn.setToolTip("Add the selected plane's indices as a direction vector")
+        self._as_direction_btn.clicked.connect(self._add_selected_as_direction)
         btn_layout.addWidget(self._remove_btn)
         btn_layout.addWidget(self._clear_btn)
+        btn_layout.addWidget(self._as_direction_btn)
         main_layout.addLayout(btn_layout)
 
         # Close
@@ -273,6 +279,38 @@ class PlanesDialog(QDialog):
         )
         self._color = color
         self._color_button.setIcon(_colored_icon(self._color))
+
+    def _on_mode_changed(self, fractional_checked):
+        """Convert spinbox values when switching between Cartesian and Miller modes."""
+        if self._crystallography is None or self._crystallography.cell is None:
+            return
+        h = self._h_spin.value()
+        k = self._k_spin.value()
+        ml = self._l_spin.value()
+        vec = np.array([h, k, ml], dtype=np.float64)
+        for spin in (self._h_spin, self._k_spin, self._l_spin):
+            spin.blockSignals(True)
+        if fractional_checked:
+            # Cartesian normal → Miller indices (reciprocal space: use M^T)
+            miller = self._crystallography.cart_to_miller(vec)
+            max_abs = np.max(np.abs(miller))
+            if max_abs > 1e-9:
+                miller = miller / max_abs
+            self._h_spin.setValue(float(miller[0]))
+            self._k_spin.setValue(float(miller[1]))
+            self._l_spin.setValue(float(miller[2]))
+        else:
+            # Miller indices → Cartesian normal (reciprocal space: use M^{-T})
+            cart = self._crystallography.miller_to_cart_normal(vec)
+            norm = np.linalg.norm(cart)
+            if norm > 1e-9:
+                cart = cart / norm
+            self._h_spin.setValue(float(cart[0]))
+            self._k_spin.setValue(float(cart[1]))
+            self._l_spin.setValue(float(cart[2]))
+        for spin in (self._h_spin, self._k_spin, self._l_spin):
+            spin.blockSignals(False)
+        self._update_color_from_miller()
 
     def _pick_color(self):
         color = QColorDialog.getColor(
@@ -342,10 +380,14 @@ class PlanesDialog(QDialog):
         self._oy_spin.setValue(o[1])
         self._oz_spin.setValue(o[2])
 
+        for radio in (self._fractional_radio, self._cartesian_radio):
+            radio.blockSignals(True)
         if p["fractional"]:
             self._fractional_radio.setChecked(True)
         else:
             self._cartesian_radio.setChecked(True)
+        for radio in (self._fractional_radio, self._cartesian_radio):
+            radio.blockSignals(False)
 
         self._size_spin.setValue(
             p["size"] / self._max_extent if self._max_extent > 0 else p["size"]
@@ -388,6 +430,38 @@ class PlanesDialog(QDialog):
         self.planesCleared.emit()
         self._status_label.setText("All planes cleared")
 
+    def _add_selected_as_direction(self):
+        row = self._plane_list.currentRow()
+        if row < 0:
+            self._status_label.setText("No plane selected")
+            return
+        p = self._planes[row]
+        direction = {
+            "vector": p["normal"],
+            "origin": p["origin"],
+            "fractional": p["fractional"],
+            "style": "cylinder",
+            "thickness": 12.0,
+            "length": p["size"],
+            "color": p["color"],
+            "alpha": p["alpha"],
+        }
+        self.addDirectionRequested.emit(direction)
+        n = p["normal"]
+        self._status_label.setText(f"Sent ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) as direction")
+
+    def add_external(self, plane_dict):
+        """Add a plane dict programmatically (e.g. from the directions dialog)."""
+        self._planes.append(plane_dict)
+        color = QColor.fromRgbF(*plane_dict["color"])
+        icon = _colored_icon(color, size=(16, 16))
+        item = QListWidgetItem(icon, self._make_list_label(plane_dict))
+        item.setData(Qt.UserRole, len(self._planes) - 1)
+        self._plane_list.addItem(item)
+        self.planesChanged.emit(list(self._planes))
+        n = plane_dict["normal"]
+        self._status_label.setText(f"Added plane ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f}) from direction")
+
     # ------------------------------------------------------------------ #
     # Find plane from selected points                                      #
     # ------------------------------------------------------------------ #
@@ -421,8 +495,8 @@ class PlanesDialog(QDialog):
             crystallography: optional Crystallography object for Miller index conversion
         """
         if crystallography is not None and crystallography.cell is not None:
-            # Convert Cartesian normal to fractional (Miller indices via inverse matrix)
-            miller = crystallography.cart_to_frac(normal)
+            # Convert Cartesian normal to Miller indices (reciprocal space: use M^T)
+            miller = crystallography.cart_to_miller(normal)
             max_abs = np.max(np.abs(miller))
             if max_abs > 0:
                 miller = miller / max_abs
