@@ -254,10 +254,11 @@ class DirectionRenderer:
             float radius = u_dirThickness * 0.02;
 
             float totalLength = length(end - start);
-            float arrowLength = totalLength * 0.2;
+            float fixedArrowLength = radius * 8.0;
+            float arrowLength = min(fixedArrowLength, totalLength * 0.3);
             vec3 dir = normalize(end - start);
             vec3 shaftEnd = end - dir * arrowLength;
-            float coneRadius = max(radius * 2.5, arrowLength * 0.35);
+            float coneRadius = max(radius * 2.0, arrowLength * 0.3);
 
             emitCylinder(start, shaftEnd, radius, color, alpha);
             emitCone(shaftEnd, end, coneRadius, color, alpha);
@@ -373,10 +374,24 @@ class DirectionRenderer:
             r, g, b = d.color
             alpha = d.alpha
 
-            all_points.extend([
-                origin[0], origin[1], origin[2], r, g, b, alpha,
-                endpoint[0], endpoint[1], endpoint[2], r, g, b, alpha,
-            ])
+            all_points.extend(
+                [
+                    origin[0],
+                    origin[1],
+                    origin[2],
+                    r,
+                    g,
+                    b,
+                    alpha,
+                    endpoint[0],
+                    endpoint[1],
+                    endpoint[2],
+                    r,
+                    g,
+                    b,
+                    alpha,
+                ]
+            )
 
         self.points = np.array(all_points, dtype=np.float32)
         self._upload_data()

@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from cgaspects.gui.utils.crystal_items import DirectionData, PlaneData
+from cgaspects.utils.crystal_items import DirectionData, PlaneData
 
 
 def _colored_icon(color, size=(50, 50)):
@@ -272,6 +272,9 @@ class PlanesDialog(QDialog):
         if max_val < 1e-9:
             return QColor(120, 120, 120)
         r, g, b = r / max_val, g / max_val, b / max_val
+        # n(111) and equivalents: all equal - would be white; use grey instead for visibility
+        if abs(r - g) < 1e-6 and abs(g - b) < 1e-6:
+            return QColor(180, 180, 180)
         return QColor(int(r * 255), int(g * 255), int(b * 255))
 
     def _update_color_from_miller(self):
@@ -442,7 +445,7 @@ class PlanesDialog(QDialog):
             origin=p.origin,
             fractional=p.fractional,
             style="cylinder",
-            thickness=12.0,
+            thickness=30.0,
             length=p.size_relative,
             length_relative=p.size_relative,
             color=p.color,

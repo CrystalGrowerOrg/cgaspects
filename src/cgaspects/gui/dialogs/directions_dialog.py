@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from cgaspects.gui.utils.crystal_items import DirectionData, PlaneData
+from cgaspects.utils.crystal_items import DirectionData, PlaneData
 
 
 def _colored_icon(color, size=(50, 50)):
@@ -124,7 +124,7 @@ class DirectionsDialog(QDialog):
 
         self._thickness_spin = QDoubleSpinBox()
         self._thickness_spin.setRange(1.0, 100.0)
-        self._thickness_spin.setValue(12.0)
+        self._thickness_spin.setValue(30.0)
         self._thickness_spin.setSingleStep(0.5)
         self._thickness_spin.setDecimals(1)
         render_layout.addWidget(QLabel("Thickness:"))
@@ -233,12 +233,13 @@ class DirectionsDialog(QDialog):
         if max_val < 1e-9:
             return QColor(120, 120, 120)
         r, g, b = r / max_val, g / max_val, b / max_val
+        # n(111) and equivalents: all equal - would be white; use grey instead for visibility
+        if abs(r - g) < 1e-6 and abs(g - b) < 1e-6:
+            return QColor(180, 180, 180)
         return QColor(int(r * 255), int(g * 255), int(b * 255))
 
     def _update_color_from_direction(self):
-        color = self._uvw_to_color(
-            self._u_spin.value(), self._v_spin.value(), self._w_spin.value()
-        )
+        color = self._uvw_to_color(self._u_spin.value(), self._v_spin.value(), self._w_spin.value())
         self._color = color
         self._color_button.setIcon(_colored_icon(self._color))
 
