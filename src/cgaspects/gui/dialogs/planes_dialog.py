@@ -259,7 +259,8 @@ class PlanesDialog(QDialog):
 
         # Row 2: thickness spinbox
         slice_row2 = QHBoxLayout()
-        slice_row2.addWidget(QLabel("Thickness:"))
+        self._slice_thickness_label = QLabel("Thickness:")
+        slice_row2.addWidget(self._slice_thickness_label)
         self._slice_thickness_spin = QDoubleSpinBox()
         self._slice_thickness_spin.setRange(0.1, 10000.0)
         self._slice_thickness_spin.setValue(5.0)
@@ -486,6 +487,7 @@ class PlanesDialog(QDialog):
     # ------------------------------------------------------------------ #
 
     def _set_slicing_controls_enabled(self, enabled: bool):
+        self._slice_thickness_label.setEnabled(enabled)
         self._slice_enable_check.setEnabled(enabled)
         self._slice_two_sided_check.setEnabled(enabled)
         self._slice_thickness_spin.setEnabled(enabled)

@@ -65,12 +65,9 @@ class VisualisationWidget(QOpenGLWidget):
     pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
     selectionChanged = Signal(set, object)  # (selected_indices, last_selected_index)
     pointsDeleted = Signal(int)  # Number of points deleted
-    crystalTranslationChanged = Signal(float, float, float)  # (x, y, z) world-space offset
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.rightMouseButtonPressed = False
         self.lastMousePosition = QtCore.QPoint()
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.camera = Camera()
@@ -88,8 +85,6 @@ class VisualisationWidget(QOpenGLWidget):
         self._pick_radius = 0.1  # Picking radius in normalized coordinates
         self._deleted_points = set()  # Set of deleted point indices
 
-        # Crystal translation (right-click drag or manual dialog)
-        self._crystal_translation = np.zeros(3, dtype=np.float64)
         self._raw_planes = []
         self._planes_crystallography = None
         self._raw_directions = []
@@ -202,17 +197,10 @@ class VisualisationWidget(QOpenGLWidget):
         self._apply_directions()
 
     def _apply_directions(self):
-        """Upload directions to renderer with current crystal translation applied to origins."""
         if self.direction_renderer is None:
             return
-        import dataclasses as _dc
-        t = self._crystal_translation
-        translated = []
-        for d in self._raw_directions:
-            new_origin = (d.origin[0] + t[0], d.origin[1] + t[1], d.origin[2] + t[2])
-            translated.append(_dc.replace(d, origin=new_origin))
         self.direction_renderer.set_directions(
-            translated, self._directions_crystallography, self._directions_max_extent
+            self._raw_directions, self._directions_crystallography, self._directions_max_extent
         )
         self.update()
 
@@ -223,57 +211,14 @@ class VisualisationWidget(QOpenGLWidget):
         self._apply_planes()
 
     def _apply_planes(self):
-        """Upload planes to renderer with current crystal translation applied to origins."""
         if self.plane_renderer is None:
             return
-        import dataclasses as _dc
-        t = self._crystal_translation
-        visible = []
-        for p in self._raw_planes:
-            if p.visible:
-                new_origin = (p.origin[0] + t[0], p.origin[1] + t[1], p.origin[2] + t[2])
-                visible.append(_dc.replace(p, origin=new_origin))
+        visible = [p for p in self._raw_planes if p.visible]
         self.plane_renderer.set_planes(visible, self._planes_crystallography)
-        has_slice = any(p.slice_enabled for p in self._raw_planes)
-        if has_slice and self.xyz is not None:
+        if self.xyz is not None:
             self.initGeometry()
         else:
             self.update()
-
-    def set_crystal_translation(self, x, y, z):
-        """Set the world-space translation offset for the crystal."""
-        self._crystal_translation = np.array([x, y, z], dtype=np.float64)
-        self._apply_planes()
-        self._apply_directions()
-        if self.xyz is not None:
-            self.initGeometry()
-        self.crystalTranslationChanged.emit(float(x), float(y), float(z))
-
-    def get_crystal_translation(self):
-        """Return the current crystal translation as (x, y, z)."""
-        return tuple(float(v) for v in self._crystal_translation)
-
-    def reset_crystal_translation(self):
-        """Reset crystal translation to zero."""
-        self.set_crystal_translation(0.0, 0.0, 0.0)
-
-    def _screen_delta_to_world(self, dx, dy):
-        """Convert screen-pixel delta to world-space translation vector."""
-        import math
-        cam_dist = (self.camera.position - self.camera.target).length()
-        if self.camera.perspectiveProjection:
-            scale = (
-                2.0
-                * math.tan(math.radians(self.camera.fieldOfView / 2))
-                * cam_dist
-                / max(self.height(), 1)
-            )
-        else:
-            scale = 2.0 * self.camera.orthoSize / max(self.height(), 1)
-        scale /= max(self.camera.scale, 1e-9)
-        right = np.array([self.camera.right.x(), self.camera.right.y(), self.camera.right.z()])
-        up = np.array([self.camera.up.x(), self.camera.up.y(), self.camera.up.z()])
-        return (right * dx - up * dy) * scale
 
     def highlight_sites(self, highlight_groups, background_color=None):
         """Highlight multiple groups of sites with different colors.
@@ -712,9 +657,7 @@ class VisualisationWidget(QOpenGLWidget):
 
     def mousePressEvent(self, event):
         self.lastMousePosition = event.pos()
-        if event.button() == QtCore.Qt.RightButton:
-            self.rightMouseButtonPressed = True
-        elif event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton:
             modifiers = event.modifiers()
             if modifiers & QtCore.Qt.ControlModifier:
                 # Cmd+Click (macOS): Select single point, or clear selection on whitespace
@@ -791,10 +734,7 @@ class VisualisationWidget(QOpenGLWidget):
 
         super().keyPressEvent(event)
 
-        self.camera.orbit(
-            dx,
-            dy,
-        )
+        self.camera.orbit(dx, dy)
         self.update()
 
     def keyReleaseEvent(self, event):
@@ -1178,20 +1118,6 @@ class VisualisationWidget(QOpenGLWidget):
                     event_pos=event.pos() - self.geometry().center(),
                 )
 
-        elif self.rightMouseButtonPressed:
-            # Translate the crystal in world space (axes stay fixed)
-            delta = self._screen_delta_to_world(dx, dy)
-            self._crystal_translation = self._crystal_translation + delta
-            self._apply_planes()
-            self._apply_directions()
-            if self.xyz is not None:
-                self.initGeometry()
-            self.crystalTranslationChanged.emit(
-                float(self._crystal_translation[0]),
-                float(self._crystal_translation[1]),
-                float(self._crystal_translation[2]),
-            )
-
         # Handle hover detection when no button is pressed
         elif event.buttons() == QtCore.Qt.NoButton:
             point_idx, _ = self._find_point_at_screen_pos(event.pos().x(), event.pos().y())
@@ -1204,9 +1130,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.update()
 
     def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            self.rightMouseButtonPressed = False
-        elif event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton:
             if self._sphere_sel_center_world is not None:
                 if not self._sphere_sel_active:
                     # Plain Shift+Click (no drag): toggle the anchor point
@@ -1339,10 +1263,6 @@ class VisualisationWidget(QOpenGLWidget):
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")
 
-        # Apply crystal translation to rendered positions
-        if np.any(self._crystal_translation != 0):
-            points = points + self._crystal_translation.astype(np.float32)
-
         # Apply site highlighting if any groups are defined
         if self.highlight_groups and self.xyz.shape[1] > 6:
             # Column 6 is Site Number (0-indexed)
@@ -1385,12 +1305,12 @@ class VisualisationWidget(QOpenGLWidget):
             if n_len < 1e-10:
                 continue
             normal /= n_len
-            origin = np.array(plane.origin, dtype=np.float64) + self._crystal_translation
+            origin = np.array(plane.origin, dtype=np.float64)
             d = (points - origin.astype(np.float32)) @ normal.astype(np.float32)
             if plane.slice_two_sided:
                 combined_mask &= np.abs(d) <= plane.slice_thickness / 2.0
             else:
-                combined_mask &= (d >= 0) & (d <= plane.slice_thickness)
+                combined_mask &= d >= -plane.slice_thickness
 
         if not np.all(combined_mask):
             points = points[combined_mask]
@@ -1644,8 +1564,10 @@ class VisualisationWidget(QOpenGLWidget):
         """Project a 3D position to screen coordinates."""
         from PySide6.QtGui import QVector4D, QVector3D
 
-        # Apply rotation to position (similar to geometry shader)
+        # Apply rotation-only view transform (ignore camera position/target translation)
+        # so axes labels respond only to orientation, not to crystal translation.
         view = self.camera.viewMatrix()
+        view.setColumn(3, QVector4D(0.0, 0.0, 0.0, 1.0))
         rotated = view.map(QVector3D(pos_3d[0], pos_3d[1], pos_3d[2])) * 0.1
 
         # Offset to corner (matching the geometry shader)

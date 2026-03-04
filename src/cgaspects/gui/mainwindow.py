@@ -292,15 +292,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
         self.menuCrystallography.addAction(self.actionAddPlanes)
 
-        self.menuCrystallography.addSeparator()
-        self.actionSetTranslation = QAction("Set Translation…", self)
-        self.actionSetTranslation.setObjectName("actionSetTranslation")
-        self.actionSetTranslation.setShortcut("Ctrl+Shift+T")
-        self.actionSetTranslation.setToolTip(
-            "Manually set the XYZ translation offset for the crystal (axes stay fixed)"
-        )
-        self.actionSetTranslation.triggered.connect(self.show_translation_dialog)
-        self.menuCrystallography.addAction(self.actionSetTranslation)
 
         # Help menu
         self.menuHelp = QMenu("Help", self)
@@ -668,65 +659,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.populate_from_plane(normal, centroid, self.crystallography)
 
     # ------------------------------------------------------------------ #
-    # Crystal translation                                                  #
-    # ------------------------------------------------------------------ #
-
-    def show_translation_dialog(self):
-        """Open a dialog to manually set the crystal translation offset."""
-        from PySide6.QtWidgets import (
-            QDialog,
-            QDialogButtonBox,
-            QDoubleSpinBox,
-            QHBoxLayout,
-            QLabel,
-            QPushButton,
-            QVBoxLayout,
-        )
-
-        x0, y0, z0 = self.openglwidget.get_crystal_translation()
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Set Crystal Translation")
-        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
-        layout = QVBoxLayout(dialog)
-
-        layout.addWidget(
-            QLabel("Offset the crystal position in world space.\nAxes remain fixed at the origin.")
-        )
-
-        spins = {}
-        for axis, val in [("X", x0), ("Y", y0), ("Z", z0)]:
-            row = QHBoxLayout()
-            row.addWidget(QLabel(f"{axis} offset:"))
-            sp = QDoubleSpinBox()
-            sp.setRange(-100000.0, 100000.0)
-            sp.setDecimals(3)
-            sp.setSingleStep(1.0)
-            sp.setValue(val)
-            row.addWidget(sp)
-            layout.addLayout(row)
-            spins[axis] = sp
-
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        reset_btn = QPushButton("Reset to Zero")
-        for sp in spins.values():
-            reset_btn.clicked.connect(lambda _checked=False, s=sp: s.setValue(0.0))
-        btns.addButton(reset_btn, QDialogButtonBox.ResetRole)
-        btns.accepted.connect(dialog.accept)
-        btns.rejected.connect(dialog.reject)
-        layout.addWidget(btns)
-
-        if dialog.exec():
-            self.openglwidget.set_crystal_translation(
-                spins["X"].value(), spins["Y"].value(), spins["Z"].value()
-            )
-            self.log_message(
-                f"Crystal translation set to "
-                f"({spins['X'].value():.3f}, {spins['Y'].value():.3f}, {spins['Z'].value():.3f})",
-                "info",
-            )
-
-    # ------------------------------------------------------------------ #
     # Move plane along its normal                                          #
     # ------------------------------------------------------------------ #
 
@@ -762,9 +694,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         normal /= n_len
 
-        # Project all translated points onto normal to find extent
-        t = self.openglwidget._crystal_translation
-        points = xyz[:, 3:6] + t
+        # Project all points onto normal to find extent
+        points = xyz[:, 3:6]
         proj = points @ normal
         d_min, d_max = float(proj.min()), float(proj.max())
 
