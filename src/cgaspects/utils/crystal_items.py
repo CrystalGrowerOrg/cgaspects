@@ -33,6 +33,10 @@ class PlaneData:
     size_relative: float
     color: Tuple[float, float, float]
     alpha: float
+    visible: bool = True
+    slice_enabled: bool = False
+    slice_two_sided: bool = True
+    slice_thickness: float = 5.0
 
 
 @dataclass

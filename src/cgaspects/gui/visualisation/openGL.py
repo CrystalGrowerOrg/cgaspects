@@ -65,6 +65,7 @@ class VisualisationWidget(QOpenGLWidget):
     pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
     selectionChanged = Signal(set, object)  # (selected_indices, last_selected_index)
     pointsDeleted = Signal(int)  # Number of points deleted
+    crystalTranslationChanged = Signal(float, float, float)  # (x, y, z) world-space offset
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,6 +87,14 @@ class VisualisationWidget(QOpenGLWidget):
         self._last_selected_index = None  # For shift-click range selection
         self._pick_radius = 0.1  # Picking radius in normalized coordinates
         self._deleted_points = set()  # Set of deleted point indices
+
+        # Crystal translation (right-click drag or manual dialog)
+        self._crystal_translation = np.zeros(3, dtype=np.float64)
+        self._raw_planes = []
+        self._planes_crystallography = None
+        self._raw_directions = []
+        self._directions_crystallography = None
+        self._directions_max_extent = 1.0
 
         # Sphere selection state (Shift + Left click + drag)
         self._sphere_sel_center_world = None  # np.array [x, y, z] — set on press
@@ -186,16 +195,85 @@ class VisualisationWidget(QOpenGLWidget):
             logger.info("Axes reset to Cartesian coordinates")
 
     def set_directions(self, directions, crystallography=None, max_extent=1.0):
-        """Set crystallographic directions to render."""
-        if self.direction_renderer is not None:
-            self.direction_renderer.set_directions(directions, crystallography, max_extent)
-            self.update()
+        """Set crystallographic directions to render (cached for translation re-apply)."""
+        self._raw_directions = list(directions)
+        self._directions_crystallography = crystallography
+        self._directions_max_extent = max_extent
+        self._apply_directions()
+
+    def _apply_directions(self):
+        """Upload directions to renderer with current crystal translation applied to origins."""
+        if self.direction_renderer is None:
+            return
+        import dataclasses as _dc
+        t = self._crystal_translation
+        translated = []
+        for d in self._raw_directions:
+            new_origin = (d.origin[0] + t[0], d.origin[1] + t[1], d.origin[2] + t[2])
+            translated.append(_dc.replace(d, origin=new_origin))
+        self.direction_renderer.set_directions(
+            translated, self._directions_crystallography, self._directions_max_extent
+        )
+        self.update()
 
     def set_planes(self, planes, crystallography=None):
-        """Set crystallographic planes to render."""
-        if self.plane_renderer is not None:
-            self.plane_renderer.set_planes(planes, crystallography)
+        """Set crystallographic planes to render (cached for translation re-apply)."""
+        self._raw_planes = list(planes)
+        self._planes_crystallography = crystallography
+        self._apply_planes()
+
+    def _apply_planes(self):
+        """Upload planes to renderer with current crystal translation applied to origins."""
+        if self.plane_renderer is None:
+            return
+        import dataclasses as _dc
+        t = self._crystal_translation
+        visible = []
+        for p in self._raw_planes:
+            if p.visible:
+                new_origin = (p.origin[0] + t[0], p.origin[1] + t[1], p.origin[2] + t[2])
+                visible.append(_dc.replace(p, origin=new_origin))
+        self.plane_renderer.set_planes(visible, self._planes_crystallography)
+        has_slice = any(p.slice_enabled for p in self._raw_planes)
+        if has_slice and self.xyz is not None:
+            self.initGeometry()
+        else:
             self.update()
+
+    def set_crystal_translation(self, x, y, z):
+        """Set the world-space translation offset for the crystal."""
+        self._crystal_translation = np.array([x, y, z], dtype=np.float64)
+        self._apply_planes()
+        self._apply_directions()
+        if self.xyz is not None:
+            self.initGeometry()
+        self.crystalTranslationChanged.emit(float(x), float(y), float(z))
+
+    def get_crystal_translation(self):
+        """Return the current crystal translation as (x, y, z)."""
+        return tuple(float(v) for v in self._crystal_translation)
+
+    def reset_crystal_translation(self):
+        """Reset crystal translation to zero."""
+        self.set_crystal_translation(0.0, 0.0, 0.0)
+
+    def _screen_delta_to_world(self, dx, dy):
+        """Convert screen-pixel delta to world-space translation vector."""
+        import math
+        cam_dist = (self.camera.position - self.camera.target).length()
+        if self.camera.perspectiveProjection:
+            scale = (
+                2.0
+                * math.tan(math.radians(self.camera.fieldOfView / 2))
+                * cam_dist
+                / max(self.height(), 1)
+            )
+        else:
+            scale = 2.0 * self.camera.orthoSize / max(self.height(), 1)
+        scale /= max(self.camera.scale, 1e-9)
+        right = np.array([self.camera.right.x(), self.camera.right.y(), self.camera.right.z()])
+        up = np.array([self.camera.up.x(), self.camera.up.y(), self.camera.up.z()])
+        return (right * dx - up * dy) * scale
 
     def highlight_sites(self, highlight_groups, background_color=None):
         """Highlight multiple groups of sites with different colors.
@@ -1101,7 +1179,18 @@ class VisualisationWidget(QOpenGLWidget):
                 )
 
         elif self.rightMouseButtonPressed:
-            self.camera.pan(-dx, dy)  # Negate dx to get correct direction
+            # Translate the crystal in world space (axes stay fixed)
+            delta = self._screen_delta_to_world(dx, dy)
+            self._crystal_translation = self._crystal_translation + delta
+            self._apply_planes()
+            self._apply_directions()
+            if self.xyz is not None:
+                self.initGeometry()
+            self.crystalTranslationChanged.emit(
+                float(self._crystal_translation[0]),
+                float(self._crystal_translation[1]),
+                float(self._crystal_translation[2]),
+            )
 
         # Handle hover detection when no button is pressed
         elif event.buttons() == QtCore.Qt.NoButton:
@@ -1250,6 +1339,10 @@ class VisualisationWidget(QOpenGLWidget):
         points = np.asarray(points).astype("float32")
         colors = np.asarray(colors).astype("float32")
 
+        # Apply crystal translation to rendered positions
+        if np.any(self._crystal_translation != 0):
+            points = points + self._crystal_translation.astype(np.float32)
+
         # Apply site highlighting if any groups are defined
         if self.highlight_groups and self.xyz.shape[1] > 6:
             # Column 6 is Site Number (0-indexed)
@@ -1272,16 +1365,37 @@ class VisualisationWidget(QOpenGLWidget):
                 if idx < len(selection_flags):
                     selection_flags[idx] = 1.0
 
-        # Handle deleted points - filter them out
-        if self._deleted_points:
-            # Create mask for non-deleted points
-            mask = np.ones(len(points), dtype=bool)
-            for idx in self._deleted_points:
-                if idx < len(mask):
-                    mask[idx] = False
-            points = points[mask]
-            colors = colors[mask]
-            selection_flags = selection_flags[mask]
+        # Build combined mask: exclude deleted points and apply active slice planes
+        n_pts = len(points)
+        combined_mask = np.ones(n_pts, dtype=bool)
+
+        # Deleted-points mask
+        for idx in self._deleted_points:
+            if idx < n_pts:
+                combined_mask[idx] = False
+
+        # Slice-plane masks (applied in translated coordinate space)
+        for plane in self._raw_planes:
+            if not plane.slice_enabled:
+                continue
+            normal = np.array(plane.normal, dtype=np.float64)
+            if plane.fractional and self._planes_crystallography is not None:
+                normal = self._planes_crystallography.miller_to_cart_normal(normal)
+            n_len = np.linalg.norm(normal)
+            if n_len < 1e-10:
+                continue
+            normal /= n_len
+            origin = np.array(plane.origin, dtype=np.float64) + self._crystal_translation
+            d = (points - origin.astype(np.float32)) @ normal.astype(np.float32)
+            if plane.slice_two_sided:
+                combined_mask &= np.abs(d) <= plane.slice_thickness / 2.0
+            else:
+                combined_mask &= (d >= 0) & (d <= plane.slice_thickness)
+
+        if not np.all(combined_mask):
+            points = points[combined_mask]
+            colors = colors[combined_mask]
+            selection_flags = selection_flags[combined_mask]
 
         try:
             # Concatenate: position (3) + color (3) + selection (1) = 7 floats

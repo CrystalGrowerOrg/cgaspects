@@ -1,11 +1,13 @@
 """Dialog for adding crystallographic planes to the 3D visualization."""
 
+import dataclasses
 import math
 
 import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QCheckBox,
     QColorDialog,
     QDialog,
     QDoubleSpinBox,
@@ -36,6 +38,7 @@ class PlanesDialog(QDialog):
     planesCleared = Signal()
     computePlaneFromSelection = Signal()  # Emitted when user confirms plane-from-points
     addDirectionRequested = Signal(object)  # Emits a DirectionData to add to the directions dialog
+    movePlaneAlongNormalRequested = Signal(int)  # Emits the row index of the selected plane
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -164,13 +167,25 @@ class PlanesDialog(QDialog):
         appearance_group.setLayout(appearance_layout)
         main_layout.addWidget(appearance_group)
 
-        # Single row: [ Add Plane (½) | Find Plane (¼) + Confirm (¼, hidden) ]
+        # Single row: [ Add Plane (¼) + Cancel Edit (¼, hidden) | Find Plane (¼) + Confirm (¼, hidden) ]
         action_layout = QHBoxLayout()
+
+        # Left half — Add/Update button always visible, Cancel Edit appears alongside it
+        add_container = QWidget()
+        add_inner = QHBoxLayout(add_container)
+        add_inner.setContentsMargins(0, 0, 0, 0)
+        add_inner.setSpacing(action_layout.spacing())
 
         self._add_button = QPushButton("Add Plane")
         self._add_button.setDefault(True)
         self._add_button.clicked.connect(self._add_or_update_plane)
-        action_layout.addWidget(self._add_button, 1)  # half
+        self._cancel_edit_btn = QPushButton("Cancel Edit")
+        self._cancel_edit_btn.clicked.connect(self._cancel_edit)
+        self._cancel_edit_btn.setVisible(False)
+        add_inner.addWidget(self._add_button, 1)
+        add_inner.addWidget(self._cancel_edit_btn, 1)
+
+        action_layout.addWidget(add_container, 1)  # half
 
         # Right half — Find/Cancel button always visible, Confirm appears alongside it
         find_container = QWidget()
@@ -192,15 +207,6 @@ class PlanesDialog(QDialog):
 
         action_layout.addWidget(find_container, 1)  # half
         main_layout.addLayout(action_layout)
-
-        # Cancel Edit — shown below when in edit mode
-        cancel_edit_layout = QHBoxLayout()
-        self._cancel_edit_btn = QPushButton("Cancel Edit")
-        self._cancel_edit_btn.clicked.connect(self._cancel_edit)
-        self._cancel_edit_btn.setVisible(False)
-        cancel_edit_layout.addWidget(self._cancel_edit_btn)
-        cancel_edit_layout.addStretch()
-        main_layout.addLayout(cancel_edit_layout)
 
         # List of planes
         list_label = QLabel("Planes:")
@@ -225,6 +231,67 @@ class PlanesDialog(QDialog):
         btn_layout.addWidget(self._clear_btn)
         btn_layout.addWidget(self._as_direction_btn)
         main_layout.addLayout(btn_layout)
+
+        # ------------------------------------------------------------------ #
+        # Slicing controls                                                     #
+        # ------------------------------------------------------------------ #
+        slice_group = QGroupBox("Slicing (selected plane)")
+        slice_outer = QVBoxLayout()
+
+        # Row 1: enable + two-sided toggle
+        slice_row1 = QHBoxLayout()
+        self._slice_enable_check = QCheckBox("Enable slice")
+        self._slice_enable_check.setToolTip(
+            "Show only points within the specified distance from this plane"
+        )
+        self._slice_enable_check.stateChanged.connect(self._on_slice_settings_changed)
+        self._slice_two_sided_check = QCheckBox("Two-sided slab")
+        self._slice_two_sided_check.setChecked(True)
+        self._slice_two_sided_check.setToolTip(
+            "Checked: show points within ±thickness/2 of the plane.\n"
+            "Unchecked: show points on the positive-normal side only (0 to thickness)."
+        )
+        self._slice_two_sided_check.stateChanged.connect(self._on_slice_settings_changed)
+        slice_row1.addWidget(self._slice_enable_check)
+        slice_row1.addWidget(self._slice_two_sided_check)
+        slice_row1.addStretch()
+        slice_outer.addLayout(slice_row1)
+
+        # Row 2: thickness spinbox
+        slice_row2 = QHBoxLayout()
+        slice_row2.addWidget(QLabel("Thickness:"))
+        self._slice_thickness_spin = QDoubleSpinBox()
+        self._slice_thickness_spin.setRange(0.1, 10000.0)
+        self._slice_thickness_spin.setValue(5.0)
+        self._slice_thickness_spin.setSingleStep(0.5)
+        self._slice_thickness_spin.setDecimals(2)
+        self._slice_thickness_spin.setToolTip("Slab/half-space thickness in world units")
+        self._slice_thickness_spin.valueChanged.connect(self._on_slice_settings_changed)
+        slice_row2.addWidget(self._slice_thickness_spin)
+        slice_row2.addStretch()
+        slice_outer.addLayout(slice_row2)
+
+        # Row 3: hide/show + move along normal
+        slice_row3 = QHBoxLayout()
+        self._plane_visible_btn = QPushButton("Hide Plane")
+        self._plane_visible_btn.setToolTip(
+            "Hide or show the plane polygon (slice filter stays active)"
+        )
+        self._plane_visible_btn.clicked.connect(self._toggle_plane_visibility)
+        self._move_normal_btn = QPushButton("Move Along Normal…")
+        self._move_normal_btn.setToolTip(
+            "Slide this plane along its normal between the two extremes of the crystal"
+        )
+        self._move_normal_btn.clicked.connect(self._request_move_along_normal)
+        slice_row3.addWidget(self._plane_visible_btn)
+        slice_row3.addWidget(self._move_normal_btn)
+        slice_row3.addStretch()
+        slice_outer.addLayout(slice_row3)
+
+        slice_group.setLayout(slice_outer)
+        main_layout.addWidget(slice_group)
+        self._slice_group = slice_group
+        self._set_slicing_controls_enabled(False)
 
         # Close
         close_layout = QHBoxLayout()
@@ -404,12 +471,88 @@ class PlanesDialog(QDialog):
         self._add_button.setText("Update Plane")
         self._cancel_edit_btn.setVisible(True)
         self._status_label.setText(f"Editing plane {row}")
+        self._load_slice_controls(p)
+        self._set_slicing_controls_enabled(True)
 
     def _cancel_edit(self):
         self._editing_index = None
         self._add_button.setText("Add Plane")
         self._cancel_edit_btn.setVisible(False)
         self._status_label.setText("")
+        self._set_slicing_controls_enabled(False)
+
+    # ------------------------------------------------------------------ #
+    # Slicing helpers                                                      #
+    # ------------------------------------------------------------------ #
+
+    def _set_slicing_controls_enabled(self, enabled: bool):
+        self._slice_enable_check.setEnabled(enabled)
+        self._slice_two_sided_check.setEnabled(enabled)
+        self._slice_thickness_spin.setEnabled(enabled)
+        self._plane_visible_btn.setEnabled(enabled)
+        self._move_normal_btn.setEnabled(enabled)
+
+    def _load_slice_controls(self, plane):
+        """Update slicing widgets to reflect *plane*'s current settings (no signals)."""
+        for widget in (
+            self._slice_enable_check,
+            self._slice_two_sided_check,
+            self._slice_thickness_spin,
+        ):
+            widget.blockSignals(True)
+        self._slice_enable_check.setChecked(plane.slice_enabled)
+        self._slice_two_sided_check.setChecked(plane.slice_two_sided)
+        self._slice_thickness_spin.setValue(plane.slice_thickness)
+        for widget in (
+            self._slice_enable_check,
+            self._slice_two_sided_check,
+            self._slice_thickness_spin,
+        ):
+            widget.blockSignals(False)
+        self._plane_visible_btn.setText("Hide Plane" if plane.visible else "Show Plane")
+
+    def _on_slice_settings_changed(self):
+        """Write updated slice settings back to the currently-selected plane."""
+        row = self._plane_list.currentRow()
+        if row < 0 or row >= len(self._planes):
+            return
+        p = self._planes[row]
+        updated = dataclasses.replace(
+            p,
+            slice_enabled=self._slice_enable_check.isChecked(),
+            slice_two_sided=self._slice_two_sided_check.isChecked(),
+            slice_thickness=self._slice_thickness_spin.value(),
+        )
+        self._planes[row] = updated
+        self.planesChanged.emit(list(self._planes))
+
+    def _toggle_plane_visibility(self):
+        row = self._plane_list.currentRow()
+        if row < 0 or row >= len(self._planes):
+            return
+        p = self._planes[row]
+        updated = dataclasses.replace(p, visible=not p.visible)
+        self._planes[row] = updated
+        self._plane_visible_btn.setText("Hide Plane" if updated.visible else "Show Plane")
+        self.planesChanged.emit(list(self._planes))
+
+    def _request_move_along_normal(self):
+        row = self._plane_list.currentRow()
+        if row < 0 or row >= len(self._planes):
+            self._status_label.setText("No plane selected")
+            return
+        self.movePlaneAlongNormalRequested.emit(row)
+
+    def update_plane_origin_from_dialog(self, row, new_origin):
+        """Called by mainwindow after the move-along-normal slider is adjusted."""
+        if row < 0 or row >= len(self._planes):
+            return
+        updated = dataclasses.replace(self._planes[row], origin=tuple(new_origin))
+        self._planes[row] = updated
+        item = self._plane_list.item(row)
+        if item is not None:
+            item.setText(self._make_list_label(updated))
+        self.planesChanged.emit(list(self._planes))
 
     def _remove_selected(self):
         row = self._plane_list.currentRow()

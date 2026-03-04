@@ -193,6 +193,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
         self.planes_dialog.computePlaneFromSelection.connect(self._on_compute_plane_from_selection)
         self.planes_dialog.addDirectionRequested.connect(self._on_add_direction_from_plane)
+        self.planes_dialog.movePlaneAlongNormalRequested.connect(self._on_move_plane_along_normal)
         self.directions_dialog.addPlaneRequested.connect(self._on_add_plane_from_direction)
 
         self.setup_button_connections()
@@ -290,6 +291,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAddPlanes.setToolTip("Add crystallographic planes to the visualization")
         self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
         self.menuCrystallography.addAction(self.actionAddPlanes)
+
+        self.menuCrystallography.addSeparator()
+        self.actionSetTranslation = QAction("Set Translation…", self)
+        self.actionSetTranslation.setObjectName("actionSetTranslation")
+        self.actionSetTranslation.setShortcut("Ctrl+Shift+T")
+        self.actionSetTranslation.setToolTip(
+            "Manually set the XYZ translation offset for the crystal (axes stay fixed)"
+        )
+        self.actionSetTranslation.triggered.connect(self.show_translation_dialog)
+        self.menuCrystallography.addAction(self.actionSetTranslation)
 
         # Help menu
         self.menuHelp = QMenu("Help", self)
@@ -655,6 +666,171 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         normal = Vt[-1]  # eigenvector for smallest singular value = plane normal
 
         self.planes_dialog.populate_from_plane(normal, centroid, self.crystallography)
+
+    # ------------------------------------------------------------------ #
+    # Crystal translation                                                  #
+    # ------------------------------------------------------------------ #
+
+    def show_translation_dialog(self):
+        """Open a dialog to manually set the crystal translation offset."""
+        from PySide6.QtWidgets import (
+            QDialog,
+            QDialogButtonBox,
+            QDoubleSpinBox,
+            QHBoxLayout,
+            QLabel,
+            QPushButton,
+            QVBoxLayout,
+        )
+
+        x0, y0, z0 = self.openglwidget.get_crystal_translation()
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Set Crystal Translation")
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(
+            QLabel("Offset the crystal position in world space.\nAxes remain fixed at the origin.")
+        )
+
+        spins = {}
+        for axis, val in [("X", x0), ("Y", y0), ("Z", z0)]:
+            row = QHBoxLayout()
+            row.addWidget(QLabel(f"{axis} offset:"))
+            sp = QDoubleSpinBox()
+            sp.setRange(-100000.0, 100000.0)
+            sp.setDecimals(3)
+            sp.setSingleStep(1.0)
+            sp.setValue(val)
+            row.addWidget(sp)
+            layout.addLayout(row)
+            spins[axis] = sp
+
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        reset_btn = QPushButton("Reset to Zero")
+        for sp in spins.values():
+            reset_btn.clicked.connect(lambda _checked=False, s=sp: s.setValue(0.0))
+        btns.addButton(reset_btn, QDialogButtonBox.ResetRole)
+        btns.accepted.connect(dialog.accept)
+        btns.rejected.connect(dialog.reject)
+        layout.addWidget(btns)
+
+        if dialog.exec():
+            self.openglwidget.set_crystal_translation(
+                spins["X"].value(), spins["Y"].value(), spins["Z"].value()
+            )
+            self.log_message(
+                f"Crystal translation set to "
+                f"({spins['X'].value():.3f}, {spins['Y'].value():.3f}, {spins['Z'].value():.3f})",
+                "info",
+            )
+
+    # ------------------------------------------------------------------ #
+    # Move plane along its normal                                          #
+    # ------------------------------------------------------------------ #
+
+    def _on_move_plane_along_normal(self, row):
+        """Show a live slider to move the selected plane along its normal."""
+        from PySide6.QtWidgets import (
+            QDialog,
+            QDialogButtonBox,
+            QDoubleSpinBox,
+            QHBoxLayout,
+            QLabel,
+            QSlider,
+            QVBoxLayout,
+        )
+
+        planes = self.planes_dialog._planes
+        if row < 0 or row >= len(planes):
+            return
+        plane = planes[row]
+
+        xyz = self.openglwidget.xyz
+        if xyz is None:
+            QMessageBox.warning(self, "No Data", "No crystal loaded.")
+            return
+
+        # Resolve normal to Cartesian
+        normal = np.array(plane.normal, dtype=np.float64)
+        if plane.fractional and self.crystallography is not None:
+            normal = self.crystallography.miller_to_cart_normal(normal)
+        n_len = np.linalg.norm(normal)
+        if n_len < 1e-10:
+            QMessageBox.warning(self, "Invalid Normal", "Plane normal has zero length.")
+            return
+        normal /= n_len
+
+        # Project all translated points onto normal to find extent
+        t = self.openglwidget._crystal_translation
+        points = xyz[:, 3:6] + t
+        proj = points @ normal
+        d_min, d_max = float(proj.min()), float(proj.max())
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Move Plane Along Normal")
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(
+            f"Normal: ({normal[0]:.3f}, {normal[1]:.3f}, {normal[2]:.3f})\n"
+            f"Crystal extent along normal: {d_min:.3f} → {d_max:.3f}"
+        ))
+
+        # Current plane d = n · origin
+        current_origin = np.array(plane.origin, dtype=np.float64)
+        current_d = float(np.dot(normal, current_origin))
+
+        pos_label = QLabel(f"d = {current_d:.3f}")
+        layout.addWidget(pos_label)
+
+        STEPS = 2000
+        slider = QSlider(Qt.Horizontal)
+        slider.setRange(0, STEPS)
+        slider_range = d_max - d_min if d_max > d_min else 1.0
+        initial_pos = int((current_d - d_min) / slider_range * STEPS)
+        slider.setValue(max(0, min(STEPS, initial_pos)))
+        layout.addWidget(slider)
+
+        # Fine-tune spinbox
+        fine_row = QHBoxLayout()
+        fine_row.addWidget(QLabel("Fine d:"))
+        fine_spin = QDoubleSpinBox()
+        fine_spin.setRange(d_min - abs(slider_range), d_max + abs(slider_range))
+        fine_spin.setDecimals(3)
+        fine_spin.setSingleStep(0.1)
+        fine_spin.setValue(current_d)
+        fine_row.addWidget(fine_spin)
+        layout.addLayout(fine_row)
+
+        # Sync helpers
+        def _apply_d(d):
+            new_origin = tuple(float(v) for v in (normal * d))
+            self.planes_dialog.update_plane_origin_from_dialog(row, new_origin)
+            pos_label.setText(f"d = {d:.3f}")
+
+        def _slider_moved(val):
+            d = d_min + (val / STEPS) * slider_range
+            fine_spin.blockSignals(True)
+            fine_spin.setValue(d)
+            fine_spin.blockSignals(False)
+            _apply_d(d)
+
+        def _spin_changed(d):
+            pos = int((d - d_min) / slider_range * STEPS)
+            slider.blockSignals(True)
+            slider.setValue(max(0, min(STEPS, pos)))
+            slider.blockSignals(False)
+            _apply_d(d)
+
+        slider.valueChanged.connect(_slider_moved)
+        fine_spin.valueChanged.connect(_spin_changed)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Close)
+        btns.rejected.connect(dialog.reject)
+        layout.addWidget(btns)
+        dialog.exec()
 
     def welcome_message(self):
         self.log_message(
