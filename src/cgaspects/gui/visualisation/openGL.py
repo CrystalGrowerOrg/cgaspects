@@ -33,24 +33,14 @@ class VisualisationWidget(QOpenGLWidget):
     style = "Spheres"
     show_mesh_edges = False
 
-    # Viewport shortcuts for display in the Keyboard Shortcuts dialog.
-    # These are handled by keyPressEvent and are NOT user-configurable.
+    # Non-configurable viewport shortcuts shown read-only in the Keyboard Shortcuts dialog.
+    # Arrow-key rotation and mouse-based actions can't be QActions so they live here.
+    # Axis alignment, rotation lock, view control, and point size are configurable QActions
+    # in the View menu and are tracked by ShortcutsManager automatically.
     VIEWPORT_SHORTCUTS: dict[str, list[tuple[str, str]]] = {
         "Rotation": [
             ("Arrow Keys", "Rotate view freely"),
             ("Shift + Arrow Keys", "Rotate on a single axis"),
-        ],
-        "Axis Alignment": [
-            ("X / Y / Z", "Align view to Cartesian axes"),
-            ("A / B / C", "Align view to fractional axes"),
-        ],
-        "View Control": [
-            ("R", "Reset view orientation"),
-            ("Shift + S", "Store current view orientation"),
-        ],
-        "Point Size": [
-            ("Ctrl/Cmd + =  or  +", "Increase point size"),
-            ("Ctrl/Cmd + -", "Decrease point size"),
         ],
         "Selection": [
             ("Ctrl/Cmd + Click", "Select a point"),
@@ -72,6 +62,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.camera = Camera()
         self.restrict_axis = None
+        self.rotation_lock_axis = None  # "x", "y", "z", or None; toggled by menu actions
         self.geom = self.geometry()
         self.centre = self.geom.center()
         # print(self.geom)
@@ -694,43 +685,12 @@ class VisualisationWidget(QOpenGLWidget):
         if event.key() == Qt.Key_Right:
             dx += 10
 
-        # Shift+C to store orientation, R to reset
-        if modifiers & Qt.ShiftModifier and event.key() == Qt.Key_S:
-            self.camera.storeOrientation()
-
-        if event.key() == Qt.Key_R:
-            self.camera.resetOrientation()
-
-        # Axis alignment keys
-        # X/Y/Z align to Cartesian axes, A/B/C align to fractional axes
-        if event.key() == Qt.Key_X:
-            self._align_view_to_axis("x")
-        elif event.key() == Qt.Key_Y:
-            self._align_view_to_axis("y")
-        elif event.key() == Qt.Key_Z:
-            self._align_view_to_axis("z")
-        elif event.key() == Qt.Key_A:
-            self._align_view_to_axis("a")
-        elif event.key() == Qt.Key_B:
-            self._align_view_to_axis("b")
-        elif event.key() == Qt.Key_C:
-            self._align_view_to_axis("c")
-
         # Check for Shift + arrow keys for restricted rotation
         if modifiers & Qt.ShiftModifier:
             if event.key() == Qt.Key_Left or event.key() == Qt.Key_Right:
                 self.restrict_axis = "shift_x"
             elif event.key() == Qt.Key_Up or event.key() == Qt.Key_Down:
                 self.restrict_axis = "shift_y"
-
-        # Cmd+/Cmd- to increase/decrease point size
-        if modifiers & Qt.ControlModifier:
-            if event.key() in (Qt.Key_Equal, Qt.Key_Plus):
-                self.point_size = min(self.point_size + 1.0, 50.0)
-                self.update()
-            elif event.key() == Qt.Key_Minus:
-                self.point_size = max(self.point_size - 1.0, 1.0)
-                self.update()
 
         super().keyPressEvent(event)
 
@@ -809,6 +769,36 @@ class VisualisationWidget(QOpenGLWidget):
         self.camera.up = up
         self.camera.right = QVector3D.crossProduct(up, direction).normalized()
         self.update()
+
+    # ------------------------------------------------------------------
+    # Public viewport action methods (wired to menu QActions)
+    # ------------------------------------------------------------------
+
+    def align_view_x(self): self._align_view_to_axis("x")
+    def align_view_y(self): self._align_view_to_axis("y")
+    def align_view_z(self): self._align_view_to_axis("z")
+    def align_view_a(self): self._align_view_to_axis("a")
+    def align_view_b(self): self._align_view_to_axis("b")
+    def align_view_c(self): self._align_view_to_axis("c")
+
+    def reset_view(self):
+        self.camera.resetOrientation()
+        self.update()
+
+    def store_view(self):
+        self.camera.storeOrientation()
+
+    def increase_point_size(self):
+        self.point_size = min(self.point_size + 1.0, 50.0)
+        self.update()
+
+    def decrease_point_size(self):
+        self.point_size = max(self.point_size - 1.0, 1.0)
+        self.update()
+
+    def toggle_rotation_lock(self, axis: str, checked: bool):
+        """Set/clear crystal rotation lock. Called by checkable menu QActions."""
+        self.rotation_lock_axis = axis if checked else None
 
     def _screen_to_ray(self, screen_x, screen_y):
         """Convert screen coordinates to a ray in world space.
@@ -1108,8 +1098,8 @@ class VisualisationWidget(QOpenGLWidget):
                 self._sphere_sel_active = True
                 self._sphere_sel_radius = self._compute_sphere_radius(event.pos())
                 self._update_sphere_selection()
-            elif self.restrict_axis in {"x", "y", "z"}:
-                self.rotatePointCloud(dx, self.restrict_axis)
+            elif self.rotation_lock_axis:
+                self.rotatePointCloud(dx, self.rotation_lock_axis)
             else:
                 self.camera.orbit(
                     dx,

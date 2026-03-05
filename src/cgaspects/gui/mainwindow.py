@@ -272,8 +272,79 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionToggleSidebar.triggered.connect(self._toggle_point_info_sidebar)
         self.menuView.addAction(self.actionToggleSidebar)
 
-        # Create Crystallography menu
+        # ── Viewport shortcuts (configurable via ShortcutsManager) ────────────
         from PySide6.QtWidgets import QMenu
+
+        self.menuView.addSeparator()
+
+        # Align View submenu
+        menuAlignView = QMenu("Align View", self)
+        for shortcut, method, label in [
+            ("X", self.openglwidget.align_view_x, "Align to X Axis"),
+            ("Y", self.openglwidget.align_view_y, "Align to Y Axis"),
+            ("Z", self.openglwidget.align_view_z, "Align to Z Axis"),
+            ("A", self.openglwidget.align_view_a, "Align to a Axis"),
+            ("B", self.openglwidget.align_view_b, "Align to b Axis"),
+            ("C", self.openglwidget.align_view_c, "Align to c Axis"),
+        ]:
+            act = QAction(label, self)
+            act.setShortcut(shortcut)
+            act.triggered.connect(method)
+            menuAlignView.addAction(act)
+        self.menuView.addMenu(menuAlignView)
+
+        # Rotation Lock submenu — single-axis, mutually exclusive, toggle off by re-pressing
+        menuRotLock = QMenu("Rotation Lock", self)
+        self._rotation_lock_actions: dict[str, QAction] = {}
+        for shortcut, axis, label in [
+            ("1", "x", "Lock to X Axis"),
+            ("2", "y", "Lock to Y Axis"),
+            ("3", "z", "Lock to Z Axis"),
+        ]:
+            act = QAction(label, self)
+            act.setShortcut(shortcut)
+            act.setCheckable(True)
+            self._rotation_lock_actions[axis] = act
+            menuRotLock.addAction(act)
+        # Wire after all actions exist so cross-uncheck is safe
+        for axis, act in self._rotation_lock_actions.items():
+            def _on_lock_toggled(checked, a=axis):
+                if checked:
+                    for other, other_act in self._rotation_lock_actions.items():
+                        if other != a:
+                            other_act.setChecked(False)
+                self.openglwidget.toggle_rotation_lock(a, checked)
+            act.toggled.connect(_on_lock_toggled)
+        self.menuView.addMenu(menuRotLock)
+
+        self.menuView.addSeparator()
+
+        actReset = QAction("Reset View", self)
+        actReset.setObjectName("actionResetView")
+        actReset.setShortcut("R")
+        actReset.triggered.connect(self.openglwidget.reset_view)
+        self.menuView.addAction(actReset)
+
+        actStore = QAction("Store View Orientation", self)
+        actStore.setObjectName("actionStoreView")
+        actStore.setShortcut("Shift+S")
+        actStore.triggered.connect(self.openglwidget.store_view)
+        self.menuView.addAction(actStore)
+
+        menuPointSize = QMenu("Point Size", self)
+        actIncrease = QAction("Increase", self)
+        actIncrease.setObjectName("actionIncreasePointSize")
+        actIncrease.setShortcut("Ctrl+=")
+        actIncrease.triggered.connect(self.openglwidget.increase_point_size)
+        menuPointSize.addAction(actIncrease)
+        actDecrease = QAction("Decrease", self)
+        actDecrease.setObjectName("actionDecreasePointSize")
+        actDecrease.setShortcut("Ctrl+-")
+        actDecrease.triggered.connect(self.openglwidget.decrease_point_size)
+        menuPointSize.addAction(actDecrease)
+        self.menuView.addMenu(menuPointSize)
+
+        # Create Crystallography menu
 
         self.menuCrystallography = QMenu("Crystallography", self)
         self.menuBar.addAction(self.menuCrystallography.menuAction())

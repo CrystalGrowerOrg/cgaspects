@@ -192,19 +192,22 @@ class DirectionsDialog(QDialog):
         self._direction_list = QListWidget()
         self._direction_list.setMaximumHeight(120)
         self._direction_list.itemClicked.connect(self._load_item_for_editing)
+        self._direction_list.currentItemChanged.connect(self._update_list_buttons_state)
         main_layout.addWidget(self._direction_list)
 
         # List management buttons
         btn_layout = QHBoxLayout()
-        self._remove_btn = QPushButton("Remove Selected")
-        self._remove_btn.clicked.connect(self._remove_selected)
         self._clear_btn = QPushButton("Clear All")
         self._clear_btn.clicked.connect(self._clear_all)
+        self._remove_btn = QPushButton("Remove Selected")
+        self._remove_btn.clicked.connect(self._remove_selected)
+        self._remove_btn.setEnabled(False)
         self._as_plane_btn = QPushButton("Add as Plane")
         self._as_plane_btn.setToolTip("Add the selected direction's indices as a plane (hkl)")
         self._as_plane_btn.clicked.connect(self._add_selected_as_plane)
-        btn_layout.addWidget(self._remove_btn)
+        self._as_plane_btn.setEnabled(False)
         btn_layout.addWidget(self._clear_btn)
+        btn_layout.addWidget(self._remove_btn)
         btn_layout.addWidget(self._as_plane_btn)
         main_layout.addLayout(btn_layout)
 
@@ -219,6 +222,8 @@ class DirectionsDialog(QDialog):
         self._status_label = QLabel("")
         self._status_label.setStyleSheet("color: gray; font-style: italic;")
         main_layout.addWidget(self._status_label)
+        self._update_list_buttons_state()
+        self._set_controls_enabled(False)
 
     def set_point_cloud_extent(self, max_extent):
         """Set the max extent of the point cloud. Length=1 maps to this extent."""
@@ -347,6 +352,7 @@ class DirectionsDialog(QDialog):
             self._status_label.setText(f"Added direction [{v[0]:.1f} {v[1]:.1f} {v[2]:.1f}]")
 
         self.directionsChanged.emit(list(self._directions))
+        self._update_list_buttons_state()
 
     def _load_item_for_editing(self, item):
         row = self._direction_list.row(item)
@@ -387,11 +393,22 @@ class DirectionsDialog(QDialog):
         self._cancel_edit_btn.setVisible(True)
         self._status_label.setText(f"Editing direction {row}")
 
+        self._set_controls_enabled(True)
+
+    def _update_list_buttons_state(self):
+        has = self._direction_list.count() > 0
+        self._clear_btn.setEnabled(has)
+
+    def _set_controls_enabled(self, enabled=True):
+        self._remove_btn.setEnabled(enabled)
+        self._as_plane_btn.setEnabled(enabled)
+
     def _cancel_edit(self):
         self._editing_index = None
         self._add_button.setText("Add Direction")
         self._cancel_edit_btn.setVisible(False)
         self._status_label.setText("")
+        self._set_controls_enabled(False)
 
     def _remove_selected(self):
         row = self._direction_list.currentRow()
@@ -408,6 +425,7 @@ class DirectionsDialog(QDialog):
             self._direction_list.item(i).setData(Qt.UserRole, i)
         self.directionsChanged.emit(list(self._directions))
         self._status_label.setText("Direction removed")
+        self._update_list_buttons_state()
 
     def _clear_all(self):
         self._cancel_edit()
@@ -415,6 +433,7 @@ class DirectionsDialog(QDialog):
         self._direction_list.clear()
         self.directionsCleared.emit()
         self._status_label.setText("All directions cleared")
+        self._update_list_buttons_state()
 
     def _add_selected_as_plane(self):
         row = self._direction_list.currentRow()

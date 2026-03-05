@@ -197,6 +197,7 @@ class PlanesDialog(QDialog):
         self._find_btn.setToolTip(
             "Select 3 or more points in the 3D view using Shift+Click, then click 'Confirm'"
         )
+        self._find_btn.setDefault(True)
         self._find_btn.clicked.connect(self._toggle_find_mode)
         self._confirm_plane_btn = QPushButton("Confirm")
         self._confirm_plane_btn.setToolTip("Compute plane from currently selected points")
@@ -216,21 +217,25 @@ class PlanesDialog(QDialog):
         self._plane_list = QListWidget()
         self._plane_list.setMaximumHeight(120)
         self._plane_list.itemClicked.connect(self._load_item_for_editing)
+        self._plane_list.currentItemChanged.connect(self._update_list_buttons_state)
         main_layout.addWidget(self._plane_list)
 
         # List management buttons
         btn_layout = QHBoxLayout()
-        self._remove_btn = QPushButton("Remove Selected")
-        self._remove_btn.clicked.connect(self._remove_selected)
         self._clear_btn = QPushButton("Clear All")
         self._clear_btn.clicked.connect(self._clear_all)
+        self._remove_btn = QPushButton("Remove Selected")
+        self._remove_btn.clicked.connect(self._remove_selected)
+        self._remove_btn.setEnabled(False)
         self._as_direction_btn = QPushButton("Add as Direction")
         self._as_direction_btn.setToolTip("Add the selected plane's indices as a direction vector")
         self._as_direction_btn.clicked.connect(self._add_selected_as_direction)
-        btn_layout.addWidget(self._remove_btn)
+        self._as_direction_btn.setEnabled(False)
         btn_layout.addWidget(self._clear_btn)
+        btn_layout.addWidget(self._remove_btn)
         btn_layout.addWidget(self._as_direction_btn)
         main_layout.addLayout(btn_layout)
+        self._update_list_buttons_state()
 
         # ------------------------------------------------------------------ #
         # Slicing controls                                                     #
@@ -292,7 +297,7 @@ class PlanesDialog(QDialog):
         slice_group.setLayout(slice_outer)
         main_layout.addWidget(slice_group)
         self._slice_group = slice_group
-        self._set_slicing_controls_enabled(False)
+        self._set_controls_enabled(False)
 
         # Close
         close_layout = QHBoxLayout()
@@ -433,6 +438,7 @@ class PlanesDialog(QDialog):
             self._status_label.setText(f"Added plane ({n[0]:.0f} {n[1]:.0f} {n[2]:.0f})")
 
         self.planesChanged.emit(list(self._planes))
+        self._update_list_buttons_state()
 
     def _load_item_for_editing(self, item):
         row = self._plane_list.row(item)
@@ -473,20 +479,28 @@ class PlanesDialog(QDialog):
         self._cancel_edit_btn.setVisible(True)
         self._status_label.setText(f"Editing plane {row}")
         self._load_slice_controls(p)
-        self._set_slicing_controls_enabled(True)
+        self._set_controls_enabled(True)
+
+    def _update_list_buttons_state(self):
+        has = self._plane_list.count() > 0
+        self._clear_btn.setEnabled(has)
 
     def _cancel_edit(self):
         self._editing_index = None
         self._add_button.setText("Add Plane")
         self._cancel_edit_btn.setVisible(False)
         self._status_label.setText("")
-        self._set_slicing_controls_enabled(False)
+        self._set_controls_enabled(False)
 
     # ------------------------------------------------------------------ #
     # Slicing helpers                                                      #
     # ------------------------------------------------------------------ #
 
-    def _set_slicing_controls_enabled(self, enabled: bool):
+    def _set_controls_enabled(self, enabled: bool):
+        # List buttons
+        self._remove_btn.setEnabled(enabled)
+        self._as_direction_btn.setEnabled(enabled)
+        # Slicing controls
         self._slice_thickness_label.setEnabled(enabled)
         self._slice_enable_check.setEnabled(enabled)
         self._slice_two_sided_check.setEnabled(enabled)
@@ -571,6 +585,7 @@ class PlanesDialog(QDialog):
             self._plane_list.item(i).setData(Qt.UserRole, i)
         self.planesChanged.emit(list(self._planes))
         self._status_label.setText("Plane removed")
+        self._update_list_buttons_state()
 
     def _clear_all(self):
         self._cancel_edit()
@@ -578,6 +593,7 @@ class PlanesDialog(QDialog):
         self._plane_list.clear()
         self.planesCleared.emit()
         self._status_label.setText("All planes cleared")
+        self._update_list_buttons_state()
 
     def _add_selected_as_direction(self):
         row = self._plane_list.currentRow()
@@ -621,11 +637,13 @@ class PlanesDialog(QDialog):
         if self._find_mode_active:
             self._find_mode_active = False
             self._find_btn.setText("Find Plane")
+            self._confirm_plane_btn.setDefault(False)
             self._confirm_plane_btn.setVisible(False)
             self._status_label.setText("")
         else:
             self._find_mode_active = True
             self._find_btn.setText("Cancel")
+            self._confirm_plane_btn.setDefault(True)
             self._confirm_plane_btn.setVisible(True)
             self._status_label.setText(
                 "Select 3+ points in the 3D view using Shift+Click, then click 'Confirm'"
