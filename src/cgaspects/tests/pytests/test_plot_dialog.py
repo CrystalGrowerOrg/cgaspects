@@ -49,7 +49,7 @@ class TestPlottingDialog(unittest.TestCase):
         self.assertFalse(dialog.grid)
         self.assertIsNone(dialog.cbar)
         self.assertEqual(dialog.point_size, 12)
-        self.assertEqual(dialog.plot_type, "Custom")
+        self.assertEqual(dialog.plot_type, "Heatmap")
         self.assertEqual(dialog.permutation, 0)
         self.assertEqual(dialog.variable, "None")
         self.assertIsNone(dialog.custom_x)

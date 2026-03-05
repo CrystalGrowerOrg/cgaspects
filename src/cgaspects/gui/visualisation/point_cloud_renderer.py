@@ -12,21 +12,20 @@ class SimplePointRenderer:
         #version 330 core
         layout(location = 0) in vec3 position;
         layout(location = 1) in vec3 color;
+        layout(location = 2) in float selected;
 
         out vec4 v_color;
+        out float v_selected;
 
         uniform mat4 u_modelViewProjectionMat;
         uniform float u_pointSize;
 
-        float pseudoRandom(float seed) {
-            return fract(sin(seed) * 43758.5453123);
-        }
-
-
         void main() {
             gl_Position = u_modelViewProjectionMat * vec4(position, 1.0);
-            gl_PointSize = u_pointSize;
+            // Make selected points slightly larger
+            gl_PointSize = u_pointSize * (1.0 + selected * 0.3);
             v_color = vec4(color, 1.0);
+            v_selected = selected;
         }
         """
 
@@ -34,16 +33,30 @@ class SimplePointRenderer:
         #version 330 core
 
         in vec4 v_color;
+        in float v_selected;
         out vec4 fragColor;
 
+        const vec3 glowColor = vec3(0.0, 0.9, 1.0);  // Cyan glow
+
         void main() {
-            fragColor = v_color;
             vec2 center = gl_PointCoord - 0.5f;
-            if (dot(center, center) > 0.25f)
-            {
-                    discard;
+            float dist = dot(center, center);
+
+            if (dist > 0.25f) {
+                discard;
             }
 
+            vec3 color = v_color.rgb;
+
+            // Add glow effect for selected points
+            if (v_selected > 0.5) {
+                // Radial glow from center
+                float glow = 1.0 - sqrt(dist) * 2.0;
+                glow = pow(glow, 1.5);
+                color = mix(color, glowColor, 0.5 + glow * 0.3);
+            }
+
+            fragColor = vec4(color, 1.0);
         }
         """
 
@@ -65,11 +78,16 @@ class SimplePointRenderer:
         self.vao.create()
         self.vao.bind()
 
+        # Stride: 3 (position) + 3 (color) + 1 (selected) = 7 floats = 28 bytes
+        stride = 7 * 4
+
         self.program.bind()
         self.program.enableAttributeArray(0)
-        self.program.setAttributeBuffer(0, GL_FLOAT, 0, 3, 6 * 4)
+        self.program.setAttributeBuffer(0, GL_FLOAT, 0, 3, stride)
         self.program.enableAttributeArray(1)
-        self.program.setAttributeBuffer(1, GL_FLOAT, 3 * 4, 3, 6 * 4)
+        self.program.setAttributeBuffer(1, GL_FLOAT, 3 * 4, 3, stride)
+        self.program.enableAttributeArray(2)
+        self.program.setAttributeBuffer(2, GL_FLOAT, 6 * 4, 1, stride)
 
         self.vao.release()
         self.vertex_buffer.release()
@@ -100,7 +118,7 @@ class SimplePointRenderer:
     def numberOfPoints(self):
         if self.points is None:
             return 0
-        return self.points.size // 6
+        return self.points.size // 7  # 3 (position) + 3 (color) + 1 (selected)
 
     def setPoints(self, points):
         self.points = np.array(points, dtype=np.float32).flatten()

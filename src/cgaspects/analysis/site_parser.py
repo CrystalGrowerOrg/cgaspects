@@ -209,6 +209,52 @@ def parse_site_csv(csv_path: Path) -> Dict:
     return result
 
 
+def parse_count(f: Path) -> dict[int, dict[int, int]]:
+    """
+    Parse a count file to extract interaction information per site.
+
+    Args:
+        f: Path to the count file
+
+    Returns:
+        Dictionary mapping site numbers to their interaction dictionaries.
+        Each interaction dictionary maps interaction IDs to their frequencies.
+    """
+    count_info: dict[int, dict[int, int]] = dict()
+
+    with open(f, encoding="utf-8") as fh:
+        for line in fh:
+            if not line.startswith(("empty", "grown")):
+                continue
+
+            tokens = line.split("coord")[0].split()
+            site = int(tokens[3])
+
+            interactions: dict[int, int] = dict()
+            for tok in tokens:
+                if "(" in tok and ")" in tok:
+                    freq, rest = tok.split("(")
+                    inter_id = rest.rstrip(")")
+                    interactions[int(inter_id)] = int(freq)
+
+            count_info[site] = interactions
+
+    return count_info
+
+
+def merge_interactions(sites: dict, interactions: dict[int, dict[int, int]]):
+    """
+    Merge interaction data into site dictionaries.
+
+    Args:
+        sites: Dictionary of site data (site_number -> site_data dict)
+        interactions: Dictionary of interactions (site_number -> interaction_dict)
+    """
+    for site_str, site_data in sites.items():
+        site = int(site_str)
+        site_data.update({"interactions": interactions.get(site, {})})
+
+
 def extract_file_prefix(file_path: Path) -> str:
     """
     Extract the prefix from a site CSV filename.
@@ -284,6 +330,7 @@ def merge_site_results(results_with_paths: List[tuple]) -> Dict[str, Dict]:
                 "total_population": None,
                 "events": None,
                 "population": None,
+                "interactions": None,
             }
 
             # Track if we've seen metadata for validation

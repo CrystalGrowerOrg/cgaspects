@@ -42,9 +42,7 @@ class LabelledCheckBox(QWidget):
         return self.checkState() == Qt.CheckState.Checked
 
     def setCheckState(self, value):
-        self.checkBox.setCheckState(
-            Qt.CheckState.Checked if value else Qt.CheckState.Unchecked
-        )
+        self.checkBox.setCheckState(Qt.CheckState.Checked if value else Qt.CheckState.Unchecked)
 
     def checkState(self):
         return self.checkBox.checkState()
@@ -96,6 +94,7 @@ class LabelledComboBox(QWidget):
 
 class LabelledComboBoxWithColorPicker(QWidget):
     """A combo box with an optional color picker that appears on the same row."""
+
     valueChanged = Signal()
     colorChanged = Signal()
 
@@ -265,9 +264,7 @@ class VisualizationSettingsWidget(QWidget):
         layout.setSpacing(5)
         self.widgets = {}
 
-        w = LabelledDoubleSlider(
-            "Point Size", vrange=(1.0, 20.0), steps=20, parent=self
-        )
+        w = LabelledDoubleSlider("Point Size", vrange=(0.5, 20.0), steps=20, parent=self)
         w.setValue(6.0)
 
         self.widgets["Point Size"] = w
@@ -327,26 +324,10 @@ class VisualizationSettingsWidget(QWidget):
         self.widgets["Show Mesh Edges"] = w
         w.valueChanged.connect(self.settingsChanged)
 
-        w = LabelledComboBox(
-            "Projection",
-            (
-                "Orthographic",
-                "Perspective",
-            ),
-        )
-        self.widgets["Projection"] = w
-        w.valueChanged.connect(self.settingsChanged)
-
-        w = LabelledDoubleSlider("Frame Rate", vrange=(1, 100), steps=50, parent=self)
+        w = LabelledDoubleSlider("Frame Rate", vrange=(0.5, 50), steps=50, parent=self)
         w.setValue(15)
 
         self.widgets["Frame Rate"] = w
-        w.valueChanged.connect(self.settingsChanged)
-
-        w = LabelledDoubleSlider("Axes Thickness", vrange=(1.0, 10.0), steps=18, parent=self)
-        w.setValue(2.0)
-
-        self.widgets["Axes Thickness"] = w
         w.valueChanged.connect(self.settingsChanged)
 
         for w in self.widgets.values():
@@ -378,7 +359,7 @@ class VisualizationSettingsWidget(QWidget):
 
         # Add the single color from the Color By widget
         color_by_widget = self.widgets["Color By"]
-        if hasattr(color_by_widget, 'getColor'):
+        if hasattr(color_by_widget, "getColor"):
             settings_dict["Single Color"] = color_by_widget.getColor()
 
         return settings_dict

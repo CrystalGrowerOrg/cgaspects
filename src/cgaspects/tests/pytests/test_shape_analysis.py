@@ -168,7 +168,6 @@ class TestShapeAnalyser(unittest.TestCase):
         """Test ShapeAnalyser initialization."""
         self.assertEqual(self.analyser.l_max, 10)
         self.assertEqual(self.analyser.zingg_method, "svd")
-        self.assertIsNotNone(self.analyser.sht)
         self.assertEqual(len(self.analyser.frame_metrics), 0)
 
     def test_get_shape_class(self):
@@ -242,7 +241,7 @@ class TestShapeAnalyser(unittest.TestCase):
         xyz_path.write_text(xyz_content)
 
         crystal = CrystalCloud.from_file(xyz_path, normalise=False)
-        self.analyser.analyse_crystal(crystal, frame_idx=0, sph=False)
+        self.analyser.analyse_crystal(crystal, frame_idx=0)
 
         self.assertIn(0, self.analyser.frame_metrics)
         metrics = self.analyser.get_frame_metrics(0)
@@ -259,7 +258,7 @@ class TestShapeAnalyser(unittest.TestCase):
         xyz_path.write_text(xyz_content)
 
         crystal = CrystalCloud.from_file(xyz_path, normalise=False)
-        self.analyser.analyse_crystal(crystal, sph=False)
+        self.analyser.analyse_crystal(crystal)
 
         all_metrics = self.analyser.get_all_frame_metrics()
         self.assertEqual(len(all_metrics), 2)
@@ -332,7 +331,7 @@ class TestIntegration(unittest.TestCase):
 
         # Analyse crystal
         analyser = ShapeAnalyser(l_max=10, zingg_method="bounding_box")
-        analyser.analyse_crystal(crystal, frame_idx=0, sph=False)
+        analyser.analyse_crystal(crystal, frame_idx=0)
 
         # Check results
         metrics = analyser.get_frame_metrics(0)

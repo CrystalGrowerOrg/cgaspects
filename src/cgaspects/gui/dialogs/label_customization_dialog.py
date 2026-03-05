@@ -1,4 +1,5 @@
 """Dialog for customizing plot labels with LaTeX support."""
+
 import logging
 from PySide6.QtWidgets import (
     QDialog,
@@ -47,10 +48,10 @@ class LabelCustomizationDialog(QDialog):
             current_labels = {}
 
         self.current_labels = {
-            'title': current_labels.get('title', ''),
-            'xlabel': current_labels.get('xlabel', ''),
-            'ylabel': current_labels.get('ylabel', ''),
-            'cbar_label': current_labels.get('cbar_label', ''),
+            "title": current_labels.get("title", ""),
+            "xlabel": current_labels.get("xlabel", ""),
+            "ylabel": current_labels.get("ylabel", ""),
+            "cbar_label": current_labels.get("cbar_label", ""),
         }
 
         self.create_widgets()
@@ -59,17 +60,17 @@ class LabelCustomizationDialog(QDialog):
     def create_widgets(self):
         """Create dialog widgets."""
         # Create line edits for each label
-        self.title_edit = QLineEdit(self.current_labels['title'])
-        self.title_edit.setPlaceholderText(r'e.g., r"My Plot Title"')
+        self.title_edit = QLineEdit(self.current_labels["title"])
+        self.title_edit.setPlaceholderText(r'e.g., "My Plot Title"')
 
-        self.xlabel_edit = QLineEdit(self.current_labels['xlabel'])
-        self.xlabel_edit.setPlaceholderText(r'e.g., r"$\Delta G$ (kcal/mol)"')
+        self.xlabel_edit = QLineEdit(self.current_labels["xlabel"])
+        self.xlabel_edit.setPlaceholderText(r'e.g., "$\Delta G_{cryst}$ (kcal/mol)"')
 
-        self.ylabel_edit = QLineEdit(self.current_labels['ylabel'])
-        self.ylabel_edit.setPlaceholderText(r'e.g., r"Energy ($k_BT$)"')
+        self.ylabel_edit = QLineEdit(self.current_labels["ylabel"])
+        self.ylabel_edit.setPlaceholderText(r'e.g., "Energy ($kcal/mol$)"')
 
-        self.cbar_label_edit = QLineEdit(self.current_labels['cbar_label'])
-        self.cbar_label_edit.setPlaceholderText(r'e.g., r"$\Delta G_{Cryst}$ (kcal/mol)"')
+        self.cbar_label_edit = QLineEdit(self.current_labels["cbar_label"])
+        self.cbar_label_edit.setPlaceholderText(r'e.g., "Supersaturation (kcal/mol)"')
 
         # Create reset button for each field
         self.title_reset_btn = QPushButton("Reset")
@@ -162,10 +163,10 @@ class LabelCustomizationDialog(QDialog):
             Empty strings mean use default labels.
         """
         return {
-            'title': self.title_edit.text().strip(),
-            'xlabel': self.xlabel_edit.text().strip(),
-            'ylabel': self.ylabel_edit.text().strip(),
-            'cbar_label': self.cbar_label_edit.text().strip(),
+            "title": self.title_edit.text().strip(),
+            "xlabel": self.xlabel_edit.text().strip(),
+            "ylabel": self.ylabel_edit.text().strip(),
+            "cbar_label": self.cbar_label_edit.text().strip(),
         }
 
     def apply_labels(self):

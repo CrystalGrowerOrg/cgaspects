@@ -222,6 +222,11 @@ class CrystalCloud:
         return self.frames.coords
 
     @property
+    def empty(self) -> bool:
+        """Return True if the crystal has no point data."""
+        return self.xyz is None or self.xyz.size == 0
+
+    @property
     def coords(self) -> Optional[np.ndarray]:
         """Return the coordinates of the last frame (index -1)."""
         return self.frames.get_coords(-1)
@@ -250,14 +255,17 @@ class CrystalCloud:
 
                 comment = file.readline().strip()
 
-                try:
-                    raw = np.loadtxt(file, max_rows=n_atoms, dtype=float, ndmin=2)
-                except ValueError as e:
-                    if clean:
-                        raw_text = Path(filepath).read_text(encoding="utf-8").replace("*", "0")
-                        Path(filepath).write_text(raw_text, encoding="utf-8")
-                        return CrystalCloud.parse_xyz_file(filepath, progress_callback, clean=False)
-                    raise e
+                if n_atoms == 0:
+                    raw = np.empty((0, 0), dtype=float)
+                else:
+                    try:
+                        raw = np.loadtxt(file, max_rows=n_atoms, dtype=float, ndmin=2)
+                    except ValueError as e:
+                        if clean:
+                            raw_text = Path(filepath).read_text(encoding="utf-8").replace("*", "0")
+                            Path(filepath).write_text(raw_text, encoding="utf-8")
+                            return CrystalCloud.parse_xyz_file(filepath, progress_callback, clean=False)
+                        raise e
 
                 frames.append(Frame(raw=raw, comment=comment))
                 frame_idx += 1
@@ -273,9 +281,13 @@ class CrystalCloud:
 
     @staticmethod
     def normalise_verts(verts, center=True):
+        if verts.size == 0:
+            return verts
         if center:
             verts = verts - np.mean(verts, axis=0)
         norm = np.linalg.norm(verts, axis=1).max()
+        if norm == 0:
+            return verts
         verts /= norm
         return verts
 

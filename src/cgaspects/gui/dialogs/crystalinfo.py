@@ -10,11 +10,13 @@ class CrystalInfoWidget(QWidget):
 
     def update(self, crystal_info):
         self.setEnabled(True)
-        self.ui.ar1ValueLabel.setText(f"{crystal_info.aspectRatio1:.2f}")
-        self.ui.ar2ValueLabel.setText(f"{crystal_info.aspectRatio2:.2f}")
+
+        def fmt(val):
+            return f"{val:.2f}" if val is not None else "N/A"
+
+        self.ui.ar1ValueLabel.setText(fmt(crystal_info.aspectRatio1))
+        self.ui.ar2ValueLabel.setText(fmt(crystal_info.aspectRatio2))
         self.ui.shapeClassValueLabel.setText(f"{crystal_info.shapeClass}")
-        self.ui.saVolRatioValueLabel.setText(
-            f"{crystal_info.surfaceAreaVolumeRatio:.2f}"
-        )
-        self.ui.saValueLabel.setText(f"{crystal_info.surfaceArea:.2f}")
-        self.ui.volValueLabel.setText(f"{crystal_info.volume:.2f}")
+        self.ui.saVolRatioValueLabel.setText(fmt(crystal_info.surfaceAreaVolumeRatio))
+        self.ui.saValueLabel.setText(fmt(crystal_info.surfaceArea))
+        self.ui.volValueLabel.setText(fmt(crystal_info.volume))

@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List
 
+import numpy as np
 import pandas as pd
 from natsort import natsorted
 from PySide6 import QtWidgets
@@ -16,7 +17,7 @@ from ..analysis.aspect_ratios import AspectRatio
 from ..analysis.growth_rates import GrowthRate
 from ..analysis.site_analysis import SiteAnalysis
 from ..analysis.gui_threads import WorkerXYZ
-from ..fileio.find_data import find_info, locate_xyz_files
+from ..fileio.find_data import find_info, locate_xyz_files, parse_structure_file
 from ..fileio.xyz_file import CrystalCloud
 from ..fileio.logging import setup_logging, get_log_file_path
 from ..fileio.opendir import open_directory
@@ -24,11 +25,17 @@ from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
+from .shortcuts_manager import ShortcutsManager
+from .dialogs.keyboard_shortcuts import KeyboardShortcutsDialog
 from .dialogs.lattice_dialog import LatticeParametersDialog
 from .dialogs.site_highlight_dialog import SiteHighlightDialog
+from .dialogs.axes_settings_dialog import AxesSettingsDialog
+from .dialogs.directions_dialog import DirectionsDialog
+from .dialogs.planes_dialog import PlanesDialog
 from .load_ui import Ui_MainWindow
 from .visualisation.openGL import VisualisationWidget
 from .widgets import (
+    PointInfoToolbar,
     SimulationVariablesWidget,
     TextFileViewer,
     VisualizationSettingsWidget,
@@ -136,12 +143,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.crystal_info = CrystalInfo()
         self.crystalInfoChanged.connect(self.crystalInfoWidget.update)
-        self.gl_vLayout.addWidget(self.openglwidget)
+        self.gl_vLayout.addWidget(self.openglwidget, 0, 0)  # Row 0, Column 0
+
+        # Add point info toolbar on right side of OpenGL widget
+        self.pointInfoToolbar = PointInfoToolbar(self)
+        self.pointInfoToolbar.set_collapsed(True)  # Start collapsed
+        self.gl_vLayout.addWidget(self.pointInfoToolbar, 0, 1)  # Row 0, Column 1
+        self.gl_vLayout.setColumnStretch(0, 1)  # OpenGL widget stretches
+        self.gl_vLayout.setColumnStretch(1, 0)  # Toolbar doesn't stretch
+
+        # Connect toolbar signals
+        self.pointInfoToolbar.deleteSelectedRequested.connect(self.delete_selected_points)
+        self.pointInfoToolbar.clearSelectionRequested.connect(self.clear_point_selection)
+        self.pointInfoToolbar.unselectCurrentRequested.connect(self.unselect_point)
+        self.pointInfoToolbar.exportXYZRequested.connect(self.export_xyz)
+
+        # Connect OpenGL widget signals to toolbar
+        self.openglwidget.pointHovered.connect(self.pointInfoToolbar.update_hover_info)
+        self.openglwidget.selectionChanged.connect(self.pointInfoToolbar.update_selection_info)
+        self.pointInfoToolbar.set_point_data_fn(self.openglwidget._get_point_data)
 
         self.xyzFilenameListWidget.currentRowChanged.connect(self.setCurrentXYZIndex)
         self.xyz_spinBox.valueChanged.connect(self.setCurrentXYZIndex)
 
-        self.saveframe_pushButton.clicked.connect(self.openglwidget.saveRenderDialog)
+        self.saveframe_pushButton.hide()
 
         self.visualizationSettings = VisualizationSettingsWidget(parent=self)
         self.visualizationSettings.setEnabled(enabled=True)
@@ -154,12 +179,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
         self.site_highlight_dialog.clearHighlights.connect(self.handle_clear_highlights)
 
+        # Create axes settings dialog
+        self.axes_settings_dialog = AxesSettingsDialog(parent=self)
+        self.axes_settings_dialog.settingsChanged.connect(self.handle_axes_settings_changed)
+
+        # Create directions and planes dialogs
+        self.directions_dialog = DirectionsDialog(parent=self)
+        self.directions_dialog.directionsChanged.connect(self.handle_directions_changed)
+        self.directions_dialog.directionsCleared.connect(self.handle_directions_cleared)
+
+        self.planes_dialog = PlanesDialog(parent=self)
+        self.planes_dialog.planesChanged.connect(self.handle_planes_changed)
+        self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
+        self.planes_dialog.computePlaneFromSelection.connect(self._on_compute_plane_from_selection)
+        self.planes_dialog.addDirectionRequested.connect(self._on_add_direction_from_plane)
+        self.planes_dialog.movePlaneAlongNormalRequested.connect(self._on_move_plane_along_normal)
+        self.directions_dialog.addPlaneRequested.connect(self._on_add_plane_from_direction)
+
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
+        self.shortcuts_manager = ShortcutsManager(self.menuBar)
+        self._keyboard_shortcuts_dialog = None
         self.setShowPlottingButtons(False)
 
     def setup_menubar_connections(self):
+        # Remove permanently-disabled leftover from the auto-generated UI
+        self.menuView.removeAction(self.actionSettings)
+
         self.actionImport.triggered.connect(lambda: self.import_and_visualise_xyz(folder=None))
         self.actionImport_CSV_for_Plotting.triggered.connect(self.browse_plot_csv)
         self.actionImportCSVClipboard.triggered.connect(
@@ -181,30 +228,170 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
         )
         self.actionRender.triggered.connect(self.openglwidget.saveRenderDialog)
+        self.actionExportXYZ = QAction("Export XYZ", self)
+        self.actionExportXYZ.setObjectName("actionExportXYZ")
+        self.actionExportXYZ.setShortcut("Ctrl+Shift+E")
+        self.actionExportXYZ.setToolTip("Export the current point cloud to an XYZ file")
+        self.actionExportXYZ.triggered.connect(self.export_xyz)
+        self.actionExportXYZ.setEnabled(False)  # Disabled until XYZ is loaded
+        self.menuFile.addAction(self.actionExportXYZ)
         self.actionPlottingDialog.triggered.connect(self.replotting_called)
 
         self.actionAboutCGAspects.triggered.connect(self.showAboutDialog)
 
         # Add Site Highlighting action to View menu
         self.actionSiteHighlighting = QAction("Highlight Sites", self)
+        self.actionSiteHighlighting.setObjectName("actionSiteHighlighting")
         self.actionSiteHighlighting.setShortcut("Ctrl+Shift+S")
         self.actionSiteHighlighting.triggered.connect(self.show_site_highlighting_dialog)
         self.menuView.addAction(self.actionSiteHighlighting)
 
+        # Add Projection Mode Toggle action to View menu
+        self.actionToggleProjection = QAction("Switch to Perspective Projection", self)
+        self.actionToggleProjection.setObjectName("actionToggleProjection")
+        self.actionToggleProjection.setShortcut("Ctrl+Shift+P")
+        self.actionToggleProjection.setToolTip(
+            "Toggle between Orthographic and Perspective projection"
+        )
+        self.actionToggleProjection.triggered.connect(self.toggle_projection_mode)
+        self.menuView.addAction(self.actionToggleProjection)
+
+        # Add Axes Settings action to View menu
+        self.actionAxesSettings = QAction("Axes Settings", self)
+        self.actionAxesSettings.setObjectName("actionAxesSettings")
+        self.actionAxesSettings.setShortcut("Ctrl+Shift+A")
+        self.actionAxesSettings.setToolTip("Configure axes rendering settings")
+        self.actionAxesSettings.triggered.connect(self.show_axes_settings_dialog)
+        self.menuView.addAction(self.actionAxesSettings)
+
+        # Add Toggle Point Info Sidebar action to View menu
+        self.actionToggleSidebar = QAction("Toggle Point Info Panel", self)
+        self.actionToggleSidebar.setObjectName("actionToggleSidebar")
+        self.actionToggleSidebar.setShortcut("Ctrl+B")
+        self.actionToggleSidebar.setToolTip("Show/hide the point info side panel")
+        self.actionToggleSidebar.triggered.connect(self._toggle_point_info_sidebar)
+        self.menuView.addAction(self.actionToggleSidebar)
+
+        # ── Viewport shortcuts (configurable via ShortcutsManager) ────────────
+        from PySide6.QtWidgets import QMenu
+
+        self.menuView.addSeparator()
+
+        # Align View submenu
+        menuAlignView = QMenu("Align View", self)
+        for shortcut, method, label in [
+            ("X", self.openglwidget.align_view_x, "Align to X Axis"),
+            ("Y", self.openglwidget.align_view_y, "Align to Y Axis"),
+            ("Z", self.openglwidget.align_view_z, "Align to Z Axis"),
+            ("A", self.openglwidget.align_view_a, "Align to a Axis"),
+            ("B", self.openglwidget.align_view_b, "Align to b Axis"),
+            ("C", self.openglwidget.align_view_c, "Align to c Axis"),
+        ]:
+            act = QAction(label, self)
+            act.setShortcut(shortcut)
+            act.triggered.connect(method)
+            menuAlignView.addAction(act)
+        self.menuView.addMenu(menuAlignView)
+
+        # Rotation Lock submenu — single-axis, mutually exclusive, toggle off by re-pressing
+        menuRotLock = QMenu("Rotation Lock", self)
+        self._rotation_lock_actions: dict[str, QAction] = {}
+        for shortcut, axis, label in [
+            ("1", "x", "Lock to X Axis"),
+            ("2", "y", "Lock to Y Axis"),
+            ("3", "z", "Lock to Z Axis"),
+        ]:
+            act = QAction(label, self)
+            act.setShortcut(shortcut)
+            act.setCheckable(True)
+            self._rotation_lock_actions[axis] = act
+            menuRotLock.addAction(act)
+        # Wire after all actions exist so cross-uncheck is safe
+        for axis, act in self._rotation_lock_actions.items():
+            def _on_lock_toggled(checked, a=axis):
+                if checked:
+                    for other, other_act in self._rotation_lock_actions.items():
+                        if other != a:
+                            other_act.setChecked(False)
+                self.openglwidget.toggle_rotation_lock(a, checked)
+            act.toggled.connect(_on_lock_toggled)
+        self.menuView.addMenu(menuRotLock)
+
+        self.menuView.addSeparator()
+
+        actReset = QAction("Reset View", self)
+        actReset.setObjectName("actionResetView")
+        actReset.setShortcut("R")
+        actReset.triggered.connect(self.openglwidget.reset_view)
+        self.menuView.addAction(actReset)
+
+        actStore = QAction("Store View Orientation", self)
+        actStore.setObjectName("actionStoreView")
+        actStore.setShortcut("Shift+S")
+        actStore.triggered.connect(self.openglwidget.store_view)
+        self.menuView.addAction(actStore)
+
+        menuPointSize = QMenu("Point Size", self)
+        actIncrease = QAction("Increase", self)
+        actIncrease.setObjectName("actionIncreasePointSize")
+        actIncrease.setShortcut("Ctrl+=")
+        actIncrease.triggered.connect(self.openglwidget.increase_point_size)
+        menuPointSize.addAction(actIncrease)
+        actDecrease = QAction("Decrease", self)
+        actDecrease.setObjectName("actionDecreasePointSize")
+        actDecrease.setShortcut("Ctrl+-")
+        actDecrease.triggered.connect(self.openglwidget.decrease_point_size)
+        menuPointSize.addAction(actDecrease)
+        self.menuView.addMenu(menuPointSize)
+
+        # Create Crystallography menu
+
+        self.menuCrystallography = QMenu("Crystallography", self)
+        self.menuBar.addAction(self.menuCrystallography.menuAction())
+
+        self.actionAddDirections = QAction("Add Directions", self)
+        self.actionAddDirections.setObjectName("actionAddDirections")
+        self.actionAddDirections.setShortcut("Ctrl+Shift+D")
+        self.actionAddDirections.setToolTip("Add crystallographic directions to the visualization")
+        self.actionAddDirections.triggered.connect(self.show_directions_dialog)
+        self.menuCrystallography.addAction(self.actionAddDirections)
+
+        self.actionAddPlanes = QAction("Add Planes", self)
+        self.actionAddPlanes.setObjectName("actionAddPlanes")
+        self.actionAddPlanes.setShortcut("Ctrl+Shift+L")
+        self.actionAddPlanes.setToolTip("Add crystallographic planes to the visualization")
+        self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
+        self.menuCrystallography.addAction(self.actionAddPlanes)
+
+
+        # Help menu
+        self.menuHelp = QMenu("Help", self)
+        self.menuBar.addAction(self.menuHelp.menuAction())
+
+        self.actionKeyboardShortcuts = QAction("Keyboard Shortcuts...", self)
+        self.actionKeyboardShortcuts.setObjectName("actionKeyboardShortcuts")
+        self.actionKeyboardShortcuts.setShortcut("Ctrl+/")
+        self.actionKeyboardShortcuts.setToolTip("View and customise keyboard shortcuts")
+        self.actionKeyboardShortcuts.triggered.connect(self.show_keyboard_shortcuts_dialog)
+        self.menuHelp.addAction(self.actionKeyboardShortcuts)
+
     def setup_log_menu_actions(self):
         # Create Open Log File action
         self.actionOpenLogFile = QAction("Open Log File", self)
+        self.actionOpenLogFile.setObjectName("actionOpenLogFile")
         self.actionOpenLogFile.setShortcut("Ctrl+L")
         self.actionOpenLogFile.setToolTip("Open the application log file")
         self.actionOpenLogFile.triggered.connect(self.open_log_file)
 
         # Create Clear Log File action
         self.actionClearLogFile = QAction("Clear Log File", self)
+        self.actionClearLogFile.setObjectName("actionClearLogFile")
         self.actionClearLogFile.setToolTip("Clear the application log file")
         self.actionClearLogFile.triggered.connect(self.clear_log_file)
 
         # Create Set Lattice Parameters action
         self.actionSetLatticeParameters = QAction("Set Lattice Parameters", self)
+        self.actionSetLatticeParameters.setObjectName("actionSetLatticeParameters")
         self.actionSetLatticeParameters.setToolTip(
             "Set lattice parameters to convert axes to fractional coordinates"
         )
@@ -212,7 +399,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create Toggle Axes action (starts disabled until lattice params are set)
         self.actionToggleAxes = QAction("Switch to Fractional Axes", self)
-        self.actionToggleAxes.setShortcut("Ctrl+Shift+A")
+        self.actionToggleAxes.setObjectName("actionToggleAxes")
+        self.actionToggleAxes.setShortcut("Shift+A")
         self.actionToggleAxes.setToolTip("Toggle between Cartesian and fractional axes")
         self.actionToggleAxes.setEnabled(False)  # Disabled until lattice params are set
         self.actionToggleAxes.triggered.connect(self.toggle_axes)
@@ -221,13 +409,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.current_axes_type = "cartesian"
         self.crystallography = None
 
-        # Add actions to View menu
+        # Add log actions to View menu
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionOpenLogFile)
         self.menuView.addAction(self.actionClearLogFile)
-        self.menuView.addSeparator()
-        self.menuView.addAction(self.actionSetLatticeParameters)
-        self.menuView.addAction(self.actionToggleAxes)
+
+        # Add lattice/axes actions to Crystallography menu
+        self.menuCrystallography.addSeparator()
+        self.menuCrystallography.addAction(self.actionSetLatticeParameters)
+        self.menuCrystallography.addAction(self.actionToggleAxes)
 
     def showAboutDialog(self):
         if self.aboutDialog is None:
@@ -239,9 +429,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.aboutDialog.show()
 
+    def show_keyboard_shortcuts_dialog(self):
+        if self._keyboard_shortcuts_dialog is None:
+            self._keyboard_shortcuts_dialog = KeyboardShortcutsDialog(
+                manager=self.shortcuts_manager, parent=self
+            )
+        self._keyboard_shortcuts_dialog.show()
+        self._keyboard_shortcuts_dialog.raise_()
+        self._keyboard_shortcuts_dialog.activateWindow()
+
     def show_lattice_parameters_dialog(self):
         """Show dialog to enter lattice parameters for fractional axes."""
-        dialog = LatticeParametersDialog(self)
+        # Pass current cell if available to pre-fill the dialog
+        current_cell = self.crystallography.cell if self.crystallography else None
+        dialog = LatticeParametersDialog(self, cell=current_cell)
 
         if dialog.exec():
             cell = dialog.get_cell()
@@ -256,6 +457,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.current_axes_type = "fractional"
                 self.openglwidget.set_fractional_axes(self.crystallography)
                 self.actionToggleAxes.setText("Switch to Cartesian Axes")
+
+                # Update crystallography dialogs
+                self.directions_dialog.set_crystallography(self.crystallography)
+                self.planes_dialog.set_crystallography(self.crystallography)
 
                 self.log_message(
                     f"Axes converted to fractional coordinates using lattice parameters: "
@@ -282,6 +487,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.current_axes_type = "cartesian"
             self.actionToggleAxes.setText("Switch to Fractional Axes")
             self.log_message("Axes switched to Cartesian coordinates", "info")
+
+    def toggle_projection_mode(self):
+        """Toggle between Orthographic and Perspective projection."""
+        current_mode = self.openglwidget.camera.projectionMode()
+
+        if current_mode == "Orthographic":
+            # Switch to Perspective
+            self.openglwidget.camera.setProjectionMode("Perspective")
+            self.actionToggleProjection.setText("Switch to Orthographic Projection")
+            self.log_message("Projection mode switched to Perspective", "info")
+        else:
+            # Switch to Orthographic
+            self.openglwidget.camera.setProjectionMode("Orthographic")
+            self.actionToggleProjection.setText("Switch to Perspective Projection")
+            self.log_message("Projection mode switched to Orthographic", "info")
+
+        # Update the visualization
+        self.openglwidget.update()
 
     def setup_button_connections(self):
         self.importPlotDataPushButton.clicked.connect(self.browse_plot_csv)
@@ -378,6 +601,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.clear_highlighted_sites()
             logger.info("Cleared all site highlights")
 
+    def delete_selected_points(self):
+        """Delete the currently selected points in the visualization."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            count = self.openglwidget.delete_selected_points()
+            if count > 0:
+                self.log_message(f"Deleted {count} point(s)", "info")
+
+    def clear_point_selection(self):
+        """Clear the current point selection."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.clear_selection()
+            self.log_message("Selection cleared", "info")
+
+    def unselect_point(self, index):
+        """Remove a single point from the current selection."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.select_point(index, toggle=True)
+
+    def export_xyz(self):
+        """Export the current point cloud to an XYZ file."""
+        if hasattr(self, "openglwidget") and self.openglwidget is not None:
+            self.openglwidget.exportXYZDialog()
+
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
 
@@ -389,6 +635,204 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Show the site highlighting dialog."""
         self.site_highlight_dialog.show()
         self.site_highlight_dialog.raise_()
+
+    def show_axes_settings_dialog(self):
+        """Show the axes settings dialog."""
+        self.axes_settings_dialog.show()
+        self.axes_settings_dialog.raise_()
+
+    def handle_axes_settings_changed(self, settings):
+        """Handle changes to axes settings."""
+        if hasattr(self.openglwidget, "axes_renderer"):
+            self.openglwidget.axes_renderer.update_settings(settings)
+            self.openglwidget.update()
+
+    def _toggle_point_info_sidebar(self):
+        """Toggle the point info sidebar panel."""
+        self.pointInfoToolbar.set_collapsed(not self.pointInfoToolbar.is_collapsed())
+
+    def _get_point_cloud_max_extent(self):
+        """Compute the max extent (half-range) of the point cloud."""
+        xyz = self.openglwidget.xyz
+        if xyz is not None and len(xyz) > 0:
+            points = xyz[:, 3:6]
+            extents = points.max(axis=0) - points.min(axis=0)
+            return float(extents.max()) / 2.0
+        return None
+
+    def show_directions_dialog(self):
+        """Show the directions dialog."""
+        self.directions_dialog.set_crystallography(self.crystallography)
+        self.directions_dialog.set_point_cloud_extent(self._get_point_cloud_max_extent())
+        self.directions_dialog.show()
+        self.directions_dialog.raise_()
+
+    def show_planes_dialog(self):
+        """Show the planes dialog."""
+        self.planes_dialog.set_crystallography(self.crystallography)
+        self.planes_dialog.set_point_cloud_extent(self._get_point_cloud_max_extent())
+        self.planes_dialog.show()
+        self.planes_dialog.raise_()
+
+    def handle_directions_changed(self, directions):
+        """Handle changes to crystallographic directions."""
+        if hasattr(self.openglwidget, "set_directions"):
+            max_extent = self._get_point_cloud_max_extent() or 1.0
+            self.openglwidget.set_directions(directions, self.crystallography, max_extent)
+
+    def handle_directions_cleared(self):
+        """Handle clearing of all directions."""
+        if hasattr(self.openglwidget, "set_directions"):
+            self.openglwidget.set_directions([], None)
+
+    def handle_planes_changed(self, planes):
+        """Handle changes to crystallographic planes."""
+        if hasattr(self.openglwidget, "set_planes"):
+            self.openglwidget.set_planes(planes, self.crystallography)
+
+    def handle_planes_cleared(self):
+        """Handle clearing of all planes."""
+        if hasattr(self.openglwidget, "set_planes"):
+            self.openglwidget.set_planes([], None)
+
+    def _on_add_direction_from_plane(self, direction_dict):
+        """Route a plane's indices to the directions dialog as a new direction."""
+        self.directions_dialog.add_external(direction_dict)
+        self.directions_dialog.show()
+        self.directions_dialog.raise_()
+
+    def _on_add_plane_from_direction(self, plane_dict):
+        """Route a direction's indices to the planes dialog as a new plane."""
+        self.planes_dialog.add_external(plane_dict)
+        self.planes_dialog.show()
+        self.planes_dialog.raise_()
+
+    def _on_compute_plane_from_selection(self):
+        """Compute a best-fit plane from the currently selected points and populate the planes dialog."""
+        if not hasattr(self, "openglwidget") or self.openglwidget is None:
+            return
+        selected_indices = self.openglwidget.get_selected_points()
+        if len(selected_indices) < 3:
+            QMessageBox.warning(
+                self,
+                "Not Enough Points",
+                "Please select at least 3 points in the 3D view using Shift+Click.",
+            )
+            return
+        xyz = self.openglwidget.xyz
+        if xyz is None:
+            return
+        coords = xyz[list(selected_indices), 3:6]  # columns 3,4,5 are x,y,z
+        centroid = coords.mean(axis=0)
+        _, _, Vt = np.linalg.svd(coords - centroid)
+        normal = Vt[-1]  # eigenvector for smallest singular value = plane normal
+
+        self.planes_dialog.populate_from_plane(normal, centroid, self.crystallography)
+
+    # ------------------------------------------------------------------ #
+    # Move plane along its normal                                          #
+    # ------------------------------------------------------------------ #
+
+    def _on_move_plane_along_normal(self, row):
+        """Show a live slider to move the selected plane along its normal."""
+        from PySide6.QtWidgets import (
+            QDialog,
+            QDialogButtonBox,
+            QDoubleSpinBox,
+            QHBoxLayout,
+            QLabel,
+            QSlider,
+            QVBoxLayout,
+        )
+
+        planes = self.planes_dialog._planes
+        if row < 0 or row >= len(planes):
+            return
+        plane = planes[row]
+
+        xyz = self.openglwidget.xyz
+        if xyz is None:
+            QMessageBox.warning(self, "No Data", "No crystal loaded.")
+            return
+
+        # Resolve normal to Cartesian
+        normal = np.array(plane.normal, dtype=np.float64)
+        if plane.fractional and self.crystallography is not None:
+            normal = self.crystallography.miller_to_cart_normal(normal)
+        n_len = np.linalg.norm(normal)
+        if n_len < 1e-10:
+            QMessageBox.warning(self, "Invalid Normal", "Plane normal has zero length.")
+            return
+        normal /= n_len
+
+        # Project all points onto normal to find extent
+        points = xyz[:, 3:6]
+        proj = points @ normal
+        d_min, d_max = float(proj.min()), float(proj.max())
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Move Plane Along Normal")
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(
+            f"Normal: ({normal[0]:.3f}, {normal[1]:.3f}, {normal[2]:.3f})\n"
+            f"Crystal extent along normal: {d_min:.3f} → {d_max:.3f}"
+        ))
+
+        # Current plane d = n · origin
+        current_origin = np.array(plane.origin, dtype=np.float64)
+        current_d = float(np.dot(normal, current_origin))
+
+        pos_label = QLabel(f"d = {current_d:.3f}")
+        layout.addWidget(pos_label)
+
+        STEPS = 2000
+        slider = QSlider(Qt.Horizontal)
+        slider.setRange(0, STEPS)
+        slider_range = d_max - d_min if d_max > d_min else 1.0
+        initial_pos = int((current_d - d_min) / slider_range * STEPS)
+        slider.setValue(max(0, min(STEPS, initial_pos)))
+        layout.addWidget(slider)
+
+        # Fine-tune spinbox
+        fine_row = QHBoxLayout()
+        fine_row.addWidget(QLabel("Fine d:"))
+        fine_spin = QDoubleSpinBox()
+        fine_spin.setRange(d_min - abs(slider_range), d_max + abs(slider_range))
+        fine_spin.setDecimals(3)
+        fine_spin.setSingleStep(0.1)
+        fine_spin.setValue(current_d)
+        fine_row.addWidget(fine_spin)
+        layout.addLayout(fine_row)
+
+        # Sync helpers
+        def _apply_d(d):
+            new_origin = tuple(float(v) for v in (normal * d))
+            self.planes_dialog.update_plane_origin_from_dialog(row, new_origin)
+            pos_label.setText(f"d = {d:.3f}")
+
+        def _slider_moved(val):
+            d = d_min + (val / STEPS) * slider_range
+            fine_spin.blockSignals(True)
+            fine_spin.setValue(d)
+            fine_spin.blockSignals(False)
+            _apply_d(d)
+
+        def _spin_changed(d):
+            pos = int((d - d_min) / slider_range * STEPS)
+            slider.blockSignals(True)
+            slider.setValue(max(0, min(STEPS, pos)))
+            slider.blockSignals(False)
+            _apply_d(d)
+
+        slider.valueChanged.connect(_slider_moved)
+        fine_spin.valueChanged.connect(_spin_changed)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Close)
+        btns.rejected.connect(dialog.reject)
+        layout.addWidget(btns)
+        dialog.exec()
 
     def welcome_message(self):
         self.log_message(
@@ -486,10 +930,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message(f"{n_xyz} XYZ files found to set to self!", "warning")
         if n_xyz > 0:
             self.init_opengl()
-            self.crystal = self.get_crystal(0)
-            self.init_crystal()
 
-            self.update_XYZ_info(self.openglwidget.xyz)
+            crystal_found = False
+            try:
+                for i in range(n_xyz):
+                    self.crystal = self.get_crystal(i)
+                    if self.crystal is not None and not self.crystal.empty:
+                        self.setCurrentXYZIndex(i)
+                        self.init_crystal()
+                        crystal_found = True
+                        break
+            except Exception as e:
+                self.log_message(f"Error initialising crystal visualisation: {e}", "error")
+
+            if not crystal_found:
+                self.openglwidget.showNoDataOverlay()
+
             self.aspect_ratio_pushButton.setEnabled(True)
             self.set_batch_type()
             self.variablesTabWidget.setCurrentIndex(0)
@@ -499,6 +955,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         tot_sims = len(self.xyz_files)
         self.openglwidget.pass_XYZ_list([str(path) for path in self.xyz_files])
         self.sim_num = 0
+        self.openglwidget.sim_num = -1  # Force fresh load for new folder
         self.openglwidget.get_XYZ_from_list(0)
         self.xyzFilenameListWidget.clear()
         self.xyzFilenameListWidget.addItems([x.name for x in self.xyz_files])
@@ -537,7 +994,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             self.openglwidget.initGeometry()
             self.actionRender.setEnabled(True)
-            self.saveframe_pushButton.setEnabled(True)
+            self.actionExportXYZ.setEnabled(True)
         except AttributeError as e:
             logger.warning("Initialising XYZ: No Crystal Data Found! %s", e)
 
@@ -558,7 +1015,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return self.crystal
 
     def update_XYZ_info(self, xyz):
-        if xyz is None:
+        if xyz is None or xyz.size == 0 or xyz.ndim < 2 or xyz.shape[1] < 6:
+            self.crystal_info.aspectRatio1 = None
+            self.crystal_info.aspectRatio2 = None
+            self.crystal_info.shapeClass = "N/A"
+            self.crystal_info.surfaceAreaVolumeRatio = None
+            self.crystal_info.surfaceArea = None
+            self.crystal_info.volume = None
+            self.crystalInfoChanged.emit(self.crystal_info)
             return
         worker_xyz = WorkerXYZ(xyz)
         worker_xyz.signals.result.connect(self.insert_info)
@@ -651,6 +1115,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.input_folder = folder
         information = find_info(folder)
 
+        # Auto-load structure file for fractional axes if available
+        if information.structure_file:
+            cell = parse_structure_file(information.structure_file)
+            if cell is not None:
+                self.crystallography = Crystallography(cell)
+                self.actionToggleAxes.setEnabled(True)
+                self.current_axes_type = "fractional"
+                self.openglwidget.set_fractional_axes(self.crystallography)
+                self.actionToggleAxes.setText("Switch to Cartesian Axes")
+                # Update crystallography dialogs
+                self.directions_dialog.set_crystallography(self.crystallography)
+                self.planes_dialog.set_crystallography(self.crystallography)
+
+                self.log_message(
+                    f"Auto-loaded lattice parameters: a={cell.a:.2f} b={cell.b:.2f} c={cell.c:.2f}",
+                    "info",
+                )
+
         # Enable buttons and set data based on available information
         if information.size_files and information.directions:
             self.growth_rate_pushButton.setEnabled(True)
@@ -675,6 +1157,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.siteanalysis.set_site_files(
                 crystallisation_files=information.crystallisation_files,
                 population_files=information.population_files,
+                count_files=information.count_files,
             )
             logger.info(
                 f"Found {len(information.crystallisation_files)} crystallisation files and "
@@ -752,6 +1235,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log_message("Plotting CSV set to None", "debug")
 
     def set_results(self, value):
+        logger.debug(f"set_results called with value: {value}")
         self.plot_lineEdit.setText(str(value.csv))
         self.log_message(f"Accepting incoming result to GUI {value}", "debug")
         if value.selected:
@@ -760,6 +1244,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if value.folder:
             self.output_folder = value.folder
             self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
+
+        logger.debug("About to call replotting_called()")
+        # Automatically show plot dialog after results are set
+        self.replotting_called()
+        logger.debug("Returned from replotting_called()")
 
     def replotting_called(self):
         if self.plotting_csv:
@@ -770,7 +1259,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     csv=self.plotting_csv,
                     signals=self.worker_signals,
                     parent=self,
-                    summary_df=self.summ_df
+                    summary_df=self.summ_df,
                 )
                 self.plotting_dialog.connect
             else:
@@ -861,9 +1350,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setCurrentXYZIndex(self, value):
         self.sim_num = value
         self.openglwidget.get_XYZ_from_list(value=value)
+        self.crystal = self.openglwidget.crystal
         self.movie_controls_frame.hide()
-        if len(self.crystal) > 1:
+
+        if self.crystal is not None and self.crystal.empty:
+            self.update_XYZ_info(None)
+            return
+
+        if self.crystal is not None and len(self.crystal) > 1:
             self.movie_controls_frame.show()
+            self.frame_list = list(range(1, len(self.crystal) + 1))
+            num_frames = len(self.frame_list)
+            self.frame_slider.setMinimum(0)
+            self.frame_slider.setMaximum(num_frames - 1)
+            self.frame_spinBox.setMinimum(0)
+            self.frame_spinBox.setMaximum(num_frames - 1)
+            self.frameMaxLabel.setText(f"{num_frames - 1}")
 
         # block to prevent double updates
         with QSignalBlocker(self.xyzFilenameListWidget):
@@ -878,10 +1380,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.summ_df is not None:
             var_values = self.summ_df.iloc[value, :].values
             self.update_variables(values=var_values)
-
-        # Sync the plot dialog if it's open and showing site analysis
-        if self.plotting_dialog is not None and hasattr(self.plotting_dialog, 'sync_file_prefix_from_xyz_index'):
-            self.plotting_dialog.sync_file_prefix_from_xyz_index(value)
 
     def updateVisualizationSettings(self):
         pass
@@ -903,12 +1401,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def insert_info(self, result):
         self.log_message("Inserting data to GUI!", log_level="debug", gui=True)
-        self.crystal_info.aspectRatio1 = result.aspect1
-        self.crystal_info.aspectRatio2 = result.aspect2
-        self.crystal_info.shapeClass = result.shape
-        self.crystal_info.surfaceAreaVolumeRatio = result.surface_area_to_volume_ratio
-        self.crystal_info.surfaceArea = result.surface_area
-        self.crystal_info.volume = result.volume
+        if result is None:
+            self.crystal_info.aspectRatio1 = None
+            self.crystal_info.aspectRatio2 = None
+            self.crystal_info.shapeClass = "N/A"
+            self.crystal_info.surfaceAreaVolumeRatio = None
+            self.crystal_info.surfaceArea = None
+            self.crystal_info.volume = None
+        else:
+            self.crystal_info.aspectRatio1 = result.aspect1
+            self.crystal_info.aspectRatio2 = result.aspect2
+            self.crystal_info.shapeClass = result.shape
+            self.crystal_info.surfaceAreaVolumeRatio = result.surface_area_to_volume_ratio
+            self.crystal_info.surfaceArea = result.surface_area
+            self.crystal_info.volume = result.volume
 
         self.crystalInfoChanged.emit(self.crystal_info)
 

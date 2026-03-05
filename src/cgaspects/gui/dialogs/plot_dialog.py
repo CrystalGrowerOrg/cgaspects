@@ -28,9 +28,11 @@ from PySide6.QtWidgets import (
 from cgaspects.gui.dialogs.data_filter_dialog import DataFilterDialog
 from cgaspects.gui.dialogs.label_customization_dialog import LabelCustomizationDialog
 from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
+from cgaspects.gui.dialogs.smoothing_dialog import SmoothingDialog
 from cgaspects.gui.widgets.plot_axes_widget import PlotAxesWidget
 from cgaspects.gui.widgets.time_series_widget import TimeSeriesWidget
 from cgaspects.utils.data_structures import plot_obj_tuple
+from cgaspects.utils.data_smoothing import process_series
 
 matplotlib.use("QTAgg")
 
@@ -131,6 +133,11 @@ class PlottingDialog(QDialog):
 
         # Data filtering
         self.data_filters = []  # List of filter configurations
+        self.interaction_filters = {}  # Dictionary of interaction filter configurations
+
+        # Smoothing/interpolation/extrapolation settings (for Growth Rates mode)
+        self.smoothing_configs = {}  # Dictionary mapping series names to their configurations
+        self.smoothing_legend_mode = "Show Both Original and Processed"  # Legend display mode
 
     def setCSV(self, csv):
         # Check if we're reloading the same CSV file
@@ -166,6 +173,7 @@ class PlottingDialog(QDialog):
                     "total_events",
                     "total_population",
                     "file_prefix",
+                    "filter",
                 ]
                 # Only clear time series widget file prefixes if the CSV file actually changed
                 # This preserves the user's data source selection when replotting
@@ -235,13 +243,20 @@ class PlottingDialog(QDialog):
                 self.growth_rate = True
                 self.directions = []
                 for col in self.df.columns:
-                    if col.startswith(" "):
+                    # Direction columns start with space or minus sign (Miller indices)
+                    if col.startswith((" ", "-")):
                         self.directions.append(col)
                 self.plot_types = ["Growth Rates"]
 
         # Check if this is site analysis data
         if self.site_analysis_data is not None:
             self.plot_types.append("Site Analysis")
+            # Set up permutations for site analysis mode
+            self.permutation_labels = [
+                "Events/Population vs Energy",
+                "Sites vs Events/Population",
+                "Events vs Population"
+            ]
 
         logger.info("Default plot types found: %s", self.plot_types)
         logger.info("Directions found: %s", self.directions)
@@ -339,6 +354,9 @@ class PlottingDialog(QDialog):
         self.button_customize_labels = QPushButton("Customize Labels...")
         self.button_filter_data = QPushButton("Filter Data...")
         self.button_filter_data.setToolTip("Filter the data shown in the plot")
+        self.button_smooth_data = QPushButton("Smooth/Extrapolate Data...")
+        self.button_smooth_data.setToolTip("Apply smoothing, interpolation, and extrapolation to growth rate data")
+        self.button_smooth_data.hide()  # Hidden by default, only shown in Growth Rates mode
 
         # Initialize the variables
         self.point_size = 12
@@ -350,6 +368,9 @@ class PlottingDialog(QDialog):
         self.checkbox_legend = QCheckBox("Show Legend")
         self.checkbox_zingg = QCheckBox("Zingg")
         self.checkbox_corr_mat = QCheckBox("Correlation Matix")
+        self.checkbox_hide_bulk = QCheckBox("Hide Bulk Site")
+        self.checkbox_hide_bulk.setChecked(True)  # Checked by default
+        self.checkbox_hide_bulk.setToolTip("Hide the site with the highest population (bulk site)")
 
         # Colour scheme controls (universal across all modes)
         self.cmap_label = QLabel("Colour Scheme:")
@@ -378,6 +399,7 @@ class PlottingDialog(QDialog):
         self.button_save.clicked.connect(self.save)
         self.button_customize_labels.clicked.connect(self.open_label_customization_dialog)
         self.button_filter_data.clicked.connect(self.open_filter_dialog)
+        self.button_smooth_data.clicked.connect(self.open_smoothing_dialog)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.checkbox_legend.stateChanged.connect(self.trigger_plot)
         self.checkbox_zingg.stateChanged.connect(
@@ -386,6 +408,7 @@ class PlottingDialog(QDialog):
         self.checkbox_corr_mat.stateChanged.connect(
             lambda: self._handle_plot_checkboxes(self.checkbox_corr_mat)
         )
+        self.checkbox_hide_bulk.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
@@ -446,8 +469,10 @@ class PlottingDialog(QDialog):
         # Add filter/customize buttons and colour scheme controls row (universal across all modes)
         grid1.addWidget(self.button_filter_data, 1, 0)
         grid1.addWidget(self.button_customize_labels, 1, 1)
-        grid1.addWidget(self.cmap_label, 1, 2)
-        grid1.addWidget(self.cmap_combobox, 1, 3)
+        grid1.addWidget(self.button_smooth_data, 1, 2)
+        grid1.addWidget(self.cmap_label, 1, 3)
+        grid1.addWidget(self.cmap_combobox, 1, 4)
+        grid1.addWidget(self.checkbox_hide_bulk, 1, 5)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
 
@@ -488,11 +513,16 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
 
     def change_mode(self, mode):
+        # Show/hide smoothing button based on mode
+        if mode == "Growth Rates":
+            self.button_smooth_data.show()
+        else:
+            self.button_smooth_data.hide()
+
         if mode == "Site Analysis":
-            # Disable permutation controls for Site Analysis
-            self.plot_permutations_label.setEnabled(False)
-            self.plot_permutations_combobox.setEnabled(False)
-            self.plot_permutations_combobox.setCurrentIndex(0)
+            # Enable permutation controls for Site Analysis (3 permutations)
+            self.plot_permutations_label.setEnabled(True)
+            self.plot_permutations_combobox.setEnabled(True)
             # Enable variable controls for Site Analysis
             self.variables_label.setEnabled(True)
             self.variables_combobox.setEnabled(True)
@@ -501,12 +531,16 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            # Enable filter data button in Site Analysis mode (now supports filtering)
+            self.button_filter_data.setEnabled(True)
             # Show time-series widget for Site Analysis
             self.time_series_widget.show()
             # Only initialize if the widget hasn't been set up yet
             # (check if file_prefixes list is empty)
             if not self.time_series_widget.file_prefixes:
                 self._initialize_time_series_widget()
+            # Update hide bulk checkbox visibility based on plotting mode
+            self._update_hide_bulk_visibility()
         elif mode == "Heatmap":
             self.plot_permutations_label.setEnabled(False)
             self.plot_permutations_combobox.setEnabled(False)
@@ -521,6 +555,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            # Enable filter data button in Heatmap mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in Heatmap mode
+            self.checkbox_hide_bulk.hide()
 
             # Show single selection Y-axis widget, hide checkable one
             self.custom_plot_widget.yAxisListWidget.hide()
@@ -545,6 +583,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.show()
             self.checkbox_zingg.setEnabled(True)
             self.checkbox_zingg.show()
+            # Enable filter data button in Custom mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in Custom mode
+            self.checkbox_hide_bulk.hide()
 
             # Show checkable Y-axis widget, hide single selection one
             self.custom_plot_widget.yAxisListWidget.show()
@@ -567,6 +609,10 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_corr_mat.hide()
             self.checkbox_zingg.hide()
+            # Enable filter data button in default mode
+            self.button_filter_data.setEnabled(True)
+            # Hide hide bulk checkbox in default mode
+            self.checkbox_hide_bulk.hide()
 
             # Ensure checkable widget is shown when hiding custom widget
             self.custom_plot_widget.yAxisListWidget.show()
@@ -574,6 +620,22 @@ class PlottingDialog(QDialog):
 
             # Hide time-series widget
             self.time_series_widget.hide()
+
+    def _update_hide_bulk_visibility(self):
+        """Update the visibility of the Hide Bulk Site checkbox based on plotting mode and permutation."""
+        if self.plot_type != "Site Analysis":
+            self.checkbox_hide_bulk.hide()
+            return
+
+        # Get current plotting mode
+        plotting_mode = self.time_series_widget.get_plotting_mode()
+
+        # Show checkbox only for population-based plotting modes
+        # Available in all permutations when in population mode
+        if plotting_mode in ["Total Population", "Population per Step"]:
+            self.checkbox_hide_bulk.show()
+        else:
+            self.checkbox_hide_bulk.hide()
 
     def _initialize_time_series_widget(self):
         """Initialize the time-series widget with site analysis data."""
@@ -607,7 +669,9 @@ class PlottingDialog(QDialog):
         if selected_prefix and selected_prefix != "All Data":
             xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
             if xyz_index is not None and self.signals:
-                logger.debug(f"Initial sync: setting XYZ to index {xyz_index} for prefix {selected_prefix}")
+                logger.debug(
+                    f"Initial sync: setting XYZ to index {xyz_index} for prefix {selected_prefix}"
+                )
                 self.signals.sim_id.emit(xyz_index)
 
     def _on_file_prefix_changed(self, selected_prefix):
@@ -615,7 +679,7 @@ class PlottingDialog(QDialog):
 
         This updates the displayed XYZ file when the data source dropdown is changed.
         """
-        logger.info(f"_on_file_prefix_changed called with prefix: {selected_prefix}")
+        logger.debug(f"_on_file_prefix_changed called with prefix: {selected_prefix}")
 
         if self.site_analysis_data is None:
             logger.debug("No site analysis data, skipping file prefix change handling")
@@ -627,7 +691,9 @@ class PlottingDialog(QDialog):
             xyz_index = self._find_xyz_index_for_prefix(selected_prefix)
             logger.debug(f"Found XYZ index {xyz_index} for prefix {selected_prefix}")
             if xyz_index is not None:
-                logger.info(f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}")
+                logger.debug(
+                    f"Emitting sim_id signal for prefix {selected_prefix} -> index {xyz_index}"
+                )
                 self.signals.sim_id.emit(xyz_index)
             else:
                 logger.warning(f"Could not find XYZ index for prefix {selected_prefix}")
@@ -663,7 +729,9 @@ class PlottingDialog(QDialog):
         # Find the index of this prefix in the ordered list
         try:
             prefix_index = file_prefixes.index(file_prefix)
-            logger.debug(f"Found prefix '{file_prefix}' at index {prefix_index} in site_analysis_data")
+            logger.debug(
+                f"Found prefix '{file_prefix}' at index {prefix_index} in site_analysis_data"
+            )
 
             # Verify this index is valid for xyz_files if available
             if hasattr(self.parent(), "xyz_files"):
@@ -671,7 +739,9 @@ class PlottingDialog(QDialog):
                 if 0 <= prefix_index < len(xyz_files):
                     return prefix_index
                 else:
-                    logger.warning(f"Prefix index {prefix_index} out of range for xyz_files (length {len(xyz_files)})")
+                    logger.warning(
+                        f"Prefix index {prefix_index} out of range for xyz_files (length {len(xyz_files)})"
+                    )
                     return None
             else:
                 # If we don't have access to xyz_files, just return the index
@@ -679,61 +749,6 @@ class PlottingDialog(QDialog):
         except ValueError:
             logger.warning(f"Prefix '{file_prefix}' not found in site_analysis_data keys")
             return None
-
-    def sync_file_prefix_from_xyz_index(self, xyz_index):
-        """Synchronize the file prefix selection based on an XYZ file index.
-
-        This is called when the user selects a different XYZ file in the main window,
-        to update the plot to show the corresponding data. This provides the opposite
-        direction of synchronization from _on_file_prefix_changed.
-
-        Since the site analysis data and XYZ files are in the same order,
-        we use the xyz_index directly to find the corresponding prefix.
-
-        Args:
-            xyz_index: The index of the selected XYZ file
-        """
-        logger.info(f"========== sync_file_prefix_from_xyz_index called with index {xyz_index} ==========")
-        logger.debug(f"Current plot_type: {self.plot_type if hasattr(self, 'plot_type') else 'not set'}")
-        logger.debug(f"Has site_analysis_data: {self.site_analysis_data is not None}")
-
-        if not self.site_analysis_data:
-            logger.debug("No site analysis data, skipping sync")
-            return
-
-        # Check if we're in Site Analysis mode (or plot_type not yet set during initialization)
-        if hasattr(self, 'plot_type') and self.plot_type != "Site Analysis":
-            logger.debug(f"Not in Site Analysis mode (current: {self.plot_type}), skipping sync")
-            return
-
-        # Get the ordered list of file prefixes from site analysis data
-        file_prefixes = list(self.site_analysis_data.keys())
-
-        # Use the xyz_index to get the corresponding prefix
-        if 0 <= xyz_index < len(file_prefixes):
-            file_prefix = file_prefixes[xyz_index]
-            logger.debug(f"XYZ index {xyz_index} corresponds to prefix: {file_prefix}")
-
-            # Update the time series widget's selection
-            # Find the index in the combo box (add 1 because "All Data" is at index 0)
-            combo_index = self.time_series_widget.file_prefix_combo.findText(file_prefix)
-            logger.debug(f"Combo box index for prefix '{file_prefix}': {combo_index}")
-
-            if combo_index >= 0:
-                # Block signals to prevent infinite loop
-                from PySide6.QtCore import QSignalBlocker
-
-                with QSignalBlocker(self.time_series_widget.file_prefix_combo):
-                    self.time_series_widget.file_prefix_combo.setCurrentIndex(combo_index)
-                    self.time_series_widget.current_file_prefix = file_prefix
-
-                # Trigger replot - data will be extracted from dictionary in _set_data()
-                logger.info(f"Synced file prefix to: {file_prefix} from XYZ index {xyz_index}, triggering replot")
-                self.trigger_plot()
-            else:
-                logger.warning(f"Could not find prefix '{file_prefix}' in combo box")
-        else:
-            logger.warning(f"XYZ index {xyz_index} out of range for site_analysis_data (has {len(file_prefixes)} entries)")
 
     def open_label_customization_dialog(self):
         """Open the label customization dialog."""
@@ -764,37 +779,87 @@ class PlottingDialog(QDialog):
         self.custom_xlabel = labels["xlabel"]
         self.custom_ylabel = labels["ylabel"]
         self.custom_cbar_label = labels["cbar_label"]
-        logger.info("Custom labels updated: %s", labels)
+        logger.debug("Custom labels updated: %s", labels)
         # Replot with new labels
         self.trigger_plot()
+
+    def open_smoothing_dialog(self):
+        """Open the smoothing/interpolation/extrapolation dialog."""
+        if self.plot_type != "Growth Rates":
+            logger.warning("Smoothing dialog only available in Growth Rates mode")
+            return
+
+        # Get the list of series (directions) available
+        series_names = self.directions if self.directions else []
+
+        if not series_names:
+            logger.warning("No data series available for smoothing")
+            return
+
+        dialog = SmoothingDialog(
+            series_names=series_names,
+            existing_configs=self.smoothing_configs,
+            parent=self
+        )
+
+        if dialog.exec() == QDialog.Accepted:
+            # Get the configurations
+            configs, legend_mode = dialog.get_configs()
+            self.smoothing_configs = configs
+            self.smoothing_legend_mode = legend_mode
+
+            # Update button text to indicate active smoothing
+            if configs:
+                self.button_smooth_data.setText(f"Smooth/Extrapolate Data... ({len(configs)})")
+            else:
+                self.button_smooth_data.setText("Smooth/Extrapolate Data...")
+
+            # Replot with smoothed data
+            self.trigger_plot()
 
     def open_filter_dialog(self):
         """Open the data filter dialog."""
         # Use the original unfiltered dataframe for the filter dialog
         original_df = self._get_original_df()
 
-        dialog = DataFilterDialog(original_df, current_filters=self.data_filters, parent=self)
+        # Pass site_analysis_data if in site analysis mode
+        site_analysis_data = self.site_analysis_data if self.plot_type == "Site Analysis" else None
+
+        dialog = DataFilterDialog(
+            df=original_df,
+            current_filters=self.data_filters,
+            parent=self,
+            site_analysis_data=site_analysis_data,
+            current_interaction_filters=self.interaction_filters,
+        )
 
         # Connect Apply button signal to update filters without closing dialog
         dialog.filters_applied.connect(self._update_filters_and_replot)
 
         if dialog.exec() == QDialog.Accepted:
             # Update filters when OK is clicked
-            filters = dialog.get_filters()
-            self._update_filters_and_replot(filters)
+            data_filters = dialog.get_filters()
+            interaction_filters = dialog.get_interaction_filters()
+            self._update_filters_and_replot(data_filters, interaction_filters)
 
-    def _update_filters_and_replot(self, filters):
-        """Update data filters and trigger replot.
+    def _update_filters_and_replot(self, data_filters, interaction_filters=None):
+        """Update data and interaction filters and trigger replot.
 
         Args:
-            filters: List of filter dictionaries
+            data_filters: List of data filter dictionaries
+            interaction_filters: Dictionary of interaction filters (optional)
         """
-        self.data_filters = filters
-        logger.info("Data filters updated: %s", self.data_filters)
+        self.data_filters = data_filters
+        if interaction_filters is not None:
+            self.interaction_filters = interaction_filters
 
         # Update button text to indicate active filters
-        if self.data_filters:
-            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        total_filters = len(self.data_filters)
+        if self.interaction_filters:
+            total_filters += len(self.interaction_filters)
+
+        if total_filters > 0:
+            self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
             self.button_filter_data.setText("Filter Data...")
 
@@ -804,6 +869,65 @@ class PlottingDialog(QDialog):
     def _get_original_df(self):
         """Get the original unfiltered dataframe."""
         return self.df_original if hasattr(self, "df_original") else self.df
+
+    def _check_site_data_filter(self, site_data: dict, filter_config: dict) -> bool:
+        """Check if a site passes a data filter.
+
+        Args:
+            site_data: Dictionary containing site data
+            filter_config: Filter configuration dict with 'column', 'operator', 'value'
+
+        Returns:
+            True if the site passes the filter, False otherwise
+        """
+        column = filter_config["column"]
+        operator = filter_config["operator"]
+        value_str = filter_config["value"]
+
+        # Get the site's value for this column
+        if column not in site_data:
+            return False
+
+        site_value = site_data[column]
+
+        # Handle None values - exclude sites with None unless using != operator
+        if site_value is None:
+            if operator == "!=":
+                return True  # None != any value is True
+            else:
+                return False  # None fails all other comparisons
+
+        try:
+            # Try to convert to numeric if both are numeric
+            if isinstance(site_value, (int, float)):
+                value = float(value_str)
+            else:
+                value = value_str
+
+            # Apply the filter based on operator
+            if operator == "==":
+                return site_value == value
+            elif operator == "!=":
+                return site_value != value
+            elif operator == ">":
+                return site_value > value
+            elif operator == ">=":
+                return site_value >= value
+            elif operator == "<":
+                return site_value < value
+            elif operator == "<=":
+                return site_value <= value
+            elif operator == "contains":
+                return str(value).lower() in str(site_value).lower()
+            elif operator == "not contains":
+                return str(value).lower() not in str(site_value).lower()
+            else:
+                logger.warning(f"Unknown operator: {operator}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Error applying filter {filter_config} to site data: {e}")
+            return False  # Changed from True to False - if filter fails, exclude the site
 
     def _apply_data_filters(self):
         """Apply data filters to the dataframe."""
@@ -861,7 +985,7 @@ class PlottingDialog(QDialog):
                 continue
 
         self.df = filtered_df
-        logger.info(
+        logger.debug(
             f"Applied {len(self.data_filters)} filters: {len(self.df)} rows remaining from {len(self.df_original)} original rows"
         )
 
@@ -872,16 +996,22 @@ class PlottingDialog(QDialog):
         custom_ylabel = self.custom_ylabel
         custom_cbar_label = self.custom_cbar_label
         data_filters = self.data_filters  # Store filters before resetting
+        interaction_filters = self.interaction_filters  # Store interaction filters before resetting
 
         self.setPlotDefaults()
 
         # Apply data filters
         self.data_filters = data_filters
+        self.interaction_filters = interaction_filters
         self._apply_data_filters()
 
         # Update filter button text
-        if self.data_filters:
-            self.button_filter_data.setText(f"Filter Data... ({len(self.data_filters)})")
+        total_filters = len(self.data_filters)
+        if self.interaction_filters:
+            total_filters += len(self.interaction_filters)
+
+        if total_filters > 0:
+            self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
             self.button_filter_data.setText("Filter Data...")
 
@@ -910,12 +1040,57 @@ class PlottingDialog(QDialog):
         self.cmap = self.cmap_combobox.currentText()
 
         self.change_mode(mode=self.plot_type)
+        # Update hide bulk checkbox visibility (needed when plotting mode changes within Site Analysis)
+        self._update_hide_bulk_visibility()
         self._set_data()
         self._set_c()
         self._mask_with_permutation()
         self._set_labels()
         self._set_c_label()
         self.plot()
+
+    def _check_interaction_filter(self, site_interactions: dict, interaction_filters: dict) -> bool:
+        """Check if a site passes the interaction filter.
+
+        Args:
+            site_interactions: Dictionary mapping interaction_id to frequency for this site
+            interaction_filters: Dictionary mapping interaction_id to list of selected frequencies
+
+        Returns:
+            True if the site passes the filter (should be shown), False otherwise
+        """
+        if not interaction_filters:
+            # No filters active, show all sites
+            return True
+
+        # Convert site_interactions keys and values to integers for comparison
+        site_interactions_int = {int(k): int(v) for k, v in site_interactions.items()}
+
+        # Site must match ALL selected interaction filters (AND logic)
+        for interaction_id, selected_freqs in interaction_filters.items():
+            # Convert interaction_id to integer for consistent comparison
+            interaction_id_int = int(interaction_id)
+
+            # Check if site has this interaction
+            if interaction_id_int not in site_interactions_int:
+                # Site doesn't have this interaction at all
+                return False
+
+            site_freq = site_interactions_int[interaction_id_int]
+
+            # Check if the site's frequency matches any of the selected frequencies
+            if "Any" in selected_freqs:
+                # "Any" is selected, so any frequency for this interaction is acceptable
+                continue
+            else:
+                # Convert selected frequencies to integers for comparison (except "Any")
+                selected_freqs_int = [int(f) if f != "Any" else f for f in selected_freqs]
+                if site_freq not in selected_freqs_int:
+                    # Site's frequency doesn't match any selected frequency
+                    return False
+
+        # Site passed all filters
+        return True
 
     def _extract_site_analysis_data(self):
         """Extract site analysis data directly from dictionary based on current mode and filters.
@@ -930,6 +1105,12 @@ class PlottingDialog(QDialog):
         # Get current plotting mode and time point
         plotting_mode = self.time_series_widget.get_plotting_mode()
         _, _, time_index = self.time_series_widget.get_current_time_point()
+
+        # Get current permutation (0, 1, or 2)
+        permutation = self.permutation
+
+        # Get interaction filters if active
+        interaction_filters = self.interaction_filters
 
         # Determine which prefixes to include
         if selected_prefix == "All Data":
@@ -949,67 +1130,187 @@ class PlottingDialog(QDialog):
             sites_dict = dataset.get("sites", {})
 
             for site_num, site_data in sites_dict.items():
-                # Apply filters if any
-                if self.data_filters:
-                    # Check if this site passes all filters
+                # Apply data filters if any
+                # If variable is "filter", we want to show ALL sites and color them (filtered vs unfiltered)
+                # If variable is NOT "filter", we want to HIDE sites that don't pass the filter
+                if self.data_filters and self.variable != "filter":
+                    # Check if this site passes all data filters
                     passes_filters = True
                     for filter_config in self.data_filters:
-                        # TODO: Implement filter checking based on site_data properties
-                        pass
+                        column = filter_config["column"]
+
+                        # Handle special fields that aren't in site_data dict
+                        if column == "site_number":
+                            # Check site_number filter directly
+                            site_data_temp = {"site_number": int(site_num)}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        elif column == "file_prefix":
+                            # Check file_prefix filter directly
+                            site_data_temp = {"file_prefix": file_prefix}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        else:
+                            # Check normal site_data fields
+                            if not self._check_site_data_filter(site_data, filter_config):
+                                passes_filters = False
+                                break
                     if not passes_filters:
+                        continue
+
+                # Apply interaction filters if active
+                # If variable is "filter", we want to show ALL sites and color them (filtered vs unfiltered)
+                # If variable is NOT "filter", we want to HIDE sites that don't pass the filter
+                if interaction_filters and self.variable != "filter":
+                    site_interactions = site_data.get("interactions", {})
+                    passes_interaction_filter = self._check_interaction_filter(
+                        site_interactions, interaction_filters
+                    )
+                    if not passes_interaction_filter:
                         continue
 
                 # Skip sites without energy data
                 if site_data.get("energy") is None:
                     continue
 
-                # Extract x value based on plotting mode
+                # Extract x and y values based on permutation
                 x_value = None
-                if plotting_mode == "Total Events":
-                    if site_data.get("total_events") is not None:
-                        # Apply sign based on occupation
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * site_data["total_events"]
+                y_value = None
 
-                elif plotting_mode == "Total Population":
-                    if site_data.get("total_population") is not None:
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * site_data["total_population"]
+                # Permutation 0: Events/Population vs Energy (current behavior)
+                if permutation == 0:
+                    # Extract x value based on plotting mode
+                    if plotting_mode == "Total Events":
+                        if site_data.get("total_events") is not None:
+                            # For events-based plotting: flip the sign
+                            # Ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * site_data["total_events"]
 
-                elif plotting_mode == "Events per Step":
-                    events_series = site_data.get("events")
-                    if (
-                        events_series
-                        and isinstance(events_series, list)
-                        and time_index < len(events_series)
-                    ):
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * events_series[time_index]
-                    elif site_data.get("total_events") is not None:
-                        # Fallback to total events
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * site_data["total_events"]
+                    elif plotting_mode == "Total Population":
+                        if site_data.get("total_population") is not None:
+                            sign = 1 if site_data.get("occupation") else -1
+                            x_value = sign * site_data["total_population"]
 
-                elif plotting_mode == "Population per Step":
-                    population_series = site_data.get("population")
-                    if (
-                        population_series
-                        and isinstance(population_series, list)
-                        and time_index < len(population_series)
-                    ):
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * population_series[time_index]
-                    elif site_data.get("total_population") is not None:
-                        # Fallback to total population
-                        sign = 1 if site_data.get("occupation") else -1
-                        x_value = sign * site_data["total_population"]
+                    elif plotting_mode == "Events per Step":
+                        events_series = site_data.get("events")
+                        if (
+                            events_series
+                            and isinstance(events_series, list)
+                            and time_index < len(events_series)
+                        ):
+                            # For events-based plotting: flip the sign
+                            # Ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * events_series[time_index]
+                        elif site_data.get("total_events") is not None:
+                            # Fallback to total events
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * site_data["total_events"]
 
-                # Skip if we couldn't get an x value
-                if x_value is None:
+                    elif plotting_mode == "Population per Step":
+                        population_series = site_data.get("population")
+                        if (
+                            population_series
+                            and isinstance(population_series, list)
+                            and time_index < len(population_series)
+                        ):
+                            sign = 1 if site_data.get("occupation") else -1
+                            x_value = sign * population_series[time_index]
+                        elif site_data.get("total_population") is not None:
+                            # Fallback to total population
+                            sign = 1 if site_data.get("occupation") else -1
+                            x_value = sign * site_data["total_population"]
+
+                    # Y value is always energy
+                    y_value = site_data["energy"]
+
+                # Permutation 1: Sites vs Events/Population
+                elif permutation == 1:
+                    # X value is the site number
+                    x_value = int(site_num)
+
+                    # Y value based on plotting mode
+                    if plotting_mode == "Total Events":
+                        if site_data.get("total_events") is not None:
+                            sign = -1 if site_data.get("occupation") else 1
+                            y_value = sign * site_data["total_events"]
+
+                    elif plotting_mode == "Total Population":
+                        if site_data.get("total_population") is not None:
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * site_data["total_population"]
+
+                    elif plotting_mode == "Events per Step":
+                        events_series = site_data.get("events")
+                        if (
+                            events_series
+                            and isinstance(events_series, list)
+                            and time_index < len(events_series)
+                        ):
+                            sign = -1 if site_data.get("occupation") else 1
+                            y_value = sign * events_series[time_index]
+                        elif site_data.get("total_events") is not None:
+                            sign = -1 if site_data.get("occupation") else 1
+                            y_value = sign * site_data["total_events"]
+
+                    elif plotting_mode == "Population per Step":
+                        population_series = site_data.get("population")
+                        if (
+                            population_series
+                            and isinstance(population_series, list)
+                            and time_index < len(population_series)
+                        ):
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * population_series[time_index]
+                        elif site_data.get("total_population") is not None:
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * site_data["total_population"]
+
+                # Permutation 2: Events vs Population
+                elif permutation == 2:
+                    # X value is events, Y value is population
+                    if plotting_mode == "Total Events" or plotting_mode == "Total Population":
+                        # Use total values
+                        if site_data.get("total_events") is not None:
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * site_data["total_events"]
+                        if site_data.get("total_population") is not None:
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * site_data["total_population"]
+
+                    elif plotting_mode == "Events per Step" or plotting_mode == "Population per Step":
+                        # Use per-step values
+                        events_series = site_data.get("events")
+                        population_series = site_data.get("population")
+
+                        if (
+                            events_series
+                            and isinstance(events_series, list)
+                            and time_index < len(events_series)
+                        ):
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * events_series[time_index]
+                        elif site_data.get("total_events") is not None:
+                            sign = -1 if site_data.get("occupation") else 1
+                            x_value = sign * site_data["total_events"]
+
+                        if (
+                            population_series
+                            and isinstance(population_series, list)
+                            and time_index < len(population_series)
+                        ):
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * population_series[time_index]
+                        elif site_data.get("total_population") is not None:
+                            sign = 1 if site_data.get("occupation") else -1
+                            y_value = sign * site_data["total_population"]
+
+                # Skip if we couldn't get x or y values
+                if x_value is None or y_value is None:
                     continue
-
-                # Y value is always energy
-                y_value = site_data["energy"]
 
                 # Store the data
                 x_values.append(x_value)
@@ -1025,8 +1326,35 @@ class PlottingDialog(QDialog):
                     "coordination": site_data.get("coordination"),
                     "total_events": site_data.get("total_events"),
                     "total_population": site_data.get("total_population"),
+                    "interactions": site_data.get("interactions", {}),
                 }
                 site_metadata.append(metadata)
+
+        # Filter out bulk site if checkbox is checked and we're in population mode
+        # For permutation 0 and 2, check x_values; for permutation 1, check y_values
+        if self.checkbox_hide_bulk.isChecked() and plotting_mode in ["Total Population", "Population per Step"]:
+            if x_values:
+                import numpy as np
+
+                # Determine which axis contains population data
+                if permutation == 0:
+                    # Population is on x-axis
+                    abs_values = [abs(x) for x in x_values]
+                elif permutation == 1:
+                    # Population is on y-axis
+                    abs_values = [abs(y) for y in y_values]
+                elif permutation == 2:
+                    # Population is on y-axis
+                    abs_values = [abs(y) for y in y_values]
+                else:
+                    abs_values = []
+
+                if abs_values:
+                    max_idx = np.argmax(abs_values)
+                    # Remove the bulk site from all lists
+                    x_values.pop(max_idx)
+                    y_values.pop(max_idx)
+                    site_metadata.pop(max_idx)
 
         # Convert to numpy arrays
         import numpy as np
@@ -1063,29 +1391,31 @@ class PlottingDialog(QDialog):
             # For heatmap: X and Y are axes, C (color) is the value to display
             self.x_data = None
             self.y_data = None
-            try:
-                # Set defaults: S:M for X, Supersaturation for Y if available, Frame Index for value
-                if self.custom_x:
-                    self.x_data = self.df[self.custom_x]
-                elif "S:M" in self.df.columns:
-                    self.x_data = self.df["S:M"]
-                    self.custom_x = "S:M"
+            if self.df is not None:
+                try:
+                    # Set defaults: S:M for X, Supersaturation for Y if available, Frame Index for value
+                    if self.custom_x:
+                        self.x_data = self.df[self.custom_x]
+                    elif "S:M" in self.df.columns:
+                        self.x_data = self.df["S:M"]
+                        self.custom_x = "S:M"
 
-                if self.custom_y and len(self.custom_y) > 0:
-                    self.y_data = self.df[self.custom_y[0]]
-                elif "Supersaturation" in self.df.columns:
-                    self.y_data = self.df["Supersaturation"]
-                    self.custom_y = ["Supersaturation"]
-            except KeyError as exc:
-                logger.warning("X or Y data not been set, invalid axis title!\n%s", exc)
+                    if self.custom_y and len(self.custom_y) > 0:
+                        self.y_data = self.df[self.custom_y[0]]
+                    elif "Supersaturation" in self.df.columns:
+                        self.y_data = self.df["Supersaturation"]
+                        self.custom_y = ["Supersaturation"]
+                except KeyError as exc:
+                    logger.warning("X or Y data not been set, invalid axis title!\n%s", exc)
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
-            try:
-                self.x_data = self.df[self.custom_x]
-                self.y_data = self.df[self.custom_y]
-            except KeyError as exc:
-                logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
+            if self.df is not None:
+                try:
+                    self.x_data = self.df[self.custom_x]
+                    self.y_data = self.df[self.custom_y]
+                except KeyError as exc:
+                    logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
 
         if self.plot_type != "Heatmap":
             self.y_data = self._ensure_pd_series(self.y_data)
@@ -1105,40 +1435,89 @@ class PlottingDialog(QDialog):
 
     def _set_labels(self):
         if self.plot_type == "Site Analysis":
-            # Get current plotting mode
+            # Get current plotting mode and permutation
             plotting_mode = self.time_series_widget.get_plotting_mode()
             param_name, param_value, time_index = self.time_series_widget.get_current_time_point()
+            permutation = self.permutation
 
-            # Determine labels based on mode
-            if plotting_mode == "Total Events":
-                data_type = "Events"
-                self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
-                self.title = f"Site Analysis: Total {data_type} vs Energy"
+            # Permutation 0: Events/Population vs Energy
+            if permutation == 0:
+                # Determine labels based on mode
+                if plotting_mode == "Total Events":
+                    data_type = "Events"
+                    # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                    self.x_label = f"Total {data_type} (Growth (+), Dissolution (-))"
+                    self.title = f"Site Analysis: Total {data_type} vs Energy"
 
-            elif plotting_mode == "Total Population":
-                data_type = "Population"
-                self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
-                self.title = f"Site Analysis: Total {data_type} vs Energy"
+                elif plotting_mode == "Total Population":
+                    data_type = "Population"
+                    self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
+                    self.title = f"Site Analysis: Total {data_type} vs Energy"
 
-            elif plotting_mode == "Events per Step":
-                data_type = "Events"
-                if param_value is not None:
-                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
-                    self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                elif plotting_mode == "Events per Step":
+                    data_type = "Events"
+                    # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
+                    if param_value is not None:
+                        self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
+                        self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                    else:
+                        self.x_label = f"{data_type} per Step (Growth (+), Dissolution (-))"
+                        self.title = f"Site Analysis: {data_type} vs Energy"
+
+                elif plotting_mode == "Population per Step":
+                    data_type = "Population"
+                    if param_value is not None:
+                        self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                        self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                    else:
+                        self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
+                        self.title = f"Site Analysis: {data_type} vs Energy"
+
+                self.y_label = "Energy"
+
+            # Permutation 1: Sites vs Events/Population
+            elif permutation == 1:
+                self.x_label = "Site Number"
+
+                if plotting_mode == "Total Events":
+                    self.y_label = "Total Events (Growth (+), Dissolution (-))"
+                    self.title = "Site Analysis: Sites vs Total Events"
+
+                elif plotting_mode == "Total Population":
+                    self.y_label = "Total Population (Grown (+), Ungrown (-))"
+                    self.title = "Site Analysis: Sites vs Total Population"
+
+                elif plotting_mode == "Events per Step":
+                    if param_value is not None:
+                        self.y_label = f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
+                        self.title = f"Site Analysis: Sites vs Events (t={time_index})"
+                    else:
+                        self.y_label = "Events per Step (Growth (+), Dissolution (-))"
+                        self.title = "Site Analysis: Sites vs Events per Step"
+
+                elif plotting_mode == "Population per Step":
+                    if param_value is not None:
+                        self.y_label = f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                        self.title = f"Site Analysis: Sites vs Population (t={time_index})"
+                    else:
+                        self.y_label = "Population per Step (Grown (+), Ungrown (-))"
+                        self.title = "Site Analysis: Sites vs Population per Step"
+
+            # Permutation 2: Events vs Population
+            elif permutation == 2:
+                if plotting_mode in ["Total Events", "Total Population"]:
+                    self.x_label = "Total Events (Growth (+), Dissolution (-))"
+                    self.y_label = "Total Population (Grown (+), Ungrown (-))"
+                    self.title = "Site Analysis: Events vs Population"
                 else:
-                    self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
-                    self.title = f"Site Analysis: {data_type} vs Energy"
-
-            elif plotting_mode == "Population per Step":
-                data_type = "Population"
-                if param_value is not None:
-                    self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
-                    self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
-                else:
-                    self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
-                    self.title = f"Site Analysis: {data_type} vs Energy"
-
-            self.y_label = "Energy"
+                    if param_value is not None:
+                        self.x_label = f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
+                        self.y_label = f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                        self.title = f"Site Analysis: Events vs Population (t={time_index})"
+                    else:
+                        self.x_label = "Events per Step (Growth (+), Dissolution (-))"
+                        self.y_label = "Population per Step (Grown (+), Ungrown (-))"
+                        self.title = "Site Analysis: Events vs Population per Step"
 
         if self.df is not None:
             return
@@ -1186,6 +1565,39 @@ class PlottingDialog(QDialog):
             # Use variable dropdown to control color for Site Analysis
             if self.variable != "None" and self.variable and hasattr(self, "_site_metadata"):
                 import numpy as np
+
+                # Special handling for "filter" - binary color based on filter match
+                if self.variable == "filter":
+                    interaction_filters = self.interaction_filters
+                    data_filters = self.data_filters
+
+                    if interaction_filters or data_filters:
+                        # Color sites based on whether they match ALL filters (interaction AND data)
+                        c_values = []
+                        for site_meta in self._site_metadata:
+                            matches = True
+
+                            # Check interaction filters if present
+                            if interaction_filters:
+                                site_interactions = site_meta.get("interactions", {})
+                                matches = matches and self._check_interaction_filter(site_interactions, interaction_filters)
+
+                            # Check data filters if present
+                            # Note: site_meta already contains "site_number" from metadata creation
+                            if data_filters and matches:
+                                for filter_config in data_filters:
+                                    if not self._check_site_data_filter(site_meta, filter_config):
+                                        matches = False
+                                        break
+
+                            c_values.append(1 if matches else 0)
+                        self.c_data = np.array(c_values)
+                        self.c_name = self.variable
+                    else:
+                        # No filters selected, cannot color by filter
+                        self.c_data = None
+                        self.c_name = None
+                    return
 
                 # Extract coloring data from site metadata
                 c_values = []
@@ -1295,14 +1707,16 @@ class PlottingDialog(QDialog):
                 self.c_label = format_label(self.c_mapped_name)
             else:
                 self.c_label = "File / Dataset"
+        elif variable and variable == "filter":
+            self.c_label = "Filter Match"
         elif variable and variable != "None":
             # For other variables, use the variable name as the label with formatting
             self.c_label = format_label(variable)
 
     def plot(self):
         self.plot_objects = {}
-        logger.info("Plotting called!")
-        logger.info(
+        logger.debug("Plotting called!")
+        logger.debug(
             "Plot Called!\nType: %s, Permutation: %s, Variable: %s, \nCustom X: %s, Custom Y: %s, Custom C: %s, \nGrid: %s, Legend: %s, Point Size: %s, ",
             self.plot_type,
             self.permutation,
@@ -1380,14 +1794,42 @@ class PlottingDialog(QDialog):
                     if self.df is not None:
                         line = True if self.plot_type == "Growth Rates" else False
                         for i, y in enumerate(self.y_data):
-                            self._plot(
-                                x=self.x_data,
-                                y=self._ensure_pd_series(self.df[y]),
-                                c=self.c_data,
-                                add_line=line,
-                                label=y,
-                                marker=markers[i % len(markers)],
+                            # Plot original data
+                            show_original = (
+                                self.plot_type == "Growth Rates" and
+                                self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Original Only"]
                             )
+
+                            if show_original or y not in self.smoothing_configs:
+                                self._plot(
+                                    x=self.x_data,
+                                    y=self._ensure_pd_series(self.df[y]),
+                                    c=self.c_data,
+                                    add_line=line,
+                                    label=y if y not in self.smoothing_configs else f"{y} (original)",
+                                    marker=markers[i % len(markers)],
+                                )
+
+                            # Plot processed (smoothed/interpolated/extrapolated) data
+                            if self.plot_type == "Growth Rates" and y in self.smoothing_configs:
+                                show_processed = self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Processed Only"]
+
+                                if show_processed:
+                                    x_processed, y_processed = self._apply_smoothing(
+                                        self.x_data,
+                                        self._ensure_pd_series(self.df[y]),
+                                        self.smoothing_configs[y]
+                                    )
+
+                                    self._plot(
+                                        x=x_processed,
+                                        y=y_processed,
+                                        c=None,  # Don't use color for processed data
+                                        add_line=True,  # Always use line for processed data
+                                        label=f"{y} (processed)",
+                                        marker=markers[i % len(markers)],
+                                    )
+
                         self._set_legend() if self.show_legend else None
             else:
                 # Fallback for data without ndim (shouldn't happen, but handle gracefully)
@@ -1408,6 +1850,11 @@ class PlottingDialog(QDialog):
             cbar_label = self.custom_cbar_label if self.custom_cbar_label else self.c_label
             self.cbar.set_label(cbar_label)
             self.cbar.ax.set_zorder(-1)
+
+            # Set discrete ticks for binary filter variable
+            if self.variable == "filter":
+                self.cbar.set_ticks([0, 1])
+                self.cbar.set_ticklabels(['Unfiltered', 'Filtered'])
 
         self.canvas.draw()
 
@@ -1451,7 +1898,11 @@ class PlottingDialog(QDialog):
     def _plot_scatter(self, x, y, c, cmap, add_line, label, marker):
         # Use universal colour scheme if color data is present
         if c is not None:
-            cmap = self.cmap
+            # Use binary colormap for filter variable (colorblind-safe: orange for unfiltered, blue for filtered)
+            if self.variable == "filter":
+                cmap = matplotlib.colors.ListedColormap(['#E69F00', '#56B4E9'])
+            else:
+                cmap = self.cmap
         else:
             cmap = None
 
@@ -1465,6 +1916,11 @@ class PlottingDialog(QDialog):
             "label": label if self.plot_type != "Growth Rates" else None,
             "marker": marker,
         }
+
+        # Set vmin and vmax for binary filter coloring
+        if c is not None and self.variable == "filter":
+            scatter_kwargs["vmin"] = 0
+            scatter_kwargs["vmax"] = 1
 
         scatter = self.ax.scatter(**scatter_kwargs)
         line = None
@@ -1492,7 +1948,7 @@ class PlottingDialog(QDialog):
         vals = self.df[self.custom_y]
         try:
             corr_matrix = vals.corr()
-            logger.info("Correlation matrix:\n%s", corr_matrix)
+            logger.debug("Correlation matrix:\n%s", corr_matrix)
         except ValueError as ve:
             logger.error("Make sure a valid data set is provided, Encountered: %s", ve)
             return
@@ -1637,65 +2093,132 @@ class PlottingDialog(QDialog):
                 occupation_status = "Grown" if site_meta["occupation"] else "Ungrown"
                 file_prefix = site_meta.get("file_prefix", "N/A")
 
-                # Get current plotting mode and time point info
+                # Get current plotting mode, time point info, and permutation
                 plotting_mode = self.time_series_widget.get_plotting_mode()
                 param_name, param_value, time_index = (
                     self.time_series_widget.get_current_time_point()
                 )
+                permutation = self.permutation
 
-                # Determine which data to show based on mode
-                if plotting_mode == "Total Events":
-                    current_value = site_meta.get("total_events", 0)
-                    total_value = current_value
-                    data_label = "Total Events"
-                    text = (
-                        f"File: {file_prefix}\n"
-                        f"Site Number: {site_num}\n"
-                        f"{data_label}: {current_value}\n"
-                        f"Energy: {energy:.2f}\n"
-                        f"Coordination: {coordination}\n"
-                        f"Status: {occupation_status}"
-                    )
-                elif plotting_mode == "Total Population":
-                    current_value = site_meta.get("total_population", 0)
-                    total_value = current_value
-                    data_label = "Total Population"
-                    text = (
-                        f"File: {file_prefix}\n"
-                        f"Site Number: {site_num}\n"
-                        f"{data_label}: {current_value}\n"
-                        f"Energy: {energy:.2f}\n"
-                        f"Coordination: {coordination}\n"
-                        f"Status: {occupation_status}"
-                    )
-                elif plotting_mode == "Events per Step":
-                    total_value = site_meta.get("total_events", "N/A")
-                    data_label = "Events"
-                    # The current value at this time point is what we plotted (x value)
-                    current_value = abs(x)  # Remove sign to get actual value
-                    text = (
-                        f"File: {file_prefix}\n"
-                        f"Site Number: {site_num}\n"
-                        f"{data_label} (t={time_index}): {current_value:.1f}\n"
-                        f"Total {data_label}: {total_value}\n"
-                        f"Energy: {energy:.2f}\n"
-                        f"Coordination: {coordination}\n"
-                        f"Status: {occupation_status}"
-                    )
-                elif plotting_mode == "Population per Step":
-                    total_value = site_meta.get("total_population", "N/A")
-                    data_label = "Population"
-                    # The current value at this time point is what we plotted (x value)
-                    current_value = abs(x)  # Remove sign to get actual value
-                    text = (
-                        f"File: {file_prefix}\n"
-                        f"Site Number: {site_num}\n"
-                        f"{data_label} (t={time_index}): {current_value:.1f}\n"
-                        f"Total {data_label}: {total_value}\n"
-                        f"Energy: {energy:.2f}\n"
-                        f"Coordination: {coordination}\n"
-                        f"Status: {occupation_status}"
-                    )
+                # Common information for all permutations
+                base_info = (
+                    f"File: {file_prefix}\n"
+                    f"Site Number: {site_num}\n"
+                )
+
+                # Permutation-specific information
+                if permutation == 0:
+                    # Events/Population vs Energy
+                    if plotting_mode == "Total Events":
+                        current_value = site_meta.get("total_events", 0)
+                        text = (
+                            base_info +
+                            f"Total Events: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Total Population":
+                        current_value = site_meta.get("total_population", 0)
+                        text = (
+                            base_info +
+                            f"Total Population: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Events per Step":
+                        total_value = site_meta.get("total_events", "N/A")
+                        current_value = abs(x)
+                        text = (
+                            base_info +
+                            f"Events (t={time_index}): {current_value:.1f}\n"
+                            f"Total Events: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Population per Step":
+                        total_value = site_meta.get("total_population", "N/A")
+                        current_value = abs(x)
+                        text = (
+                            base_info +
+                            f"Population (t={time_index}): {current_value:.1f}\n"
+                            f"Total Population: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+
+                elif permutation == 1:
+                    # Sites vs Events/Population
+                    if plotting_mode == "Total Events":
+                        current_value = site_meta.get("total_events", 0)
+                        text = (
+                            base_info +
+                            f"Total Events: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Total Population":
+                        current_value = site_meta.get("total_population", 0)
+                        text = (
+                            base_info +
+                            f"Total Population: {current_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Events per Step":
+                        total_value = site_meta.get("total_events", "N/A")
+                        current_value = abs(y)
+                        text = (
+                            base_info +
+                            f"Events (t={time_index}): {current_value:.1f}\n"
+                            f"Total Events: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    elif plotting_mode == "Population per Step":
+                        total_value = site_meta.get("total_population", "N/A")
+                        current_value = abs(y)
+                        text = (
+                            base_info +
+                            f"Population (t={time_index}): {current_value:.1f}\n"
+                            f"Total Population: {total_value}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+
+                elif permutation == 2:
+                    # Events vs Population
+                    events_value = abs(x)
+                    population_value = abs(y)
+                    if plotting_mode in ["Total Events", "Total Population"]:
+                        text = (
+                            base_info +
+                            f"Total Events: {events_value:.1f}\n"
+                            f"Total Population: {population_value:.1f}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
+                    else:
+                        total_events = site_meta.get("total_events", "N/A")
+                        total_population = site_meta.get("total_population", "N/A")
+                        text = (
+                            base_info +
+                            f"Events (t={time_index}): {events_value:.1f}\n"
+                            f"Population (t={time_index}): {population_value:.1f}\n"
+                            f"Total Events: {total_events}\n"
+                            f"Total Population: {total_population}\n"
+                            f"Energy: {energy:.2f}\n"
+                            f"Coordination: {coordination}\n"
+                            f"Status: {occupation_status}"
+                        )
 
                 self.annot.set_text(text)
                 self.annot.get_bbox_patch().set_alpha(0.4)
@@ -1920,6 +2443,25 @@ class PlottingDialog(QDialog):
         if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
             return data.iloc[:, 0]
         return data
+
+    def _apply_smoothing(self, x_data, y_data, config):
+        """
+        Apply smoothing, interpolation, and extrapolation to a data series.
+
+        Args:
+            x_data: X-axis data
+            y_data: Y-axis data
+            config: Configuration dictionary from smoothing dialog
+
+        Returns:
+            Tuple of (x_processed, y_processed)
+        """
+        try:
+            x_proc, y_proc = process_series(x_data, y_data, config)
+            return x_proc, y_proc
+        except Exception as e:
+            logger.error(f"Error applying smoothing: {e}, returning original data")
+            return np.array(x_data), np.array(y_data)
 
 
 def main():

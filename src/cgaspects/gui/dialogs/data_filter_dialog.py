@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -38,9 +39,7 @@ class FilterRow(QWidget):
 
         # Operator selection
         self.operator_combo = QComboBox()
-        self.operator_combo.addItems(
-            ["==", "!=", ">", ">=", "<", "<=", "contains", "not contains"]
-        )
+        self.operator_combo.addItems(["==", "!=", ">", ">=", "<", "<=", "contains", "not contains"])
 
         # Value input
         self.value_input = QLineEdit()
@@ -81,18 +80,45 @@ class FilterRow(QWidget):
 class DataFilterDialog(QDialog):
     """Dialog for creating and managing data filters."""
 
-    # Signal emitted when Apply button is clicked
-    filters_applied = Signal(list)
+    # Signal emitted when Apply button is clicked (now includes interaction filters)
+    filters_applied = Signal(list, dict)  # (data_filters, interaction_filters)
 
-    def __init__(self, df: pd.DataFrame, current_filters: Optional[List[Dict]] = None, parent=None):
+    def __init__(
+        self,
+        df: Optional[pd.DataFrame] = None,
+        current_filters: Optional[List[Dict]] = None,
+        parent=None,
+        site_analysis_data: Optional[dict] = None,
+        current_interaction_filters: Optional[dict] = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Data Filter")
         self.setModal(True)
-        self.resize(700, 400)
+        self.resize(800, 600)
 
         self.df = df
-        self.columns = list(df.columns)
+        self.site_analysis_data = site_analysis_data
+        self.is_site_analysis = site_analysis_data is not None
         self.filter_rows: List[FilterRow] = []
+        self.interaction_filter_widget = None
+
+        # Set up columns based on data type
+        if self.is_site_analysis:
+            # For site analysis, provide filterable columns from site data
+            self.columns = [
+                "site_number",
+                "file_prefix",
+                "energy",
+                "occupation",
+                "coordination",
+                "total_events",
+                "total_population",
+                "tile_type",
+            ]
+        elif df is not None:
+            self.columns = list(df.columns)
+        else:
+            self.columns = []
 
         self.create_widgets()
         self.create_layout()
@@ -105,13 +131,29 @@ class DataFilterDialog(QDialog):
             # Start with one empty filter row
             self.add_filter_row()
 
+        # Load existing interaction filters if provided
+        if self.interaction_filter_widget and current_interaction_filters:
+            # Set the checkboxes based on current_interaction_filters
+            for interaction_id, freqs in current_interaction_filters.items():
+                for freq in freqs:
+                    key = (interaction_id, freq)
+                    if key in self.interaction_filter_widget.checkboxes:
+                        self.interaction_filter_widget.checkboxes[key].setChecked(True)
+
     def create_widgets(self):
         """Create dialog widgets."""
         # Info label
-        self.info_label = QLabel(
-            "Add filters to show only specific data points. Multiple filters are combined with AND logic."
-        )
+        info_text = "Add filters to show only specific data points. Multiple filters are combined with AND logic."
+        if self.is_site_analysis:
+            info_text += "\n\nFor Site Analysis: Use 'Data Filters' tab for general site properties, 'Interaction Filters' tab for interaction patterns."
+        self.info_label = QLabel(info_text)
         self.info_label.setWordWrap(True)
+
+        # Tab widget for site analysis mode (data filters + interaction filters)
+        if self.is_site_analysis:
+            self.tab_widget = QTabWidget()
+        else:
+            self.tab_widget = None
 
         # Add filter button
         self.add_filter_button = QPushButton("Add Filter")
@@ -131,6 +173,19 @@ class DataFilterDialog(QDialog):
         self.filter_layout = QVBoxLayout(self.filter_container)
         self.filter_layout.setAlignment(Qt.AlignTop)
         self.scroll_area.setWidget(self.filter_container)
+
+        # Interaction filter widget for site analysis mode
+        if self.is_site_analysis:
+            from cgaspects.gui.widgets.interaction_filter_widget import InteractionFilterWidget
+
+            self.interaction_filter_widget = InteractionFilterWidget()
+            if self.site_analysis_data:
+                logger.debug(
+                    f"Setting interaction data for {len(self.site_analysis_data)} file prefixes"
+                )
+                self.interaction_filter_widget.set_interaction_data(self.site_analysis_data)
+            else:
+                logger.warning("No site_analysis_data available for interaction filter widget")
 
         # Status label
         self.status_label = QLabel("")
@@ -155,15 +210,39 @@ class DataFilterDialog(QDialog):
         # Top section
         main_layout.addWidget(self.info_label)
 
-        # Button row
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.add_filter_button)
-        button_layout.addWidget(self.clear_all_button)
-        button_layout.addStretch()
-        main_layout.addLayout(button_layout)
+        if self.is_site_analysis and self.tab_widget:
+            # Create Data Filters tab
+            data_filter_tab = QWidget()
+            data_filter_layout = QVBoxLayout(data_filter_tab)
 
-        # Filter rows area
-        main_layout.addWidget(self.scroll_area)
+            # Button row for data filters
+            button_layout = QHBoxLayout()
+            button_layout.addWidget(self.add_filter_button)
+            button_layout.addWidget(self.clear_all_button)
+            button_layout.addStretch()
+            data_filter_layout.addLayout(button_layout)
+
+            # Filter rows area
+            data_filter_layout.addWidget(self.scroll_area)
+
+            self.tab_widget.addTab(data_filter_tab, "Data Filters")
+
+            # Create Interaction Filters tab
+            if self.interaction_filter_widget:
+                self.tab_widget.addTab(self.interaction_filter_widget, "Interaction Filters")
+
+            main_layout.addWidget(self.tab_widget)
+        else:
+            # Standard layout for non-site-analysis mode
+            # Button row
+            button_layout = QHBoxLayout()
+            button_layout.addWidget(self.add_filter_button)
+            button_layout.addWidget(self.clear_all_button)
+            button_layout.addStretch()
+            main_layout.addLayout(button_layout)
+
+            # Filter rows area
+            main_layout.addWidget(self.scroll_area)
 
         # Status
         main_layout.addWidget(self.status_label)
@@ -204,7 +283,7 @@ class DataFilterDialog(QDialog):
         self.add_filter_row()
 
     def get_filters(self) -> List[Dict[str, str]]:
-        """Get all filter configurations."""
+        """Get all data filter configurations."""
         filters = []
         for filter_row in self.filter_rows:
             filter_config = filter_row.get_filter()
@@ -212,6 +291,13 @@ class DataFilterDialog(QDialog):
             if filter_config["value"].strip():
                 filters.append(filter_config)
         return filters
+
+    def get_interaction_filters(self) -> dict:
+        """Get interaction filter configurations (for site analysis mode)."""
+        if self.interaction_filter_widget:
+            filters = self.interaction_filter_widget.get_selected_filters()
+            return filters
+        return {}
 
     def apply_filters(self, df: pd.DataFrame) -> pd.DataFrame:
         """Apply all filters to a dataframe and return the filtered result."""
@@ -274,20 +360,37 @@ class DataFilterDialog(QDialog):
             True if validation succeeded, False otherwise
         """
         filters = self.get_filters()
+        interaction_filters = self.get_interaction_filters()
 
-        if not filters:
+        if not filters and not interaction_filters:
             self.status_label.setText("No filters defined. Click OK to show all data.")
+            return True
+        elif not filters and interaction_filters:
+            # Only interaction filters are defined
+            self.status_label.setText(
+                f"{len(interaction_filters)} interaction filter(s) will be applied to site data."
+            )
             return True
         else:
             # Test the filters
             try:
+                # Skip DataFrame validation for Site Analysis mode
+                if self.is_site_analysis or self.df is None:
+                    self.status_label.setText(
+                        f"{len(filters)} filter(s) will be applied to site data."
+                    )
+                    logger.info(f"Site analysis filter validation: {len(filters)} filters defined")
+                    return True
+
                 filtered_df = self.apply_filters(self.df)
                 original_count = len(self.df)
                 filtered_count = len(filtered_df)
                 self.status_label.setText(
                     f"Filters will show {filtered_count} of {original_count} data points."
                 )
-                logger.info(f"Filter validation: {filtered_count}/{original_count} rows pass filters")
+                logger.info(
+                    f"Filter validation: {filtered_count}/{original_count} rows pass filters"
+                )
                 return True
             except Exception as e:
                 self.status_label.setText(f"Error validating filters: {e}")
@@ -297,13 +400,38 @@ class DataFilterDialog(QDialog):
     def apply_filters_and_emit(self):
         """Apply filters and emit signal without closing the dialog."""
         if self.validate_and_update_status():
-            filters = self.get_filters()
-            self.filters_applied.emit(filters)
-            logger.debug(f"Applied filters: {filters}")
+            data_filters = self.get_filters()
+            interaction_filters = self.get_interaction_filters()
+
+            # Convert sets to lists and int keys to strings for Qt signal compatibility
+            # Qt signals don't properly handle dicts with int keys or set values
+            interaction_filters_serializable = {
+                str(k): list(v) for k, v in interaction_filters.items()
+            }
+
+            logger.info(
+                f"Applying filters - Data: {len(data_filters)} filter(s), Interactions: {interaction_filters_serializable}"
+            )
+            self.filters_applied.emit(data_filters, interaction_filters_serializable)
 
     def accept(self):
         """Validate and accept the dialog."""
         if not self.validate_and_update_status():
             return
+
+        # Emit filters before closing
+        data_filters = self.get_filters()
+        interaction_filters = self.get_interaction_filters()
+
+        # Convert sets to lists and int keys to strings for Qt signal compatibility
+        # Qt signals don't properly handle dicts with int keys or set values
+        interaction_filters_serializable = {
+            str(k): list(v) for k, v in interaction_filters.items()
+        }
+
+        logger.info(
+            f"Filters accepted - Data: {len(data_filters)} filter(s), Interactions: {interaction_filters_serializable}"
+        )
+        self.filters_applied.emit(data_filters, interaction_filters_serializable)
 
         super().accept()

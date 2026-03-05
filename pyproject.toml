@@ -1,6 +1,6 @@
 [project]
 name = "cgaspects"
-version = "0.8.5"
+version = "0.9.8"
 requires-python = ">=3.10"
 description = "An analysis tool and companion for CrystalGrower"
 
@@ -27,18 +27,19 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
 ]
 dependencies = [
-    "pyside6>=6.6.0",
-    "pyqtgraph",
-    "pyopengl",
-    "numpy>=1.12,<2.0.0",
-    "pandas>=1.4",
-    "scipy>=1.8.1",
-    "trimesh>=3.12.9",
-    "matplotlib>=3.5.2",
+    "matplotlib>=3.10.8",
+    "natsort>=8.4.0",
+    "numpy>=2.4.0",
+    "pandas>=2.3.3",
+    "PyOpenGL>=3.1.10",
+    "PySide6>=6.10.1",
+    "PySide6_Addons>=6.7.2",
+    "PySide6_Essentials>=6.7.2",
+    "scipy>=1.16.3",
     "seaborn>=0.13.2",
-    "natsort>=8.2",
-    "trimesh",
+    "trimesh>=4.8.3"
 ]
+
 
 [project.urls]
 homepage = "https://github.com/CrystalGrowerOrg/cgaspects"

@@ -56,6 +56,11 @@ class WorkerXYZ(QRunnable):
     @Slot()
     def run(self):
         shape_info = self.analyser.shape_info(self.xyz[:, 3:6])
+        if shape_info is None:
+            self.signals.message.emit("Not enough points to calculate shape.")
+            self.signals.result.emit(None)
+            self.signals.finished.emit()
+            return
         self.signals.progress.emit(100)
         self.signals.result.emit(shape_info)
         self.signals.message.emit("Calculations Complete!")
@@ -160,10 +165,11 @@ class WorkerAspectRatios(QRunnable):
 
 
 class WorkerGrowthRates(QRunnable):
-    def __init__(self, information, selected_directions):
+    def __init__(self, information, selected_directions, xaxis_mode="auto"):
         super(WorkerGrowthRates, self).__init__()
         self.information = information
         self.selected_directions = selected_directions
+        self.xaxis_mode = xaxis_mode
 
         self.signals = WorkerSignals()
 
@@ -173,6 +179,7 @@ class WorkerGrowthRates(QRunnable):
             supersat_list=self.information.supersats,
             directions=self.selected_directions,
             signals=self.signals,
+            xaxis_mode=self.xaxis_mode,
         )
 
         self.signals.result.emit(growth_rate_df)
@@ -185,12 +192,14 @@ class WorkerSiteAnalysis(QRunnable):
         output_folder: Path,
         crystallisation_files: list[Path],
         population_files: list[Path],
+        count_files: list[Path],
     ):
         super(WorkerSiteAnalysis, self).__init__()
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.crystallisation_files = crystallisation_files
         self.population_files = population_files
+        self.count_files = count_files
         self.signals = WorkerSignals()
 
     def run(self):
@@ -198,6 +207,9 @@ class WorkerSiteAnalysis(QRunnable):
             parse_site_csv,
             merge_site_results,
             get_site_summary,
+            parse_count,
+            merge_interactions,
+            extract_file_prefix,
         )
 
         self.output_folder = create_aspects_folder(self.input_folder)
@@ -250,6 +262,46 @@ class WorkerSiteAnalysis(QRunnable):
             self.signals.progress.emit(85)
             merged_results = merge_site_results(results_with_paths)
 
+            # Parse and merge count files if available
+            if self.count_files:
+                self.signals.message.emit("Processing interaction count files...")
+                self.signals.progress.emit(87)
+                logger.info(f"Parsing {len(self.count_files)} count files")
+
+                for count_file in self.count_files:
+                    try:
+                        # Extract prefix from count file
+                        count_filename = count_file.stem
+                        if count_filename.endswith("_count"):
+                            prefix = count_filename[:-6]  # Remove "_count"
+                        elif count_filename == "count":
+                            # Use parent directory name or try to match with available prefixes
+                            prefix = count_file.parent.name
+                            # If that doesn't match, try the first available prefix
+                            if prefix not in merged_results and len(merged_results) == 1:
+                                prefix = next(iter(merged_results))
+                        else:
+                            prefix = count_filename
+
+                        # Parse the count file
+                        interactions = parse_count(count_file)
+
+                        # Merge interactions into the corresponding merged result
+                        if prefix in merged_results:
+                            merge_interactions(merged_results[prefix]["sites"], interactions)
+                            logger.info(
+                                f"Merged {len(interactions)} site interactions from {count_file.name} "
+                                f"into prefix '{prefix}'"
+                            )
+                        else:
+                            logger.warning(
+                                f"Could not find matching prefix '{prefix}' for count file {count_file.name}. "
+                                f"Available prefixes: {list(merged_results.keys())}"
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error processing count file {count_file}: {e}", exc_info=True)
+
             # Generate summaries
             self.signals.message.emit("Generating summaries...")
             self.signals.progress.emit(90)
@@ -277,7 +329,15 @@ class WorkerSiteAnalysis(QRunnable):
             self.signals.message.emit("Site analysis complete!")
             self.signals.progress.emit(100)
 
-            self.signals.result.emit(json_path)
+            # Convert Path to string for signal emission
+            logger.info(f"About to emit result signal with path: {json_path}")
+            self.signals.result.emit(str(json_path))
+            logger.info("Result signal emitted successfully")
+
+            # Emit finished signal to indicate worker completion
+            logger.info("Emitting finished signal from worker")
+            self.signals.finished.emit()
+            logger.info("Finished signal emitted from worker")
 
         except Exception as e:
             logger.error(f"Error during site analysis: {e}", exc_info=True)
