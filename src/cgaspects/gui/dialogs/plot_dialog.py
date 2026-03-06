@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QSplitter,
@@ -112,6 +113,7 @@ class PlottingDialog(QDialog):
         self.custom_x = None
         self.custom_y = None
         self.custom_c = None
+        self.cluster_mat = None
 
         self.x_data = None
         self.y_data = None
@@ -202,7 +204,7 @@ class PlottingDialog(QDialog):
                 col
                 for col in self.df.columns
                 if col.startswith(
-                    ("interaction", "tile", "temperature", "starting_delmu", "excess")
+                    ("interaction", "Int_", "int_", "tile", "temperature", "starting_delmu", "excess")
                 )
             ]
             self.interaction_columns.insert(0, "None")
@@ -368,6 +370,7 @@ class PlottingDialog(QDialog):
         self.checkbox_legend = QCheckBox("Show Legend")
         self.checkbox_zingg = QCheckBox("Zingg")
         self.checkbox_corr_mat = QCheckBox("Correlation Matix")
+        self.checkbox_cluster_mat = QCheckBox("Hierarchical Clustering")
         self.checkbox_hide_bulk = QCheckBox("Hide Bulk Site")
         self.checkbox_hide_bulk.setChecked(True)  # Checked by default
         self.checkbox_hide_bulk.setToolTip("Hide the site with the highest population (bulk site)")
@@ -407,6 +410,9 @@ class PlottingDialog(QDialog):
         )
         self.checkbox_corr_mat.stateChanged.connect(
             lambda: self._handle_plot_checkboxes(self.checkbox_corr_mat)
+        )
+        self.checkbox_cluster_mat.stateChanged.connect(
+            lambda: self._handle_plot_checkboxes(self.checkbox_cluster_mat)
         )
         self.checkbox_hide_bulk.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
@@ -465,6 +471,7 @@ class PlottingDialog(QDialog):
         grid1.addWidget(self.variables_combobox, 0, 5)
         grid1.addWidget(self.checkbox_zingg, 0, 6)
         grid1.addWidget(self.checkbox_corr_mat, 0, 7)
+        grid1.addWidget(self.checkbox_cluster_mat, 0, 8)
 
         # Add filter/customize buttons and colour scheme controls row (universal across all modes)
         grid1.addWidget(self.button_filter_data, 1, 0)
@@ -531,6 +538,8 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            self.checkbox_cluster_mat.setEnabled(False)
+            self.checkbox_cluster_mat.setChecked(False)
             # Enable filter data button in Site Analysis mode (now supports filtering)
             self.button_filter_data.setEnabled(True)
             # Show time-series widget for Site Analysis
@@ -555,6 +564,8 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_zingg.setEnabled(False)
             self.checkbox_zingg.setChecked(False)
+            self.checkbox_cluster_mat.setEnabled(False)
+            self.checkbox_cluster_mat.setChecked(False)
             # Enable filter data button in Heatmap mode
             self.button_filter_data.setEnabled(True)
             # Hide hide bulk checkbox in Heatmap mode
@@ -583,6 +594,8 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.show()
             self.checkbox_zingg.setEnabled(True)
             self.checkbox_zingg.show()
+            self.checkbox_cluster_mat.setEnabled(True)
+            self.checkbox_cluster_mat.show()
             # Enable filter data button in Custom mode
             self.button_filter_data.setEnabled(True)
             # Hide hide bulk checkbox in Custom mode
@@ -609,6 +622,9 @@ class PlottingDialog(QDialog):
             self.checkbox_corr_mat.setChecked(False)
             self.checkbox_corr_mat.hide()
             self.checkbox_zingg.hide()
+            self.checkbox_cluster_mat.setEnabled(True)
+            self.checkbox_cluster_mat.setChecked(False)
+            self.checkbox_cluster_mat.hide()
             # Enable filter data button in default mode
             self.button_filter_data.setEnabled(True)
             # Hide hide bulk checkbox in default mode
@@ -1025,6 +1041,7 @@ class PlottingDialog(QDialog):
         self.show_legend = self.checkbox_legend.isChecked()
         self.zingg = self.checkbox_zingg.isChecked()
         self.covmat = self.checkbox_corr_mat.isChecked()
+        self.cluster_mat = self.checkbox_cluster_mat.isChecked()
         self.point_size = self.spin_point_size.value()
         self.plot_type = self.plot_types_combobox.currentText()
         self.permutation = int(self.plot_permutations_combobox.currentIndex())
@@ -1410,6 +1427,9 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
+            if self.cluster_mat:
+                # Hierarchical clustering builds its own data; skip standard x/y loading
+                return
             if self.df is not None:
                 try:
                     self.x_data = self.df[self.custom_x]
@@ -1689,8 +1709,7 @@ class PlottingDialog(QDialog):
         self.c_label = ""
         if (
             variable
-            and variable.startswith("interaction")
-            or (variable and variable.startswith("tile"))
+            and variable.startswith(("interaction", "Int_", "int_", "tile"))
         ):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
         elif variable and variable.startswith("starting_delmu"):
@@ -1758,6 +1777,12 @@ class PlottingDialog(QDialog):
             zorder=20,
         )
         self.annot.set_visible(False)
+
+        # Hierarchical clustering — renders its own figure layout
+        if self.cluster_mat:
+            self._plot_hierarchical_clustering()
+            self.canvas.draw()
+            return
 
         # Handle Heatmap plot type separately
         if self.plot_type == "Heatmap":
@@ -1938,6 +1963,93 @@ class PlottingDialog(QDialog):
         plot_object = self.plot_obj_tuple(scatter=scatter, line=line, trendline=None)
         self.plot_objects[label] = plot_object
 
+    def _update_axes_for_clustering(self):
+        """When hierarchical clustering is enabled: lock x to interactions, restrict y to metrics."""
+        if self.df is None:
+            return
+        interaction_cols = [c for c in self.interaction_columns if c != "None"]
+        non_interaction_cols = [c for c in self.df.columns if c not in self.interaction_columns]
+        self.custom_plot_widget.set_x_locked(interaction_cols)
+        self.custom_plot_widget.yAxisListWidget.clear()
+        self.custom_plot_widget.yAxisListWidget.addItems(non_interaction_cols)
+        self.custom_plot_widget.y_axis_label.setText("Y-axis metrics (check multiple)")
+
+    def _restore_axes_from_clustering(self):
+        """Restore normal x/y axis widgets after disabling hierarchical clustering."""
+        if self.df is None:
+            return
+        self.custom_plot_widget.restore_x(list(self.df.columns))
+        self.custom_plot_widget.yAxisListWidget.clear()
+        self.custom_plot_widget.yAxisListWidget.addItems(self.df.columns)
+        self.custom_plot_widget.y_axis_label.setText("Y-axis (check multiple)")
+
+    def _plot_hierarchical_clustering(self):
+        """Plot a dendrogram clustering interactions by their correlation profiles across selected metrics."""
+        from scipy.cluster import hierarchy
+        from scipy.spatial.distance import pdist
+        import numpy as np
+
+        if self.df is None:
+            logger.warning("Hierarchical clustering requires DataFrame data")
+            return
+
+        interaction_cols = [
+            c for c in self.interaction_columns if c != "None" and c in self.df.columns
+        ]
+        metric_cols = [c for c in self.custom_y if c in self.df.columns]
+
+        if len(interaction_cols) < 2:
+            logger.warning("Need at least 2 interaction columns for hierarchical clustering")
+            QMessageBox.warning(
+                self,
+                "Hierarchical Clustering",
+                "At least 2 interaction columns are required for hierarchical clustering.\n\n"
+                "No interaction columns were detected in the current dataset.",
+            )
+            return
+        if not metric_cols:
+            logger.warning("No metric columns selected for hierarchical clustering")
+            QMessageBox.warning(
+                self,
+                "Hierarchical Clustering",
+                "Please select at least one metric in the Y-axis list to cluster by.",
+            )
+            return
+
+        # Build profile matrix: rows = interactions, cols = metrics (Pearson r values)
+        numeric_df = self.df.select_dtypes(include=[np.number])
+        corr_rows = []
+        for interaction in interaction_cols:
+            row = []
+            for metric in metric_cols:
+                try:
+                    r = numeric_df[interaction].corr(numeric_df[metric])
+                except Exception:
+                    r = np.nan
+                row.append(0.0 if (r is None or np.isnan(r)) else r)
+            corr_rows.append(row)
+
+        data = np.array(corr_rows)
+
+        linkage = hierarchy.linkage(pdist(data, metric="euclidean"), method="ward")
+
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(111)
+
+        hierarchy.dendrogram(
+            linkage,
+            labels=interaction_cols,
+            orientation="top",
+            ax=self.ax,
+            leaf_rotation=45,
+        )
+
+        title = self.custom_title if self.custom_title else "Hierarchical Clustering of Interactions"
+        self.ax.set_title(title)
+        self.ax.set_ylabel("Distance (Ward)")
+        self.ax.set_xlabel(f"Interactions  [clustered by: {', '.join(metric_cols)}]")
+        self.figure.tight_layout()
+
     def _plot_covmat(self):
         # Correlation matrix only works with DataFrame-based data
         if self.df is None:
@@ -2069,11 +2181,19 @@ class PlottingDialog(QDialog):
 
     def _handle_plot_checkboxes(self, checkbox):
         if checkbox.isChecked():
-            # print(checkbox)
             if checkbox == self.checkbox_zingg:
                 self.checkbox_corr_mat.setChecked(False)
-            else:
+                self.checkbox_cluster_mat.setChecked(False)
+            elif checkbox == self.checkbox_corr_mat:
                 self.checkbox_zingg.setChecked(False)
+                self.checkbox_cluster_mat.setChecked(False)
+            elif checkbox == self.checkbox_cluster_mat:
+                self.checkbox_zingg.setChecked(False)
+                self.checkbox_corr_mat.setChecked(False)
+                self._update_axes_for_clustering()
+        else:
+            if checkbox == self.checkbox_cluster_mat:
+                self._restore_axes_from_clustering()
         self.trigger_plot()
 
     def update_annot(self, scatter, colour_data, column_name, ind):
