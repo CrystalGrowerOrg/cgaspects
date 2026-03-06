@@ -48,7 +48,6 @@
 | Add Directions | `Ctrl+Shift+D` | Open the Directions dialog |
 | Add Planes | `Ctrl+Shift+L` | Open the Planes dialog |
 | Set Lattice Parameters | — | Enter lattice parameters or load from CIF |
-| Set Translation | `Ctrl+Shift+T` | Manually set crystal translation offset |
 | Switch to Fractional Axes | `Shift+A` | Toggle between Cartesian and fractional coordinate display |
 
 ---

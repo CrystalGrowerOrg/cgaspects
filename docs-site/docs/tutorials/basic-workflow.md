@@ -22,7 +22,6 @@ CGAspects scans the folder and loads all XYZ files. The 3D viewport updates to s
 
 - **Orbit**: Left-click and drag to rotate the crystal
 - **Zoom**: Scroll the mouse wheel
-- **Translate**: Right-click and drag to move the crystal (camera stays fixed)
 - Press `R` to reset the view at any time
 
 The **Crystal Info** panel on the right shows the aspect ratios, shape, volume, and surface area of the displayed frame.

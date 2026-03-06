@@ -57,7 +57,6 @@ All shortcuts can be viewed and customised in **Help → Keyboard Shortcuts** (`
 |--------|----------|
 | Add Directions | `Ctrl+Shift+D` |
 | Add Planes | `Ctrl+Shift+L` |
-| Set Translation | `Ctrl+Shift+T` |
 | Switch to Fractional/Cartesian Axes | `Shift+A` |
 
 ---

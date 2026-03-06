@@ -9,7 +9,6 @@ The central 3D viewport renders the crystal as an interactive OpenGL scene. It s
 | Input | Action |
 |-------|--------|
 | Left-click + drag | Orbit camera around the crystal |
-| Right-click + drag | Translate the crystal (camera axes stay fixed) |
 | Scroll wheel | Zoom in / out |
 | `R` | Reset camera to default position |
 | `Shift+S` | Store current camera orientation |

@@ -47,7 +47,7 @@ Results are saved to `aspects_output/` and include:
 
 ---
 
-## Smoothing & Interpolation
+## Smoothing and Interpolation
 
 After the initial analysis, a **Smoothing** dialog lets you post-process each data series:
 

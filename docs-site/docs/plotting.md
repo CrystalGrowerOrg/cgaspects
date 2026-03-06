@@ -78,7 +78,7 @@ Click **Labels** to open the label customization dialog:
 
 ## Smoothing (Growth Rate Mode)
 
-When plotting growth rate data, a **Smoothing** button opens the smoothing/interpolation dialog. See [Growth Rate Analysis → Smoothing](analysis/growth-rates.md#smoothing--interpolation).
+When plotting growth rate data, a **Smoothing** button opens the smoothing/interpolation dialog. See [Growth Rate Analysis → Smoothing](analysis/growth-rates.md#smoothing-and-interpolation).
 
 ---
 

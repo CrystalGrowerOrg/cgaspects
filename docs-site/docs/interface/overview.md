@@ -56,7 +56,6 @@ The left panel is the main control area for loading data and running analyses.
 The central viewport shows the crystal as an interactive 3D point cloud. You can:
 
 - **Orbit** the camera (left-click drag)
-- **Translate** the crystal (right-click drag)
 - **Zoom** (scroll wheel)
 - **Select** individual points (Shift+Click)
 
