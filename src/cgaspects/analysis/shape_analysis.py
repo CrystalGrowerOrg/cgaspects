@@ -84,10 +84,16 @@ class ShapeAnalyser:
         self,
         xyz_vals: np.ndarray,
         get_sa_vol: bool = True,
-    ) -> ShapeMetrics:
+    ) -> Optional[ShapeMetrics]:
         """Calculate comprehensive shape information for crystal coordinates."""
+        if xyz_vals is None or len(xyz_vals) < 3:
+            return None
+
         # Perform PCA via SVD
         _, s, vh = np.linalg.svd(xyz_vals, full_matrices=False)
+
+        if s.shape[0] < 3:
+            return None
         transformed_xyz = xyz_vals @ vh.T
 
         # Explained variance ratios

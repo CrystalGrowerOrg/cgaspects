@@ -181,3 +181,22 @@ class Crystallography:
         cartesian_coords = np.dot(coords, self.direct)
 
         return cartesian_coords
+
+    def miller_to_cart_normal(self, hkl: np.ndarray) -> np.ndarray:
+        """Convert Miller indices (h k l) to a Cartesian plane normal.
+
+        Miller indices live in reciprocal space. The Cartesian normal is:
+            n_cart = [h, k, l] @ M^{-T}
+        where M is the direct lattice matrix (rows = lattice vectors in Cartesian).
+        This is distinct from frac_to_cart, which uses M directly and is correct
+        only for direction vectors [uvw] in direct space.
+        """
+        return np.dot(hkl, self.inverse.T)
+
+    def cart_to_miller(self, n_cart: np.ndarray) -> np.ndarray:
+        """Convert a Cartesian plane normal to Miller indices (h k l).
+
+        Inverse of miller_to_cart_normal:
+            [h, k, l] = n_cart @ M^T
+        """
+        return np.dot(n_cart, self.direct.T)

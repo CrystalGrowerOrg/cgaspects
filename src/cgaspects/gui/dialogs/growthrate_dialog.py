@@ -1,8 +1,11 @@
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QGroupBox,
     QHBoxLayout,
+    QRadioButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -15,9 +18,7 @@ class GrowthRateAnalysisDialogue(QDialog):
 
         # Initialise Window
         self.setWindowTitle("Growth Rate Analysis Options")
-        # select_all = QCheckBox("Select All")
         layout = QVBoxLayout()
-        # layout.addWidget(select_all)
         self.setLayout(layout)
 
         # Create a widget for the main layout
@@ -31,15 +32,7 @@ class GrowthRateAnalysisDialogue(QDialog):
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(scroll)
 
-        # plotting_checkbox = QCheckBox("Auto-Generate Plots")
-
         self.selected_directions = []
-        # self.plotting_checkbox = plotting_checkbox
-
-        """if select_all.isChecked():
-            for direction in directions:
-                checkbox = QCheckBox(direction)
-                checkbox.stateChanged.connect(lambda state, dir=direction: self.checkbox_state_changed(state, dir))"""
 
         for direction in directions:
             checkbox = QCheckBox(direction)
@@ -50,21 +43,44 @@ class GrowthRateAnalysisDialogue(QDialog):
                 lambda state, dir=direction: self.checkbox_state_changed(state, dir)
             )
 
-        direction_layout = QHBoxLayout()
-        # direction_layout.addWidget(plotting_checkbox)
-        layout.addLayout(direction_layout)
+        # X-axis mode selection
+        xaxis_group = QGroupBox("X-Axis for Growth Rate Fitting")
+        xaxis_layout = QHBoxLayout()
+        self._xaxis_auto = QRadioButton("Auto (time if available)")
+        self._xaxis_time = QRadioButton("Force time column")
+        self._xaxis_index = QRadioButton("Use row index")
+        self._xaxis_auto.setChecked(True)
+        self._xaxis_auto.setToolTip(
+            "Use the time column if present and valid, otherwise fall back to row index"
+        )
+        self._xaxis_time.setToolTip(
+            "Always use the time column; files without a valid time column will be skipped"
+        )
+        self._xaxis_index.setToolTip(
+            "Always use row index, ignoring any time column"
+        )
+        xaxis_layout.addWidget(self._xaxis_auto)
+        xaxis_layout.addWidget(self._xaxis_time)
+        xaxis_layout.addWidget(self._xaxis_index)
+        xaxis_group.setLayout(xaxis_layout)
+        layout.addWidget(xaxis_group)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
+    @property
+    def xaxis_mode(self):
+        """Return the selected x-axis mode: 'auto', 'time', or 'index'."""
+        if self._xaxis_time.isChecked():
+            return "time"
+        if self._xaxis_index.isChecked():
+            return "index"
+        return "auto"
+
     def checkbox_state_changed(self, state, direction):
         if state == 2:  # 2 corresponds to checked state
             self.selected_directions.append(direction)
         else:
             self.selected_directions.remove(direction)
-
-    def on_ok_button_clicked(self):
-        auto_plotting = self.plotting_checkbox.isChecked()
-        self.accept()

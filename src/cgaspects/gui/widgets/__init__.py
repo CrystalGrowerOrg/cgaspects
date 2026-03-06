@@ -7,10 +7,12 @@ from .visualization_settings_widget import (
 from .checkablelistwidget import CheckableListWidget
 from .plot_axes_widget import PlotAxesWidget
 from .text_file_viewer import TextFileViewer
+from .point_info_toolbar import PointInfoToolbar
 
 __all__ = [
     CheckableListWidget,
     LabelledDoubleSlider,
+    PointInfoToolbar,
     SimulationVariableSlider,
     SimulationVariablesWidget,
     VisualizationSettingsWidget,

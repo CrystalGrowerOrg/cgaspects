@@ -244,7 +244,8 @@ class PlottingDialog(QDialog):
                 self.growth_rate = True
                 self.directions = []
                 for col in self.df.columns:
-                    if col.startswith(" "):
+                    # Direction columns start with space or minus sign (Miller indices)
+                    if col.startswith((" ", "-")):
                         self.directions.append(col)
                 self.plot_types = ["Growth Rates"]
 
@@ -1146,13 +1147,32 @@ class PlottingDialog(QDialog):
 
             for site_num, site_data in sites_dict.items():
                 # Apply data filters if any
-                if self.data_filters:
+                # If variable is "filter", we want to show ALL sites and color them (filtered vs unfiltered)
+                # If variable is NOT "filter", we want to HIDE sites that don't pass the filter
+                if self.data_filters and self.variable != "filter":
                     # Check if this site passes all data filters
                     passes_filters = True
                     for filter_config in self.data_filters:
-                        if not self._check_site_data_filter(site_data, filter_config):
-                            passes_filters = False
-                            break
+                        column = filter_config["column"]
+
+                        # Handle special fields that aren't in site_data dict
+                        if column == "site_number":
+                            # Check site_number filter directly
+                            site_data_temp = {"site_number": int(site_num)}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        elif column == "file_prefix":
+                            # Check file_prefix filter directly
+                            site_data_temp = {"file_prefix": file_prefix}
+                            if not self._check_site_data_filter(site_data_temp, filter_config):
+                                passes_filters = False
+                                break
+                        else:
+                            # Check normal site_data fields
+                            if not self._check_site_data_filter(site_data, filter_config):
+                                passes_filters = False
+                                break
                     if not passes_filters:
                         continue
 
@@ -1565,17 +1585,32 @@ class PlottingDialog(QDialog):
                 # Special handling for "filter" - binary color based on filter match
                 if self.variable == "filter":
                     interaction_filters = self.interaction_filters
-                    if interaction_filters:
-                        # Color sites based on whether they match the selected interaction filter
+                    data_filters = self.data_filters
+
+                    if interaction_filters or data_filters:
+                        # Color sites based on whether they match ALL filters (interaction AND data)
                         c_values = []
                         for site_meta in self._site_metadata:
-                            site_interactions = site_meta.get("interactions", {})
-                            matches = self._check_interaction_filter(site_interactions, interaction_filters)
+                            matches = True
+
+                            # Check interaction filters if present
+                            if interaction_filters:
+                                site_interactions = site_meta.get("interactions", {})
+                                matches = matches and self._check_interaction_filter(site_interactions, interaction_filters)
+
+                            # Check data filters if present
+                            # Note: site_meta already contains "site_number" from metadata creation
+                            if data_filters and matches:
+                                for filter_config in data_filters:
+                                    if not self._check_site_data_filter(site_meta, filter_config):
+                                        matches = False
+                                        break
+
                             c_values.append(1 if matches else 0)
                         self.c_data = np.array(c_values)
                         self.c_name = self.variable
                     else:
-                        # No interaction filter selected, cannot color by filter
+                        # No filters selected, cannot color by filter
                         self.c_data = None
                         self.c_name = None
                     return

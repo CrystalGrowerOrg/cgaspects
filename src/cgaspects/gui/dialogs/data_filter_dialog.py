@@ -106,6 +106,8 @@ class DataFilterDialog(QDialog):
         if self.is_site_analysis:
             # For site analysis, provide filterable columns from site data
             self.columns = [
+                "site_number",
+                "file_prefix",
                 "energy",
                 "occupation",
                 "coordination",

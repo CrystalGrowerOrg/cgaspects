@@ -12,7 +12,7 @@ class AxesRenderer:
     point_size = 200.0
 
     def __init__(self):
-        self.rendering_style = "arrow"
+        self.rendering_style = "cylinder"
         self.label_style = "x, y, z"
         self.length_multiplier = 1.0
         self.origin = (0.0, 0.0, 0.0)
@@ -53,6 +53,11 @@ class AxesRenderer:
             vec3 rotatedStart = mat3(u_viewMat) * gl_in[0].gl_Position.xyz * 0.1;
             vec3 rotatedEnd = mat3(u_viewMat) * gl_in[1].gl_Position.xyz * 0.1;
 
+            // Correct for aspect ratio so axes don't stretch with window
+            float aspect = u_screenSize.x / u_screenSize.y;
+            rotatedStart.x /= aspect;
+            rotatedEnd.x /= aspect;
+
             // Offset to corner
             vec2 screenPos = vec2(0.8, 0.8);
             rotatedStart.xy -= screenPos;
@@ -91,125 +96,139 @@ class AxesRenderer:
         }
         """
 
-        # self.geometry_shader_cylinder = """
-        # #version 330 core
-        # layout(lines) in;
-        # layout(triangle_strip, max_vertices = 128) out;
+        self.geometry_shader_cylinder = """
+        #version 330 core
+        layout(lines) in;
+        layout(triangle_strip, max_vertices = 128) out;
 
-        # uniform mat4 u_viewMat;
-        # uniform mat4 u_projMat;
-        # uniform vec2 u_screenSize;
-        # uniform float u_axesThickness;
+        uniform mat4 u_viewMat;
+        uniform mat4 u_projMat;
+        uniform vec2 u_screenSize;
+        uniform float u_axesThickness;
 
-        # in GS_IN {
-        #     vec3 color;
-        # } gs_in[];
+        in GS_IN {
+            vec3 color;
+        } gs_in[];
 
-        # out vec4 f_color;
-        # out vec3 v_normal;
-        # out vec3 v_fragPos;
+        out vec4 f_color;
+        out vec3 v_normal;
+        out vec3 v_fragPos;
 
-        # const int segments = 12;
-        # const float PI = 3.14159265359;
+        const int segments = 12;
+        const float PI = 3.14159265359;
 
-        # void emitCylinder(vec3 start, vec3 end, float radius, vec3 color) {
-        #     vec3 dir = normalize(end - start);
-        #     float length = length(end - start);
+        // Aspect ratio for correction
+        float getAspect() {
+            return u_screenSize.x / u_screenSize.y;
+        }
 
-        #     // Find perpendicular vectors
-        #     vec3 up = abs(dir.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-        #     vec3 right = normalize(cross(up, dir));
-        #     vec3 forward = cross(dir, right);
+        void emitCylinder(vec3 start, vec3 end, float radius, vec3 color) {
+            vec3 dir = normalize(end - start);
+            float aspect = getAspect();
 
-        #     // Generate cylinder
-        #     for (int i = 0; i <= segments; i++) {
-        #         float angle = float(i) * 2.0 * PI / float(segments);
-        #         float ca = cos(angle);
-        #         float sa = sin(angle);
+            // Find perpendicular vectors
+            vec3 up = abs(dir.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+            vec3 right = normalize(cross(up, dir));
+            vec3 forward = cross(dir, right);
 
-        #         vec3 normal = normalize(right * ca + forward * sa);
-        #         vec3 offset = normal * radius;
+            // Generate cylinder
+            for (int i = 0; i <= segments; i++) {
+                float angle = float(i) * 2.0 * PI / float(segments);
+                float ca = cos(angle);
+                float sa = sin(angle);
 
-        #         // Bottom vertex
-        #         vec3 pos1 = start + offset;
-        #         vec3 rotated1 = mat3(u_viewMat) * pos1 * 0.1;
-        #         rotated1.xy -= vec2(0.8, 0.8);
-        #         gl_Position = u_projMat * vec4(rotated1, 1.0);
-        #         v_normal = mat3(u_viewMat) * normal;
-        #         v_fragPos = rotated1;
-        #         f_color = vec4(color, 1.0);
-        #         EmitVertex();
+                vec3 normal = normalize(right * ca + forward * sa);
+                vec3 offset = normal * radius;
 
-        #         // Top vertex
-        #         vec3 pos2 = end + offset;
-        #         vec3 rotated2 = mat3(u_viewMat) * pos2 * 0.1;
-        #         rotated2.xy -= vec2(0.8, 0.8);
-        #         gl_Position = u_projMat * vec4(rotated2, 1.0);
-        #         v_normal = mat3(u_viewMat) * normal;
-        #         v_fragPos = rotated2;
-        #         f_color = vec4(color, 1.0);
-        #         EmitVertex();
-        #     }
-        #     EndPrimitive();
-        # }
+                // Bottom vertex
+                vec3 pos1 = start + offset;
+                vec3 rotated1 = mat3(u_viewMat) * pos1 * 0.1;
+                rotated1.x /= aspect;
+                rotated1.xy -= vec2(0.8, 0.8);
+                gl_Position = vec4(rotated1, 1.0);
+                v_normal = mat3(u_viewMat) * normal;
+                v_fragPos = rotated1;
+                f_color = vec4(color, 1.0);
+                EmitVertex();
 
-        # void emitCone(vec3 base, vec3 tip, float baseRadius, vec3 color) {
-        #     vec3 dir = normalize(tip - base);
+                // Top vertex
+                vec3 pos2 = end + offset;
+                vec3 rotated2 = mat3(u_viewMat) * pos2 * 0.1;
+                rotated2.x /= aspect;
+                rotated2.xy -= vec2(0.8, 0.8);
+                gl_Position = vec4(rotated2, 1.0);
+                v_normal = mat3(u_viewMat) * normal;
+                v_fragPos = rotated2;
+                f_color = vec4(color, 1.0);
+                EmitVertex();
+            }
+            EndPrimitive();
+        }
 
-        #     // Find perpendicular vectors
-        #     vec3 up = abs(dir.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-        #     vec3 right = normalize(cross(up, dir));
-        #     vec3 forward = cross(dir, right);
+        void emitCone(vec3 base, vec3 tip, float baseRadius, vec3 color) {
+            vec3 dir = normalize(tip - base);
+            float aspect = getAspect();
 
-        #     // Generate cone
-        #     for (int i = 0; i <= segments; i++) {
-        #         float angle = float(i) * 2.0 * PI / float(segments);
-        #         float ca = cos(angle);
-        #         float sa = sin(angle);
+            // Find perpendicular vectors
+            vec3 up = abs(dir.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+            vec3 right = normalize(cross(up, dir));
+            vec3 forward = cross(dir, right);
 
-        #         vec3 normal = normalize(right * ca + forward * sa + dir);
-        #         vec3 offset = (right * ca + forward * sa) * baseRadius;
+            // Generate cone
+            for (int i = 0; i <= segments; i++) {
+                float angle = float(i) * 2.0 * PI / float(segments);
+                float ca = cos(angle);
+                float sa = sin(angle);
 
-        #         // Base vertex
-        #         vec3 pos1 = base + offset;
-        #         vec3 rotated1 = mat3(u_viewMat) * pos1 * 0.1;
-        #         rotated1.xy -= vec2(0.8, 0.8);
-        #         gl_Position = u_projMat * vec4(rotated1, 1.0);
-        #         v_normal = mat3(u_viewMat) * normal;
-        #         v_fragPos = rotated1;
-        #         f_color = vec4(color, 1.0);
-        #         EmitVertex();
+                vec3 normal = normalize(right * ca + forward * sa + dir);
+                vec3 offset = (right * ca + forward * sa) * baseRadius;
 
-        #         // Tip vertex
-        #         vec3 rotated2 = mat3(u_viewMat) * tip * 0.1;
-        #         rotated2.xy -= vec2(0.8, 0.8);
-        #         gl_Position = u_projMat * vec4(rotated2, 1.0);
-        #         v_normal = mat3(u_viewMat) * dir;
-        #         v_fragPos = rotated2;
-        #         f_color = vec4(color, 1.0);
-        #         EmitVertex();
-        #     }
-        #     EndPrimitive();
-        # }
+                // Base vertex
+                vec3 pos1 = base + offset;
+                vec3 rotated1 = mat3(u_viewMat) * pos1 * 0.1;
+                rotated1.x /= aspect;
+                rotated1.xy -= vec2(0.8, 0.8);
+                gl_Position = vec4(rotated1, 1.0);
+                v_normal = mat3(u_viewMat) * normal;
+                v_fragPos = rotated1;
+                f_color = vec4(color, 1.0);
+                EmitVertex();
 
-        # void main() {
-        #     vec3 start = gl_in[0].gl_Position.xyz;
-        #     vec3 end = gl_in[1].gl_Position.xyz;
-        #     vec3 color = gs_in[0].color;
+                // Tip vertex
+                vec3 rotated2 = mat3(u_viewMat) * tip * 0.1;
+                rotated2.x /= aspect;
+                rotated2.xy -= vec2(0.8, 0.8);
+                gl_Position = vec4(rotated2, 1.0);
+                v_normal = mat3(u_viewMat) * dir;
+                v_fragPos = rotated2;
+                f_color = vec4(color, 1.0);
+                EmitVertex();
+            }
+            EndPrimitive();
+        }
 
-        #     // Calculate radius based on thickness
-        #     float radius = u_axesThickness * 0.002;
+        void main() {
+            vec3 start = gl_in[0].gl_Position.xyz;
+            vec3 end = gl_in[1].gl_Position.xyz;
+            vec3 color = gs_in[0].color;
 
-        #     // Shaft is 75% of length
-        #     vec3 shaftEnd = mix(start, end, 0.75);
+            // Calculate radius based on thickness
+            float radius = u_axesThickness * 0.02;
 
-        #     // Draw cylinder shaft
-        #     emitCylinder(start, shaftEnd, radius, color);
+            // Fixed arrowhead length (doesn't scale with length multiplier)
+            float totalLength = length(end - start);
+            float fixedArrowLength = 0.25; // Fixed size
+            float arrowLength = min(fixedArrowLength, totalLength * 0.4); // Cap at 40% of total
+            vec3 dir = normalize(end - start);
+            vec3 shaftEnd = end - dir * arrowLength;
 
-        #     // Draw cone arrowhead (25% of length, wider base)
-        #     emitCone(shaftEnd, end, radius * 2.5, color);
-        # }
-        # """
+            // Draw cylinder shaft
+            emitCylinder(start, shaftEnd, radius, color);
+
+            // Draw cone arrowhead (25% of length, wider base)
+            emitCone(shaftEnd, end, radius * 2.5, color);
+        }
+        """
 
         self.geometry_shader_arrow = """
         #version 330 core
@@ -230,6 +249,11 @@ class AxesRenderer:
             vec3 rotatedStart = mat3(u_viewMat) * gl_in[0].gl_Position.xyz * 0.1;
             vec3 rotatedEnd = mat3(u_viewMat) * gl_in[1].gl_Position.xyz * 0.1;
 
+            // Correct for aspect ratio so axes don't stretch with window
+            float aspect = u_screenSize.x / u_screenSize.y;
+            rotatedStart.x /= aspect;
+            rotatedEnd.x /= aspect;
+
             vec2 screenPos = vec2(0.8, 0.8);
             rotatedStart.xy -= screenPos;
             rotatedEnd.xy -= screenPos;
@@ -245,8 +269,11 @@ class AxesRenderer:
 
             float ndcThickness = u_axesThickness / u_screenSize.y * 2.0;
 
-            // Draw shaft (80% of length)
-            vec2 shaftEnd = mix(ndcStart, ndcEnd, 0.75);
+            // Fixed arrowhead length (doesn't scale with length multiplier)
+            float totalLength = length(ndcEnd - ndcStart);
+            float fixedArrowLength = 0.025; // Fixed size in NDC
+            float arrowLength = min(fixedArrowLength, totalLength * 0.4); // Cap at 40% of total
+            vec2 shaftEnd = ndcEnd - dir * arrowLength;
             vec2 offset = perpDir * ndcThickness / 2.0;
 
             gl_Position = vec4((ndcStart + offset), clipStart.zw);
@@ -297,36 +324,39 @@ class AxesRenderer:
         }
         """
 
-        # self.fragment_shader_3d = """
-        # #version 330 core
+        self.fragment_shader_3d = """
+        #version 330 core
 
-        # in vec4 f_color;
-        # in vec3 v_normal;
-        # in vec3 v_fragPos;
-        # out vec4 fragColor;
+        in vec4 f_color;
+        in vec3 v_normal;
+        in vec3 v_fragPos;
+        out vec4 fragColor;
 
-        # void main() {
-        #     // Simple directional lighting
-        #     vec3 lightDir = normalize(vec3(0.5, 0.5, 1.0));
-        #     vec3 normal = normalize(v_normal);
+        void main() {
+            // Simple directional lighting
+            vec3 lightDir = normalize(vec3(0.5, 0.5, 1.0));
+            vec3 normal = normalize(v_normal);
 
-        #     // Ambient light
-        #     float ambient = 0.4;
+            // Ambient light (higher for brighter appearance)
+            float ambient = 0.8;
 
-        #     // Diffuse light
-        #     float diff = max(dot(normal, lightDir), 0.0);
-        #     float diffuse = 0.6 * diff;
+            // Diffuse light
+            float diff = max(dot(normal, lightDir), 0.0);
+            float diffuse = 0.5 * diff;
 
-        #     // Combine lighting
-        #     float lighting = ambient + diffuse;
+            // Combine lighting
+            float lighting = ambient + diffuse;
 
-        #     fragColor = vec4(f_color.rgb * lighting, f_color.a);
-        # }
-        # """
+            fragColor = vec4(f_color.rgb * lighting, f_color.a);
+        }
+        """
 
         self.points = None
         self.crystallography = None  # Store crystallography object for fractional coords
-        self.axes_thickness = 2.0  # Default thickness
+        self.axes_thickness = 3.5  # Default thickness
+        self.show_labels = True  # Whether to show axis labels
+        self.label_color_same_as_axes = True  # Whether labels use axes colors
+        self.label_color = (0.0, 0.0, 0.0)  # Default black for labels
 
         # Create shader programs for each rendering mode
         self.programs = {}
@@ -344,18 +374,18 @@ class AxesRenderer:
         )
         self.programs["line"].link()
 
-        # # Cylinder mode program
-        # self.programs['cylinder'] = QOpenGLShaderProgram()
-        # self.programs['cylinder'].addShaderFromSourceCode(
-        #     QOpenGLShader.Vertex, self.vertex_shader_source
-        # )
-        # self.programs['cylinder'].addShaderFromSourceCode(
-        #     QOpenGLShader.Geometry, self.geometry_shader_cylinder
-        # )
-        # self.programs['cylinder'].addShaderFromSourceCode(
-        #     QOpenGLShader.Fragment, self.fragment_shader_3d
-        # )
-        # self.programs['cylinder'].link()
+        # Cylinder mode program (3D arrows)
+        self.programs["cylinder"] = QOpenGLShaderProgram()
+        self.programs["cylinder"].addShaderFromSourceCode(
+            QOpenGLShader.Vertex, self.vertex_shader_source
+        )
+        self.programs["cylinder"].addShaderFromSourceCode(
+            QOpenGLShader.Geometry, self.geometry_shader_cylinder
+        )
+        self.programs["cylinder"].addShaderFromSourceCode(
+            QOpenGLShader.Fragment, self.fragment_shader_3d
+        )
+        self.programs["cylinder"].link()
 
         # Arrow mode program
         self.programs["arrow"] = QOpenGLShaderProgram()
@@ -370,8 +400,8 @@ class AxesRenderer:
         )
         self.programs["arrow"].link()
 
-        # Default to arrow program
-        self.program = self.programs["arrow"]
+        # Default to cylinder program
+        self.program = self.programs["cylinder"]
 
         self.vertex_buffer = QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)
         self.vertex_buffer.create()
@@ -490,6 +520,12 @@ class AxesRenderer:
             self.axes_thickness = settings["thickness"]
         if "label_style" in settings:
             self.label_style = settings["label_style"]
+        if "show_labels" in settings:
+            self.show_labels = settings["show_labels"]
+        if "label_color_same_as_axes" in settings:
+            self.label_color_same_as_axes = settings["label_color_same_as_axes"]
+        if "label_color" in settings:
+            self.label_color = settings["label_color"]
         if "length_multiplier" in settings:
             self.length_multiplier = settings["length_multiplier"]
         if "origin" in settings:
@@ -501,31 +537,42 @@ class AxesRenderer:
         else:
             self._initialize_axes("fractional")
 
-    # def get_axis_endpoints(self):
-    #     """Get the endpoints of the axes for label placement."""
-    #     if self.points is None:
-    #         return []
+    def get_axis_endpoints(self):
+        """Get the endpoints of the axes for label placement."""
+        if self.points is None:
+            return []
 
-    #     # Extract axis endpoints (every other point starting from index 1)
-    #     # Points are: origin, end_a, origin, end_b, origin, end_c
-    #     endpoints = []
-    #     labels = self.label_style.replace(' ', '').split(',')
+        # Extract axis endpoints (every other point starting from index 1)
+        # Points are: origin, end_a, origin, end_b, origin, end_c
+        endpoints = []
 
-    #     for i, label in enumerate(labels):
-    #         # Each axis is 2 points (origin and endpoint), 6 floats each
-    #         endpoint_idx = (i * 2 + 1) * 6
-    #         if endpoint_idx + 2 < len(self.points):
-    #             endpoints.append({
-    #                 'position': (self.points[endpoint_idx],
-    #                            self.points[endpoint_idx + 1],
-    #                            self.points[endpoint_idx + 2]),
-    #                 'label': label,
-    #                 'color': (self.points[endpoint_idx + 3],
-    #                         self.points[endpoint_idx + 4],
-    #                         self.points[endpoint_idx + 5])
-    #             })
+        # Determine labels based on whether we're using fractional or Cartesian
+        if self.crystallography is not None:
+            labels = ["a", "b", "c"]
+        else:
+            labels = ["x", "y", "z"]
 
-    #     return endpoints
+        for i, label in enumerate(labels):
+            # Each axis is 2 points (origin and endpoint), 6 floats each
+            endpoint_idx = (i * 2 + 1) * 6
+            if endpoint_idx + 5 < len(self.points):
+                endpoints.append(
+                    {
+                        "position": (
+                            self.points[endpoint_idx],
+                            self.points[endpoint_idx + 1],
+                            self.points[endpoint_idx + 2],
+                        ),
+                        "label": label,
+                        "color": (
+                            self.points[endpoint_idx + 3],
+                            self.points[endpoint_idx + 4],
+                            self.points[endpoint_idx + 5],
+                        ),
+                    }
+                )
+
+        return endpoints
 
     def setUniforms(self, **kwargs):
         for k, v in kwargs.items():

@@ -268,6 +268,17 @@ class SmoothingDialog(QDialog):
         """Create the user interface."""
         layout = QVBoxLayout(self)
 
+        # Beta warning label
+        beta_label = QLabel(
+            "BETA FEATURE: This functionality is experimental and may change in future versions."
+        )
+        beta_label.setStyleSheet(
+            "background-color: #FFF3CD; color: #856404; padding: 8px; "
+            "border: 1px solid #FFEEBA; border-radius: 4px; font-weight: bold;"
+        )
+        beta_label.setWordWrap(True)
+        layout.addWidget(beta_label)
+
         # Info label
         info_label = QLabel(
             "Configure smoothing, interpolation, and extrapolation for each data series.\n"

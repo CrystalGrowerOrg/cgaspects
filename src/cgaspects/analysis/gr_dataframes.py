@@ -20,11 +20,7 @@ def get_x_axis(df: pd.DataFrame, *, time_col: str = "time", tol: float = 1e-12):
 
     x_time = df[time_col].to_numpy(dtype=float)
 
-    if (
-        not np.isfinite(x_time).all()
-        or len(x_time) < 2
-        or np.ptp(x_time) < tol
-    ):
+    if not np.isfinite(x_time).all() or len(x_time) < 2 or np.ptp(x_time) < tol:
         logger.debug("Using row indices as x-axis (time column unsuitable)")
         return np.arange(len(df), dtype=float)
 
@@ -38,22 +34,40 @@ def build_growthrates(
     directions: List[str],
     signals=None,
     time_tol: float = 1e-12,
+    xaxis_mode: str = "auto",
 ):
-    """Generate the growth rate dataframe from size.csv files."""
+    """Generate the growth rate dataframe from size.csv files.
+
+    Parameters
+    ----------
+    xaxis_mode : str
+        How to choose the x-axis for linear fitting:
+        - ``"auto"``  – use the time column when present and valid,
+          otherwise fall back to row index for all files.
+        - ``"time"``  – always use the time column; files without a
+          valid time column are skipped.
+        - ``"index"`` – always use row index, ignoring any time column.
+    """
     n_size_files = len(size_file_list)
 
     if n_size_files == 0:
         return None
 
     logger.info("%s size files used to calculate growth rate data", n_size_files)
+    logger.info("X-axis mode: %s", xaxis_mode)
+    print(directions)
 
     growth_list = []
-    use_index_for_all = False
+    kept_supersats = []
+
+    # In "index" mode we never look at the time column
+    use_index_for_all = xaxis_mode == "index"
     restart = True
 
     while restart:
         restart = False
         growth_list = []
+        kept_supersats = []
 
         for i, f in enumerate(size_file_list):
             f = Path(f)
@@ -75,6 +89,13 @@ def build_growthrates(
                 # Check if time column is suitable
                 time_col = "time"
                 if time_col not in lt_df.columns:
+                    if xaxis_mode == "time":
+                        logger.warning(
+                            "Skipping file %s: time column not found (forced time mode)",
+                            f.name,
+                        )
+                        continue
+                    # auto mode: fall back to index for all files
                     logger.info(
                         "Time column missing in file %s - restarting with index for all files",
                         f.name,
@@ -89,6 +110,13 @@ def build_growthrates(
                         or len(x_time) < 2
                         or np.ptp(x_time) < time_tol
                     ):
+                        if xaxis_mode == "time":
+                            logger.warning(
+                                "Skipping file %s: time column unsuitable (forced time mode)",
+                                f.name,
+                            )
+                            continue
+                        # auto mode: fall back to index for all files
                         logger.info(
                             "Time column unsuitable in file %s - restarting with index for all files",
                             f.name,
@@ -102,20 +130,39 @@ def build_growthrates(
             tokens = re.findall(r"\d+", f.name)
             sim_num = int(tokens[-1])
 
+            # Keep rows only up to the first row where any direction is 0
+            all_positive = np.all(
+                [np.asarray(lt_df[d], dtype=float) > 0 for d in directions],
+                axis=0,
+            )
+            first_false = np.argmin(all_positive)
+            # If all True, argmin returns 0 — check if the first element is actually True
+            cutoff = first_false if not all_positive[first_false] else len(all_positive)
+            mask = np.zeros(len(all_positive), dtype=bool)
+            mask[:cutoff] = True
+
             gr_list = [sim_num]
             for direction in directions:
                 y_data = np.asarray(lt_df[direction], dtype=float)
-                model = np.polyfit(x_data, y_data, 1)
+                if mask.sum() < 2:
+                    gr_list.append(0.0)
+                    continue
+                model = np.polyfit(x_data[mask], y_data[mask], 1)
                 gr_list.append(model[0])
 
             growth_list.append(gr_list)
+            kept_supersats.append(supersat_list[i])
 
             if signals:
                 prog = (100 * (i + 1)) // n_size_files
                 signals.progress.emit(prog)
 
+    if not growth_list:
+        logger.warning("No files were processed successfully")
+        return None
+
     growth_array = np.asarray(growth_list)
     gr_df = pd.DataFrame(growth_array, columns=["Simulation Number"] + directions)
-    gr_df.insert(1, "Supersaturation", supersat_list)
+    gr_df.insert(1, "Supersaturation", kept_supersats)
 
     return gr_df
