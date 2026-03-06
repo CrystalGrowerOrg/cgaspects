@@ -1,0 +1,83 @@
+site_name: CGAspects Manual
+site_description: User manual for CGAspects — crystal growth simulation analysis and visualisation
+site_author: CrystalGrower Team
+repo_url: https://github.com/CrystalGrowerOrg/cgaspects
+repo_name: CrystalGrowerOrg/cgaspects
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Interface:
+      - Overview: interface/overview.md
+      - Menus & Actions: interface/menus.md
+      - 3D Viewport: interface/viewport.md
+      - Panels: interface/panels.md
+  - Features:
+      - Visualisation: features/visualisation.md
+      - Planes: features/planes.md
+      - Directions: features/directions.md
+      - Axes Settings: features/axes.md
+      - Slicing: features/slicing.md
+      - Site Highlighting: features/site-highlighting.md
+      - Lattice Parameters: features/lattice-parameters.md
+  - Analysis:
+      - Aspect Ratios: analysis/aspect-ratios.md
+      - Growth Rates: analysis/growth-rates.md
+      - Site Analysis: analysis/site-analysis.md
+  - Plotting: plotting.md
+  - File Formats: file-formats.md
+  - Tutorials:
+      - Basic Workflow: tutorials/basic-workflow.md
+      - Planes & Slicing: tutorials/planes-and-slicing.md
+      - Growth Rate Analysis: tutorials/growth-rate-workflow.md
+      - Site Analysis: tutorials/site-analysis-workflow.md
+  - Science:
+      - Zingg Classification: science/zingg-classification.md
+      - Crystallography Primer: science/crystallography.md
+      - Shape Metrics: science/shape-metrics.md
+  - Keyboard Shortcuts: keyboard-shortcuts.md
