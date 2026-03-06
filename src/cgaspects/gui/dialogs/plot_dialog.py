@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QSplitter,
@@ -203,7 +204,7 @@ class PlottingDialog(QDialog):
                 col
                 for col in self.df.columns
                 if col.startswith(
-                    ("interaction", "tile", "temperature", "starting_delmu", "excess")
+                    ("interaction", "Int_", "int_", "tile", "temperature", "starting_delmu", "excess")
                 )
             ]
             self.interaction_columns.insert(0, "None")
@@ -1426,6 +1427,9 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Custom":
             self.x_data = None
             self.y_data = None
+            if self.cluster_mat:
+                # Hierarchical clustering builds its own data; skip standard x/y loading
+                return
             if self.df is not None:
                 try:
                     self.x_data = self.df[self.custom_x]
@@ -1705,8 +1709,7 @@ class PlottingDialog(QDialog):
         self.c_label = ""
         if (
             variable
-            and variable.startswith("interaction")
-            or (variable and variable.startswith("tile"))
+            and variable.startswith(("interaction", "Int_", "int_", "tile"))
         ):
             self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
         elif variable and variable.startswith("starting_delmu"):
@@ -1997,9 +2000,20 @@ class PlottingDialog(QDialog):
 
         if len(interaction_cols) < 2:
             logger.warning("Need at least 2 interaction columns for hierarchical clustering")
+            QMessageBox.warning(
+                self,
+                "Hierarchical Clustering",
+                "At least 2 interaction columns are required for hierarchical clustering.\n\n"
+                "No interaction columns were detected in the current dataset.",
+            )
             return
         if not metric_cols:
             logger.warning("No metric columns selected for hierarchical clustering")
+            QMessageBox.warning(
+                self,
+                "Hierarchical Clustering",
+                "Please select at least one metric in the Y-axis list to cluster by.",
+            )
             return
 
         # Build profile matrix: rows = interactions, cols = metrics (Pearson r values)

@@ -36,12 +36,20 @@ class ShapeAnalyser:
             # Analyse specific frame
             frame = crystal.frames[frame_idx]
             coords = frame.coords
-            self.frame_metrics[frame_idx] = self.shape_info(coords)
+            metrics = self.shape_info(coords)
+            if metrics is None:
+                LOG.warning("Skipping frame %d: insufficient points for shape analysis.", frame_idx)
+                return
+            self.frame_metrics[frame_idx] = metrics
         else:
             # Analyse all frames
             for idx, frame in enumerate(crystal.frames):
                 coords = frame.coords
-                self.frame_metrics[idx] = self.shape_info(coords)
+                metrics = self.shape_info(coords)
+                if metrics is None:
+                    LOG.warning("Skipping frame %d: insufficient points for shape analysis.", idx)
+                    continue
+                self.frame_metrics[idx] = metrics
 
     def get_frame_metrics(self, frame_idx: int) -> Optional[ShapeMetrics]:
         """Get metrics for a specific frame."""

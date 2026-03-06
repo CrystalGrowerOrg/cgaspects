@@ -247,6 +247,8 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
             shape_analyser.analyse_crystal(crystal, frame_idx=None)
 
             for frame_idx, metrics in shape_analyser.get_all_frame_metrics().items():
+                if metrics is None:
+                    continue
                 data_row = [
                     sim_num,
                     frame_idx,
@@ -263,7 +265,7 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
                     metrics.volume,
                     metrics.surface_area_to_volume_ratio,
                 ]
-            data_list.append(data_row)
+                data_list.append(data_row)
             if signals:
                 signals.progress.emit(int((i / n_xyzs) * 100))
             i += 1
