@@ -43,6 +43,20 @@ class PlotAxesWidget(QWidget):
 
         self.setLayout(layout)
 
+    def set_x_locked(self, items: list):
+        """Populate x-axis with items and disable (lock) the widget."""
+        self.xAxisListWidget.clear()
+        self.xAxisListWidget.addItems(items)
+        self.xAxisListWidget.setEnabled(False)
+        self.x_axis_label.setText("X-axis: Interactions (auto-locked)")
+
+    def restore_x(self, items: list):
+        """Restore x-axis to normal selectable mode with items."""
+        self.xAxisListWidget.clear()
+        self.xAxisListWidget.addItems(items)
+        self.xAxisListWidget.setEnabled(True)
+        self.x_axis_label.setText("X-axis (select one)")
+
     def get_selections(self):
         x_item = self.xAxisListWidget.currentItem()
         x_selection = x_item.text() if x_item else None
