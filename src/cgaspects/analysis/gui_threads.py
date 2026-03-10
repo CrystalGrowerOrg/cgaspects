@@ -183,6 +183,15 @@ class WorkerGrowthRates(QRunnable):
         )
 
         logger.debug("build_growthrates returned: %s, shape=%s", type(growth_rate_df), getattr(growth_rate_df, "shape", None))
+
+        if growth_rate_df is not None and not growth_rate_df.empty:
+            summary_file = self.information.summary_file
+            if summary_file:
+                logger.info("Merging growth rates with summary file: %s", summary_file)
+                growth_rate_df = summary_compare(
+                    summary_csv=summary_file, aspect_df=growth_rate_df
+                )
+
         self.plotting_csv = growth_rate_df
         self.signals.result.emit(self.plotting_csv)
 

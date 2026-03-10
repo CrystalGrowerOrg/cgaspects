@@ -91,6 +91,13 @@ class GrowthRate:
                 directions=self.selected_directions,
                 xaxis_mode=self.xaxis_mode,
             )
+            if growth_rate_df is not None and not growth_rate_df.empty:
+                if self.information.summary_file:
+                    logger.info("Merging growth rates with summary file: %s", self.information.summary_file)
+                    growth_rate_df = fd.summary_compare(
+                        summary_csv=self.information.summary_file,
+                        aspect_df=growth_rate_df,
+                    )
             self.plot(plotting_csv=growth_rate_df)
         if self.threadpool:
             self.worker = WorkerGrowthRates(
