@@ -30,6 +30,7 @@ class AspectRatio(QWidget):
         self.options: namedtuple | None = None
         self.threadpool = None
         self.threadpool = QThreadPool()
+        self.worker = None
         self.result_tuple = results_tuple
 
         self.signals = signals
@@ -105,18 +106,18 @@ class AspectRatio(QWidget):
         # self.circular_progress.update_options(self.options)
 
         if self.threadpool:
-            worker = WorkerAspectRatios(
+            self.worker = WorkerAspectRatios(
                 information=self.information,
                 options=self.options,
                 input_folder=self.input_folder,
                 output_folder=self.output_folder,
                 xyz_files=self.xyz_files,
             )
-            worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
-            worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
-            worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
+            self.worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
+            self.worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
+            self.worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
             self.signals.started.emit()
-            self.threadpool.start(worker)
+            self.threadpool.start(self.worker)
 
         else:
             logger.warning("Running Calculation on the same (GUI) thread!")

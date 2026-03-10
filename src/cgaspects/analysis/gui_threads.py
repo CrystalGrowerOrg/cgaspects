@@ -182,7 +182,9 @@ class WorkerGrowthRates(QRunnable):
             xaxis_mode=self.xaxis_mode,
         )
 
-        self.signals.result.emit(growth_rate_df)
+        logger.debug("build_growthrates returned: %s, shape=%s", type(growth_rate_df), getattr(growth_rate_df, "shape", None))
+        self.plotting_csv = growth_rate_df
+        self.signals.result.emit(self.plotting_csv)
 
 
 class WorkerSiteAnalysis(QRunnable):

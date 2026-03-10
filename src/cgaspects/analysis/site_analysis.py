@@ -39,6 +39,7 @@ class SiteAnalysis:
         self.xyz_files: List[Path] | None = None
         self.signals = signals
         self.threadpool = QThreadPool()
+        self.worker = None
         self.result_tuple = results_tuple
         self.plotting_csv = None
 
@@ -114,7 +115,7 @@ class SiteAnalysis:
         # TODO: Create a proper dialog for site analysis options
 
         if self.threadpool:
-            worker = WorkerSiteAnalysis(
+            self.worker = WorkerSiteAnalysis(
                 input_folder=self.input_folder,
                 output_folder=self.output_folder,
                 crystallisation_files=self.crystallisation_files,
@@ -124,12 +125,12 @@ class SiteAnalysis:
             # Use Qt.QueuedConnection for thread-safe signal delivery
             from PySide6.QtCore import Qt
 
-            worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
-            worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
-            worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
-            worker.signals.finished.connect(self.on_worker_finished, Qt.QueuedConnection)
+            self.worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
+            self.worker.signals.result.connect(self.set_plotting, Qt.QueuedConnection)
+            self.worker.signals.location.connect(self.get_location, Qt.QueuedConnection)
+            self.worker.signals.finished.connect(self.on_worker_finished, Qt.QueuedConnection)
             self.signals.started.emit()
-            self.threadpool.start(worker)
+            self.threadpool.start(self.worker)
 
         else:
             logger.warning("Running Calculation on the same (GUI) thread!")

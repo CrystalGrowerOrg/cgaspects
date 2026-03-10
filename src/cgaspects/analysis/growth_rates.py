@@ -26,6 +26,7 @@ class GrowthRate:
         self.signals = signals
         self.threadpool = None
         self.threadpool = QThreadPool()
+        self.worker = None
 
         self.result_tuple = results_tuple
 
@@ -92,24 +93,24 @@ class GrowthRate:
             )
             self.plot(plotting_csv=growth_rate_df)
         if self.threadpool:
-            worker = WorkerGrowthRates(
+            self.worker = WorkerGrowthRates(
                 information=self.information,
                 selected_directions=self.selected_directions,
                 xaxis_mode=self.xaxis_mode,
             )
-            worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
-            worker.signals.result.connect(self.plot, Qt.QueuedConnection)
+            
+            self.worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
+            self.worker.signals.result.connect(self.plot, Qt.QueuedConnection)
             self.signals.started.emit()
-            self.threadpool.start(worker)
+            self.threadpool.start(self.worker)
 
     def plot(self, plotting_csv):
         # self.circular_progress.hide()
-        self.signals.finished.emit()
         if plotting_csv is None:
             logger.warning("No Size Files (*size.csv) found to calculate growth rates")
+            self.signals.finished.emit()
         else:
             if not plotting_csv.empty:  # Properly checks if DataFrame is not empty
-                logger.debug("Growth Rates Dataframe:\n%s", plotting_csv)
                 growth_rate_csv = self.output_folder / "growthrates.csv"
                 plotting_csv.to_csv(growth_rate_csv, index=None)
                 result = self.result_tuple(
@@ -117,8 +118,9 @@ class GrowthRate:
                     selected=self.selected_directions,
                     folder=self.output_folder,
                 )
-                self.signals.result.emit(result)
                 logger.debug("Sending plotting information to GUI: %s", result)
+                self.signals.result.emit(result)
+                self.signals.finished.emit()
                 # if self.auto_plotting:
                 #     plot = Plotting()
                 #     plot.plot_growth_rates(
@@ -126,3 +128,4 @@ class GrowthRate:
                 #     )
             else:
                 logger.warning("The DataFrame is empty. No calculated growth rates.")
+                self.signals.finished.emit()

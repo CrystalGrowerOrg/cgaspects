@@ -55,7 +55,7 @@ def build_growthrates(
 
     logger.info("%s size files used to calculate growth rate data", n_size_files)
     logger.info("X-axis mode: %s", xaxis_mode)
-    print(directions)
+    logger.info("Directions: %s", directions)
 
     growth_list = []
     kept_supersats = []
