@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 
 
 class GrowthRateAnalysisDialogue(QDialog):
-    def __init__(self, directions):
+    def __init__(self, directions, has_starting_delmu=False):
         super().__init__()
 
         # Initialise Window
@@ -65,6 +65,36 @@ class GrowthRateAnalysisDialogue(QDialog):
         xaxis_group.setLayout(xaxis_layout)
         layout.addWidget(xaxis_group)
 
+        # Supersaturation column selection (only shown when summary file has starting_delmu)
+        self._supersat_native = None
+        self._supersat_delmu = None
+        self._supersat_both = None
+        if has_starting_delmu:
+            supersat_group = QGroupBox("Supersaturation Column")
+            supersat_layout = QVBoxLayout()
+            self._supersat_native = QRadioButton(
+                'Native "Supersaturation" (from simulation_parameters.txt)'
+            )
+            self._supersat_delmu = QRadioButton(
+                'Summary file "starting_delmu"'
+            )
+            self._supersat_both = QRadioButton("Keep both")
+            self._supersat_native.setChecked(True)
+            self._supersat_native.setToolTip(
+                "Keep the Supersaturation column collated from simulation_parameters.txt files"
+            )
+            self._supersat_delmu.setToolTip(
+                "Replace the native Supersaturation column with starting_delmu from the summary file"
+            )
+            self._supersat_both.setToolTip(
+                "Keep both Supersaturation and starting_delmu columns"
+            )
+            supersat_layout.addWidget(self._supersat_native)
+            supersat_layout.addWidget(self._supersat_delmu)
+            supersat_layout.addWidget(self._supersat_both)
+            supersat_group.setLayout(supersat_layout)
+            layout.addWidget(supersat_group)
+
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
@@ -78,6 +108,15 @@ class GrowthRateAnalysisDialogue(QDialog):
         if self._xaxis_index.isChecked():
             return "index"
         return "auto"
+
+    @property
+    def supersat_mode(self):
+        """Return the selected supersaturation column mode: 'native', 'starting_delmu', or 'both'."""
+        if self._supersat_delmu is not None and self._supersat_delmu.isChecked():
+            return "starting_delmu"
+        if self._supersat_both is not None and self._supersat_both.isChecked():
+            return "both"
+        return "native"
 
     def checkbox_state_changed(self, state, direction):
         if state == 2:  # 2 corresponds to checked state

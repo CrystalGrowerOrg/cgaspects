@@ -13,6 +13,7 @@ from .ar_dataframes import (
 )
 from .gr_dataframes import build_growthrates
 from ..fileio.find_data import (
+    apply_supersat_mode,
     summary_compare,
     create_aspects_folder,
     combine_xyz_cda,
@@ -165,11 +166,12 @@ class WorkerAspectRatios(QRunnable):
 
 
 class WorkerGrowthRates(QRunnable):
-    def __init__(self, information, selected_directions, xaxis_mode="auto"):
+    def __init__(self, information, selected_directions, xaxis_mode="auto", supersat_mode="native"):
         super(WorkerGrowthRates, self).__init__()
         self.information = information
         self.selected_directions = selected_directions
         self.xaxis_mode = xaxis_mode
+        self.supersat_mode = supersat_mode
 
         self.signals = WorkerSignals()
 
@@ -191,6 +193,7 @@ class WorkerGrowthRates(QRunnable):
                 growth_rate_df = summary_compare(
                     summary_csv=summary_file, aspect_df=growth_rate_df
                 )
+                growth_rate_df = apply_supersat_mode(growth_rate_df, self.supersat_mode)
 
         self.plotting_csv = growth_rate_df
         self.signals.result.emit(self.plotting_csv)

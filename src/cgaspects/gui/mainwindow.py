@@ -368,7 +368,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.menuHelp = QMenu("Help", self)
         self.menuBar.addAction(self.menuHelp.menuAction())
 
-        self.actionKeyboardShortcuts = QAction("Keyboard Shortcuts...", self)
+        self.actionKeyboardShortcuts = QAction("Keyboard Shortcuts", self)
         self.actionKeyboardShortcuts.setObjectName("actionKeyboardShortcuts")
         self.actionKeyboardShortcuts.setShortcut("Ctrl+/")
         self.actionKeyboardShortcuts.setToolTip("View and customise keyboard shortcuts")

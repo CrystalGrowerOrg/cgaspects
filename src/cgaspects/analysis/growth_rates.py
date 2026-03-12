@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QThreadPool, Signal
 from PySide6.QtWidgets import QDialog
 
 from ..fileio import find_data as fd
+from ..fileio.find_data import apply_supersat_mode, summary_has_starting_delmu
 from ..gui.dialogs.growthrate_dialog import GrowthRateAnalysisDialogue
 from ..utils.data_structures import results_tuple
 from . import gr_dataframes as gr
@@ -67,7 +68,13 @@ class GrowthRate:
         # Get the directions from the information
         self.directions = self.information.directions
 
-        growth_rate_dialog = GrowthRateAnalysisDialogue(self.directions)
+        has_starting_delmu = (
+            bool(self.information.summary_file)
+            and summary_has_starting_delmu(self.information.summary_file)
+        )
+        growth_rate_dialog = GrowthRateAnalysisDialogue(
+            self.directions, has_starting_delmu=has_starting_delmu
+        )
 
         if growth_rate_dialog.exec() != QDialog.Accepted:
             logger.warning("Selecting growth directions cancelled")
@@ -75,6 +82,7 @@ class GrowthRate:
 
         self.selected_directions = growth_rate_dialog.selected_directions
         self.xaxis_mode = growth_rate_dialog.xaxis_mode
+        self.supersat_mode = growth_rate_dialog.supersat_mode
 
         self.output_folder = fd.create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
@@ -98,12 +106,14 @@ class GrowthRate:
                         summary_csv=self.information.summary_file,
                         aspect_df=growth_rate_df,
                     )
+                    growth_rate_df = apply_supersat_mode(growth_rate_df, self.supersat_mode)
             self.plot(plotting_csv=growth_rate_df)
         if self.threadpool:
             self.worker = WorkerGrowthRates(
                 information=self.information,
                 selected_directions=self.selected_directions,
                 xaxis_mode=self.xaxis_mode,
+                supersat_mode=self.supersat_mode,
             )
             
             self.worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)

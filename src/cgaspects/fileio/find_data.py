@@ -302,6 +302,38 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
     return full_df
 
 
+def summary_has_starting_delmu(summary_csv):
+    """Return True if the summary CSV contains a 'starting_delmu' column."""
+    df = pd.read_csv(summary_csv, nrows=0, encoding="utf-8", encoding_errors="replace")
+    return any(col.startswith("starting_delmu") for col in df.columns)
+
+
+def apply_supersat_mode(df, mode):
+    """Resolve which supersaturation column(s) to keep.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame that may contain both a native 'Supersaturation' column
+        (from simulation_parameters.txt) and a 'starting_delmu' column
+        (from a summary CSV).
+    mode : str
+        'native'         – keep 'Supersaturation', drop 'starting_delmu' (default)
+        'starting_delmu' – drop 'Supersaturation', rename 'starting_delmu' → 'Supersaturation'
+        'both'           – keep both columns unchanged
+    """
+    delmu_cols = [c for c in df.columns if c.startswith("starting_delmu")]
+    if not delmu_cols:
+        return df
+    if mode == "native":
+        df = df.drop(columns=delmu_cols, errors="ignore")
+    elif mode == "starting_delmu":
+        df = df.drop(columns=["Supersaturation"], errors="ignore")
+        df = df.rename(columns={delmu_cols[0]: "Supersaturation"})
+    # 'both' – no changes
+    return df
+
+
 def combine_xyz_cda(CDA_df, XYZ_df):
     cda_cols = CDA_df.columns[1:]
     xyz_cols = XYZ_df.columns

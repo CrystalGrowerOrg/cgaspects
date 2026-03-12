@@ -26,32 +26,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from cgaspects.gui.dialogs.axes_customization_dialog import AxesCustomizationDialog
 from cgaspects.gui.dialogs.data_filter_dialog import DataFilterDialog
-from cgaspects.gui.dialogs.label_customization_dialog import LabelCustomizationDialog
 from cgaspects.gui.dialogs.plotsavedialog import PlotSaveDialog
 from cgaspects.gui.dialogs.smoothing_dialog import SmoothingDialog
 from cgaspects.gui.widgets.plot_axes_widget import PlotAxesWidget
 from cgaspects.gui.widgets.time_series_widget import TimeSeriesWidget
-from cgaspects.utils.data_structures import plot_obj_tuple
 from cgaspects.utils.data_smoothing import process_series
+from cgaspects.utils.data_structures import plot_obj_tuple
+from cgaspects.utils.plot_label import PlotAxisLabel, format_label as _format_label
 
 matplotlib.use("QTAgg")
 
 logger = logging.getLogger("CA:PlotDialog")
 
 
-def format_label(label):
-    """Format a column name for display by converting to title case and removing underscores.
-
-    Args:
-        label: The column name to format
-
-    Returns:
-        Formatted label string
-    """
-    if not label:
-        return label
-    return label.replace("_", " ").title()
+# Re-exported for backwards compatibility (e.g. existing tests import from here)
+format_label = _format_label
 
 
 class NavigationToolbar(NavigationToolbar2QT):
@@ -71,6 +62,10 @@ class NavigationToolbar(NavigationToolbar2QT):
 
 
 class PlottingDialog(QDialog):
+    # Emitted after every replot with the current label objects so that any
+    # open AxesCustomizationDialog can stay in sync.
+    labels_updated = QtCore.Signal(dict)
+
     def __init__(self, csv, signals=None, parent=None, summary_df=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Plot Window")
@@ -81,6 +76,7 @@ class PlottingDialog(QDialog):
 
         self.signals = signals
         self.summary_df = summary_df  # Summary file dataframe for mapping file prefixes to values
+        self._axes_dialog = None  # persistent AxesCustomizationDialog instance
         self.annot = None
         self.trendline = None
         self.trendline_text = None
@@ -93,9 +89,18 @@ class PlottingDialog(QDialog):
         self.permutations = []
         self.permutation_labels = []
         self.interaction_columns = []
+        self.gr_x_candidates: list = []
+        self.gr_x_col: str = "Supersaturation"
+        self.gr_grouped: bool = False
         self.site_analysis_columns = []  # Separate columns for site analysis mode
         self.trendline_text = []
         self.plotting_mode = "default"
+
+        # User overrides — persist across replots; None = use auto-generated default
+        self.custom_xlabel: PlotAxisLabel | None = None
+        self.custom_ylabel: PlotAxisLabel | None = None
+        self.custom_cbar_label: PlotAxisLabel | None = None
+        self.custom_title: str = ""
 
         self.setPlotDefaults()
         self.create_widgets()
@@ -117,18 +122,13 @@ class PlottingDialog(QDialog):
 
         self.x_data = None
         self.y_data = None
+        self.gr_y_err = None
         self.c_data = None
         self.c_name = None
-        self.c_label = None
-        self.x_label = None
-        self.y_label = None
+        self.c_label = PlotAxisLabel()
+        self.x_label = PlotAxisLabel()
+        self.y_label = PlotAxisLabel()
         self.title = ""
-
-        # Custom labels from dialog (empty means use defaults)
-        self.custom_title = ""
-        self.custom_xlabel = ""
-        self.custom_ylabel = ""
-        self.custom_cbar_label = ""
 
         # Colour scheme settings (universal across all modes)
         self.cmap = "viridis"
@@ -250,6 +250,25 @@ class PlottingDialog(QDialog):
                         self.directions.append(col)
                 self.plot_types = ["Growth Rates"]
 
+                # Build x-axis candidates: Supersaturation first, then all non-direction columns
+                self.gr_x_candidates = []
+                if "Supersaturation" in self.df.columns:
+                    self.gr_x_candidates.append("Supersaturation")
+                exclude = set(self.directions) | {"Simulation Number", "Supersaturation"}
+                for col in self.df.columns:
+                    if col not in exclude:
+                        self.gr_x_candidates.append(col)
+
+                # Auto-select default: Supersaturation if it varies, else first varying other col
+                supersat_varies = (
+                    "Supersaturation" in self.df.columns
+                    and self.df["Supersaturation"].nunique() > 1
+                )
+                if not supersat_varies and len(self.gr_x_candidates) > 1:
+                    self.gr_x_col = self.gr_x_candidates[1]
+                else:
+                    self.gr_x_col = "Supersaturation"
+
         # Check if this is site analysis data
         if self.site_analysis_data is not None:
             self.plot_types.append("Site Analysis")
@@ -349,16 +368,22 @@ class PlottingDialog(QDialog):
         self.spin_point_size = QSpinBox()
         self.spin_point_size.setRange(1, 100)
 
-        self.button_save = QPushButton("Export...")
+        self.button_save = QPushButton("Export")
         self.exportIcon = QIcon(":material_icons/material_icons/png/content-save-custom.png")
         self.button_save.setIcon(self.exportIcon)
         self.button_add_trendline = QPushButton("Add Trendline")
-        self.button_customize_labels = QPushButton("Customize Labels...")
-        self.button_filter_data = QPushButton("Filter Data...")
+        self.button_customize_labels = QPushButton("Customise Axes")
+        self.button_filter_data = QPushButton("Filter Data")
         self.button_filter_data.setToolTip("Filter the data shown in the plot")
-        self.button_smooth_data = QPushButton("Smooth/Extrapolate Data...")
+        self.button_smooth_data = QPushButton("Smooth/Extrapolate Data")
         self.button_smooth_data.setToolTip("Apply smoothing, interpolation, and extrapolation to growth rate data")
         self.button_smooth_data.hide()  # Hidden by default, only shown in Growth Rates mode
+
+        self.button_group_data = QPushButton("Group")
+        self.button_group_data.setToolTip(
+            "Group growth rates by X-Axis variable, averaging across all other variables with error bars"
+        )
+        self.button_group_data.hide()  # Hidden by default, only shown in Growth Rates mode
 
         # Initialize the variables
         self.point_size = 12
@@ -400,9 +425,10 @@ class PlottingDialog(QDialog):
         self.canvas.mpl_connect("motion_notify_event", lambda event: self.on_hover(event))
 
         self.button_save.clicked.connect(self.save)
-        self.button_customize_labels.clicked.connect(self.open_label_customization_dialog)
+        self.button_customize_labels.clicked.connect(self.open_axes_customization_dialog)
         self.button_filter_data.clicked.connect(self.open_filter_dialog)
         self.button_smooth_data.clicked.connect(self.open_smoothing_dialog)
+        self.button_group_data.clicked.connect(self.toggle_gr_grouping)
         self.checkbox_grid.stateChanged.connect(self.trigger_plot)
         self.checkbox_legend.stateChanged.connect(self.trigger_plot)
         self.checkbox_zingg.stateChanged.connect(
@@ -453,45 +479,55 @@ class PlottingDialog(QDialog):
         controls_widget = QWidget()
         controls_layout = QVBoxLayout(controls_widget)
 
+        # Row 1: toolbar + Show Legend + Show Grid + Point Size + Export
         hbox1 = QHBoxLayout()
         hbox1.addWidget(self.toolbar)
+        hbox1.addStretch()
         hbox1.addWidget(self.checkbox_legend)
         hbox1.addWidget(self.checkbox_grid)
         hbox1.addWidget(self.label_pointsize)
         hbox1.addWidget(self.spin_point_size)
-        hbox1.addWidget(self.button_add_trendline)
         hbox1.addWidget(self.button_save)
 
         grid1 = QGridLayout()
+        for col in (1, 3, 5, 7):
+            grid1.setColumnStretch(col, 1)
+
+        # Row 0: all dropdowns
         grid1.addWidget(self.plot_types_label, 0, 0)
         grid1.addWidget(self.plot_types_combobox, 0, 1)
         grid1.addWidget(self.plot_permutations_label, 0, 2)
         grid1.addWidget(self.plot_permutations_combobox, 0, 3)
         grid1.addWidget(self.variables_label, 0, 4)
         grid1.addWidget(self.variables_combobox, 0, 5)
-        grid1.addWidget(self.checkbox_zingg, 0, 6)
-        grid1.addWidget(self.checkbox_corr_mat, 0, 7)
-        grid1.addWidget(self.checkbox_cluster_mat, 0, 8)
+        grid1.addWidget(self.cmap_label, 0, 6)
+        grid1.addWidget(self.cmap_combobox, 0, 7)
 
-        # Add filter/customize buttons and colour scheme controls row (universal across all modes)
-        grid1.addWidget(self.button_filter_data, 1, 0)
-        grid1.addWidget(self.button_customize_labels, 1, 1)
-        grid1.addWidget(self.button_smooth_data, 1, 2)
-        grid1.addWidget(self.cmap_label, 1, 3)
-        grid1.addWidget(self.cmap_combobox, 1, 4)
-        grid1.addWidget(self.checkbox_hide_bulk, 1, 5)
+        # Row 1: buttons on the left, spacer, checkboxes on the right
+        hbox2 = QHBoxLayout()
+        hbox2.addWidget(self.button_filter_data, 1)
+        hbox2.addWidget(self.button_customize_labels, 1)
+        hbox2.addWidget(self.button_smooth_data, 1)
+        hbox2.addWidget(self.button_group_data, 1)
+        hbox2.addWidget(self.button_add_trendline, 1)
+        hbox2.addStretch(2)
+        hbox2.addWidget(self.checkbox_zingg)
+        hbox2.addWidget(self.checkbox_corr_mat)
+        hbox2.addWidget(self.checkbox_cluster_mat)
+        hbox2.addWidget(self.checkbox_hide_bulk)
+        grid1.addLayout(hbox2, 1, 0, 1, 9)
 
-        grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 8)
+        grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 9)
 
         # Add time-series widget (for Site Analysis mode)
-        grid1.addWidget(self.time_series_widget, 3, 0, 1, 8)
+        grid1.addWidget(self.time_series_widget, 3, 0, 1, 9)
 
         # Set alignment to right for labels only
         for i in range(grid1.rowCount()):
             for j in range(grid1.columnCount()):
                 item = grid1.itemAtPosition(i, j)
                 if item and item.widget() and isinstance(item.widget(), QLabel):
-                    grid1.setAlignment(item.widget(), QtCore.Qt.AlignRight)
+                    grid1.setAlignment(item.widget(), QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         controls_layout.addLayout(hbox1)
         controls_layout.addLayout(grid1)
@@ -520,11 +556,20 @@ class PlottingDialog(QDialog):
         self.canvas.draw()
 
     def change_mode(self, mode):
-        # Show/hide smoothing button based on mode
+        # Restore permutations combobox label and content to defaults before any mode overrides
+        self.plot_permutations_label.setText("Permutations: ")
+        self.plot_permutations_combobox.blockSignals(True)
+        self.plot_permutations_combobox.clear()
+        self.plot_permutations_combobox.addItems(self.permutation_labels)
+        self.plot_permutations_combobox.blockSignals(False)
+
+        # Show/hide Growth-Rates-only buttons
         if mode == "Growth Rates":
             self.button_smooth_data.show()
+            self.button_group_data.show()
         else:
             self.button_smooth_data.hide()
+            self.button_group_data.hide()
 
         if mode == "Site Analysis":
             # Enable permutation controls for Site Analysis (3 permutations)
@@ -608,6 +653,46 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.color_label.setText("Color By (select one)")
 
             # Hide time-series widget
+            self.time_series_widget.hide()
+
+        elif mode == "Growth Rates":
+            # Repopulate permutations combobox as X-Axis selector
+            self.plot_permutations_label.setText("X-Axis: ")
+            self.plot_permutations_combobox.blockSignals(True)
+            self.plot_permutations_combobox.clear()
+            self.plot_permutations_combobox.addItems(
+                self.gr_x_candidates if self.gr_x_candidates else ["Supersaturation"]
+            )
+            idx = self.plot_permutations_combobox.findText(self.gr_x_col)
+            self.plot_permutations_combobox.setCurrentIndex(max(idx, 0))
+            self.plot_permutations_combobox.blockSignals(False)
+            self.plot_permutations_label.setEnabled(True)
+            self.plot_permutations_combobox.setEnabled(True)
+            # Populate variables combobox with all other x-axis candidates for colouring
+            current_var = self.variables_combobox.currentText()
+            self.variables_combobox.blockSignals(True)
+            self.variables_combobox.clear()
+            other_vars = ["None"] + [c for c in self.gr_x_candidates if c != self.gr_x_col]
+            self.variables_combobox.addItems(other_vars)
+            restored_idx = self.variables_combobox.findText(current_var)
+            self.variables_combobox.setCurrentIndex(max(restored_idx, 0))
+            self.variables_combobox.blockSignals(False)
+            self.variables_label.setEnabled(True)
+            self.variables_combobox.setEnabled(True)
+            self.custom_plot_widget.hide()
+            self.checkbox_zingg.setEnabled(True)
+            self.checkbox_zingg.setChecked(False)
+            self.checkbox_corr_mat.setEnabled(True)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_corr_mat.hide()
+            self.checkbox_zingg.hide()
+            self.checkbox_cluster_mat.setEnabled(True)
+            self.checkbox_cluster_mat.setChecked(False)
+            self.checkbox_cluster_mat.hide()
+            self.button_filter_data.setEnabled(True)
+            self.checkbox_hide_bulk.hide()
+            self.custom_plot_widget.yAxisListWidget.show()
+            self.custom_plot_widget.yAxisListWidget_single.hide()
             self.time_series_widget.hide()
 
         else:
@@ -766,37 +851,45 @@ class PlottingDialog(QDialog):
             logger.warning(f"Prefix '{file_prefix}' not found in site_analysis_data keys")
             return None
 
-    def open_label_customization_dialog(self):
-        """Open the label customization dialog."""
-        current_labels = {
-            "title": self.custom_title,
-            "xlabel": self.custom_xlabel,
-            "ylabel": self.custom_ylabel,
-            "cbar_label": self.custom_cbar_label,
-        }
+    def open_axes_customization_dialog(self):
+        """Open (or raise) the persistent, non-modal axes customisation dialog."""
+        if self._axes_dialog is None or not self._axes_dialog.isVisible():
+            current_labels = {
+                "title":      self.custom_title or self.title,
+                "xlabel":     self.custom_xlabel     or (self.x_label if isinstance(self.x_label, PlotAxisLabel) else PlotAxisLabel()),
+                "ylabel":     self.custom_ylabel     or (self.y_label if isinstance(self.y_label, PlotAxisLabel) else PlotAxisLabel()),
+                "cbar_label": self.custom_cbar_label or (self.c_label if isinstance(self.c_label, PlotAxisLabel) else PlotAxisLabel()),
+            }
+            self._axes_dialog = AxesCustomizationDialog(current_labels, parent=self)
+            self._axes_dialog.setWindowModality(QtCore.Qt.NonModal)
+            self._axes_dialog.axes_applied.connect(self._update_labels_and_replot)
+            self.labels_updated.connect(self._axes_dialog.refresh_labels)
+            self._axes_dialog.finished.connect(
+                lambda: self.labels_updated.disconnect(self._axes_dialog.refresh_labels)
+            )
+        self._axes_dialog.show()
+        self._axes_dialog.raise_()
+        self._axes_dialog.activateWindow()
 
-        dialog = LabelCustomizationDialog(current_labels, parent=self)
+    def _update_labels_and_replot(self, result: dict):
+        """Apply label/conversion changes from :class:`AxesCustomizationDialog` and replot."""
+        self.custom_title = result.get("title", "")
 
-        # Connect Apply button signal to update labels without closing dialog
-        dialog.labels_applied.connect(self._update_labels_and_replot)
+        xlabel = result.get("xlabel")
+        ylabel = result.get("ylabel")
+        cbar   = result.get("cbar_label")
 
-        if dialog.exec() == QDialog.Accepted:
-            # Update labels when OK is clicked
-            labels = dialog.get_labels()
-            self._update_labels_and_replot(labels)
+        self.custom_xlabel     = xlabel if isinstance(xlabel, PlotAxisLabel) and xlabel.is_user_set else None
+        self.custom_ylabel     = ylabel if isinstance(ylabel, PlotAxisLabel) and ylabel.is_user_set else None
+        self.custom_cbar_label = cbar   if isinstance(cbar,   PlotAxisLabel) and cbar.is_user_set   else None
 
-    def _update_labels_and_replot(self, labels):
-        """Update custom labels and trigger replot.
+        logger.debug("Axes updated: %s", result)
+        self.trigger_plot()
 
-        Args:
-            labels: Dictionary with keys 'title', 'xlabel', 'ylabel', 'cbar_label'
-        """
-        self.custom_title = labels["title"]
-        self.custom_xlabel = labels["xlabel"]
-        self.custom_ylabel = labels["ylabel"]
-        self.custom_cbar_label = labels["cbar_label"]
-        logger.debug("Custom labels updated: %s", labels)
-        # Replot with new labels
+    def toggle_gr_grouping(self):
+        """Toggle grouped/ungrouped mode for Growth Rates plots."""
+        self.gr_grouped = not self.gr_grouped
+        self.button_group_data.setText("Ungroup" if self.gr_grouped else "Group")
         self.trigger_plot()
 
     def open_smoothing_dialog(self):
@@ -828,7 +921,7 @@ class PlottingDialog(QDialog):
             if configs:
                 self.button_smooth_data.setText(f"Smooth/Extrapolate Data... ({len(configs)})")
             else:
-                self.button_smooth_data.setText("Smooth/Extrapolate Data...")
+                self.button_smooth_data.setText("Smooth/Extrapolate Data")
 
             # Replot with smoothed data
             self.trigger_plot()
@@ -877,7 +970,7 @@ class PlottingDialog(QDialog):
         if total_filters > 0:
             self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
-            self.button_filter_data.setText("Filter Data...")
+            self.button_filter_data.setText("Filter Data")
 
         # Replot with filtered data
         self.trigger_plot()
@@ -1006,13 +1099,8 @@ class PlottingDialog(QDialog):
         )
 
     def trigger_plot(self):
-        # Store custom labels before resetting
-        custom_title = self.custom_title
-        custom_xlabel = self.custom_xlabel
-        custom_ylabel = self.custom_ylabel
-        custom_cbar_label = self.custom_cbar_label
-        data_filters = self.data_filters  # Store filters before resetting
-        interaction_filters = self.interaction_filters  # Store interaction filters before resetting
+        data_filters = self.data_filters
+        interaction_filters = self.interaction_filters
 
         self.setPlotDefaults()
 
@@ -1029,13 +1117,7 @@ class PlottingDialog(QDialog):
         if total_filters > 0:
             self.button_filter_data.setText(f"Filter Data... ({total_filters})")
         else:
-            self.button_filter_data.setText("Filter Data...")
-
-        # Restore custom labels
-        self.custom_title = custom_title
-        self.custom_xlabel = custom_xlabel
-        self.custom_ylabel = custom_ylabel
-        self.custom_cbar_label = custom_cbar_label
+            self.button_filter_data.setText("Filter Data")
 
         self.grid = self.checkbox_grid.isChecked()
         self.show_legend = self.checkbox_legend.isChecked()
@@ -1044,7 +1126,6 @@ class PlottingDialog(QDialog):
         self.cluster_mat = self.checkbox_cluster_mat.isChecked()
         self.point_size = self.spin_point_size.value()
         self.plot_type = self.plot_types_combobox.currentText()
-        self.permutation = int(self.plot_permutations_combobox.currentIndex())
         self.variable = self.variables_combobox.currentText()
         (
             self.custom_x,
@@ -1056,7 +1137,14 @@ class PlottingDialog(QDialog):
         # Get colour scheme settings
         self.cmap = self.cmap_combobox.currentText()
 
+        # change_mode must run first for Growth Rates — it repopulates the
+        # permutations combobox with gr_x_candidates before we read from it.
         self.change_mode(mode=self.plot_type)
+
+        if self.plot_type == "Growth Rates":
+            self.gr_x_col = self.plot_permutations_combobox.currentText() or "Supersaturation"
+        else:
+            self.permutation = int(self.plot_permutations_combobox.currentIndex())
         # Update hide bulk checkbox visibility (needed when plotting mode changes within Site Analysis)
         self._update_hide_bulk_visibility()
         self._set_data()
@@ -1064,7 +1152,34 @@ class PlottingDialog(QDialog):
         self._mask_with_permutation()
         self._set_labels()
         self._set_c_label()
+        self._apply_axis_conversions()
         self.plot()
+        self.labels_updated.emit({
+            "title":      self.custom_title or self.title,
+            "xlabel":     self.custom_xlabel     or self.x_label,
+            "ylabel":     self.custom_ylabel     or self.y_label,
+            "cbar_label": self.custom_cbar_label or self.c_label,
+        })
+
+    def _apply_axis_conversions(self):
+        """Apply any active unit conversions stored on x/y/c labels to the data arrays."""
+        pairs = [
+            (self.custom_xlabel     or self.x_label, "x_data"),
+            (self.custom_ylabel     or self.y_label, "y_data"),
+            (self.custom_cbar_label or self.c_label, "c_data"),
+        ]
+        for label, attr in pairs:
+            if not isinstance(label, PlotAxisLabel):
+                continue
+            if label.conversion is None:
+                continue
+            data = getattr(self, attr, None)
+            if data is None:
+                continue
+            try:
+                setattr(self, attr, label.conversion.apply(np.asarray(data, dtype=float)))
+            except Exception as exc:
+                logger.warning("Unit conversion failed for %s: %s", attr, exc)
 
     def _check_interaction_filter(self, site_interactions: dict, interaction_filters: dict) -> bool:
         """Check if a site passes the interaction filter.
@@ -1351,7 +1466,6 @@ class PlottingDialog(QDialog):
         # For permutation 0 and 2, check x_values; for permutation 1, check y_values
         if self.checkbox_hide_bulk.isChecked() and plotting_mode in ["Total Population", "Population per Step"]:
             if x_values:
-                import numpy as np
 
                 # Determine which axis contains population data
                 if permutation == 0:
@@ -1374,8 +1488,6 @@ class PlottingDialog(QDialog):
                     site_metadata.pop(max_idx)
 
         # Convert to numpy arrays
-        import numpy as np
-
         x_array = np.array(x_values)
         y_array = np.array(y_values)
 
@@ -1393,8 +1505,16 @@ class PlottingDialog(QDialog):
             self.x_data = self.df["Surface Area"]
             self.y_data = self.df["Volume"]
         if self.plot_type == "Growth Rates":
-            self.x_data = self.df["Supersaturation"]
-            self.y_data = self.df[self.directions]
+            x_col = self.gr_x_col if self.gr_x_col in self.df.columns else "Supersaturation"
+            if self.gr_grouped:
+                grouped = self.df.groupby(x_col)[self.directions]
+                self.x_data = grouped.mean().index.to_numpy()
+                self.y_data = grouped.mean()
+                self.gr_y_err = grouped.std()
+            else:
+                self.x_data = self.df[x_col]
+                self.y_data = self.df[self.directions]
+                self.gr_y_err = None
         if self.plot_type == "Site Analysis":
             # Extract data directly from dictionary
             x_array, y_array, site_metadata = self._extract_site_analysis_data()
@@ -1444,6 +1564,9 @@ class PlottingDialog(QDialog):
         # Skip permutation masking if we don't have a DataFrame (e.g., site analysis mode)
         if self.df is None:
             return
+        # Growth Rates uses gr_x_col for its x-axis — no CDA_Permutation column exists
+        if self.plot_type == "Growth Rates":
+            return
         if self.permutation == 0:
             self._set_data()
             return
@@ -1454,128 +1577,122 @@ class PlottingDialog(QDialog):
             self.c_data = self.c_data[mask]
 
     def _set_labels(self):
+        """Set auto-generated x/y/title labels from the current plot type and data columns.
+
+        Always overwrites the auto labels; user overrides are stored separately in
+        ``custom_xlabel`` / ``custom_ylabel`` and applied at display time.
+        """
+        def _set_x(label: PlotAxisLabel) -> None:
+            self.x_label = label
+
+        def _set_y(label: PlotAxisLabel) -> None:
+            self.y_label = label
+
         if self.plot_type == "Site Analysis":
-            # Get current plotting mode and permutation
             plotting_mode = self.time_series_widget.get_plotting_mode()
             param_name, param_value, time_index = self.time_series_widget.get_current_time_point()
             permutation = self.permutation
 
-            # Permutation 0: Events/Population vs Energy
             if permutation == 0:
-                # Determine labels based on mode
                 if plotting_mode == "Total Events":
-                    data_type = "Events"
-                    # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
-                    self.x_label = f"Total {data_type} (Growth (+), Dissolution (-))"
-                    self.title = f"Site Analysis: Total {data_type} vs Energy"
-
+                    _set_x(PlotAxisLabel("Total Events (Growth (+), Dissolution (-))"))
+                    self.title = "Site Analysis: Total Events vs Energy"
                 elif plotting_mode == "Total Population":
-                    data_type = "Population"
-                    self.x_label = f"Total {data_type} (Grown (+), Ungrown (-))"
-                    self.title = f"Site Analysis: Total {data_type} vs Energy"
-
+                    _set_x(PlotAxisLabel("Total Population (Grown (+), Ungrown (-))"))
+                    self.title = "Site Analysis: Total Population vs Energy"
                 elif plotting_mode == "Events per Step":
-                    data_type = "Events"
-                    # For events-based plotting: ungrown sites (growth) are positive, grown sites (dissolution) are negative
                     if param_value is not None:
-                        self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
-                        self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                        _set_x(PlotAxisLabel(f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"))
+                        self.title = f"Site Analysis: Events vs Energy (t={time_index})"
                     else:
-                        self.x_label = f"{data_type} per Step (Growth (+), Dissolution (-))"
-                        self.title = f"Site Analysis: {data_type} vs Energy"
-
+                        _set_x(PlotAxisLabel("Events per Step (Growth (+), Dissolution (-))"))
+                        self.title = "Site Analysis: Events vs Energy"
                 elif plotting_mode == "Population per Step":
-                    data_type = "Population"
                     if param_value is not None:
-                        self.x_label = f"{data_type} at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
-                        self.title = f"Site Analysis: {data_type} vs Energy (t={time_index})"
+                        _set_x(PlotAxisLabel(f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"))
+                        self.title = f"Site Analysis: Population vs Energy (t={time_index})"
                     else:
-                        self.x_label = f"{data_type} per Step (Grown (+), Ungrown (-))"
-                        self.title = f"Site Analysis: {data_type} vs Energy"
+                        _set_x(PlotAxisLabel("Population per Step (Grown (+), Ungrown (-))"))
+                        self.title = "Site Analysis: Population vs Energy"
+                _set_y(PlotAxisLabel("Energy"))
 
-                self.y_label = "Energy"
-
-            # Permutation 1: Sites vs Events/Population
             elif permutation == 1:
-                self.x_label = "Site Number"
-
+                _set_x(PlotAxisLabel("Site Number"))
                 if plotting_mode == "Total Events":
-                    self.y_label = "Total Events (Growth (+), Dissolution (-))"
+                    _set_y(PlotAxisLabel("Total Events (Growth (+), Dissolution (-))"))
                     self.title = "Site Analysis: Sites vs Total Events"
-
                 elif plotting_mode == "Total Population":
-                    self.y_label = "Total Population (Grown (+), Ungrown (-))"
+                    _set_y(PlotAxisLabel("Total Population (Grown (+), Ungrown (-))"))
                     self.title = "Site Analysis: Sites vs Total Population"
-
                 elif plotting_mode == "Events per Step":
                     if param_value is not None:
-                        self.y_label = f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
+                        _set_y(PlotAxisLabel(f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"))
                         self.title = f"Site Analysis: Sites vs Events (t={time_index})"
                     else:
-                        self.y_label = "Events per Step (Growth (+), Dissolution (-))"
+                        _set_y(PlotAxisLabel("Events per Step (Growth (+), Dissolution (-))"))
                         self.title = "Site Analysis: Sites vs Events per Step"
-
                 elif plotting_mode == "Population per Step":
                     if param_value is not None:
-                        self.y_label = f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                        _set_y(PlotAxisLabel(f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"))
                         self.title = f"Site Analysis: Sites vs Population (t={time_index})"
                     else:
-                        self.y_label = "Population per Step (Grown (+), Ungrown (-))"
+                        _set_y(PlotAxisLabel("Population per Step (Grown (+), Ungrown (-))"))
                         self.title = "Site Analysis: Sites vs Population per Step"
 
-            # Permutation 2: Events vs Population
             elif permutation == 2:
                 if plotting_mode in ["Total Events", "Total Population"]:
-                    self.x_label = "Total Events (Growth (+), Dissolution (-))"
-                    self.y_label = "Total Population (Grown (+), Ungrown (-))"
+                    _set_x(PlotAxisLabel("Total Events (Growth (+), Dissolution (-))"))
+                    _set_y(PlotAxisLabel("Total Population (Grown (+), Ungrown (-))"))
                     self.title = "Site Analysis: Events vs Population"
                 else:
                     if param_value is not None:
-                        self.x_label = f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"
-                        self.y_label = f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"
+                        _set_x(PlotAxisLabel(f"Events at {param_name.capitalize()}={param_value:.2f} (Growth (+), Dissolution (-))"))
+                        _set_y(PlotAxisLabel(f"Population at {param_name.capitalize()}={param_value:.2f} (Grown (+), Ungrown (-))"))
                         self.title = f"Site Analysis: Events vs Population (t={time_index})"
                     else:
-                        self.x_label = "Events per Step (Growth (+), Dissolution (-))"
-                        self.y_label = "Population per Step (Grown (+), Ungrown (-))"
+                        _set_x(PlotAxisLabel("Events per Step (Growth (+), Dissolution (-))"))
+                        _set_y(PlotAxisLabel("Population per Step (Grown (+), Ungrown (-))"))
                         self.title = "Site Analysis: Events vs Population per Step"
-
-        if self.df is not None:
             return
 
         if self.plot_type == "Zingg":
-            self.x_label = "S:M"
-            self.y_label = "M:L"
+            _set_x(PlotAxisLabel("S:M"))
+            _set_y(PlotAxisLabel("M:L"))
             self.title = "Zingg Diagram"
         if self.plot_type == "CDA":
             ratio_columns = [col for col in self.df.columns if col.startswith("Ratio_")]
-            self.x_label = ratio_columns[0].replace("Ratio_", "")
-            self.y_label = ratio_columns[1].replace("Ratio_", "")
+            _set_x(PlotAxisLabel(ratio_columns[0].replace("Ratio_", "")))
+            _set_y(PlotAxisLabel(ratio_columns[1].replace("Ratio_", "")))
             self.title = "Crystallographic Face-to-Face Distance Ratios"
         if self.plot_type == "SA:Vol Ratio":
-            self.x_label = "Surface Area"
-            self.y_label = "Volume"
+            _set_x(PlotAxisLabel("Surface Area"))
+            _set_y(PlotAxisLabel("Volume"))
             self.title = "Surface Area to Volume Ratio"
         if self.plot_type == "Growth Rates":
-            self.x_label = "Supersaturation (kcal/mol)"
-            self.y_label = "Relative Growth Rate"
-            self.title = "Growth Rates vs supersaturation"
+            x_col = getattr(self, "gr_x_col", "Supersaturation")
+            if x_col == "Supersaturation" or x_col.startswith("starting_delmu"):
+                _set_x(PlotAxisLabel(r"$\Delta\mu$", "kcal/mol"))
+            else:
+                _set_x(PlotAxisLabel.from_column(x_col))
+            _set_y(PlotAxisLabel("Relative Growth Rate"))
+            self.title = f"Growth Rates vs {x_col.replace('_', ' ').strip()}"
         if self.plot_type == "Heatmap":
             self.title = "Heatmap"
-            self.x_label = format_label(self.custom_x) if self.custom_x else ""
-            self.y_label = (
-                format_label(self.custom_y[0]) if self.custom_y and len(self.custom_y) > 0 else ""
+            _set_x(PlotAxisLabel.from_column(self.custom_x) if self.custom_x else PlotAxisLabel())
+            _set_y(
+                PlotAxisLabel.from_column(self.custom_y[0])
+                if self.custom_y and len(self.custom_y) > 0
+                else PlotAxisLabel()
             )
         if self.plot_type == "Custom":
             self.title = ""
-            self.x_label = format_label(self.custom_x) if self.custom_x else ""
-            self.y_label = ""
-
+            _set_x(PlotAxisLabel.from_column(self.custom_x) if self.custom_x else PlotAxisLabel())
             if len(self.custom_y) == 1:
-                self.y_label = format_label(self.custom_y[0])
+                _set_y(PlotAxisLabel.from_column(self.custom_y[0]))
             elif len(self.custom_y) <= 3:
-                self.y_label = ", ".join([format_label(y) for y in self.custom_y])
+                _set_y(PlotAxisLabel(", ".join([format_label(y) for y in self.custom_y])))
             else:
-                self.y_label = "Multiple columns..."
+                _set_y(PlotAxisLabel("Multiple columns..."))
 
     def _set_c(self):
         self.c_data = None
@@ -1584,7 +1701,6 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Site Analysis":
             # Use variable dropdown to control color for Site Analysis
             if self.variable != "None" and self.variable and hasattr(self, "_site_metadata"):
-                import numpy as np
 
                 # Special handling for "filter" - binary color based on filter match
                 if self.variable == "filter":
@@ -1702,35 +1818,21 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Custom":
             variable = self.custom_c
         elif self.plot_type == "Heatmap":
-            # For Heatmap, use the c_name (value column name) with formatting
-            self.c_label = format_label(self.c_name) if self.c_name else ""
+            self.c_label = PlotAxisLabel.from_column(self.c_name) if self.c_name else PlotAxisLabel()
             return
 
-        self.c_label = ""
-        if (
-            variable
-            and variable.startswith(("interaction", "Int_", "int_", "tile"))
-        ):
-            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
-        elif variable and variable.startswith("starting_delmu"):
-            self.c_label = "Supersaturation (kcal/mol)"
-        elif variable and "energy" in variable.lower():
-            self.c_label = r"$\Delta G$ (kcal/mol)"
-        elif variable and variable.startswith("temperature_celcius"):
-            self.c_label = "Temperature (℃)"
-        elif variable and variable.startswith("excess"):
-            self.c_label = r"$\Delta G_{Cryst}$ (kcal/mol)"
-        elif variable and variable == "file_prefix":
-            # If we mapped file_prefix to a summary variable, use that variable's name
+        self.c_label = PlotAxisLabel()
+        if not variable or variable == "None":
+            return
+        if variable == "file_prefix":
             if hasattr(self, "c_mapped_name") and self.c_mapped_name:
-                self.c_label = format_label(self.c_mapped_name)
+                self.c_label = PlotAxisLabel.from_column(self.c_mapped_name)
             else:
-                self.c_label = "File / Dataset"
-        elif variable and variable == "filter":
-            self.c_label = "Filter Match"
-        elif variable and variable != "None":
-            # For other variables, use the variable name as the label with formatting
-            self.c_label = format_label(variable)
+                self.c_label = PlotAxisLabel("File / Dataset")
+        elif variable == "filter":
+            self.c_label = PlotAxisLabel("Filter Match")
+        else:
+            self.c_label = PlotAxisLabel.from_column(variable)
 
     def plot(self):
         self.plot_objects = {}
@@ -1752,14 +1854,9 @@ class PlottingDialog(QDialog):
         self.ax.clear()
         self.canvas.draw()
 
-        # Apply custom labels if set, otherwise use default labels
-        xlabel = self.custom_xlabel if self.custom_xlabel else self.x_label
-        ylabel = self.custom_ylabel if self.custom_ylabel else self.y_label
-        title = self.custom_title if self.custom_title else self.title
-
-        self.ax.set_xlabel(xlabel)
-        self.ax.set_ylabel(ylabel)
-        self.ax.set_title(title)
+        self.ax.set_xlabel(str(self.custom_xlabel or self.x_label))
+        self.ax.set_ylabel(str(self.custom_ylabel or self.y_label))
+        self.ax.set_title(self.custom_title if self.custom_title else self.title)
 
         if self.grid:
             self.ax.grid(True)
@@ -1817,45 +1914,50 @@ class PlottingDialog(QDialog):
                 elif self.y_data.ndim == 2 and self.y_data.shape[1] > 1:
                     # y_data with multiple columns - only for DataFrame-based plots
                     if self.df is not None:
-                        line = True if self.plot_type == "Growth Rates" else False
-                        for i, y in enumerate(self.y_data):
-                            # Plot original data
-                            show_original = (
-                                self.plot_type == "Growth Rates" and
-                                self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Original Only"]
-                            )
-
-                            if show_original or y not in self.smoothing_configs:
-                                self._plot(
-                                    x=self.x_data,
-                                    y=self._ensure_pd_series(self.df[y]),
-                                    c=self.c_data,
-                                    add_line=line,
-                                    label=y if y not in self.smoothing_configs else f"{y} (original)",
-                                    marker=markers[i % len(markers)],
+                        if self.plot_type == "Growth Rates" and self.gr_grouped:
+                            self._plot_gr_grouped()
+                            self._set_legend() if self.show_legend else None
+                        else:
+                            use_variable = bool(self.variable and self.variable != "None")
+                            line = True if (self.plot_type == "Growth Rates" and not use_variable) else False
+                            for i, y in enumerate(self.y_data):
+                                # Plot original data
+                                show_original = (
+                                    self.plot_type == "Growth Rates" and
+                                    self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Original Only"]
                                 )
 
-                            # Plot processed (smoothed/interpolated/extrapolated) data
-                            if self.plot_type == "Growth Rates" and y in self.smoothing_configs:
-                                show_processed = self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Processed Only"]
-
-                                if show_processed:
-                                    x_processed, y_processed = self._apply_smoothing(
-                                        self.x_data,
-                                        self._ensure_pd_series(self.df[y]),
-                                        self.smoothing_configs[y]
-                                    )
-
+                                if show_original or y not in self.smoothing_configs:
                                     self._plot(
-                                        x=x_processed,
-                                        y=y_processed,
-                                        c=None,  # Don't use color for processed data
-                                        add_line=True,  # Always use line for processed data
-                                        label=f"{y} (processed)",
+                                        x=self.x_data,
+                                        y=self._ensure_pd_series(self.df[y]),
+                                        c=self.c_data,
+                                        add_line=line,
+                                        label=y if y not in self.smoothing_configs else f"{y} (original)",
                                         marker=markers[i % len(markers)],
                                     )
 
-                        self._set_legend() if self.show_legend else None
+                                # Plot processed (smoothed/interpolated/extrapolated) data
+                                if self.plot_type == "Growth Rates" and y in self.smoothing_configs:
+                                    show_processed = self.smoothing_legend_mode in ["Show Both Original and Processed", "Show Processed Only"]
+
+                                    if show_processed:
+                                        x_processed, y_processed = self._apply_smoothing(
+                                            self.x_data,
+                                            self._ensure_pd_series(self.df[y]),
+                                            self.smoothing_configs[y]
+                                        )
+
+                                        self._plot(
+                                            x=x_processed,
+                                            y=y_processed,
+                                            c=None,  # Don't use color for processed data
+                                            add_line=True,  # Always use line for processed data
+                                            label=f"{y} (processed)",
+                                            marker=markers[i % len(markers)],
+                                        )
+
+                            self._set_legend() if self.show_legend else None
             else:
                 # Fallback for data without ndim (shouldn't happen, but handle gracefully)
                 self._plot(x=self.x_data, y=self.y_data, c=self.c_data)
@@ -1871,9 +1973,7 @@ class PlottingDialog(QDialog):
             # Take the frist scatter object to attach the colorbar
             scatter = list(self.plot_objects.values())[0].scatter
             self.cbar = self.figure.colorbar(scatter)
-            # Apply custom colorbar label if set, otherwise use default
-            cbar_label = self.custom_cbar_label if self.custom_cbar_label else self.c_label
-            self.cbar.set_label(cbar_label)
+            self.cbar.set_label(str(self.custom_cbar_label or self.c_label))
             self.cbar.ax.set_zorder(-1)
 
             # Set discrete ticks for binary filter variable
@@ -1920,6 +2020,57 @@ class PlottingDialog(QDialog):
         else:
             self._plot_scatter(x, y, c, cmap, add_line, label, marker)
 
+    def _plot_gr_grouped(self):
+        """Plot grouped Growth Rates as mean ± std error bars, one series per direction."""
+        markers = ["o", "^", "s", "D", "v", "p", "*", "h", "+", "x"]
+        use_variable = (
+            self.c_data is not None
+            and self.variable
+            and self.variable != "None"
+            and self.variable in self.df.columns
+        )
+
+        if use_variable:
+            x_col = self.gr_x_col if self.gr_x_col in self.df.columns else "Supersaturation"
+            var_by_group = self.df.groupby(x_col)[self.variable].mean()
+            c_vals = var_by_group.reindex(self.x_data).to_numpy()
+            vmin, vmax = np.nanmin(c_vals), np.nanmax(c_vals)
+        else:
+            c_vals = None
+
+        for i, direction in enumerate(self.directions):
+            y_mean = self.y_data[direction].to_numpy()
+            y_err = (
+                self.gr_y_err[direction].to_numpy()
+                if self.gr_y_err is not None
+                else None
+            )
+
+            if use_variable:
+                # Draw error caps in neutral grey so the colormap drives colour
+                if y_err is not None:
+                    self.ax.errorbar(
+                        self.x_data, y_mean, yerr=y_err,
+                        fmt="none", ecolor="grey", capsize=4, alpha=0.5,
+                    )
+                sc = self.ax.scatter(
+                    self.x_data, y_mean,
+                    c=c_vals, cmap=self.cmap, vmin=vmin, vmax=vmax,
+                    marker=markers[i % len(markers)],
+                    s=self.point_size, label=direction, zorder=5,
+                )
+                self.plot_objects[direction] = self.plot_obj_tuple(scatter=sc, line=None, trendline=None)
+            else:
+                self.ax.errorbar(
+                    self.x_data,
+                    y_mean,
+                    yerr=y_err,
+                    fmt=markers[i % len(markers)],
+                    linestyle="-",
+                    capsize=4,
+                    label=direction,
+                )
+
     def _plot_scatter(self, x, y, c, cmap, add_line, label, marker):
         # Use universal colour scheme if color data is present
         if c is not None:
@@ -1938,7 +2089,7 @@ class PlottingDialog(QDialog):
             "c": c,
             "cmap": cmap,
             "s": self.point_size,
-            "label": label if self.plot_type != "Growth Rates" else None,
+            "label": label if (self.plot_type != "Growth Rates" or bool(self.variable and self.variable != "None")) else None,
             "marker": marker,
         }
 
@@ -1987,7 +2138,6 @@ class PlottingDialog(QDialog):
         """Plot a dendrogram clustering interactions by their correlation profiles across selected metrics."""
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import pdist
-        import numpy as np
 
         if self.df is None:
             logger.warning("Hierarchical clustering requires DataFrame data")
@@ -2150,17 +2300,18 @@ class PlottingDialog(QDialog):
         self.ax.set_yticklabels([f"{pivot_table.index[i]:.2f}" for i in y_tick_indices])
 
         # Add colorbar
+        effective_cbar_label = str(self.custom_cbar_label or self.c_label) or "Value"
         if self.cbar is None:
             self.cbar = self.figure.colorbar(im, ax=self.ax)
-            self.cbar.set_label(self.c_label if self.c_label else "Value")
+            self.cbar.set_label(effective_cbar_label)
         else:
             self.cbar.update_normal(im)
-            self.cbar.set_label(self.c_label if self.c_label else "Value")
+            self.cbar.set_label(effective_cbar_label)
 
         # Set labels and title
-        self.ax.set_xlabel(self.x_label)
-        self.ax.set_ylabel(self.y_label)
-        self.ax.set_title(self.title)
+        self.ax.set_xlabel(str(self.custom_xlabel or self.x_label))
+        self.ax.set_ylabel(str(self.custom_ylabel or self.y_label))
+        self.ax.set_title(self.custom_title if self.custom_title else self.title)
 
         if self.grid:
             self.ax.grid(True, color="white", linewidth=0.5)

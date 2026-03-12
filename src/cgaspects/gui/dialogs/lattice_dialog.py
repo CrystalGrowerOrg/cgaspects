@@ -92,7 +92,7 @@ class LatticeParametersDialog(QDialog):
         self.file_path_edit.setPlaceholderText("Path to CIF or CrystalGrower Structure File...")
         self.file_path_edit.setReadOnly(True)
 
-        self.browse_button = QPushButton("Browse...")
+        self.browse_button = QPushButton("Browse")
         self.browse_button.clicked.connect(self.browse_file)
 
         file_button_layout.addWidget(self.file_path_edit)

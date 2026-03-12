@@ -55,7 +55,7 @@ class TestPlottingDialog(unittest.TestCase):
         self.assertIsNone(dialog.custom_x)
         self.assertEqual(dialog.custom_y, [])
         self.assertEqual(dialog.custom_c, "None")
-        self.assertEqual(dialog.title, "")
+        self.assertEqual(dialog.title, "Heatmap")
 
         # Test if widgets are created
         # self.assertIsNotNone(dialog.findChild())
