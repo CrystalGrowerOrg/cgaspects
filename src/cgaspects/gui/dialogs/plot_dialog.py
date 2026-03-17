@@ -2333,14 +2333,26 @@ class PlottingDialog(QDialog):
     def _handle_plot_checkboxes(self, checkbox):
         if checkbox.isChecked():
             if checkbox == self.checkbox_zingg:
+                self.checkbox_corr_mat.blockSignals(True)
+                self.checkbox_cluster_mat.blockSignals(True)
                 self.checkbox_corr_mat.setChecked(False)
                 self.checkbox_cluster_mat.setChecked(False)
+                self.checkbox_corr_mat.blockSignals(False)
+                self.checkbox_cluster_mat.blockSignals(False)
             elif checkbox == self.checkbox_corr_mat:
+                self.checkbox_zingg.blockSignals(True)
+                self.checkbox_cluster_mat.blockSignals(True)
                 self.checkbox_zingg.setChecked(False)
                 self.checkbox_cluster_mat.setChecked(False)
+                self.checkbox_zingg.blockSignals(False)
+                self.checkbox_cluster_mat.blockSignals(False)
             elif checkbox == self.checkbox_cluster_mat:
+                self.checkbox_zingg.blockSignals(True)
+                self.checkbox_corr_mat.blockSignals(True)
                 self.checkbox_zingg.setChecked(False)
                 self.checkbox_corr_mat.setChecked(False)
+                self.checkbox_zingg.blockSignals(False)
+                self.checkbox_corr_mat.blockSignals(False)
                 self._update_axes_for_clustering()
         else:
             if checkbox == self.checkbox_cluster_mat:

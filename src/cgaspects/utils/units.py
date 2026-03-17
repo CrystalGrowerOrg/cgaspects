@@ -2,9 +2,10 @@
 
 Supported conversions
 ---------------------
-Length  : Å  ↔  pm / nm / µm / mm / cm / m
-Energy  : kcal/mol  ↔  kJ/mol / eV
-Special : kcal/mol  ↔  σ  (non-linear, uses chemical-potential relation)
+Length      : Å / pm / nm / µm / mm / cm / m  (all pairwise)
+Energy      : kcal/mol / kJ/mol / eV  (all pairwise)
+Special     : kcal/mol / kJ/mol / eV  ↔  σ  (non-linear, chemical-potential)
+Temperature : °C / K / °F  (all pairwise)
 
 All conversions are bidirectional — reverse conversions are registered automatically.
 """
@@ -182,37 +183,71 @@ def _register(
 # Build the registry
 # ---------------------------------------------------------------------------
 
-# --- Length: Angstrom ↔ other metric lengths ---
-_ANGSTROM_FACTORS: dict[str, float] = {
-    "pm": 100.0,
-    "nm": 0.1,
-    "µm": 1e-4,
-    "mm": 1e-7,
-    "cm": 1e-8,
-    "m":  1e-10,
+# --- Length: all metric length units, fully pairwise ---
+# Values are the unit expressed in metres.
+_LENGTH_IN_METRES: dict[str, float] = {
+    "Å":  1e-10,
+    "pm": 1e-12,
+    "nm": 1e-9,
+    "µm": 1e-6,
+    "mm": 1e-3,
+    "cm": 1e-2,
+    "m":  1.0,
 }
-for _to_unit, _factor in _ANGSTROM_FACTORS.items():
-    _f = _factor  # capture
-    _register("Å", _to_unit, lambda x, f=_f: x * f, factor=_f)
+for _from_u, _from_m in _LENGTH_IN_METRES.items():
+    for _to_u, _to_m in _LENGTH_IN_METRES.items():
+        if _from_u != _to_u:
+            _f = _to_m / _from_m
+            _REGISTRY[(_from_u, _to_u)] = UnitConversion(
+                _from_u, _to_u, lambda x, f=_f: x * f
+            )
 
-# --- Energy: kcal/mol → kJ/mol ---
-_register(
-    "kcal/mol", "kJ/mol",
-    fn=lambda x: x * 4.184,
-    factor=4.184,
-)
+# --- Energy: kcal/mol / kJ/mol / eV, fully pairwise ---
+# Values are the unit expressed in kJ/mol.
+_ENERGY_IN_KJ: dict[str, float] = {
+    "kcal/mol": 4.184,
+    "kJ/mol":   1.0,
+    "eV":       96.485,
+}
+for _from_u, _from_kj in _ENERGY_IN_KJ.items():
+    for _to_u, _to_kj in _ENERGY_IN_KJ.items():
+        if _from_u != _to_u:
+            _f = _to_kj / _from_kj
+            _REGISTRY[(_from_u, _to_u)] = UnitConversion(
+                _from_u, _to_u, lambda x, f=_f: x * f
+            )
 
-# --- Energy: kcal/mol → eV ---
-_EV_FACTOR = 4.184 / 96.485  # ≈ 0.04336 eV per kcal/mol
-_register(
-    "kcal/mol", "eV",
-    fn=lambda x: x * _EV_FACTOR,
-    factor=_EV_FACTOR,
-)
-
-# --- Special: kcal/mol ↔ σ (non-linear) ---
+# --- Special: energy units ↔ σ (non-linear, via chemical-potential relation) ---
 _register(
     "kcal/mol", "σ",
     fn=lambda x: dmu_to_supersaturation(x, unit="kcal"),
     reverse_fn=lambda x: supersaturation_to_dmu(x, unit="kcal"),
+)
+_register(
+    "kJ/mol", "σ",
+    fn=lambda x: dmu_to_supersaturation(x, unit="kJ"),
+    reverse_fn=lambda x: supersaturation_to_dmu(x, unit="kJ"),
+)
+_KJ_PER_EV = 96.485
+_register(
+    "eV", "σ",
+    fn=lambda x: dmu_to_supersaturation(x * _KJ_PER_EV, unit="kJ"),
+    reverse_fn=lambda x: supersaturation_to_dmu(x, unit="kJ") / _KJ_PER_EV,
+)
+
+# --- Temperature: °C / K / °F, fully pairwise ---
+_register(
+    "°C", "K",
+    fn=lambda x: x + 273.15,
+    reverse_fn=lambda x: x - 273.15,
+)
+_register(
+    "°C", "°F",
+    fn=lambda x: x * 9 / 5 + 32,
+    reverse_fn=lambda x: (x - 32) * 5 / 9,
+)
+_register(
+    "K", "°F",
+    fn=lambda x: (x - 273.15) * 9 / 5 + 32,
+    reverse_fn=lambda x: (x - 32) * 5 / 9 + 273.15,
 )
