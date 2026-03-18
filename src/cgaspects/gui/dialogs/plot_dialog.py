@@ -1,10 +1,13 @@
 import logging
 import sys
 from itertools import permutations
+import warnings
 
 import matplotlib
 import numpy as np
 import pandas as pd
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import pdist
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
@@ -20,6 +23,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QSlider,
     QSpinBox,
     QSplitter,
     QVBoxLayout,
@@ -122,6 +126,7 @@ class PlottingDialog(QDialog):
 
         self.x_data = None
         self.y_data = None
+        self.z_data = None
         self.gr_y_err = None
         self.c_data = None
         self.c_name = None
@@ -282,20 +287,25 @@ class PlottingDialog(QDialog):
         logger.info("Default plot types found: %s", self.plot_types)
         logger.info("Directions found: %s", self.directions)
 
+        # Add 4D mode when there are enough numeric columns
+        if self.df is not None and len(self.df.select_dtypes(include="number").columns) >= 3:
+            self.plot_types.append("4D")
+
         self.plot_types.append("Heatmap")
         self.plot_types.append("Custom")
         self.updatePlotWidgets()
 
-        # Set default plot type: prioritize Site Analysis, otherwise use first available plot type
+        # Set default plot type: prioritize Site Analysis, then cluster data, otherwise index 0
         # Block signals to prevent trigger_plot being called during this default selection
         self.plot_types_combobox.blockSignals(True)
         if self.site_analysis_data is not None:
-            # For site analysis, default to "Site Analysis" mode
             site_analysis_index = self.plot_types_combobox.findText("Site Analysis")
             if site_analysis_index >= 0:
                 self.plot_types_combobox.setCurrentIndex(site_analysis_index)
-        # For all other cases, the first plot type (index 0) is already selected by default
-        # (e.g., Zingg, CDA, SA:Vol Ratio, or Custom if no specific plot types were found)
+        elif self.df is not None and "global_n_clusters" in self.df.columns:
+            heatmap_index = self.plot_types_combobox.findText("Heatmap")
+            if heatmap_index >= 0:
+                self.plot_types_combobox.setCurrentIndex(heatmap_index)
         self.plot_types_combobox.blockSignals(False)
 
     def updatePlotWidgets(self):
@@ -379,6 +389,9 @@ class PlottingDialog(QDialog):
         self.button_smooth_data.setToolTip("Apply smoothing, interpolation, and extrapolation to growth rate data")
         self.button_smooth_data.hide()  # Hidden by default, only shown in Growth Rates mode
 
+        self.button_reset_layout = QPushButton("Reset Layout")
+        self.button_reset_layout.setToolTip("Reset the figure layout (useful after switching to/from 4D mode)")
+
         self.button_group_data = QPushButton("Group")
         self.button_group_data.setToolTip(
             "Group growth rates by X-Axis variable, averaging across all other variables with error bars"
@@ -442,6 +455,7 @@ class PlottingDialog(QDialog):
         )
         self.checkbox_hide_bulk.stateChanged.connect(self.trigger_plot)
         self.button_add_trendline.clicked.connect(self.toggle_trendline)
+        self.button_reset_layout.clicked.connect(self._reset_figure_layout)
         self.spin_point_size.valueChanged.connect(self.set_point_size)
         self.plot_types_combobox.currentIndexChanged.connect(self.trigger_plot)
 
@@ -462,6 +476,33 @@ class PlottingDialog(QDialog):
         self.time_series_widget.time_point_changed.connect(self.trigger_plot)
         self.time_series_widget.plotting_mode_changed.connect(self.trigger_plot)
         self.time_series_widget.file_prefix_changed.connect(self._on_file_prefix_changed)
+
+        # Axis inversion checkboxes (all modes)
+        self.checkbox_invert_x = QCheckBox("Invert X")
+        self.checkbox_invert_y = QCheckBox("Invert Y")
+        self.checkbox_invert_z = QCheckBox("Invert Z")
+        self.checkbox_invert_z.setEnabled(False)
+        self.checkbox_invert_x.stateChanged.connect(self.trigger_plot)
+        self.checkbox_invert_y.stateChanged.connect(self.trigger_plot)
+        self.checkbox_invert_z.stateChanged.connect(self.trigger_plot)
+
+        # View angle sliders for 4D mode (hidden by default)
+        self.label_elev = QLabel("Elev:")
+        self.slider_elev = QSlider(QtCore.Qt.Horizontal)
+        self.slider_elev.setRange(0, 90)
+        self.slider_elev.setValue(35)
+        self.slider_elev.setToolTip("Elevation angle for 3D view")
+        self.label_azim = QLabel("Azim:")
+        self.slider_azim = QSlider(QtCore.Qt.Horizontal)
+        self.slider_azim.setRange(0, 360)
+        self.slider_azim.setValue(135)
+        self.slider_azim.setToolTip("Azimuth angle for 3D view")
+        self.label_elev.hide()
+        self.slider_elev.hide()
+        self.label_azim.hide()
+        self.slider_azim.hide()
+        self.slider_elev.valueChanged.connect(self.trigger_plot)
+        self.slider_azim.valueChanged.connect(self.trigger_plot)
 
     def create_layout(self):
         main_layout = QVBoxLayout()
@@ -510,17 +551,30 @@ class PlottingDialog(QDialog):
         hbox2.addWidget(self.button_smooth_data, 1)
         hbox2.addWidget(self.button_group_data, 1)
         hbox2.addWidget(self.button_add_trendline, 1)
+        hbox2.addWidget(self.button_reset_layout, 1)
         hbox2.addStretch(2)
         hbox2.addWidget(self.checkbox_zingg)
         hbox2.addWidget(self.checkbox_corr_mat)
         hbox2.addWidget(self.checkbox_cluster_mat)
         hbox2.addWidget(self.checkbox_hide_bulk)
+        hbox2.addWidget(self.checkbox_invert_x)
+        hbox2.addWidget(self.checkbox_invert_y)
+        hbox2.addWidget(self.checkbox_invert_z)
         grid1.addLayout(hbox2, 1, 0, 1, 9)
 
         grid1.addWidget(self.custom_plot_widget, 2, 0, 1, 9)
 
         # Add time-series widget (for Site Analysis mode)
         grid1.addWidget(self.time_series_widget, 3, 0, 1, 9)
+
+        # View angle sliders for 4D mode
+        hbox_sliders = QHBoxLayout()
+        hbox_sliders.addWidget(self.label_elev)
+        hbox_sliders.addWidget(self.slider_elev)
+        hbox_sliders.addWidget(self.label_azim)
+        hbox_sliders.addWidget(self.slider_azim)
+        self._sliders_layout = hbox_sliders
+        grid1.addLayout(hbox_sliders, 4, 0, 1, 9)
 
         # Set alignment to right for labels only
         for i in range(grid1.rowCount()):
@@ -695,9 +749,99 @@ class PlottingDialog(QDialog):
             self.custom_plot_widget.yAxisListWidget_single.hide()
             self.time_series_widget.hide()
 
+        elif mode == "4D":
+            self.plot_permutations_label.setEnabled(False)
+            self.plot_permutations_combobox.setEnabled(False)
+            self.plot_permutations_combobox.setCurrentIndex(0)
+            # variables_combobox is the colour/4th dimension — populate with numeric df columns.
+            # Preserve the current selection so repeated change_mode calls don't reset it.
+            current_color = self.variables_combobox.currentText()
+            self.variables_combobox.blockSignals(True)
+            self.variables_combobox.clear()
+            if self.df is not None:
+                numeric_cols = list(self.df.select_dtypes(include="number").columns)
+                self.variables_combobox.addItems(["None"] + numeric_cols)
+            else:
+                self.variables_combobox.addItems(["None"])
+            restored = self.variables_combobox.findText(current_color)
+            self.variables_combobox.setCurrentIndex(max(restored, 0))
+            self.variables_combobox.blockSignals(False)
+            self.variables_label.setText("Color By:")
+            self.variables_label.setEnabled(True)
+            self.variables_combobox.setEnabled(True)
+            self.custom_plot_widget.show()
+
+            self.checkbox_corr_mat.setEnabled(False)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_zingg.setEnabled(False)
+            self.checkbox_zingg.setChecked(False)
+            self.checkbox_cluster_mat.setEnabled(False)
+            self.checkbox_cluster_mat.setChecked(False)
+            self.checkbox_hide_bulk.hide()
+            # Enable Z inversion only in 4D mode
+            self.checkbox_invert_z.setEnabled(True)
+
+            self.button_filter_data.setEnabled(True)
+            self.time_series_widget.hide()
+
+            # Y-axis single selection; color widget becomes Z-axis
+            self.custom_plot_widget.yAxisListWidget.hide()
+            self.custom_plot_widget.yAxisListWidget_single.show()
+            self.custom_plot_widget.y_axis_label.setText("Y-axis (select one)")
+            self.custom_plot_widget.color_label.setText("Z-axis (select one)")
+
+            # Show view-angle sliders
+            self.label_elev.show()
+            self.slider_elev.show()
+            self.label_azim.show()
+            self.slider_azim.show()
+
+        elif mode in ("SA:Vol Ratio", "Zingg"):
+            self.plot_permutations_label.setEnabled(True)
+            self.plot_permutations_combobox.setEnabled(True)
+            # Populate variables_combobox with numeric df columns for colour-by
+            current_var = self.variables_combobox.currentText()
+            self.variables_combobox.blockSignals(True)
+            self.variables_combobox.clear()
+            if self.df is not None:
+                numeric_cols = list(self.df.select_dtypes(include="number").columns)
+                self.variables_combobox.addItems(["None"] + numeric_cols)
+            else:
+                self.variables_combobox.addItems(["None"])
+            restored = self.variables_combobox.findText(current_var)
+            self.variables_combobox.setCurrentIndex(max(restored, 0))
+            self.variables_combobox.blockSignals(False)
+            self.variables_label.setText("Color By:")
+            self.variables_label.setEnabled(True)
+            self.variables_combobox.setEnabled(True)
+            self.custom_plot_widget.hide()
+            self.checkbox_zingg.setEnabled(True)
+            self.checkbox_zingg.setChecked(False)
+            self.checkbox_corr_mat.setEnabled(True)
+            self.checkbox_corr_mat.setChecked(False)
+            self.checkbox_corr_mat.hide()
+            self.checkbox_zingg.hide()
+            self.checkbox_cluster_mat.setEnabled(True)
+            self.checkbox_cluster_mat.setChecked(False)
+            self.checkbox_cluster_mat.hide()
+            self.button_filter_data.setEnabled(True)
+            self.checkbox_hide_bulk.hide()
+            self.custom_plot_widget.yAxisListWidget.show()
+            self.custom_plot_widget.yAxisListWidget_single.hide()
+            self.time_series_widget.hide()
+
         else:
             self.plot_permutations_label.setEnabled(True)
             self.plot_permutations_combobox.setEnabled(True)
+            # Restore variables_combobox to interaction columns when leaving 4D
+            self.variables_combobox.blockSignals(True)
+            self.variables_combobox.clear()
+            if self.site_analysis_data is not None:
+                self.variables_combobox.addItems(self.site_analysis_columns)
+            else:
+                self.variables_combobox.addItems(self.interaction_columns)
+            self.variables_combobox.blockSignals(False)
+            self.variables_label.setText("Variable: ")
             self.variables_label.setEnabled(True)
             self.variables_combobox.setEnabled(True)
             self.custom_plot_widget.hide()
@@ -721,6 +865,15 @@ class PlottingDialog(QDialog):
 
             # Hide time-series widget
             self.time_series_widget.hide()
+
+        # Hide view-angle sliders and disable Z-inversion for all non-4D modes
+        if mode != "4D":
+            self.label_elev.hide()
+            self.slider_elev.hide()
+            self.label_azim.hide()
+            self.slider_azim.hide()
+            self.checkbox_invert_z.setEnabled(False)
+            self.checkbox_invert_z.setChecked(False)
 
     def _update_hide_bulk_visibility(self):
         """Update the visibility of the Hide Bulk Site checkbox based on plotting mode and permutation."""
@@ -1557,7 +1710,23 @@ class PlottingDialog(QDialog):
                 except KeyError as exc:
                     logger.warning("X and Y data not been set, invalid axis title!\n%s", exc)
 
-        if self.plot_type != "Heatmap":
+        if self.plot_type == "4D":
+            self.x_data = None
+            self.y_data = None
+            self.z_data = None
+            if self.df is not None:
+                try:
+                    if self.custom_x:
+                        self.x_data = self.df[self.custom_x]
+                    if self.custom_y and len(self.custom_y) > 0:
+                        self.y_data = self.df[self.custom_y[0]]
+                    # Z axis comes from the color widget (repurposed)
+                    if self.custom_c and self.custom_c != "None":
+                        self.z_data = self.df[self.custom_c]
+                except KeyError as exc:
+                    logger.warning("4D data axis error: %s", exc)
+
+        if self.plot_type not in ("Heatmap", "4D"):
             self.y_data = self._ensure_pd_series(self.y_data)
 
     def _mask_with_permutation(self):
@@ -1796,6 +1965,12 @@ class PlottingDialog(QDialog):
                 self.c_data = self.df["Frame Index"]
                 self.c_name = "Frame Index"
                 self.custom_c = "Frame Index"
+        elif self.plot_type == "4D":
+            # custom_c holds the Z axis column — must NOT be cleared here.
+            # variable drives the colour (4th) dimension.
+            if self.variable != "None" and self.variable and self.df is not None and self.variable in self.df.columns:
+                self.c_data = self.df[self.variable]
+                self.c_name = self.variable
         elif self.plot_type != "Custom":
             self.custom_c = "None"
             if self.variable != "None" and self.variable:
@@ -1850,7 +2025,11 @@ class PlottingDialog(QDialog):
             self.point_size,
         )
         self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
+        if self.plot_type == "4D":
+            from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+            self.ax = self.figure.add_subplot(111, projection="3d")
+        else:
+            self.ax = self.figure.add_subplot(111)
         self.ax.clear()
         self.canvas.draw()
 
@@ -1863,21 +2042,41 @@ class PlottingDialog(QDialog):
         else:
             self.ax.grid(False)
 
-        self.annot = self.ax.annotate(
-            "",
-            xy=(-1, -1),
-            xytext=(-20, 20),
-            textcoords="offset points",
-            ha="center",
-            bbox=dict(boxstyle="round", fc="w"),
-            arrowprops=dict(arrowstyle="->"),
-            zorder=20,
-        )
-        self.annot.set_visible(False)
+        if self.plot_type != "4D":
+            self.annot = self.ax.annotate(
+                "",
+                xy=(-1, -1),
+                xytext=(-20, 20),
+                textcoords="offset points",
+                ha="center",
+                bbox=dict(boxstyle="round", fc="w"),
+                arrowprops=dict(arrowstyle="->"),
+                zorder=20,
+            )
+            self.annot.set_visible(False)
+        else:
+            self.annot = None
 
         # Hierarchical clustering — renders its own figure layout
         if self.cluster_mat:
             self._plot_hierarchical_clustering()
+            self.canvas.draw()
+            return
+
+        # Handle 4D plot type — 3D scatter with colour dimension
+        if self.plot_type == "4D":
+            if self.x_data is None or self.y_data is None or self.z_data is None:
+                logger.warning("4D mode requires X, Y, and Z axis data to be selected.")
+                self.canvas.draw()
+                return
+            self._plot_4d()
+            # Apply axis inversions for 4D
+            if self.checkbox_invert_x.isChecked():
+                self.ax.invert_xaxis()
+            if self.checkbox_invert_y.isChecked():
+                self.ax.invert_yaxis()
+            if self.checkbox_invert_z.isChecked():
+                self.ax.invert_zaxis()
             self.canvas.draw()
             return
 
@@ -1980,6 +2179,12 @@ class PlottingDialog(QDialog):
             if self.variable == "filter":
                 self.cbar.set_ticks([0, 1])
                 self.cbar.set_ticklabels(['Unfiltered', 'Filtered'])
+
+        # Apply 2D axis inversions (all non-4D modes)
+        if self.checkbox_invert_x.isChecked():
+            self.ax.invert_xaxis()
+        if self.checkbox_invert_y.isChecked():
+            self.ax.invert_yaxis()
 
         self.canvas.draw()
 
@@ -2136,8 +2341,6 @@ class PlottingDialog(QDialog):
 
     def _plot_hierarchical_clustering(self):
         """Plot a dendrogram clustering interactions by their correlation profiles across selected metrics."""
-        from scipy.cluster import hierarchy
-        from scipy.spatial.distance import pdist
 
         if self.df is None:
             logger.warning("Hierarchical clustering requires DataFrame data")
@@ -2280,7 +2483,7 @@ class PlottingDialog(QDialog):
             return
 
         # Plot heatmap using imshow
-        im = self.ax.imshow(pivot_table, cmap="viridis", aspect="auto", origin="lower")
+        im = self.ax.imshow(pivot_table, cmap=self.cmap, aspect="auto", origin="lower")
 
         # Set ticks and labels
         x_ticks = np.arange(len(pivot_table.columns))
@@ -2320,6 +2523,55 @@ class PlottingDialog(QDialog):
         self.figure.tight_layout()
 
         return im
+
+    def _plot_4d(self):
+        """Plot a 3D scatter coloured by a 4th dimension (variables_combobox)."""
+        x = np.asarray(self.x_data, dtype=float)
+        y = np.asarray(self.y_data, dtype=float)
+        z = np.asarray(self.z_data, dtype=float)
+
+        # Colour by 4th variable (from variables_combobox) or fall back to Z values
+        c_col = self.variable if self.variable and self.variable != "None" else None
+        if c_col and self.df is not None and c_col in self.df.columns:
+            c = np.asarray(self.df[c_col], dtype=float)
+            c_label = c_col
+        else:
+            c = z
+            c_label = self.custom_c if self.custom_c else "Z"
+
+        # Mask NaN rows
+        mask = np.isfinite(x) & np.isfinite(y) & np.isfinite(z) & np.isfinite(c)
+        x, y, z, c = x[mask], y[mask], z[mask], c[mask]
+
+        cmap = self.cmap_combobox.currentText() if hasattr(self, "cmap_combobox") else "viridis"
+
+        sc = self.ax.scatter(x, y, z, c=c, cmap=cmap, s=self.point_size, depthshade=True)
+        self.figure.colorbar(sc, ax=self.ax, label=c_label, shrink=0.6)
+
+        x_label = self.custom_x or "X"
+        y_label = self.custom_y[0] if self.custom_y else "Y"
+        z_label = self.custom_c or "Z"
+        self.ax.set_xlabel(str(self.custom_xlabel or x_label))
+        self.ax.set_ylabel(str(self.custom_ylabel or y_label))
+        self.ax.set_zlabel(z_label)
+        self.ax.set_title(self.custom_title if self.custom_title else "4D Plot")
+
+        self.ax.view_init(
+            elev=self.slider_elev.value(),
+            azim=self.slider_azim.value(),
+        )
+
+        if self.grid:
+            self.ax.grid(True)
+
+        # tight_layout is unreliable with 3D axes — suppress the warning
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            try:
+                self.figure.tight_layout()
+            except Exception:
+                pass
 
     def _set_legend(self):
         # Create a legend
@@ -2543,6 +2795,7 @@ class PlottingDialog(QDialog):
         self.annot.get_bbox_patch().set_alpha(0.4)
 
     def on_hover(self, event):
+        vis = False
         if self.annot:
             vis = self.annot.get_visible()
         try:
@@ -2562,14 +2815,15 @@ class PlottingDialog(QDialog):
                         self.c_name,
                         ind,
                     )
-                    self.annot.set_visible(True)
+                    if self.annot is not None:
+                        self.annot.set_visible(True)
                     self.figure.canvas.draw_idle()
 
             for plot in self.plot_objects.values():
                 handle_hover(scatter=plot.scatter)
 
             # Hide annotation if no scatter plot contains the event
-            if not cont and vis:
+            if not cont and vis and self.annot is not None:
                 self.annot.set_visible(False)
                 self.figure.canvas.draw_idle()
 
@@ -2659,6 +2913,17 @@ class PlottingDialog(QDialog):
         else:
             # For other plot types, you could add similar deselection logic if needed
             logger.debug("Whitespace click in non-site-analysis mode")
+
+    def _reset_figure_layout(self):
+        """Reset the figure layout. Useful after switching between 4D (3D axes) and 2D modes."""
+        self.figure.set_layout_engine(None)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            try:
+                self.figure.tight_layout()
+            except Exception:
+                pass
+        self.canvas.draw()
 
     def toggle_trendline(self):
         logger.info(self.trendline_text)

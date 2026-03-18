@@ -247,7 +247,8 @@ class LabelledDoubleSlider(QWidget):
         return (self.maximum - self.minimum) / self.steps
 
     def setValue(self, value):
-        self.slider.setValue(value)
+        slider_pos = round((value - self.minimum) / self.step)
+        self.slider.setValue(int(max(0, min(self.steps, slider_pos))))
 
     @property
     def value(self):

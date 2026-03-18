@@ -61,6 +61,7 @@ def filter_xyz_files(crystal_xyz_list):
     suffixes = natsorted(suffixes)
 
     if len(suffixes) == 1:
+
         return [
             f
             for f in crystal_xyz_list
@@ -278,6 +279,7 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
 
     int_cols = summary_cols[1:]
     summary_df = summary_df.set_index(summary_cols[0])
+    summary_df.index = summary_df.index.astype(str)
     compare_array = np.empty((0, len(aspect_cols) + len(int_cols)))
 
     for _, row in aspect_df.iterrows():
@@ -293,6 +295,11 @@ def summary_compare(summary_csv, aspect_csv=False, aspect_df=""):
         aspect_row = row.values
         aspect_row = np.array([aspect_row])
         collect_row = summary_df.filter(items=[num_string], axis=0).values
+        if collect_row.shape[0] == 0:
+            raise ValueError(
+                f"Simulation '{num_string}' was not found in the summary file. "
+                "The summary file may not match the current dataset."
+            )
         collect_row = np.concatenate([aspect_row, collect_row], axis=1)
         compare_array = np.append(compare_array, collect_row, axis=0)
 

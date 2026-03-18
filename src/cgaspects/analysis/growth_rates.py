@@ -118,6 +118,8 @@ class GrowthRate:
             
             self.worker.signals.progress.connect(self.update_progress, Qt.QueuedConnection)
             self.worker.signals.result.connect(self.plot, Qt.QueuedConnection)
+            self.worker.signals.cancelled.connect(self.signals.finished.emit, Qt.QueuedConnection)
+            self.worker.signals.error.connect(self.signals.error.emit, Qt.QueuedConnection)
             self.signals.started.emit()
             self.threadpool.start(self.worker)
 

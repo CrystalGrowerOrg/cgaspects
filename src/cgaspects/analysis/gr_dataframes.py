@@ -53,6 +53,12 @@ def build_growthrates(
     if n_size_files == 0:
         return None
 
+    if len(supersat_list) != n_size_files:
+        raise ValueError(
+            f"supersat_list length ({len(supersat_list)}) does not match "
+            f"size_file_list length ({n_size_files})"
+        )
+
     logger.info("%s size files used to calculate growth rate data", n_size_files)
     logger.info("X-axis mode: %s", xaxis_mode)
     logger.info("Directions: %s", directions)
@@ -70,6 +76,10 @@ def build_growthrates(
         kept_supersats = []
 
         for i, f in enumerate(size_file_list):
+            if signals is not None and signals.cancel_flag.is_set():
+                logger.info("Growth rate analysis cancelled after %d / %d files.", i, n_size_files)
+                signals.cancelled.emit()
+                return None
             f = Path(f)
             lt_df = pd.read_csv(f, encoding="utf-8", encoding_errors="replace")
 

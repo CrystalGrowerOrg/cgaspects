@@ -31,6 +31,7 @@ class TestBuildGrowthrates(unittest.TestCase):
         supersat_list = [1.0, 1.5]
         directions = [" 0 0 1"]
         mock_signal = MagicMock(spec=WorkerSignals)
+        mock_signal.cancel_flag.is_set.return_value = False
         build_growthrates(
             size_file_list, supersat_list, directions, signals=mock_signal
         )

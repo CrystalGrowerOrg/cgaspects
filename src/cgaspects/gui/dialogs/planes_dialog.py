@@ -38,7 +38,8 @@ class PlanesDialog(QDialog):
     planesCleared = Signal()
     computePlaneFromSelection = Signal()  # Emitted when user confirms plane-from-points
     addDirectionRequested = Signal(object)  # Emits a DirectionData to add to the directions dialog
-    movePlaneAlongNormalRequested = Signal(int)  # Emits the row index of the selected plane
+    planeSelected = Signal(int)  # Emits the row index when a plane is selected for editing
+    planeNormalSliderMoved = Signal(int, int)  # Emits (row, slider_value) when move slider changes
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -257,8 +258,15 @@ class PlanesDialog(QDialog):
             "Unchecked: show points on the positive-normal side only (0 to thickness)."
         )
         self._slice_two_sided_check.stateChanged.connect(self._on_slice_settings_changed)
+        self._plane_visible_check = QCheckBox("Show Plane")
+        self._plane_visible_check.setChecked(True)
+        self._plane_visible_check.setToolTip(
+            "Hide or show the plane polygon (slice filter stays active)"
+        )
+        self._plane_visible_check.stateChanged.connect(self._toggle_plane_visibility)
         slice_row1.addWidget(self._slice_enable_check)
         slice_row1.addWidget(self._slice_two_sided_check)
+        slice_row1.addWidget(self._plane_visible_check)
         slice_row1.addStretch()
         slice_outer.addLayout(slice_row1)
 
@@ -277,21 +285,19 @@ class PlanesDialog(QDialog):
         slice_row2.addStretch()
         slice_outer.addLayout(slice_row2)
 
-        # Row 3: hide/show + move along normal
+        # Row 3: move along normal slider (always present)
         slice_row3 = QHBoxLayout()
-        self._plane_visible_btn = QPushButton("Hide Plane")
-        self._plane_visible_btn.setToolTip(
-            "Hide or show the plane polygon (slice filter stays active)"
-        )
-        self._plane_visible_btn.clicked.connect(self._toggle_plane_visibility)
-        self._move_normal_btn = QPushButton("Move Along Normal…")
-        self._move_normal_btn.setToolTip(
+        slice_row3.addWidget(QLabel("Move:"))
+        self._move_normal_slider = QSlider(Qt.Horizontal)
+        self._move_normal_slider.setRange(0, 2000)
+        self._move_normal_slider.setValue(1000)
+        self._move_normal_slider.setToolTip(
             "Slide this plane along its normal between the two extremes of the crystal"
         )
-        self._move_normal_btn.clicked.connect(self._request_move_along_normal)
-        slice_row3.addWidget(self._plane_visible_btn)
-        slice_row3.addWidget(self._move_normal_btn)
-        slice_row3.addStretch()
+        self._move_normal_slider.valueChanged.connect(self._on_move_normal_slider_changed)
+        self._move_normal_label = QLabel("d=-.---")
+        slice_row3.addWidget(self._move_normal_slider, 1)
+        slice_row3.addWidget(self._move_normal_label)
         slice_outer.addLayout(slice_row3)
 
         slice_group.setLayout(slice_outer)
@@ -480,6 +486,7 @@ class PlanesDialog(QDialog):
         self._status_label.setText(f"Editing plane {row}")
         self._load_slice_controls(p)
         self._set_controls_enabled(True)
+        self.planeSelected.emit(row)
 
     def _update_list_buttons_state(self):
         has = self._plane_list.count() > 0
@@ -505,8 +512,8 @@ class PlanesDialog(QDialog):
         self._slice_enable_check.setEnabled(enabled)
         self._slice_two_sided_check.setEnabled(enabled)
         self._slice_thickness_spin.setEnabled(enabled)
-        self._plane_visible_btn.setEnabled(enabled)
-        self._move_normal_btn.setEnabled(enabled)
+        self._plane_visible_check.setEnabled(enabled)
+        self._move_normal_slider.setEnabled(enabled)
 
     def _load_slice_controls(self, plane):
         """Update slicing widgets to reflect *plane*'s current settings (no signals)."""
@@ -525,7 +532,9 @@ class PlanesDialog(QDialog):
             self._slice_thickness_spin,
         ):
             widget.blockSignals(False)
-        self._plane_visible_btn.setText("Hide Plane" if plane.visible else "Show Plane")
+        self._plane_visible_check.blockSignals(True)
+        self._plane_visible_check.setChecked(plane.visible)
+        self._plane_visible_check.blockSignals(False)
 
     def _on_slice_settings_changed(self):
         """Write updated slice settings back to the currently-selected plane."""
@@ -547,17 +556,34 @@ class PlanesDialog(QDialog):
         if row < 0 or row >= len(self._planes):
             return
         p = self._planes[row]
-        updated = dataclasses.replace(p, visible=not p.visible)
+        updated = dataclasses.replace(p, visible=self._plane_visible_check.isChecked())
         self._planes[row] = updated
-        self._plane_visible_btn.setText("Hide Plane" if updated.visible else "Show Plane")
         self.planesChanged.emit(list(self._planes))
 
-    def _request_move_along_normal(self):
+    def configure_move_slider(self, d_min, d_max, current_d, steps=2000):
+        """Called by mainwindow to initialise the move-along-normal slider for the selected plane."""
+        self._move_slider_d_min = d_min
+        self._move_slider_d_max = d_max
+        self._move_slider_steps = steps
+        slider_range = d_max - d_min if d_max > d_min else 1.0
+        val = int((current_d - d_min) / slider_range * steps)
+        self._move_normal_slider.blockSignals(True)
+        self._move_normal_slider.setRange(0, steps)
+        self._move_normal_slider.setValue(max(0, min(steps, val)))
+        self._move_normal_slider.blockSignals(False)
+        self._move_normal_label.setText(f"d={current_d:.3f}")
+
+    def _on_move_normal_slider_changed(self, val):
         row = self._plane_list.currentRow()
-        if row < 0 or row >= len(self._planes):
-            self._status_label.setText("No plane selected")
+        if row < 0:
             return
-        self.movePlaneAlongNormalRequested.emit(row)
+        d_min = getattr(self, '_move_slider_d_min', 0.0)
+        d_max = getattr(self, '_move_slider_d_max', 1.0)
+        steps = getattr(self, '_move_slider_steps', 2000)
+        slider_range = d_max - d_min if d_max > d_min else 1.0
+        d = d_min + (val / steps) * slider_range
+        self._move_normal_label.setText(f"d={d:.3f}")
+        self.planeNormalSliderMoved.emit(row, val)
 
     def update_plane_origin_from_dialog(self, row, new_origin):
         """Called by mainwindow after the move-along-normal slider is adjusted."""

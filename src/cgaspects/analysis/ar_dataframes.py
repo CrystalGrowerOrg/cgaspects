@@ -238,6 +238,10 @@ def collect_all(folder: Path = None, xyz_files: list[Path] = None, signals=None)
     shape_analyser = ShapeAnalyser()
 
     for file in xyz_files:
+        if signals is not None and signals.cancel_flag.is_set():
+            LOG.info("Aspect ratio analysis cancelled after %d / %d files.", i - 1, n_xyzs)
+            signals.cancelled.emit()
+            return None
         try:
             sim_num = re.findall(r"\d+", file.name)[-1]
         except IndexError:

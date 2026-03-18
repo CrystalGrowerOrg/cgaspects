@@ -1,4 +1,6 @@
+import functools
 import logging
+import threading
 from pathlib import Path
 from typing import NamedTuple
 
@@ -39,24 +41,61 @@ class WorkerSignals(QObject):
 
     started = Signal()
     finished = Signal()
+    cancelled = Signal()
     error = Signal(tuple)
     result = Signal(object)
     location = Signal(object)
     progress = Signal(int)
     message = Signal(str)
 
+    cancel_flag = None  # set to threading.Event() in __init__; class-level attr keeps it in spec
 
-class WorkerXYZ(QRunnable):
-    def __init__(self, xyz):
-        super(WorkerXYZ, self).__init__()
-        # Store constructor arguments (re-used for processing)
-        self.xyz = xyz
+    def __init__(self):
+        super().__init__()
+        self.cancel_flag = threading.Event()
+
+
+class CancellableRunnable(QRunnable):
+    """QRunnable with a cooperative cancel flag stored on its WorkerSignals."""
+
+    def __init__(self):
+        super().__init__()
         self.signals = WorkerSignals()
+
+    def cancel(self):
+        self.signals.cancel_flag.set()
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self.signals.cancel_flag.is_set()
+
+
+def emit_error_on_exception(run_method):
+    """Decorator: catches unhandled exceptions in a worker's run() and emits signals.error."""
+    @functools.wraps(run_method)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return run_method(self, *args, **kwargs)
+        except Exception as e:
+            logger.error("%s error: %s", type(self).__name__, e, exc_info=True)
+            self.signals.error.emit((type(e), e, str(e)))
+            self.signals.finished.emit()
+    return wrapper
+
+
+class WorkerXYZ(CancellableRunnable):
+    def __init__(self, xyz):
+        super().__init__()
+        self.xyz = xyz
         self.analyser = ShapeAnalyser()
 
     @Slot()
     def run(self):
         shape_info = self.analyser.shape_info(self.xyz[:, 3:6])
+        if self.is_cancelled:
+            self.signals.cancelled.emit()
+            self.signals.finished.emit()
+            return
         if shape_info is None:
             self.signals.message.emit("Not enough points to calculate shape.")
             self.signals.result.emit(None)
@@ -68,7 +107,7 @@ class WorkerXYZ(QRunnable):
         self.signals.finished.emit()
 
 
-class WorkerAspectRatios(QRunnable):
+class WorkerAspectRatios(CancellableRunnable):
     def __init__(
         self,
         information: NamedTuple,
@@ -77,7 +116,7 @@ class WorkerAspectRatios(QRunnable):
         output_folder: Path,
         xyz_files: list[Path],
     ):
-        super(WorkerAspectRatios, self).__init__()
+        super().__init__()
         # Store constructor arguments (re-used for processing)
         self.input_folder = input_folder
         self.output_folder = output_folder
@@ -85,8 +124,8 @@ class WorkerAspectRatios(QRunnable):
         self.options = options
         self.xyz_files = xyz_files
         self.plotting_csv = None
-        self.signals = WorkerSignals()
 
+    @emit_error_on_exception
     def run(self):
         self.output_folder = create_aspects_folder(self.input_folder)
         self.signals.location.emit(self.output_folder)
@@ -108,6 +147,10 @@ class WorkerAspectRatios(QRunnable):
             xyz_df = collect_all(
                 folder=self.input_folder, xyz_files=self.xyz_files, signals=self.signals
             )
+            if xyz_df is None:
+                # cancelled signal already emitted from inside collect_all
+                self.signals.finished.emit()
+                return
             xyz_combine = xyz_df
             if summary_file:
                 xyz_df = summary_compare(summary_csv=summary_file, aspect_df=xyz_df)
@@ -150,6 +193,10 @@ class WorkerAspectRatios(QRunnable):
             zn_df.to_csv(zn_df_final_csv, index=None)
             logger.info("Plotting CSV created from: CDA")
             self.plotting_csv = zn_df_final_csv
+            if self.is_cancelled:
+                self.signals.cancelled.emit()
+                self.signals.finished.emit()
+                return
 
             if self.options.selected_ar and self.options.selected_cda:
                 combined_df = combine_xyz_cda(CDA_df=zn_df, XYZ_df=xyz_combine)
@@ -165,16 +212,15 @@ class WorkerAspectRatios(QRunnable):
         self.signals.result.emit(self.plotting_csv)
 
 
-class WorkerGrowthRates(QRunnable):
+class WorkerGrowthRates(CancellableRunnable):
     def __init__(self, information, selected_directions, xaxis_mode="auto", supersat_mode="native"):
-        super(WorkerGrowthRates, self).__init__()
+        super().__init__()
         self.information = information
         self.selected_directions = selected_directions
         self.xaxis_mode = xaxis_mode
         self.supersat_mode = supersat_mode
 
-        self.signals = WorkerSignals()
-
+    @emit_error_on_exception
     def run(self):
         growth_rate_df = build_growthrates(
             size_file_list=self.information.size_files,
@@ -185,6 +231,11 @@ class WorkerGrowthRates(QRunnable):
         )
 
         logger.debug("build_growthrates returned: %s, shape=%s", type(growth_rate_df), getattr(growth_rate_df, "shape", None))
+
+        if self.is_cancelled:
+            # cancelled signal already emitted from inside build_growthrates
+            self.signals.finished.emit()
+            return
 
         if growth_rate_df is not None and not growth_rate_df.empty:
             summary_file = self.information.summary_file
@@ -199,7 +250,7 @@ class WorkerGrowthRates(QRunnable):
         self.signals.result.emit(self.plotting_csv)
 
 
-class WorkerSiteAnalysis(QRunnable):
+class WorkerSiteAnalysis(CancellableRunnable):
     def __init__(
         self,
         input_folder: Path,
@@ -208,13 +259,12 @@ class WorkerSiteAnalysis(QRunnable):
         population_files: list[Path],
         count_files: list[Path],
     ):
-        super(WorkerSiteAnalysis, self).__init__()
+        super().__init__()
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.crystallisation_files = crystallisation_files
         self.population_files = population_files
         self.count_files = count_files
-        self.signals = WorkerSignals()
 
     def run(self):
         from .site_parser import (
@@ -242,6 +292,10 @@ class WorkerSiteAnalysis(QRunnable):
                     f"Parsing {len(self.crystallisation_files)} crystallisation event files"
                 )
                 for csv_path in self.crystallisation_files:
+                    if self.is_cancelled:
+                        self.signals.cancelled.emit()
+                        self.signals.finished.emit()
+                        return
                     try:
                         self.signals.message.emit(f"Parsing crystallisation file: {csv_path.name}")
                         result = parse_site_csv(csv_path)
@@ -258,6 +312,10 @@ class WorkerSiteAnalysis(QRunnable):
             if self.population_files:
                 logger.info(f"Parsing {len(self.population_files)} population files")
                 for csv_path in self.population_files:
+                    if self.is_cancelled:
+                        self.signals.cancelled.emit()
+                        self.signals.finished.emit()
+                        return
                     try:
                         self.signals.message.emit(f"Parsing population file: {csv_path.name}")
                         result = parse_site_csv(csv_path)
@@ -283,6 +341,10 @@ class WorkerSiteAnalysis(QRunnable):
                 logger.info(f"Parsing {len(self.count_files)} count files")
 
                 for count_file in self.count_files:
+                    if self.is_cancelled:
+                        self.signals.cancelled.emit()
+                        self.signals.finished.emit()
+                        return
                     try:
                         # Extract prefix from count file
                         count_filename = count_file.stem
@@ -320,6 +382,10 @@ class WorkerSiteAnalysis(QRunnable):
             self.signals.message.emit("Generating summaries...")
             self.signals.progress.emit(90)
             for prefix, result in merged_results.items():
+                if self.is_cancelled:
+                    self.signals.cancelled.emit()
+                    self.signals.finished.emit()
+                    return
                 summary = get_site_summary(result)
                 logger.debug(
                     f"{prefix}: {summary['total_sites']} sites, "
@@ -445,3 +511,48 @@ class WorkerSiteAnalysis(QRunnable):
             json.dump(serializable_results, f, indent=2)
 
         logger.info(f"Saved site analysis data to {output_path}")
+
+
+class WorkerClusters(CancellableRunnable):
+    def __init__(
+        self,
+        information,
+        options,
+        input_folder: Path,
+        output_folder: Path,
+        xyz_files: list[Path],
+    ):
+        super().__init__()
+        self.information = information
+        self.options = options
+        self.input_folder = input_folder
+        self.output_folder = output_folder
+        self.xyz_files = xyz_files
+
+    @emit_error_on_exception
+    def run(self):
+        from .cluster_analysis import run_cluster_analysis
+
+        if self.output_folder is None:
+            self.output_folder = create_aspects_folder(self.input_folder)
+        self.signals.location.emit(self.output_folder)
+        self.signals.progress.emit(1)
+        self.signals.message.emit(f"Starting cluster analysis on {len(self.xyz_files)} files…")
+
+        try:
+            csv_path, labels_cache = run_cluster_analysis(
+                xyz_files=self.xyz_files,
+                information=self.information,
+                options=self.options,
+                output_folder=self.output_folder,
+                signals=self.signals,
+            )
+            if csv_path is None:
+                pass  # cancelled signal already emitted from inside run_cluster_analysis
+            else:
+                self.signals.result.emit((csv_path, labels_cache))
+        except Exception as e:
+            logger.error("WorkerClusters failed: %s", e)
+            self.signals.result.emit((None, {}))
+        finally:
+            self.signals.finished.emit()

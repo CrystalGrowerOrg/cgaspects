@@ -18,7 +18,7 @@ def open_directory(path):
     # Platform-specific commands
     if sys.platform == "win32":
         os.startfile(path)
-    if sys.platform == "darwin":
+    elif sys.platform == "darwin":
         subprocess.run(["open", path])
     else:
         subprocess.run(["xdg-open", path])

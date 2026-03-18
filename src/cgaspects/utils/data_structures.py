@@ -30,3 +30,9 @@ plot_obj_tuple = namedtuple(
     "Plot",
     ["scatter", "line", "trendline"],
 )
+
+cluster_options_tuple = namedtuple(
+    "ClusterOptions",
+    ["algorithm", "eps", "min_samples", "frame_index", "scale", "downsample", "ratios_only"],
+    defaults=[False],
+)

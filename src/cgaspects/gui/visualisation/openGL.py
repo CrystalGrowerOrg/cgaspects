@@ -55,6 +55,9 @@ class VisualisationWidget(QOpenGLWidget):
     pointHovered = Signal(object, object)  # (point_index, point_data) or (None, None)
     selectionChanged = Signal(set, object)  # (selected_indices, last_selected_index)
     pointsDeleted = Signal(int)  # Number of points deleted
+    pointSizeChanged = Signal(int)  # Emitted when point size changes (integer value)
+    legendChanged = Signal(dict)  # Emitted when the colour legend data changes
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -104,6 +107,7 @@ class VisualisationWidget(QOpenGLWidget):
         self.colormap = "Viridis"
         self.color_by = "Layer"
         self.single_color = QColor(128, 128, 128)  # Default grey color
+        self._legend_info = None
 
         self.viewInitialized = False
         self.point_size = 6.0
@@ -789,11 +793,17 @@ class VisualisationWidget(QOpenGLWidget):
         self.camera.storeOrientation()
 
     def increase_point_size(self):
-        self.point_size = min(self.point_size + 1.0, 50.0)
+        self.point_size = min(self.point_size + 1.0, 20.0)
+        self.pointSizeChanged.emit(int(self.point_size))
         self.update()
 
     def decrease_point_size(self):
-        self.point_size = max(self.point_size - 1.0, 1.0)
+        self.point_size = max(self.point_size - 1.0, 0.5)
+        self.pointSizeChanged.emit(int(self.point_size))
+        self.update()
+
+    def set_point_size(self, value: int):
+        self.point_size = float(value)
         self.update()
 
     def toggle_rotation_lock(self, axis: str, checked: bool):
@@ -1068,6 +1078,10 @@ class VisualisationWidget(QOpenGLWidget):
         logger.info(f"Restored {count} deleted points")
         return count
 
+    def get_legend_info(self):
+        """Return the most recently computed legend info dict, or None if not yet available."""
+        return self._legend_info
+
     def get_active_xyz(self):
         """Get XYZ data excluding deleted points.
 
@@ -1239,8 +1253,22 @@ class VisualisationWidget(QOpenGLWidget):
             if color_axis == -1:
                 # Use the custom single color for all points
                 pcd_colors = np.tile(single_color_rgb, (xyz.shape[0], 1))
+                legend_rows = [(None, tuple(single_color_rgb.tolist()))]
             else:
                 pcd_colors = self.availableColormaps[self.colormap](normalized_axis_vis)[:, 0:3]
+                unique_vals = np.unique(axis_vis)
+                norm_unique = (unique_vals - min_val) / range_val
+                unique_rgb = self.availableColormaps[self.colormap](norm_unique)[:, :3]
+                legend_rows = [(float(v), tuple(c.tolist())) for v, c in zip(unique_vals, unique_rgb)]
+
+            self._legend_info = {
+                "color_by": self.color_by,
+                "colormap": self.colormap,
+                "min_val": float(min_val),
+                "max_val": float(max_val),
+                "rows": legend_rows,
+            }
+            self.legendChanged.emit(self._legend_info)
 
             return (pcd_points, pcd_colors)
 

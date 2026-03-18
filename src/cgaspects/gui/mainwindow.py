@@ -11,9 +11,17 @@ from natsort import natsorted
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, QSignalBlocker, QThreadPool, QTimer, Signal
 from PySide6.QtGui import QIcon, Qt, QAction
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QProgressBar
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QGridLayout,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+)
 
 from ..analysis.aspect_ratios import AspectRatio
+from ..analysis.cluster_analysis import ClusterAnalysis
 from ..analysis.growth_rates import GrowthRate
 from ..analysis.site_analysis import SiteAnalysis
 from ..analysis.gui_threads import WorkerXYZ
@@ -23,6 +31,7 @@ from ..fileio.logging import setup_logging, get_log_file_path
 from ..fileio.opendir import open_directory
 from .crystal_info import CrystalInfo
 from .dialogs import CrystalInfoWidget, PlottingDialog
+from .dialogs.color_legend_dialog import ColorLegendDialog
 from .dialogs.settings import SettingsDialog
 from .dialogs.about import AboutCGDialog
 from .shortcuts_manager import ShortcutsManager
@@ -104,6 +113,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.worker_signals = GUIWorkerSignals()
         self.aspectratio = AspectRatio(signals=self.worker_signals)
+        self.clusteranalysis = ClusterAnalysis(signals=self.worker_signals)
         self.growthrate = GrowthRate(signals=self.worker_signals)
         self.siteanalysis = SiteAnalysis(signals=self.worker_signals)
         self.worker_signals.location.connect(self.set_output_folder)
@@ -114,6 +124,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker_signals.message.connect(self.set_message)
         self.worker_signals.sim_id.connect(self.update_sim_id)
         self.worker_signals.highlight_site.connect(self.highlight_site_in_visualization)
+        self.worker_signals.error.connect(self.show_worker_error)
         # Other self variables
         self.sim_num: int | None = None
         self.input_folder: Path | None = None
@@ -125,8 +136,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.simulation_variables_widget = None
         self.plotting_dialog = None
 
+        self.cluster_labels_cache: dict = {}
+        self._prev_color_by: str | None = None
+
         self.aboutDialog = None
         self.text_file_viewer = None
+        self._colour_legend_dialog = None
 
         self.progressBar = QProgressBar()
         self.statusBar().addPermanentWidget(self.progressBar)
@@ -136,6 +151,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.settings_dialog = SettingsDialog(self)
         self.openglwidget = VisualisationWidget()
+
 
         self.crystalInfoWidget = CrystalInfoWidget(self)
         self.crystalInfoWidget.setEnabled(False)
@@ -174,6 +190,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.visualizationTab.layout().addWidget(self.visualizationSettings)
         self.fps = self.visualizationSettings.fps()
 
+        # Wire point-size slider in VisualizationSettings ↔ OpenGL widget
+        ps_widget = self.visualizationSettings.widgets["Point Size"]
+        self.openglwidget.pointSizeChanged.connect(
+            lambda v: (
+                ps_widget.slider.blockSignals(True),
+                ps_widget.setValue(float(v)),
+                ps_widget.slider.blockSignals(False),
+            )
+        )
+
         # Create site highlighting dialog
         self.site_highlight_dialog = SiteHighlightDialog(parent=self)
         self.site_highlight_dialog.highlightsChanged.connect(self.handle_highlights_changed)
@@ -193,15 +219,48 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.planesCleared.connect(self.handle_planes_cleared)
         self.planes_dialog.computePlaneFromSelection.connect(self._on_compute_plane_from_selection)
         self.planes_dialog.addDirectionRequested.connect(self._on_add_direction_from_plane)
-        self.planes_dialog.movePlaneAlongNormalRequested.connect(self._on_move_plane_along_normal)
+        self.planes_dialog.planeSelected.connect(self._on_plane_selected_for_move_slider)
+        self.planes_dialog.planeNormalSliderMoved.connect(self._on_plane_normal_slider_moved)
         self.directions_dialog.addPlaneRequested.connect(self._on_add_plane_from_direction)
 
+        self._setup_analysis_button_grid()
         self.setup_button_connections()
         self.setup_menubar_connections()
         self.setup_log_menu_actions()
         self.shortcuts_manager = ShortcutsManager(self.menuBar)
         self._keyboard_shortcuts_dialog = None
         self.setShowPlottingButtons(False)
+
+    def _setup_analysis_button_grid(self):
+        """Replace the 3-button HBoxLayout with a 2×2 QGridLayout and add Clusters button."""
+        # Create the new Clusters button
+        self.cluster_analysis_pushButton = QPushButton("Clusters")
+        self.cluster_analysis_pushButton.setEnabled(False)
+        self.cluster_analysis_pushButton.setToolTip("Perform cluster analysis (DBSCAN/OPTICS)")
+        self.cluster_analysis_pushButton.setSizePolicy(
+            self.aspect_ratio_pushButton.sizePolicy()
+        )
+
+        # Find the HBoxLayout inside verticalLayout_2 and replace it with a 2×2 grid
+        vbox = self.verticalLayout_2
+        for i in range(vbox.count()):
+            item = vbox.itemAt(i)
+            if item and item.layout() is self.horizontalLayout_2:
+                # Remove buttons from old HBox
+                while self.horizontalLayout_2.count():
+                    w = self.horizontalLayout_2.takeAt(0).widget()
+                    if w:
+                        self.horizontalLayout_2.removeWidget(w)
+                # Remove the HBox item from vbox
+                vbox.removeItem(item)
+                # Insert 2×2 grid at the same position
+                grid = QGridLayout()
+                grid.addWidget(self.aspect_ratio_pushButton, 0, 0)
+                grid.addWidget(self.growth_rate_pushButton, 0, 1)
+                grid.addWidget(self.site_analysis_pushButton, 1, 0)
+                grid.addWidget(self.cluster_analysis_pushButton, 1, 1)
+                vbox.insertLayout(i, grid)
+                break
 
     def setup_menubar_connections(self):
         # Remove permanently-disabled leftover from the auto-generated UI
@@ -271,6 +330,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionToggleSidebar.setToolTip("Show/hide the point info side panel")
         self.actionToggleSidebar.triggered.connect(self._toggle_point_info_sidebar)
         self.menuView.addAction(self.actionToggleSidebar)
+
+        # Add Show Colour Legend action to View menu
+        self.actionShowLegend = QAction("Show Colour Legend", self)
+        self.actionShowLegend.setObjectName("actionShowLegend")
+        self.actionShowLegend.setShortcut("Ctrl+Shift+C")
+        self.actionShowLegend.setToolTip("Show the current colour legend")
+        self.actionShowLegend.triggered.connect(self.show_colour_legend)
+        self.menuView.addAction(self.actionShowLegend)
 
         # ── Viewport shortcuts (configurable via ShortcutsManager) ────────────
         from PySide6.QtWidgets import QMenu
@@ -363,6 +430,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAddPlanes.triggered.connect(self.show_planes_dialog)
         self.menuCrystallography.addAction(self.actionAddPlanes)
 
+        # Tools menu
+        self.menuTools = QMenu("Tools", self)
+        self.menuBar.addAction(self.menuTools.menuAction())
+
+        self.actionThreadMonitor = QAction("Active Threads", self)
+        self.actionThreadMonitor.setToolTip("Show active background thread pools")
+        self.actionThreadMonitor.triggered.connect(self.show_thread_monitor)
+        self.menuTools.addAction(self.actionThreadMonitor)
 
         # Help menu
         self.menuHelp = QMenu("Help", self)
@@ -419,6 +494,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.menuCrystallography.addAction(self.actionSetLatticeParameters)
         self.menuCrystallography.addAction(self.actionToggleAxes)
 
+    def show_colour_legend(self):
+        if self._colour_legend_dialog is None:
+            self._colour_legend_dialog = ColorLegendDialog(parent=self)
+            self.openglwidget.legendChanged.connect(self._colour_legend_dialog.update_legend)
+            info = self.openglwidget.get_legend_info()
+            if info is not None:
+                self._colour_legend_dialog.update_legend(info)
+
+        if self._colour_legend_dialog.isVisible():
+            self._colour_legend_dialog.raise_()
+            self._colour_legend_dialog.activateWindow()
+        else:
+            self._colour_legend_dialog.show()
+
     def showAboutDialog(self):
         if self.aboutDialog is None:
             self.aboutDialog = AboutCGDialog(self)
@@ -437,6 +526,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._keyboard_shortcuts_dialog.show()
         self._keyboard_shortcuts_dialog.raise_()
         self._keyboard_shortcuts_dialog.activateWindow()
+
+    def show_thread_monitor(self):
+        from .dialogs.thread_monitor_dialog import ThreadMonitorDialog
+        pools = {
+            "Main": self.threadpool,
+            "AspectRatio": self.aspectratio.threadpool,
+            "GrowthRate": self.growthrate.threadpool,
+            "SiteAnalysis": self.siteanalysis.threadpool,
+            "Clusters": self.clusteranalysis.threadpool,
+        }
+        worker_sources = {
+            "AspectRatio": lambda: self.aspectratio.worker,
+            "GrowthRate": lambda: self.growthrate.worker,
+            "SiteAnalysis": lambda: self.siteanalysis.worker,
+            "Clusters": lambda: self.clusteranalysis.worker,
+        }
+        dlg = ThreadMonitorDialog(pools, worker_sources=worker_sources, parent=self)
+        dlg.exec()
 
     def show_lattice_parameters_dialog(self):
         """Show dialog to enter lattice parameters for fractional axes."""
@@ -519,6 +626,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspect_ratio_pushButton.clicked.connect(self.calculate_aspect_ratio)
         self.growth_rate_pushButton.clicked.connect(self.calculate_growth_rates)
         self.site_analysis_pushButton.clicked.connect(self.calculate_site_analysis)
+        self.cluster_analysis_pushButton.clicked.connect(self.calculate_clusters)
 
         self.plot_lineEdit.textChanged.connect(self.set_plotting)
         self.plot_lineEdit.returnPressed.connect(self.replotting_called)
@@ -556,6 +664,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Highlight just this one site
             self.openglwidget.highlight_sites([(site_number, None)])
             logger.info(f"Highlighted site {site_number} in visualization")
+
+    def _add_cluster_colour_option(self):
+        """Add 'Cluster Membership' to the Color By combobox if not already present."""
+        w = self.visualizationSettings.widgets["Color By"]
+        if "Cluster Membership" not in w.options:
+            w.options = list(w.options) + ["Cluster Membership"]
+            w.comboBox.addItem("Cluster Membership")
+
+    def _apply_cluster_colours(self):
+        """Colour the current simulation's particles by cluster label."""
+        if not self.cluster_labels_cache or self.sim_num is None:
+            return
+        if self.sim_num >= len(self.xyz_files):
+            return
+        xyz_path = str(self.xyz_files[self.sim_num])
+        labels = self.cluster_labels_cache.get(xyz_path)
+        if labels is None:
+            logger.debug("No cluster labels for current simulation: %s", xyz_path)
+            return
+
+        import matplotlib.cm as _cm
+        tab10 = _cm.get_cmap("tab10")
+        unique_labels = sorted(set(int(l) for l in labels))
+        groups = []
+        for lbl in unique_labels:
+            indices = set(int(i) for i in np.where(labels == lbl)[0])
+            if lbl == -1:
+                colour = [0.5, 0.5, 0.5]  # grey for noise
+            else:
+                rgba = tab10(lbl % 10)
+                colour = list(rgba[:3])
+            groups.append((indices, colour))
+        self.openglwidget.highlight_sites(groups)
+        logger.info("Applied cluster colours for %s (%d clusters)", xyz_path, len(unique_labels))
 
     def handle_highlights_changed(self, highlight_data):
         """Handle site highlighting changes from the dialog.
@@ -626,6 +768,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_message(self, msg):
         self.log_message(message=msg, log_level="info", gui=True)
+
+    def show_worker_error(self, error_tuple):
+        _, exc, message = error_tuple
+        self.clear_progressbar()
+        QMessageBox.critical(self, type(exc).__name__, message)
 
     def show_settings(self):
         self.settings_dialog.show()
@@ -730,109 +877,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.populate_from_plane(normal, centroid, self.crystallography)
 
     # ------------------------------------------------------------------ #
-    # Move plane along its normal                                          #
+    # Move plane along its normal (inline slider in PlanesDialog)         #
     # ------------------------------------------------------------------ #
 
-    def _on_move_plane_along_normal(self, row):
-        """Show a live slider to move the selected plane along its normal."""
-        from PySide6.QtWidgets import (
-            QDialog,
-            QDialogButtonBox,
-            QDoubleSpinBox,
-            QHBoxLayout,
-            QLabel,
-            QSlider,
-            QVBoxLayout,
-        )
-
+    def _on_plane_selected_for_move_slider(self, row):
+        """Configure the inline move-along-normal slider when a plane is selected."""
         planes = self.planes_dialog._planes
         if row < 0 or row >= len(planes):
             return
         plane = planes[row]
-
         xyz = self.openglwidget.xyz
         if xyz is None:
-            QMessageBox.warning(self, "No Data", "No crystal loaded.")
             return
-
-        # Resolve normal to Cartesian
         normal = np.array(plane.normal, dtype=np.float64)
         if plane.fractional and self.crystallography is not None:
             normal = self.crystallography.miller_to_cart_normal(normal)
         n_len = np.linalg.norm(normal)
         if n_len < 1e-10:
-            QMessageBox.warning(self, "Invalid Normal", "Plane normal has zero length.")
             return
         normal /= n_len
-
-        # Project all points onto normal to find extent
-        points = xyz[:, 3:6]
-        proj = points @ normal
+        proj = xyz[:, 3:6] @ normal
         d_min, d_max = float(proj.min()), float(proj.max())
+        current_d = float(np.dot(normal, np.array(plane.origin, dtype=np.float64)))
+        self.planes_dialog.configure_move_slider(d_min, d_max, current_d)
+        self._plane_move_state = {
+            'row': row, 'normal': normal,
+            'd_min': d_min, 'd_max': d_max, 'steps': 2000,
+        }
 
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Move Plane Along Normal")
-        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
-        layout = QVBoxLayout(dialog)
-
-        layout.addWidget(QLabel(
-            f"Normal: ({normal[0]:.3f}, {normal[1]:.3f}, {normal[2]:.3f})\n"
-            f"Crystal extent along normal: {d_min:.3f} → {d_max:.3f}"
-        ))
-
-        # Current plane d = n · origin
-        current_origin = np.array(plane.origin, dtype=np.float64)
-        current_d = float(np.dot(normal, current_origin))
-
-        pos_label = QLabel(f"d = {current_d:.3f}")
-        layout.addWidget(pos_label)
-
-        STEPS = 2000
-        slider = QSlider(Qt.Horizontal)
-        slider.setRange(0, STEPS)
+    def _on_plane_normal_slider_moved(self, row, val):
+        """Apply inline slider position to the plane origin."""
+        state = getattr(self, '_plane_move_state', None)
+        if state is None or state['row'] != row:
+            return
+        d_min, d_max, steps = state['d_min'], state['d_max'], state['steps']
         slider_range = d_max - d_min if d_max > d_min else 1.0
-        initial_pos = int((current_d - d_min) / slider_range * STEPS)
-        slider.setValue(max(0, min(STEPS, initial_pos)))
-        layout.addWidget(slider)
-
-        # Fine-tune spinbox
-        fine_row = QHBoxLayout()
-        fine_row.addWidget(QLabel("Fine d:"))
-        fine_spin = QDoubleSpinBox()
-        fine_spin.setRange(d_min - abs(slider_range), d_max + abs(slider_range))
-        fine_spin.setDecimals(3)
-        fine_spin.setSingleStep(0.1)
-        fine_spin.setValue(current_d)
-        fine_row.addWidget(fine_spin)
-        layout.addLayout(fine_row)
-
-        # Sync helpers
-        def _apply_d(d):
-            new_origin = tuple(float(v) for v in (normal * d))
-            self.planes_dialog.update_plane_origin_from_dialog(row, new_origin)
-            pos_label.setText(f"d = {d:.3f}")
-
-        def _slider_moved(val):
-            d = d_min + (val / STEPS) * slider_range
-            fine_spin.blockSignals(True)
-            fine_spin.setValue(d)
-            fine_spin.blockSignals(False)
-            _apply_d(d)
-
-        def _spin_changed(d):
-            pos = int((d - d_min) / slider_range * STEPS)
-            slider.blockSignals(True)
-            slider.setValue(max(0, min(STEPS, pos)))
-            slider.blockSignals(False)
-            _apply_d(d)
-
-        slider.valueChanged.connect(_slider_moved)
-        fine_spin.valueChanged.connect(_spin_changed)
-
-        btns = QDialogButtonBox(QDialogButtonBox.Close)
-        btns.rejected.connect(dialog.reject)
-        layout.addWidget(btns)
-        dialog.exec()
+        d = d_min + (val / steps) * slider_range
+        new_origin = tuple(float(v) for v in (state['normal'] * d))
+        self.planes_dialog.update_plane_origin_from_dialog(row, new_origin)
 
     def welcome_message(self):
         self.log_message(
@@ -1148,6 +1230,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.aspectratio.set_information(information=information)
         self.aspectratio.set_xyz_files(xyz_files=self.xyz_files)
 
+        # Set Cluster Analysis information
+        if self.xyz_files:
+            self.cluster_analysis_pushButton.setEnabled(True)
+            self.clusteranalysis.set_folder(folder=folder)
+            self.clusteranalysis.set_information(information=information)
+            self.clusteranalysis.set_xyz_files(xyz_files=self.xyz_files)
+
         # Enable and set Site Analysis information if relevant files are found
         if information.crystallisation_files or information.population_files:
             self.site_analysis_pushButton.setEnabled(True)
@@ -1189,6 +1278,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def calculate_site_analysis(self):
         self.siteanalysis.calculate_site_analysis()
+
+    def calculate_clusters(self):
+        self.clusteranalysis.calculate_clusters()
 
     def setShowPlottingButtons(self, state=True):
         self.actionPlottingDialog.setEnabled(state)
@@ -1245,6 +1337,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.output_folder = value.folder
             self.log_message(f"Output folder updated: [{self.output_folder}]", "debug")
 
+        # Sync cluster labels if cluster analysis just completed
+        if self.clusteranalysis.labels_cache:
+            self.cluster_labels_cache = dict(self.clusteranalysis.labels_cache)
+            self._add_cluster_colour_option()
+            logger.info("Cluster labels cache updated (%d files)", len(self.cluster_labels_cache))
+
         logger.debug("About to call replotting_called()")
         # Automatically show plot dialog after results are set
         self.replotting_called()
@@ -1289,6 +1387,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Select summary file and read in as a Dataframe
         self.log_message(f"Summary File Found at: {summary_file}", "debug")
         self.summ_df = pd.read_csv(summary_file, encoding="utf-8", encoding_errors="replace")
+
+        # Propagate the summary file path to all analysis objects so workers pick it up
+        for analysis_obj in (self.aspectratio, self.growthrate, self.clusteranalysis, self.siteanalysis):
+            if analysis_obj.information is not None:
+                analysis_obj.information = analysis_obj.information._replace(summary_file=summary_file)
         if list(self.summ_df.columns)[-1].startswith("Unnamed"):
             self.summ_df = self.summ_df.iloc[:, 1:-1]
         else:
@@ -1350,6 +1453,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setCurrentXYZIndex(self, value):
         self.sim_num = value
         self.openglwidget.get_XYZ_from_list(value=value)
+        if self.visualizationSettings.widgets["Color By"].value == "Cluster Membership":
+            self._apply_cluster_colours()
         self.crystal = self.openglwidget.crystal
         self.movie_controls_frame.hide()
 
@@ -1385,7 +1490,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         pass
 
     def handleVisualizationSettingsChange(self):
-        self.openglwidget.updateSettings(**self.visualizationSettings.settings())
+        settings = self.visualizationSettings.settings()
+        color_by = settings.get("Color By")
+        prev = self._prev_color_by
+        self._prev_color_by = color_by
+
+        if color_by == "Cluster Membership":
+            safe = dict(settings)
+            safe["Color By"] = "Layer"
+            self.openglwidget.updateSettings(**safe)
+            self._apply_cluster_colours()
+        else:
+            if prev == "Cluster Membership":
+                self.openglwidget.clear_highlighted_sites()
+            self.openglwidget.updateSettings(**settings)
+
         fps = self.visualizationSettings.fps()
         if self.fps != fps:
             self.frame_timer.start(1000 // self.fps)
