@@ -5,9 +5,9 @@ requires-python = ">=3.10"
 description = "An analysis tool and companion for CrystalGrower"
 
 authors = [
-    { name = "Alvin Jenner Walisinghe", email = "jennerwalisinghe@gmail.com" },
-    { name = "Nathan de Bruyn"},
+    { name = "Alvin J. Walisinghe", email = "jennerwalisinghe@gmail.com" },
     { name = "Peter R. Spackman", email = "peterspackman@fastmail.com" },
+    { name = "Nathan de Bruyn"},
 ]
 readme = "README.md"
 license = { file = "COPYING.LESSER" }
@@ -19,7 +19,7 @@ keywords = [
     "computational chemistry"
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Chemistry",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",

@@ -55,24 +55,26 @@ To build and package the application:
 
 ## Dependencies
 
-    PySide6>=6.6.0
-    PyOpenGL
-    NumPy>=1.12
-    Pandas>=1.4
-    SciPy>=1.8.1
-    Trimesh>=3.12.9
-    Matplotlib>=3.5.2
-    Natsort>=8.2
+    matplotlib>=3.10.8
+    natsort>=8.4.0
+    numpy>=2.4.0
+    pandas>=2.3.3
+    PyOpenGL>=3.1.10
+    PySide6>=6.10.1
+    scikit-learn>=1.5.0
+    scipy>=1.16.3
+    seaborn>=0.13.2
+    trimesh>=4.8.3
 
 ## Development Status
 
-CGAspects is currently in Alpha stage.
+CGAspects is currently in Beta stage.
 
 ## Authors
 
-- **Alvin Jenner Walisinghe** - [jennerwalisinghe@gmail.com](mailto:jennerwalisinghe@gmail.com)
-- **Nathan de Bruyn** - [nathan.debruyn@manchester.ac.uk](mailto:nathan.debruyn@manchester.ac.uk)
+- **Alvin J. Walisinghe** - [jennerwalisinghe@gmail.com](mailto:jennerwalisinghe@gmail.com)
 - **Peter R. Spackman** - [peterspackman@fastmail.com](mailto:peterspackman@fastmail.com)
+- **Nathan de Bruyn**
 
 ## Contributions
 
@@ -81,6 +83,7 @@ Contributions are welcome! Please read the [contribution guidelines](https://git
 ## Links
 
 - [Homepage](https://github.com/CrystalGrowerOrg/cgaspects)
+- [Documentation](https://crystalgrowerorg.github.io/cgaspects/)
 - [Repository](https://github.com/CrystalGrowerOrg/cgaspects)
 - [Submit Issues](https://github.com/CrystalGrowerOrg/cgaspects/issues)
 
