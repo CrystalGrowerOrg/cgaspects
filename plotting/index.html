@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://crystalgrowerorg.github.io/cgaspects/plotting/">
       
       
-        <link rel="prev" href="../analysis/site-analysis/">
+        <link rel="prev" href="../analysis/cluster-analysis/">
       
       
         <link rel="next" href="../file-formats/">
@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -1087,6 +1087,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../analysis/cluster-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1165,6 +1193,17 @@
     <span class="md-ellipsis">
       
         Plot Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3d-scatter-4d-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3D Scatter / 4D Mode
       
     </span>
   </a>
@@ -1710,6 +1749,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#3d-scatter-4d-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3D Scatter / 4D Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-selection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1883,8 +1933,42 @@
 <td>Time series</td>
 <td>Line plot with time on the X-axis</td>
 </tr>
+<tr>
+<td>3D Scatter</td>
+<td>3D scatter plot with an optional fourth variable mapped to colour</td>
+</tr>
 </tbody>
 </table>
+<hr />
+<h2 id="3d-scatter-4d-mode">3D Scatter / 4D Mode<a class="headerlink" href="#3d-scatter-4d-mode" title="Permanent link">&para;</a></h2>
+<p>When the data has three or more numeric columns, the <strong>3D Scatter</strong> plot type becomes available.</p>
+<ul>
+<li><strong>X / Y / Z axes</strong> — select three data columns for the spatial dimensions</li>
+<li><strong>Colour by</strong> — an optional fourth variable mapped to the colourmap, creating a "4D" view</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Elevation slider</td>
+<td>Rotate the view vertically</td>
+</tr>
+<tr>
+<td>Azimuth slider</td>
+<td>Rotate the view horizontally</td>
+</tr>
+<tr>
+<td>Invert X / Y / Z</td>
+<td>Flip individual axes</td>
+</tr>
+</tbody>
+</table>
+<p>If no colour variable is selected, points are coloured by the Z-axis values.</p>
 <hr />
 <h2 id="data-selection">Data Selection<a class="headerlink" href="#data-selection" title="Permanent link">&para;</a></h2>
 <p>Use the dropdown menus to select:
