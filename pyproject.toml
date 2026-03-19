@@ -10,7 +10,7 @@ authors = [
     { name = "Peter R. Spackman", email = "peterspackman@fastmail.com" },
 ]
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = { file = "COPYING.LESSER" }
 keywords = [
     "crystal growth",
     "crystal shape",
@@ -22,9 +22,12 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Chemistry",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "matplotlib>=3.10.8",
@@ -35,6 +38,7 @@ dependencies = [
     "PySide6>=6.10.1",
     "PySide6_Addons>=6.7.2",
     "PySide6_Essentials>=6.7.2",
+    "scikit-learn>=1.5.0",
     "scipy>=1.16.3",
     "seaborn>=0.13.2",
     "trimesh>=4.8.3"
