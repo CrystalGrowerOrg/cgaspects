@@ -92,6 +92,7 @@ class PlottingDialog(QDialog):
         self.directions = []
         self.permutations = []
         self.permutation_labels = []
+        self.sa_permutation_labels = []
         self.interaction_columns = []
         self.gr_x_candidates: list = []
         self.gr_x_col: str = "Supersaturation"
@@ -277,8 +278,8 @@ class PlottingDialog(QDialog):
         # Check if this is site analysis data
         if self.site_analysis_data is not None:
             self.plot_types.append("Site Analysis")
-            # Set up permutations for site analysis mode
-            self.permutation_labels = [
+            # Store SA-specific labels separately so they don't overwrite CDA permutation labels
+            self.sa_permutation_labels = [
                 "Events/Population vs Energy",
                 "Sites vs Events/Population",
                 "Events vs Population"
@@ -626,6 +627,11 @@ class PlottingDialog(QDialog):
             self.button_group_data.hide()
 
         if mode == "Site Analysis":
+            # Repopulate combobox with SA-specific permutation labels
+            self.plot_permutations_combobox.blockSignals(True)
+            self.plot_permutations_combobox.clear()
+            self.plot_permutations_combobox.addItems(self.sa_permutation_labels)
+            self.plot_permutations_combobox.blockSignals(False)
             # Enable permutation controls for Site Analysis (3 permutations)
             self.plot_permutations_label.setEnabled(True)
             self.plot_permutations_combobox.setEnabled(True)
@@ -1009,6 +1015,7 @@ class PlottingDialog(QDialog):
         if self._axes_dialog is None or not self._axes_dialog.isVisible():
             current_labels = {
                 "title":      self.custom_title or self.title,
+                "title_auto": self.title,
                 "xlabel":     self.custom_xlabel     or (self.x_label if isinstance(self.x_label, PlotAxisLabel) else PlotAxisLabel()),
                 "ylabel":     self.custom_ylabel     or (self.y_label if isinstance(self.y_label, PlotAxisLabel) else PlotAxisLabel()),
                 "cbar_label": self.custom_cbar_label or (self.c_label if isinstance(self.c_label, PlotAxisLabel) else PlotAxisLabel()),
@@ -1290,6 +1297,9 @@ class PlottingDialog(QDialog):
         # Get colour scheme settings
         self.cmap = self.cmap_combobox.currentText()
 
+        # Save current permutation index before change_mode clears and resets the combobox
+        saved_perm_idx = self.plot_permutations_combobox.currentIndex()
+
         # change_mode must run first for Growth Rates — it repopulates the
         # permutations combobox with gr_x_candidates before we read from it.
         self.change_mode(mode=self.plot_type)
@@ -1297,7 +1307,12 @@ class PlottingDialog(QDialog):
         if self.plot_type == "Growth Rates":
             self.gr_x_col = self.plot_permutations_combobox.currentText() or "Supersaturation"
         else:
-            self.permutation = int(self.plot_permutations_combobox.currentIndex())
+            # Clamp to valid range in case a mode switch changed the item count
+            restored_idx = min(saved_perm_idx, self.plot_permutations_combobox.count() - 1)
+            self.permutation = restored_idx
+            self.plot_permutations_combobox.blockSignals(True)
+            self.plot_permutations_combobox.setCurrentIndex(restored_idx)
+            self.plot_permutations_combobox.blockSignals(False)
         # Update hide bulk checkbox visibility (needed when plotting mode changes within Site Analysis)
         self._update_hide_bulk_visibility()
         self._set_data()
@@ -1309,6 +1324,7 @@ class PlottingDialog(QDialog):
         self.plot()
         self.labels_updated.emit({
             "title":      self.custom_title or self.title,
+            "title_auto": self.title,
             "xlabel":     self.custom_xlabel     or self.x_label,
             "ylabel":     self.custom_ylabel     or self.y_label,
             "cbar_label": self.custom_cbar_label or self.c_label,

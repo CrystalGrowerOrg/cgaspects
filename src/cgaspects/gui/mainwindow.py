@@ -982,11 +982,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print(xyz_files)
 
         # Check for valid data, folder reinitialised as a Path object
-        if xyz_files == None:
+        if xyz_files is None:
             return False
 
         self.xyz_files = xyz_files
         self.input_folder = folder
+        self.output_folder = None
+        self.actionResults_Directory.setEnabled(False)
+        self.view_results_pushButton.setEnabled(False)
         self.batch_lineEdit.setText(str(self.input_folder))
         self.actionInput_Directory.setEnabled(True)
         self.log_message(f"Input path set to: {self.input_folder}", "info")

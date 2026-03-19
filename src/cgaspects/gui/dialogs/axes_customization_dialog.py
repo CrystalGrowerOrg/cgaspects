@@ -45,6 +45,9 @@ class _AxisRow(QWidget):
         super().__init__(parent)
         self._original = label
         self._pending_conversion: UnitConversion | None = label.conversion
+        # True when the user has explicitly edited a field (or when the dialog is
+        # initialised with an already-customised label so Apply preserves it).
+        self._user_modified: bool = label.is_user_set
 
         # ── Current (read-only) display ──────────────────────────────────
         self._current_display = QLabel(str(label) or "<empty>")
@@ -53,9 +56,11 @@ class _AxisRow(QWidget):
         # ── Editable name / unit ─────────────────────────────────────────
         self._name_edit = QLineEdit(label.name)
         self._name_edit.setPlaceholderText("Label name (LaTeX OK, e.g. $\\Delta G$)")
+        self._name_edit.textChanged.connect(self._mark_user_modified)
 
         self._unit_edit = QLineEdit(label.unit)
         self._unit_edit.setPlaceholderText("Unit string, e.g. kcal/mol")
+        self._unit_edit.textChanged.connect(self._mark_user_modified)
 
         self._reset_btn = QPushButton("Reset")
         self._reset_btn.setFixedWidth(60)
@@ -115,6 +120,10 @@ class _AxisRow(QWidget):
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _mark_user_modified(self) -> None:
+        """Called whenever the user types in a name/unit field."""
+        self._user_modified = True
+
     def _refresh_convert_to(self) -> None:
         """Populate the 'Convert to' combo based on the current unit field."""
         cur_unit = self._cur_unit_combo.currentText().strip()
@@ -139,6 +148,7 @@ class _AxisRow(QWidget):
             logger.warning("Conversion not found: %s", exc)
             return
         self._pending_conversion = conv
+        self._user_modified = True
         self._unit_edit.setText(to_unit)
         # Refresh so user can chain further conversions
         self._cur_unit_combo.setCurrentText(to_unit)
@@ -147,9 +157,14 @@ class _AxisRow(QWidget):
 
     def _reset(self) -> None:
         """Restore fields to the original (column-derived) label values."""
-        self._name_edit.setText(self._original.name)
-        self._unit_edit.setText(self._original.unit)
+        self._user_modified = False
         self._pending_conversion = None
+        self._name_edit.blockSignals(True)
+        self._name_edit.setText(self._original.name)
+        self._name_edit.blockSignals(False)
+        self._unit_edit.blockSignals(True)
+        self._unit_edit.setText(self._original.unit)
+        self._unit_edit.blockSignals(False)
         self._cur_unit_combo.setCurrentText(self._original.unit)
         self._refresh_convert_to()
 
@@ -162,37 +177,38 @@ class _AxisRow(QWidget):
         """Return a :class:`PlotAxisLabel` reflecting the current editor state."""
         name = self._name_edit.text().strip()
         unit = self._unit_edit.text().strip()
-        is_user_set = (name != self._original.name or unit != self._original.unit
-                       or self._pending_conversion is not None)
         return PlotAxisLabel(
             name=name,
             unit=unit,
-            is_user_set=is_user_set,
+            is_user_set=self._user_modified,
             conversion=self._pending_conversion,
         )
 
     @property
     def is_reset(self) -> bool:
-        """Return *True* if the user clicked Reset (reverts to column default)."""
-        return (
-            self._name_edit.text().strip() == self._original.name
-            and self._unit_edit.text().strip() == self._original.unit
-            and self._pending_conversion is None
-        )
+        """Return *True* if the user has not modified this row (or explicitly clicked Reset)."""
+        return not self._user_modified and self._pending_conversion is None
 
     def refresh(self, label: PlotAxisLabel) -> None:
         """Update this row when the underlying default label changes (e.g. after a replot).
 
         Always updates the "Current:" read-only display.  Only overwrites the
-        editable name/unit fields when the user has not yet customised them.
+        editable name/unit fields when the user has not modified them.
+        ``_original`` (the auto-generated default used by Reset) is only updated
+        for auto-generated labels.
         """
-        self._original = label
         self._current_display.setText(str(label) or "<empty>")
-        if not self.pending.is_user_set:
-            self._name_edit.setText(label.name)
-            self._unit_edit.setText(label.unit)
-            self._cur_unit_combo.setCurrentText(label.unit)
-            self._refresh_convert_to()
+        if not label.is_user_set:
+            self._original = label
+            if not self._user_modified:
+                self._name_edit.blockSignals(True)
+                self._name_edit.setText(label.name)
+                self._name_edit.blockSignals(False)
+                self._unit_edit.blockSignals(True)
+                self._unit_edit.setText(label.unit)
+                self._unit_edit.blockSignals(False)
+                self._cur_unit_combo.setCurrentText(label.unit)
+                self._refresh_convert_to()
 
 
 class AxesCustomizationDialog(QDialog):
@@ -227,6 +243,7 @@ class AxesCustomizationDialog(QDialog):
             current_labels = {}
 
         self._title_str: str = current_labels.get("title", "")
+        self._auto_title: str = current_labels.get("title_auto", self._title_str)
         xlabel: PlotAxisLabel = current_labels.get("xlabel", PlotAxisLabel())
         ylabel: PlotAxisLabel = current_labels.get("ylabel", PlotAxisLabel())
         cbar:   PlotAxisLabel = current_labels.get("cbar_label", PlotAxisLabel())
@@ -308,8 +325,8 @@ class AxesCustomizationDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _reset_title(self) -> None:
-        """Restore the title edit to the current auto-generated title."""
-        self._title_edit.setText(self._current_title_display.text().replace("<empty>", ""))
+        """Restore the title edit to the auto-generated title."""
+        self._title_edit.setText(self._auto_title)
 
     # ------------------------------------------------------------------
     # Signal payload
@@ -363,5 +380,8 @@ class AxesCustomizationDialog(QDialog):
         title = labels.get("title", "")
         if title:
             self._current_title_display.setText(title)
+        auto_title = labels.get("title_auto", "")
+        if auto_title:
+            self._auto_title = auto_title
         if title and not self._title_edit.text():
             self._title_edit.setText(title)
