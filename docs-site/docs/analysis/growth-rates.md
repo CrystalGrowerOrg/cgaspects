@@ -101,3 +101,4 @@ Trendlines (linear or polynomial fit) can be added in the plotting dialog.
 - Multiple directions can be compared on the same plot
 - Smoothing settings are per-series, so different directions can use different filters
 - If the `time` column is present but non-monotonic, results may be unexpected — use "row index" mode in that case
+- Analysis can be cancelled from **Tools → Active Threads**. Cancellation takes effect at the next checkpoint (typically the start of each iteration), so there may be a short delay before the task stops.

@@ -36,6 +36,7 @@
 | Store View Orientation | `Shift+S` | Save the current camera orientation |
 | Increase Point Size | `Ctrl+=` | Make rendered points larger |
 | Decrease Point Size | `Ctrl+-` | Make rendered points smaller |
+| Colour Legend | — | Open a colour legend showing what values each colour represents in the viewport |
 | Open Log File | `Ctrl+L` | Open the application log file |
 | Clear Log File | — | Clear all log entries |
 
@@ -49,6 +50,14 @@
 | Add Planes | `Ctrl+Shift+L` | Open the Planes dialog |
 | Set Lattice Parameters | — | Enter lattice parameters or load from CIF |
 | Switch to Fractional Axes | `Shift+A` | Toggle between Cartesian and fractional coordinate display |
+
+---
+
+## Tools Menu
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Active Threads | — | Open the Thread Monitor to view running background tasks and cancel them |
 
 ---
 

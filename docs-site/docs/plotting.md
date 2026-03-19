@@ -15,6 +15,24 @@ The plotting dialog provides interactive data visualisation for all analysis out
 | Histogram | Distribution of a single variable |
 | Heatmap | 2D density or value map |
 | Time series | Line plot with time on the X-axis |
+| 3D Scatter | 3D scatter plot with an optional fourth variable mapped to colour |
+
+---
+
+## 3D Scatter / 4D Mode
+
+When the data has three or more numeric columns, the **3D Scatter** plot type becomes available.
+
+- **X / Y / Z axes** — select three data columns for the spatial dimensions
+- **Colour by** — an optional fourth variable mapped to the colourmap, creating a "4D" view
+
+| Control | Description |
+|---------|-------------|
+| Elevation slider | Rotate the view vertically |
+| Azimuth slider | Rotate the view horizontally |
+| Invert X / Y / Z | Flip individual axes |
+
+If no colour variable is selected, points are coloured by the Z-axis values.
 
 ---
 

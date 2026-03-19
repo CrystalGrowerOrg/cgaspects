@@ -70,6 +70,7 @@ nav:
       - Aspect Ratios: analysis/aspect-ratios.md
       - Growth Rates: analysis/growth-rates.md
       - Site Analysis: analysis/site-analysis.md
+      - Cluster Analysis: analysis/cluster-analysis.md
   - Plotting: plotting.md
   - File Formats: file-formats.md
   - Tutorials:

@@ -46,6 +46,18 @@ The colourmap range is set automatically to the min/max of the selected column f
 
 ---
 
+## Colour Legend
+
+**View → Colour Legend** opens a dialog (stays open while you work) showing what values correspond to each colour in the current viewport.
+
+- **Table view** — used when there are ≤ 10 unique values; shows each value and its colour swatch
+- **Gradient view** — used when there are > 10 unique values; shows a continuous colour bar with min/max labels
+- A **Toggle view** button switches between the two representations
+
+The legend updates automatically when the colour mode or data column changes.
+
+---
+
 ## Point Size
 
 Adjust point size interactively:

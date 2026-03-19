@@ -99,3 +99,4 @@ Results are saved to `aspects_output/`:
 - Sites with zero events are included in the output but typically have zero occupation
 - Very large simulations may produce large site analysis files; the filter dialog helps narrow the focus
 - Hierarchical clustering requires all interaction columns to be numeric and non-null
+- Analysis can be cancelled from **Tools → Active Threads**. Cancellation takes effect at the next checkpoint (typically the start of each file), so there may be a short delay before the task stops.

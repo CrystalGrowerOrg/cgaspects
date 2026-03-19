@@ -80,3 +80,4 @@ Points can be coloured by simulation variables (e.g., ΔG_cryst) using the plott
 - At least one valid XYZ frame is required (frames with zero points are skipped)
 - CDA requires the simulation parameters file to be present in the folder (it lists the available directions)
 - For very large datasets (hundreds of XYZ files), analysis may take several minutes
+- Analysis can be cancelled from **Tools → Active Threads**. Cancellation takes effect at the next checkpoint (typically the start of each file), so there may be a short delay before the task stops.
