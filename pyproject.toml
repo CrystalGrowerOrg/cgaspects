@@ -48,6 +48,7 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/CrystalGrowerOrg/cgaspects"
 repository = "https://github.com/CrystalGrowerOrg/cgaspects"
+documentation = "https://crystalgrowerorg.github.io/cgaspects/"
 
 [project.scripts]
 cgaspects = "cgaspects.gui.mainwindow:main"

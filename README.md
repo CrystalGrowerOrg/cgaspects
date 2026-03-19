@@ -9,8 +9,15 @@ CGAspects is a CrystalGrower data analysis tool equipped with a PySide6 GUI.
 
 ## Installation
 
-To use CGAspects with python, clone the repository and then install the package. 
 Ensure you have Python >=3.10 installed on your system.
+
+### Via PyPI (recommended)
+
+```bash
+pip install cgaspects
+```
+
+### From source
 
 1. Clone the CGAspects repository (shallow clone with depth 1):
 
