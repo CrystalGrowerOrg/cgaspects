@@ -50,6 +50,8 @@ from .widgets import (
     VisualizationSettingsWidget,
 )
 from .utils.crystallography import Crystallography
+from .animation.keyframe import AnimationTimeline
+from .animation.timeline_widget import KeyframeTimelineWidget
 
 log_dict = {"basic": "DEBUG", "console": "INFO"}
 setup_logging(**log_dict)
@@ -222,6 +224,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.planes_dialog.planeSelected.connect(self._on_plane_selected_for_move_slider)
         self.planes_dialog.planeNormalSliderMoved.connect(self._on_plane_normal_slider_moved)
         self.directions_dialog.addPlaneRequested.connect(self._on_add_plane_from_direction)
+
+        # Animation system
+        self._animation_timeline = AnimationTimeline()
+        self._timeline_dock = KeyframeTimelineWidget(self)
+        self._timeline_dock.set_timeline(self._animation_timeline)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self._timeline_dock)
+        self._timeline_dock.hide()
+        self._keyframe_preview_active = False
+        self._render_worker = None
+
+        # Timeline signals
+        self._timeline_dock.keyframeAddRequested.connect(self._add_keyframe)
+        self._timeline_dock.previewRequested.connect(self._on_preview_tick)
+        self._timeline_dock.previewStopped.connect(self._on_preview_stopped)
+        self._timeline_dock.renderRequested.connect(self._open_render_dialog)
 
         self._setup_analysis_button_grid()
         self.setup_button_connections()
@@ -438,6 +455,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionThreadMonitor.setToolTip("Show active background thread pools")
         self.actionThreadMonitor.triggered.connect(self.show_thread_monitor)
         self.menuTools.addAction(self.actionThreadMonitor)
+
+        # Animation menu
+        self.menuAnimation = QMenu("Animation", self)
+        self.menuBar.addAction(self.menuAnimation.menuAction())
+
+        self.actionToggleTimeline = QAction("Keyframe Timeline", self)
+        self.actionToggleTimeline.setObjectName("actionToggleTimeline")
+        self.actionToggleTimeline.setShortcut("Ctrl+Shift+T")
+        self.actionToggleTimeline.setCheckable(True)
+        self.actionToggleTimeline.setChecked(False)
+        self.actionToggleTimeline.triggered.connect(self._toggle_timeline_dock)
+        self.menuAnimation.addAction(self.actionToggleTimeline)
+
+        self.actionAddKeyframe = QAction("Add Keyframe Here", self)
+        self.actionAddKeyframe.setObjectName("actionAddKeyframe")
+        self.actionAddKeyframe.setShortcut("K")
+        self.actionAddKeyframe.triggered.connect(self._add_keyframe)
+        self.menuAnimation.addAction(self.actionAddKeyframe)
+
+        self.actionRenderAnimation = QAction("Render Animation…", self)
+        self.actionRenderAnimation.setObjectName("actionRenderAnimation")
+        self.actionRenderAnimation.triggered.connect(self._open_render_dialog)
+        self.menuAnimation.addAction(self.actionRenderAnimation)
+
+        self.menuAnimation.addSeparator()
+
+        self.actionSaveAnimation = QAction("Save Animation…", self)
+        self.actionSaveAnimation.setObjectName("actionSaveAnimation")
+        self.actionSaveAnimation.triggered.connect(self._save_animation)
+        self.menuAnimation.addAction(self.actionSaveAnimation)
+
+        self.actionLoadAnimation = QAction("Load Animation…", self)
+        self.actionLoadAnimation.setObjectName("actionLoadAnimation")
+        self.actionLoadAnimation.triggered.connect(self._load_animation)
+        self.menuAnimation.addAction(self.actionLoadAnimation)
 
         # Help menu
         self.menuHelp = QMenu("Help", self)
@@ -1143,6 +1195,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.frame_list:
             return
 
+        # Stop any active keyframe preview first
+        if self._keyframe_preview_active:
+            self._timeline_dock.stop_preview()
+
         if self.playingState:
             # pause playing
             self.playPauseButton.setIcon(self.playIcon)
@@ -1548,6 +1604,123 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.openglwidget.initGeometry()
         except AttributeError:
             logger.warning("Updating XYZ: No Crystal Data Found!")
+
+    # ------------------------------------------------------------------
+    # Animation / keyframe methods
+    # ------------------------------------------------------------------
+
+    def _toggle_timeline_dock(self, checked: bool):
+        self._timeline_dock.setVisible(checked)
+
+    def _add_keyframe(self):
+        """Capture the current viewport state as a keyframe."""
+        from .animation.keyframe import Keyframe
+        snap = self.openglwidget.camera.snapshot()
+        tl = self._animation_timeline
+        # Place at end of timeline + 1 second
+        t = tl.keyframes[-1].time + 1.0 if tl.keyframes else 0.0
+        data_frame = self.frame if self.frame_list else None
+        kf = Keyframe(time=t, camera=snap, data_frame=data_frame)
+        tl.add_keyframe(kf)
+        self._timeline_dock.refresh()
+        # Show the dock if hidden
+        if not self._timeline_dock.isVisible():
+            self._timeline_dock.show()
+            self.actionToggleTimeline.setChecked(True)
+
+    def _on_preview_tick(self, t: float):
+        """Apply interpolated camera state for preview at time t."""
+        tl = self._animation_timeline
+        if len(tl.keyframes) < 2:
+            return
+        self._keyframe_preview_active = True
+        # Stop the data-frame playback timer to avoid conflict
+        if self.playingState:
+            self.frame_timer.stop()
+            self.playingState = False
+            self.playPauseButton.setIcon(self.playIcon)
+        try:
+            snapshot, data_frame = tl.get_state_at_time(t)
+        except ValueError:
+            return
+        self.openglwidget.apply_camera_snapshot(snapshot)
+        if data_frame is not None and self.frame_list:
+            frame_idx = max(0, min(data_frame, len(self.frame_list) - 1))
+            if frame_idx != self.frame:
+                self.update_frame(frame_idx)
+
+    def _on_preview_stopped(self):
+        self._keyframe_preview_active = False
+
+    def _open_render_dialog(self):
+        """Open the render animation settings dialog."""
+        from .animation.render_dialog import RenderAnimationDialog
+        if len(self._animation_timeline.keyframes) < 2:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                "No Animation",
+                "Add at least 2 keyframes before rendering.\n"
+                "Use Animation → Add Keyframe Here (K) to capture the current view.",
+            )
+            return
+        dlg = RenderAnimationDialog(
+            timeline=self._animation_timeline,
+            viewport_width=self.openglwidget.width(),
+            viewport_height=self.openglwidget.height(),
+            parent=self,
+        )
+        dlg.renderStarted.connect(self._on_render_started)
+        dlg.exec()
+
+    def _on_render_started(self, worker):
+        """Bridge: connect render worker's frameRequested to the main-thread render slot."""
+        self._render_worker = worker
+        worker.frameRequested.connect(self._on_render_frame_requested)
+
+    def _on_render_frame_requested(self, frame_idx: int, snapshot, data_frame):
+        """Main-thread slot: render one frame and return the QImage to the worker."""
+        self.openglwidget.apply_camera_snapshot(snapshot)
+        if data_frame is not None and self.frame_list:
+            frame_idx_clamped = max(0, min(data_frame, len(self.frame_list) - 1))
+            self.update_frame(frame_idx_clamped)
+        img = self.openglwidget.render_animation_frame()
+        if self._render_worker is not None:
+            self._render_worker.frame_ready(img)
+
+    def _save_animation(self):
+        """Save the current animation timeline to a JSON file."""
+        import json
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Animation", "animation.json", "Animation (*.json)"
+        )
+        if not path:
+            return
+        try:
+            with open(path, "w") as f:
+                json.dump(self._animation_timeline.to_dict(), f, indent=2)
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Save Error", str(exc))
+
+    def _load_animation(self):
+        """Load an animation timeline from a JSON file."""
+        import json
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load Animation", "", "Animation (*.json)"
+        )
+        if not path:
+            return
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            self._animation_timeline = AnimationTimeline.from_dict(data)
+            self._timeline_dock.set_timeline(self._animation_timeline)
+            self._timeline_dock.show()
+            self.actionToggleTimeline.setChecked(True)
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Load Error", str(exc))
 
     def close_opengl_widget(self):
         if self.current_viewer:
