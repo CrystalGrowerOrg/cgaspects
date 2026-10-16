@@ -172,12 +172,90 @@ class ClusterAnalysisDialog(QDialog):
         )
         radial_layout.addRow("Source:", self.radial_source_combo)
 
+        self.a_length_spin = QDoubleSpinBox()
+        self.a_length_spin.setRange(0.0, 1000.0)
+        self.a_length_spin.setSingleStep(0.1)
+        self.a_length_spin.setDecimals(4)
+        self.a_length_spin.setSuffix(" Å")
+        self.a_length_spin.setSpecialValueText("Not set")
+        self.a_length_spin.setToolTip(
+            "Lattice a-axis length in Å. XYZ coordinates are in units of a, so radial "
+            "distances, density, S₂ voxel / max lag / lags and ξ are reported in nm "
+            "(XYZ × a / 10). Filled from the structure file or Set Lattice Parameters.\n"
+            "Checkpoint source always reports nm from its cell."
+        )
+        radial_layout.addRow("a-axis length:", self.a_length_spin)
+
+        self._a_length_warning = QLabel(
+            "⚠️ No a-axis length: radial and S₂ lengths stay in XYZ units, not nm. "
+            "Load a structure file, set lattice parameters, or enter a here."
+        )
+        self._a_length_warning.setWordWrap(True)
+        self._a_length_warning.setStyleSheet(
+            "QLabel { background-color: #fff3cd; color: #856404; "
+            "border: 1px solid #ffc107; border-radius: 4px; padding: 4px; }"
+        )
+        radial_layout.addRow(self._a_length_warning)
+
         self.radial_middle_checkbox = QCheckBox("Include interior (middle) cells")
         self.radial_middle_checkbox.setToolTip(
             "Checkpoint source only: expand the full grid (edges + interior) rather "
             "than just the surface strip-edge cells. Slower and much larger."
         )
         radial_layout.addRow("", self.radial_middle_checkbox)
+
+        self.s2_checkbox = QCheckBox("Two-point correlation S₂ (porosity)")
+        self.s2_checkbox.setToolTip(
+            "XYZ source only: voxelise the points and compute the solid-phase two-point "
+            "correlation per radial shell. Adds s2_<definition>_porosity and "
+            "s2_<definition>_corr_length to radial_analysis.csv and writes the full "
+            "curves to two_point_correlation.csv."
+        )
+        radial_layout.addRow("", self.s2_checkbox)
+
+        self.s2_pore_combo = QComboBox()
+        self.s2_pore_combo.addItem("Enclosed", "enclosed")
+        self.s2_pore_combo.addItem("Open", "open")
+        self.s2_pore_combo.addItem("Both", "both")
+        self.s2_pore_combo.setToolTip(
+            "Enclosed: pores are voids sealed off by solid; anything connected to the "
+            "outside is excluded.\n"
+            "Open: pores are voids connected to the outside but inside the crystal "
+            "envelope; sealed voids count as solid.\n"
+            "Both: report both sets of columns. Enclosed + open ≈ total porosity."
+        )
+        radial_layout.addRow("S₂ pore definition:", self.s2_pore_combo)
+
+        self.s2_voxel_spin = QDoubleSpinBox()
+        self.s2_voxel_spin.setRange(0.0, 100.0)
+        self.s2_voxel_spin.setSingleStep(0.25)
+        self.s2_voxel_spin.setDecimals(2)
+        self.s2_voxel_spin.setSpecialValueText("Auto")
+        self.s2_voxel_spin.setToolTip(
+            "Voxel edge in nm (XYZ units if no a-axis length). Auto = 1.5× the median "
+            "nearest-neighbour "
+            "spacing. Pores smaller than one voxel are not resolved."
+        )
+        radial_layout.addRow("S₂ voxel size:", self.s2_voxel_spin)
+
+        self.s2_max_lag_spin = QDoubleSpinBox()
+        self.s2_max_lag_spin.setRange(0.0, 1000.0)
+        self.s2_max_lag_spin.setSingleStep(5.0)
+        self.s2_max_lag_spin.setDecimals(1)
+        self.s2_max_lag_spin.setSpecialValueText("Auto")
+        self.s2_max_lag_spin.setToolTip(
+            "Largest separation r for S₂(r), in nm (XYZ units if no a-axis length). "
+            "Auto = 20 voxels."
+        )
+        radial_layout.addRow("S₂ max lag:", self.s2_max_lag_spin)
+
+        self.s2_export_checkbox = QCheckBox("Export S₂ voxels (XYZ)")
+        self.s2_export_checkbox.setToolTip(
+            "Write <file>_s2_voxels.XYZ with every voxel inside the crystal envelope, "
+            "classed in the type column: 1 solid, 2 enclosed pore, 3 open pore (connected "
+            "to the outside). Voids outside the envelope are not written."
+        )
+        radial_layout.addRow("", self.s2_export_checkbox)
 
         radial_group.setLayout(radial_layout)
         layout.addWidget(radial_group)
@@ -239,6 +317,8 @@ class ClusterAnalysisDialog(QDialog):
         self._show_data_btn.clicked.connect(self.showDataRequested)
         self._close_btn.clicked.connect(self.hide)
         self._scope_current.toggled.connect(self._update_scope_label)
+        self.a_length_spin.valueChanged.connect(self._update_a_length_warning)
+        self._update_a_length_warning()
 
     # ------------------------------------------------------------------
     # Public API for mainwindow to populate context
@@ -248,6 +328,10 @@ class ClusterAnalysisDialog(QDialog):
         self._current_path = current_path
         self._all_paths = list(all_paths)
         self._update_scope_label()
+
+    def set_a_length(self, a_length: float):
+        """Pre-fill the a-axis length (Å) from the loaded crystallography."""
+        self.a_length_spin.setValue(a_length)
 
     def update_analysis_status(self, labels_cache: dict, coord_cache: dict, all_paths: list[Path]):
         """Refresh the status label to show how many files have cached results."""
@@ -279,6 +363,9 @@ class ClusterAnalysisDialog(QDialog):
             self._scope_file_label.setText(f"→ {len(self._all_paths)} files")
         else:
             self._scope_file_label.setText("")
+
+    def _update_a_length_warning(self):
+        self._a_length_warning.setVisible(self.a_length_spin.value() == 0.0)
 
     def _on_ratios_only_toggled(self, checked: bool):
         self._params_group.setEnabled(not checked)
@@ -330,4 +417,10 @@ class ClusterAnalysisDialog(QDialog):
             radial_bins=self.radial_bins_spin.value(),
             radial_source=radial_source,
             radial_include_middle=self.radial_middle_checkbox.isChecked(),
+            radial_s2=self.s2_checkbox.isChecked(),
+            s2_voxel=self.s2_voxel_spin.value(),
+            s2_max_lag=self.s2_max_lag_spin.value(),
+            s2_export_voxels=self.s2_export_checkbox.isChecked(),
+            s2_pore_definition=self.s2_pore_combo.currentData(),
+            a_length=self.a_length_spin.value(),
         )

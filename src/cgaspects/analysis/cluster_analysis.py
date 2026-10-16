@@ -213,7 +213,7 @@ def radial_profile(
     """Radial profile of point density and site-metadata proportions.
 
     Points are binned into ``nbins`` shells by distance from *origin* (default
-    (0, 0, 0), the CrystoGen nucleation seed). Coordination number and
+    (0, 0, 0)). Coordination number and
     energy are looked up per point from the site-analysis metadata maps using
     the point's site number — the same mapping the checkpoint viewer uses to
     colour by coordination/energy.
@@ -297,6 +297,214 @@ def radial_profile(
     add_metric("Coordination", "CN_mean", lambda v: f"CN{v:g}")
     add_metric("Energy", "energy_mean", lambda v: f"energy_{v:g}_frac")
     return df
+
+
+def _auto_voxel(coords: np.ndarray, sample: int = 20000) -> float:
+    """Default S₂ voxel: 1.5× the median nearest-neighbour spacing.
+
+    Large enough that a voxel in dense bulk always holds at least one point, so
+    empty voxels mark real gaps rather than lattice sampling.
+    """
+    rng = np.random.default_rng(seed=42)
+    idx = rng.choice(len(coords), size=min(sample, len(coords)), replace=False)
+    dist, _ = KDTree(coords).query(coords[idx], k=2, workers=-1)
+    return 1.5 * float(np.median(dist[:, 1]))
+
+
+def xyz_length_scale(a_length: float) -> tuple[float, str]:
+    """(factor, unit) turning CrystoGen XYZ distances into real lengths.
+
+    XYZ coordinates are in units of the lattice a-axis, so with ``a_length``
+    in Å one XYZ unit is a/10 nm. Without an a-length (0) lengths stay in XYZ
+    units.
+    """
+    if a_length > 0:
+        return a_length / 10.0, "nm"
+    return 1.0, "XYZ units"
+
+
+VOXEL_SOLID, VOXEL_ENCLOSED, VOXEL_OPEN = 1, 2, 3
+
+# Pore definitions for S₂ and how each maps onto the voxel classes:
+#   enclosed — pores are voids sealed off by solid. Region = solid + sealed
+#              voids; anything connected to the outside is excluded.
+#   open     — pores are voids connected to the outside but inside the closed
+#              envelope (gaps the closing bridges, surface pits). Region = the
+#              envelope; sealed voids count as solid so nothing is double counted.
+PORE_DEFINITIONS = ("enclosed", "open")
+
+
+def _write_voxel_xyz(
+    path: Path,
+    solid: np.ndarray,
+    filled: np.ndarray,
+    envelope: np.ndarray,
+    shell: np.ndarray,
+    axes: list[np.ndarray],
+    voxel: float,
+) -> None:
+    """Write the S₂ voxel classification as a CrystoGen-style XYZ.
+
+    One row per voxel inside the envelope, at the voxel centre:
+    ``class 1 1 x y z shell class``. Class (column 1, repeated in column 8):
+
+    1 solid     — holds at least one point
+    2 enclosed  — empty and sealed off from the outside by solid
+    3 open      — empty, inside the envelope, but face-connected to the
+                  outside through other empty voxels
+
+    Empty voxels outside the envelope are ignored by S₂ and not written.
+    """
+    cls = np.zeros(solid.shape, dtype=np.int8)
+    cls[envelope & ~filled] = VOXEL_OPEN
+    cls[filled & ~solid] = VOXEL_ENCLOSED
+    cls[solid] = VOXEL_SOLID
+
+    ijk = np.argwhere(cls)
+    c = cls[ijk[:, 0], ijk[:, 1], ijk[:, 2]]
+    rows = np.column_stack(
+        [
+            c,
+            np.ones(len(c)),
+            np.ones(len(c)),
+            axes[0][ijk[:, 0]],
+            axes[1][ijk[:, 1]],
+            axes[2][ijk[:, 2]],
+            shell[ijk[:, 0], ijk[:, 1], ijk[:, 2]],
+            c,
+        ]
+    )
+    counts = {k: int((c == k).sum()) for k in (VOXEL_SOLID, VOXEL_ENCLOSED, VOXEL_OPEN)}
+    header = (
+        f"{len(rows)}\n"
+        f" S2 voxels // 1 // voxel {voxel:.4f} // 1 solid {counts[1]}, "
+        f"2 enclosed {counts[2]}, 3 open {counts[3]}"
+    )
+    np.savetxt(
+        path, rows, header=header, comments="",
+        fmt=["%4d", "%4d", "%4d", "%9.3f", "%9.3f", "%9.3f", "%6d", "%4d"],
+    )
+    logger.info(
+        "S₂ voxels written to %s (solid %d, enclosed %d, open %d)",
+        path, counts[1], counts[2], counts[3],
+    )
+
+
+def two_point_profile(
+    coords: np.ndarray,
+    edges: np.ndarray,
+    voxel: float,
+    max_lag: float,
+    definitions: tuple[str, ...] = PORE_DEFINITIONS,
+    voxel_xyz: Path | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Shell-resolved two-point correlation S₂(r) for enclosed and/or open pores.
+
+    The points are voxelised into a solid grid. Hole filling (no closing) gives
+    the solid plus its sealed voids; closing then hole filling gives the crystal
+    envelope. Each pore definition (see ``PORE_DEFINITIONS``) picks an
+    indicator I and region R from those. For each radial shell (``edges``, from
+    the origin) with mask M = R ∩ shell,
+
+        S₂(r) = Σ I·M · I'·M'  /  Σ M·M'
+
+    over all voxel pairs at separation |r|, both FFT autocorrelations. The
+    masked normalisation removes the bias from the thin, curved shell window.
+
+    Returns ``(summary, curves)``: ``summary`` has one row per shell and, per
+    definition, ``s2_<def>_porosity`` = 1 − S₂(0) and ``s2_<def>_corr_length``,
+    where the normalised correlation (S₂ − φ²)/(φ − φ²) first drops below 1/e;
+    ``curves`` is long format with one row per (definition, shell, lag).
+
+    If ``voxel_xyz`` is given, the voxels inside the envelope are written there
+    as a CrystoGen-style XYZ (see ``_write_voxel_xyz``) to inspect what S₂ saw.
+    """
+    from scipy import ndimage
+    from scipy.fft import irfftn, next_fast_len, rfftn
+
+    nbins = len(edges) - 1
+    lag_vox = max(1, int(np.ceil(max_lag / voxel)))
+
+    # Solid grid, padded by lag_vox so circular correlation never wraps
+    # within the lags we keep (and the closing has room at the border).
+    lo = coords.min(axis=0)
+    idx = np.floor((coords - lo) / voxel).astype(np.int64) + lag_vox
+    shape = tuple(idx.max(axis=0) + 1 + lag_vox)
+    solid = np.zeros(shape, dtype=bool)
+    solid[idx[:, 0], idx[:, 1], idx[:, 2]] = True
+    filled = ndimage.binary_fill_holes(solid)
+    envelope = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2))
+
+    # Shell index of each voxel centre (distance from the origin).
+    axes = [lo[d] + (np.arange(shape[d]) - lag_vox + 0.5) * voxel for d in range(3)]
+    r = np.sqrt(
+        axes[0][:, None, None] ** 2 + axes[1][None, :, None] ** 2 + axes[2][None, None, :] ** 2
+    )
+    shell = np.clip(np.digitize(r, edges) - 1, 0, nbins - 1).astype(np.int16)
+    del r
+
+    if voxel_xyz is not None:
+        _write_voxel_xyz(voxel_xyz, solid, filled, envelope, shell, axes, voxel)
+
+    # (indicator, region) per pore definition.
+    phases = {"enclosed": (solid, filled), "open": (filled, envelope)}
+
+    # Lags within the kept cube, binned by |lag| in whole voxels.
+    k = np.r_[0 : lag_vox + 1, -lag_vox:0]
+    kd = np.sqrt(k[:, None, None] ** 2 + k[None, :, None] ** 2 + k[None, None, :] ** 2)
+    lag_bin = np.rint(kd).astype(int)
+    keep = kd <= lag_vox
+    lag_bin, n_lags = lag_bin[keep], lag_vox + 1
+    fshape = [next_fast_len(n, real=True) for n in shape]
+    sub = np.ix_(k % fshape[0], k % fshape[1], k % fshape[2])
+
+    def autocorr(field: np.ndarray) -> np.ndarray:
+        f = rfftn(field, fshape, workers=-1)
+        corr = irfftn(f.real ** 2 + f.imag ** 2, fshape, workers=-1)
+        return np.bincount(lag_bin, weights=corr[sub][keep], minlength=n_lags)
+
+    lags = np.arange(n_lags) * voxel
+    summary = pd.DataFrame(index=range(nbins))
+    curve_frames = []
+    for name in definitions:
+        indicator, region = phases[name]
+        porosity = np.full(nbins, np.nan)
+        corr_length = np.full(nbins, np.nan)
+        for s in range(nbins):
+            mask = region & (shell == s)
+            if not mask.any():
+                continue
+            den = autocorr(mask.astype(np.float32))
+            num = autocorr((mask & indicator).astype(np.float32))
+            s2 = np.divide(num, den, out=np.full(n_lags, np.nan), where=den > 0.5)
+
+            phi = s2[0]
+            norm = (s2 - phi ** 2) / (phi - phi ** 2) if 0.0 < phi < 1.0 else np.full(n_lags, np.nan)
+            below = np.flatnonzero(norm < np.exp(-1))
+            if len(below) and below[0] > 0:
+                j = below[0]
+                # Linear interpolation between the lag bins straddling 1/e.
+                t = (norm[j - 1] - np.exp(-1)) / (norm[j - 1] - norm[j])
+                corr_length[s] = lags[j - 1] + t * voxel
+            porosity[s] = 1.0 - phi
+            curve_frames.append(
+                pd.DataFrame(
+                    {
+                        "pore_definition": name,
+                        "r_lo": edges[s],
+                        "r_mid": 0.5 * (edges[s] + edges[s + 1]),
+                        "r_hi": edges[s + 1],
+                        "lag": lags,
+                        "S2": s2,
+                        "S2_norm": norm,
+                    }
+                )
+            )
+        summary[f"s2_{name}_porosity"] = porosity
+        summary[f"s2_{name}_corr_length"] = corr_length
+
+    curves = pd.concat(curve_frames, ignore_index=True) if curve_frames else pd.DataFrame()
+    return summary, curves
 
 
 def _write_radial_csv(radial_frames: list[pd.DataFrame], output_folder: Path) -> Path:
@@ -425,8 +633,10 @@ def _run_checkpoint_radial(
             logger.warning("No occupied cells in %s", path.name)
             continue
 
-        prof = radial_profile(coords, site_numbers, site_metadata, options.radial_bins)
+        # frac_to_cart gives Å from the real cell; report in nm like the XYZ path.
+        prof = radial_profile(coords / 10.0, site_numbers, site_metadata, options.radial_bins)
         prof.insert(0, "Simulation Number", i + 1)
+        prof.insert(1, "length_unit", "nm")
         radial_frames.append(prof)
 
         if signals is not None:
@@ -478,7 +688,11 @@ def run_cluster_analysis(
     labels_cache: dict[str, np.ndarray] = {}
     coord_cache: dict[str, np.ndarray] = {}
     radial_frames: list[pd.DataFrame] = []
+    s2_frames: list[pd.DataFrame] = []
     total = len(xyz_files)
+    length_scale, length_unit = xyz_length_scale(options.a_length)
+    if radial and length_unit != "nm":
+        logger.warning("No a-axis length set: radial/S₂ lengths are in XYZ units, not nm.")
 
     for i, xyz_path in enumerate(xyz_files):
         if signals is not None and signals.cancel_flag.is_set():
@@ -525,13 +739,44 @@ def run_cluster_analysis(
 
         # Radial profile from the XYZ point cloud: site numbers live in raw col 6,
         # coordination/energy come from the site-analysis metadata maps.
-        if radial and not options.ratios_only:
+        # Radial lengths (r, density, voxel, lag, ξ) are in nm when the a-axis
+        # length is known, otherwise in XYZ units.
+        if radial:
             raw = frame.raw
             site_numbers = raw[:, 6] if raw.ndim == 2 and raw.shape[1] > 6 else None
-            prof = radial_profile(
-                frame.coords, site_numbers, site_metadata, options.radial_bins
-            )
+            coords = frame.coords * length_scale
+            prof = radial_profile(coords, site_numbers, site_metadata, options.radial_bins)
             prof.insert(0, "Simulation Number", i + 1)
+            prof.insert(1, "length_unit", length_unit)
+
+            if options.radial_s2:
+                if signals is not None:
+                    signals.message.emit(f"Two-point correlation {i + 1}/{total}: {xyz_path.name}")
+                voxel = options.s2_voxel or _auto_voxel(coords)
+                max_lag = options.s2_max_lag or 20 * voxel
+                edges = np.append(prof["r_lo"].to_numpy(), prof["r_hi"].iloc[-1])
+                voxel_xyz = (
+                    output_folder / f"{xyz_path.stem}_s2_voxels.XYZ"
+                    if options.s2_export_voxels else None
+                )
+                definitions = (
+                    PORE_DEFINITIONS if options.s2_pore_definition == "both"
+                    else (options.s2_pore_definition,)
+                )
+                summary, curves = two_point_profile(
+                    coords, edges, voxel, max_lag,
+                    definitions=definitions, voxel_xyz=voxel_xyz,
+                )
+                prof = pd.concat([prof, summary], axis=1)
+                if not curves.empty:
+                    curves.insert(0, "Simulation Number", i + 1)
+                    curves.insert(1, "length_unit", length_unit)
+                    s2_frames.append(curves)
+                logger.info(
+                    "S₂ for %s: voxel %.3f, max lag %.3f %s",
+                    xyz_path.name, voxel, max_lag, length_unit,
+                )
+
             radial_frames.append(prof)
 
         if signals is not None:
@@ -543,6 +788,10 @@ def run_cluster_analysis(
 
     if radial and radial_frames:
         _write_radial_csv(radial_frames, output_folder)
+    if s2_frames:
+        s2_csv = output_folder / "two_point_correlation.csv"
+        pd.concat(s2_frames, ignore_index=True).to_csv(s2_csv, index=False)
+        logger.info("Two-point correlation CSV saved: %s", s2_csv)
 
     if options.files_to_analyse is not None:
         if signals is not None:
@@ -655,6 +904,8 @@ class ClusterAnalysis:
             logger.warning("No XYZ files set for cluster analysis.")
             return
         self.dialog.set_file_context(self.current_file, self.xyz_files)
+        if self.crystallography is not None and self.crystallography.cell is not None:
+            self.dialog.set_a_length(float(self.crystallography.cell.a))
         self.dialog.update_analysis_status(self.labels_cache, self.coord_cache, self.xyz_files)
         self.dialog.show()
         self.dialog.raise_()

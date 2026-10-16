@@ -57,6 +57,6 @@ plot_obj_tuple = namedtuple(
 
 cluster_options_tuple = namedtuple(
     "ClusterOptions",
-    ["eps", "min_samples", "frame_index", "scale", "downsample", "ratios_only", "colour_mode", "colour_cmap", "files_to_analyse", "radial", "radial_bins", "radial_source", "radial_include_middle"],
-    defaults=[False, "none", "plasma", None, False, 30, "xyz", False],
+    ["eps", "min_samples", "frame_index", "scale", "downsample", "ratios_only", "colour_mode", "colour_cmap", "files_to_analyse", "radial", "radial_bins", "radial_source", "radial_include_middle", "radial_s2", "s2_voxel", "s2_max_lag", "s2_export_voxels", "s2_pore_definition", "a_length"],
+    defaults=[False, "none", "plasma", None, False, 30, "xyz", False, False, 0.0, 0.0, False, "enclosed", 0.0],
 )
